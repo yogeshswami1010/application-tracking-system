@@ -44,6 +44,7 @@ use Maatwebsite\Excel\Excel as ExcelExcel;
 use Maatwebsite\Excel\Facades\Excel;
 use Yajra\DataTables\Facades\DataTables;
 
+
 class AdminJobApplicationController extends AdminBaseController
 {
     use ZoomSettings;
@@ -62,69 +63,78 @@ class AdminJobApplicationController extends AdminBaseController
      * @return Response
      */
     public function index(Request $request)
-    {
-        abort_if(! $this->user->cans('view_job_applications'), 403);
+{
+    abort_if(! $this->user->cans('view_job_applications'), 403);
 
-        $date = Carbon::now();
-        $this->type = ($request->has('type')) ? 'dash' : '';
+    $date = Carbon::now();
 
-        $startDate = $date->subDays(30)->format('Y-m-d');
-        $endDate = Carbon::now()->format('Y-m-d');
-        $this->jobs = Job::all();
-        $this->companies = Company::all();
-        $this->skills = Skill::all();
-        $this->questions = Question::all();
-        $boardColumns = ApplicationStatus::withCount(['applications as application_count' => function ($q) use ($request) {
+    $this->type = ($request->has('type')) ? 'dash' : '';
 
-            if ($request->startDate !== null && $request->startDate != 'null' && $request->startDate != '') {
-                $q = $q->where(DB::raw('DATE(job_applications.`created_at`)'), '>=', $request->startDate);
-            } else {
+    $startDate = $date->copy()->subDays(30)->format('Y-m-d');
+    $endDate = Carbon::now()->format('Y-m-d');
+
+    $this->jobs = Job::all();
+    $this->companies = Company::all();
+    $this->skills = Skill::all();
+    $this->questions = Question::all();
+
+    $boardColumns = ApplicationStatus::withCount([
+        'applications as application_count' => function ($q) use ($request) {
+
+            if ($request->startDate) {
+                $q->whereDate('job_applications.created_at', '>=', $request->startDate);
             }
 
-            if ($request->endDate !== null && $request->endDate != 'null' && $request->endDate != '') {
-                $q = $q->where(DB::raw('DATE(job_applications.`created_at`)'), '<=', $request->endDate);
-            } else {
+            if ($request->endDate) {
+                $q->whereDate('job_applications.created_at', '<=', $request->endDate);
             }
 
-            // Filter By jobs
+            // Filter By Job
             if ($request->jobs != 'all' && $request->jobs != '') {
-                $q = $q->where('job_applications.job_id', $request->jobs);
+                $q->where('job_applications.job_id', $request->jobs);
             }
 
-            // Filter by EndDate
-            if ($request->search != null && $request->search != '') {
-                $q = $q->where('full_name', 'LIKE', '%'.$request->search.'%')
-                    ->orWhere('email', 'LIKE', '%'.$request->search.'%')
-                    ->orWhere('phone', 'LIKE', '%'.$request->search.'%');
+            // Search
+            if ($request->search) {
+                $q->where(function ($query) use ($request) {
+                    $query->where('full_name', 'LIKE', '%' . $request->search . '%')
+                        ->orWhere('email', 'LIKE', '%' . $request->search . '%')
+                        ->orWhere('phone', 'LIKE', '%' . $request->search . '%');
+                });
             }
 
-            // Filter  by Location
+            // Location
             if ($request->location != 'all' && $request->location != '') {
-                $q->where('job_applications.location_id', '=', $request->location);
+                $q->where('job_applications.location_id', $request->location);
             }
 
-            // Filter  by question
+            // Questions
             if ($request->questions != 'all' && $request->questions != '') {
 
-                $q->join('job_questions', 'job_questions.job_id', 'job_applications.job_id')
-                    ->where('job_questions.question_id', '=', $request->questions);
+                $q->join('job_questions', 'job_questions.job_id', '=', 'job_applications.job_id')
+                    ->where('job_questions.question_id', $request->questions);
             }
 
+            // Question Answer
             if ($request->question_value != '' && $request->questions != 'all' && $request->questions != '') {
 
-                $q->join('job_application_answers', 'job_application_answers.job_application_id', 'job_applications.id')
+                $q->join('job_application_answers', 'job_application_answers.job_application_id', '=', 'job_applications.id')
                     ->where('job_application_answers.question_id', $request->questions)
-                    ->where('job_application_answers.answer', 'LIKE', '%'.$request->question_value.'%');
-            }
-            // Filter  by company
-            if ($request->company != 'all' && $request->company != '') {
-                $q = $q->join('jobs', 'jobs.id', 'job_applications.job_id')
-                    ->where('jobs.company_id', '=', $request->company);
+                    ->where('job_application_answers.answer', 'LIKE', '%' . $request->question_value . '%');
             }
 
-            // Filter by skills
+            // Company
+            if ($request->company != 'all' && $request->company != '') {
+
+                $q->join('jobs', 'jobs.id', '=', 'job_applications.job_id')
+                    ->where('jobs.company_id', $request->company);
+            }
+
+            // Skills
             if ($request->skill != 'all' && $request->skill != '') {
+
                 foreach (explode(',', $request->skill) as $key => $skill) {
+
                     if ($key == 0) {
                         $q->whereJsonContains('skills', $skill);
                     } else {
@@ -132,107 +142,159 @@ class AdminJobApplicationController extends AdminBaseController
                     }
                 }
             }
-        }])
-            ->with(['applications' => function ($r) use ($request) {
-                $r = $r->select('job_applications.*');
-                if ($request->startDate !== null && $request->startDate != 'null' && $request->startDate != '') {
-                    $r = $r->where(DB::raw('DATE(job_applications.`created_at`)'), '>=', $request->startDate);
-                } else {
-                }
+        }
+    ])
+    ->with([
+        'applications' => function ($r) use ($request) {
 
-                if ($request->endDate !== null && $request->endDate != 'null' && $request->endDate != '') {
-                    $r = $r->where(DB::raw('DATE(job_applications.`created_at`)'), '<=', $request->endDate);
-                } else {
-                }
+            $r->select('job_applications.*');
 
-                // Filter By jobs
-                if ($request->jobs != 'all' && $request->jobs != '') {
-                    $r = $r->where('job_applications.job_id', $request->jobs);
-                }
+            if ($request->startDate) {
+                $r->whereDate('job_applications.created_at', '>=', $request->startDate);
+            }
 
-                // Filter by EndDate
-                if ($request->search != null && $request->search != '') {
-                    $r = $r->where('full_name', 'LIKE', '%'.$request->search.'%')
-                        ->orWhere('email', 'LIKE', '%'.$request->search.'%')
-                        ->orWhere('phone', 'LIKE', '%'.$request->search.'%');
-                }
+            if ($request->endDate) {
+                $r->whereDate('job_applications.created_at', '<=', $request->endDate);
+            }
 
-                // Filter By company
-                if ($request->company != 'all' && $request->company != '') {
-                    $r = $r->join('jobs', 'jobs.id', 'job_applications.job_id')
-                        ->where('jobs.company_id', '=', $request->company);
-                }
+            // Job Filter
+            if ($request->jobs != 'all' && $request->jobs != '') {
+                $r->where('job_applications.job_id', $request->jobs);
+            }
 
-                // Filter  by Location
-                if ($request->location != 'all' && $request->location != '') {
-                    $r->where('job_applications.location_id', '=', $request->location);
-                }
+            // Search
+            if ($request->search) {
 
-                if ($request->questions != 'all' && $request->questions != '') {
+                $r->where(function ($query) use ($request) {
+                    $query->where('full_name', 'LIKE', '%' . $request->search . '%')
+                        ->orWhere('email', 'LIKE', '%' . $request->search . '%')
+                        ->orWhere('phone', 'LIKE', '%' . $request->search . '%');
+                });
+            }
 
-                    $r->join('job_questions', 'job_questions.job_id', 'job_applications.job_id')
-                        ->where('job_questions.question_id', '=', $request->questions);
-                }
+            // Company
+            if ($request->company != 'all' && $request->company != '') {
 
-                if ($request->question_value != '' && $request->questions != 'all' && $request->questions != '') {
+                $r->join('jobs', 'jobs.id', '=', 'job_applications.job_id')
+                    ->where('jobs.company_id', $request->company);
+            }
 
-                    $r->join('job_application_answers', 'job_application_answers.job_application_id', 'job_applications.id')
-                        ->where('job_application_answers.question_id', $request->questions)
-                        ->where('job_application_answers.answer', 'LIKE', '%'.$request->question_value.'%');
-                }
+            // Location
+            if ($request->location != 'all' && $request->location != '') {
+                $r->where('job_applications.location_id', $request->location);
+            }
 
-                // Filter by skills
-                if ($request->skill != 'all' && $request->skill != '') {
-                    foreach (explode(',', $request->skill) as $key => $skill) {
-                        if ($key == 0) {
-                            $r->whereJsonContains('skills', $skill);
-                        } else {
-                            $r->orWhereJsonContains('skills', $skill);
-                        }
+            // Questions
+            if ($request->questions != 'all' && $request->questions != '') {
+
+                $r->join('job_questions', 'job_questions.job_id', '=', 'job_applications.job_id')
+                    ->where('job_questions.question_id', $request->questions);
+            }
+
+            // Question Answer
+            if ($request->question_value != '' && $request->questions != 'all' && $request->questions != '') {
+
+                $r->join('job_application_answers', 'job_application_answers.job_application_id', '=', 'job_applications.id')
+                    ->where('job_application_answers.question_id', $request->questions)
+                    ->where('job_application_answers.answer', 'LIKE', '%' . $request->question_value . '%');
+            }
+
+            // Skills
+            if ($request->skill != 'all' && $request->skill != '') {
+
+                foreach (explode(',', $request->skill) as $key => $skill) {
+
+                    if ($key == 0) {
+                        $r->whereJsonContains('skills', $skill);
+                    } else {
+                        $r->orWhereJsonContains('skills', $skill);
                     }
                 }
-                $r->with(['schedule', 'job.category']);
-            }, 'applications.schedule']);
+            }
 
-        $this->boardColumns = $boardColumns->orderBy('position')->get()->map(function ($query) {
-            $query->setRelation('applications', $query->applications->take($this->perPage));
+            $r->with([
+                'schedule',
+                'job.category'
+            ]);
+        },
+        'applications.schedule'
+    ]);
+
+    $this->boardColumns = $boardColumns
+        ->orderBy('position')
+        ->get()
+        ->map(function ($query) {
+
+            $query->setRelation(
+                'applications',
+                $query->applications->take($this->perPage)
+            );
 
             return $query;
         });
 
-        $boardStracture = [];
+    $boardStracture = [];
 
-        foreach ($this->boardColumns as $key => $column) {
-            $boardStracture[$column->id] = [];
+    foreach ($this->boardColumns as $column) {
 
-            foreach ($column->applications as $application) {
-                $boardStracture[$column->id][] = $application->id;
-            }
+        $boardStracture[$column->id] = [];
+
+        foreach ($column->applications as $application) {
+
+            $boardStracture[$column->id][] = $application->id;
         }
-
-        $this->boardStracture = json_encode($boardStracture);
-        $this->currentDate = Carbon::now()->timestamp;
-        $this->locations = JobLocation::all();
-        $this->startDate = $startDate;
-        $this->endDate = $endDate;
-
-        if ($request->ajax()) {
-            $view = view('admin.job-applications.board-data', $this->data)->render();
-
-            return Reply::dataOnly(['view' => $view]);
-        }
-
-        $this->mailSetting = ApplicationSetting::select('id', 'mail_setting')->first();
-        $this->applicantsForAiCompare = JobApplication::query()
-            ->select('id', 'full_name', 'job_id')
-            ->with(['job:id,title'])
-            ->latest('id')
-            ->limit(300)
-            ->get();
-
-        return view('admin.job-applications.board', $this->data);
     }
 
+    $this->boardStracture = json_encode($boardStracture);
+
+    $this->currentDate = Carbon::now()->timestamp;
+
+    $this->locations = JobLocation::all();
+
+    $this->startDate = $startDate;
+
+    $this->endDate = $endDate;
+
+    // AJAX REQUEST
+    if ($request->ajax()) {
+
+        $view = view(
+            'admin.job-applications.board-data',
+            $this->data
+        )->render();
+
+        return Reply::dataOnly([
+            'view' => $view
+        ]);
+    }
+
+    $this->mailSetting = ApplicationSetting::select(
+        'id',
+        'mail_setting'
+    )->first();
+
+    $this->applicantsForAiCompare = JobApplication::query()
+        ->select('id', 'full_name', 'job_id')
+        ->with(['job:id,title'])
+        ->latest('id')
+        ->limit(300)
+        ->get();
+
+    // MAIN PAGE VIEW
+    return view(
+        'admin.job-applications.index',
+        $this->data
+    );
+}
+        public function changeStatus(Request $request, $id)
+        {
+            $application = JobApplication::findOrFail($id);
+
+            $application->status_id = $request->status_id;
+            $application->save();
+
+            return Reply::success('Application status updated successfully');
+        }
     public function create()
     {
         abort_if(! $this->user->cans('add_job_applications'), 403);
@@ -734,20 +796,48 @@ class AdminJobApplicationController extends AdminBaseController
 
         return Reply::success(__('messages.recordDeleted'));
     }
-
     public function show($id)
     {
-        $this->application = JobApplication::with(['schedule', 'notes', 'onboard', 'status', 'schedule.employee', 'schedule.comments.user', 'location'])->find($id);
-        $this->skills = Skill::select('id', 'name')->get();
+        abort_if(!user()->cans('view_job_applications'), 403);
 
+        $this->application = JobApplication::with([
+            'schedule',
+            'notes.user',
+            'onboard',
+            'status',
+            'job.category',
+            'schedule.employee.user',
+            'schedule.comments.user',
+            'location'
+        ])->findOrFail($id);
+
+        // Skills
+        $this->skills = Skill::select('id', 'name')->orderBy('name')->get();
+
+        // Answers
         $this->answers = JobApplicationAnswer::with(['question'])
             ->where('job_id', $this->application->job_id)
             ->where('job_application_id', $this->application->id)
             ->get();
 
+        // Board Columns for move application dropdown
+        $this->boardColumns = ApplicationStatus::orderBy('position')->get();
+
+        // Mail setting
+        $this->mailSetting = ApplicationSetting::select('id', 'mail_setting')->first();
+
+        // Zoom setting
+        $this->zoom_setting = ZoomSetting::first();
+
+        // Current user
+        $this->user = user();
+
         $view = view('admin.job-applications.show', $this->data)->render();
 
-        return Reply::dataOnly(['status' => 'success', 'view' => $view]);
+        return Reply::dataOnly([
+            'status' => 'success',
+            'view' => $view
+        ]);
     }
 
     public function updateIndex(Request $request)
