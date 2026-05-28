@@ -59,7 +59,33 @@
             <span class="text-[13px] font-semibold text-[#1A1E2E]">{{ $application->created_at->timezone($global->timezone)->format('d M, Y') }}</span>
         </div>
     </div>
+@if($user->cans('edit_job_applications'))
+<div class="mt-4">
+    <label class="block text-[11px] font-bold uppercase tracking-[0.08em] text-white/60 mb-2">
+        Move Application
+    </label>
 
+    <div class="flex gap-2">
+        <select id="move-status"
+                class="flex-1 rounded-[10px] border border-white/10 bg-white/10 px-3 py-2 text-[13px] font-semibold text-white outline-none backdrop-blur">
+            
+            <option value="">Select Status</option>
+
+            @foreach($boardColumns as $status)
+                <option value="{{ $status->id }}">
+                    {{ ucfirst($status->status) }}
+                </option>
+            @endforeach
+        </select>
+
+        <button type="button"
+                id="move-status-btn"
+                class="rounded-[10px] bg-white px-4 py-2 text-[13px] font-bold text-[#0F1F3D] transition hover:bg-[#F3F4F6]">
+            Move
+        </button>
+    </div>
+</div>
+@endif
     <div class="flex flex-col gap-2.5 border-b border-[#F0EEE9] bg-white px-5 py-4">
         <div class="flex flex-wrap gap-2" id="resume-{{ $application->id }}">
             @if ($application->resume_url)
@@ -536,7 +562,53 @@
             }
         });
     }
+$('#move-status-btn').on('click', function () {
 
+    let statusId = $('#move-status').val();
+
+    if (statusId == '') {
+        swal("Warning", "Please select a status", "warning");
+        return;
+    }
+
+    $.easyAjax({
+        url: "{{ route('admin.job-applications.updateIndex') }}",
+        type: 'POST',
+        data: {
+            '_token': '{{ csrf_token() }}',
+
+            boardColumnIds: [statusId],
+            applicationIds: ['{{ $application->id }}'],
+            prioritys: [1],
+
+            draggingTaskId: '{{ $application->id }}',
+            draggedTaskId: '{{ $application->id }}',
+
+            jobs: $('#jobs').val(),
+            search: $('#search').val()
+        },
+
+        success: function (response) {
+
+            if (response.status == 'success') {
+
+                if (window.raCloseRightSidebar) {
+                    window.raCloseRightSidebar();
+                }
+
+                loadData();
+
+                swal({
+                    title: "Success",
+                    text: "Application moved successfully",
+                    type: "success",
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            }
+        }
+    });
+});
     $('#add-note').click(function () {
         var url = "{{ route('admin.applicant-note.store') }}";
         var id = {{$application->id}};
