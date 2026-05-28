@@ -444,33 +444,25 @@
         });
 
         // Reset filters — suppress badge AJAX, restore original jobs list, then reload
-        $('#reset-filters').on('click', function () {
-            jaJobChangeEnabled = false;
+       $('#reset-filters').on('click', function () {
 
-            // Reset selects without re-triggering badge logic
+            // Reset UI
             $('#company').val('all').trigger('change');
             $('#location').val('all').trigger('change');
             $('#questions').val('all').trigger('change');
             $('#question-value').val('');
             $('#question_value').hide();
+
+            $('#search').val('');
+
+            // Reset jobs dropdown (important fix)
+            $('#jobs').val('all').trigger('change');
+
+            // Hide badge
             $('#ja-job-total-badge').removeClass('show');
+            $('#ja-job-total-count').text('0');
 
-            // Reload the original jobs list (all companies), then reset jobs select
-            $.ajax({
-                url: "{{ route('admin.job-applications.get-jobs') }}",
-                type: 'GET',
-                data: { companyId: 'all' },
-                success: function (data) {
-                    $('#jobs').select2('destroy').html(data.jobs).select2({ width: '100%' });
-                    jaJobChangeEnabled = true;
-                },
-                error: function () {
-                    // Fallback: just reset to all without reloading options
-                    $('#jobs').val('all').trigger('change');
-                    jaJobChangeEnabled = true;
-                }
-            });
-
+            // Reload board properly
             loadData();
         });
 
