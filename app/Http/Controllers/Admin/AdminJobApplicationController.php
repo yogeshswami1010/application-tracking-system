@@ -44,6 +44,7 @@ use Maatwebsite\Excel\Excel as ExcelExcel;
 use Maatwebsite\Excel\Facades\Excel;
 use Yajra\DataTables\Facades\DataTables;
 
+
 class AdminJobApplicationController extends AdminBaseController
 {
     use ZoomSettings;
@@ -230,9 +231,24 @@ class AdminJobApplicationController extends AdminBaseController
             ->limit(300)
             ->get();
 
-        return view('admin.job-applications.board', $this->data);
-    }
+        $boardColumns = ApplicationStatus::orderBy('position')->get();
 
+        return view('admin.job-applications.ajax.application-detail', [
+            'application' => $application,
+            'answers' => $answers,
+            'skills' => $skills,
+            'boardColumns' => $boardColumns,
+        ]);
+    }
+        public function changeStatus(Request $request, $id)
+        {
+            $application = JobApplication::findOrFail($id);
+
+            $application->status_id = $request->status_id;
+            $application->save();
+
+            return Reply::success('Application status updated successfully');
+        }
     public function create()
     {
         abort_if(! $this->user->cans('add_job_applications'), 403);

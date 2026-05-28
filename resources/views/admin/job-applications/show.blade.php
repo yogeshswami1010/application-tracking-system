@@ -60,30 +60,41 @@
         </div>
     </div>
 @if($user->cans('edit_job_applications'))
-<div class="mt-4">
-    <label class="block text-[11px] font-bold uppercase tracking-[0.08em] text-white/60 mb-2">
+<div class="bg-white rounded-2xl border border-[#F0EEE9] p-5 shadow-[0_1px_3px_rgba(15,31,61,0.04)] mx-4 mt-4">
+
+    <h3 class="text-lg font-bold text-gray-900 mb-4 pb-3 border-b border-[#F0EEE9]">
+        <i class="fa fa-exchange mr-2 text-blue-600"></i>
         Move Application
-    </label>
+    </h3>
 
-    <div class="flex gap-2">
-        <select id="move-status"
-                class="flex-1 rounded-[10px] border border-white/10 bg-white/10 px-3 py-2 text-[13px] font-semibold text-white outline-none backdrop-blur">
-            
-            <option value="">Select Status</option>
+    <div class="flex gap-3">
 
-            @foreach($boardColumns as $status)
-                <option value="{{ $status->id }}">
-                    {{ ucfirst($status->status) }}
+        <select id="change-status"
+            class="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+            @foreach($boardColumns as $column)
+
+                <option value="{{ $column->id }}"
+                    {{ $application->status_id == $column->id ? 'selected' : '' }}>
+
+                    {{ ucfirst($column->status) }}
+
                 </option>
+
             @endforeach
+
         </select>
 
         <button type="button"
-                id="move-status-btn"
-                class="rounded-[10px] bg-white px-4 py-2 text-[13px] font-bold text-[#0F1F3D] transition hover:bg-[#F3F4F6]">
-            Move
+            id="update-status-btn"
+            class="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+
+            Update
+
         </button>
+
     </div>
+
 </div>
 @endif
     <div class="flex flex-col gap-2.5 border-b border-[#F0EEE9] bg-white px-5 py-4">
@@ -523,7 +534,38 @@
             }
         });
     }
+$('#update-status-btn').on('click', function () {
 
+    let statusId = $('#change-status').val();
+
+    $.easyAjax({
+
+        url: "{{ route('admin.job-applications.change-status', $application->id) }}",
+
+        type: 'POST',
+
+        data: {
+            _token: '{{ csrf_token() }}',
+            status_id: statusId
+        },
+
+        success: function (response) {
+
+            if(response.status == 'success') {
+
+                if (window.raCloseRightSidebar) {
+                    window.raCloseRightSidebar();
+                }
+
+                loadData();
+
+            }
+
+        }
+
+    });
+
+});
     function archiveApplication(applicationId) {
         swal({
             title: "@lang('errors.areYouSure')",
