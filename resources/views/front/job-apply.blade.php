@@ -28,6 +28,7 @@
 
 <section class="fr-mini-hero relative px-6 pt-10 pb-12">
     <div class="max-w-6xl mx-auto relative z-10">
+        <h1> error is gone </h1>
         <nav class="fr-breadcrumb flex flex-wrap items-center mb-6">
             <a href="{{ route('jobs.jobOpenings') }}">@lang('modules.front.jobOpenings')</a>
             <span class="sep">›</span>
