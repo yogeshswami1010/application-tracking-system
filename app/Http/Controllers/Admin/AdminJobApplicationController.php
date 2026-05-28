@@ -231,13 +231,19 @@ class AdminJobApplicationController extends AdminBaseController
             ->limit(300)
             ->get();
 
+        $answers = JobApplicationAnswer::with('question')
+        ->where('job_application_id', $application->id)
+        ->get();
+
+        $skills = Skill::orderBy('name')->get();
+
         $boardColumns = ApplicationStatus::orderBy('position')->get();
 
         return view('admin.job-applications.ajax.application-detail', [
-            'application' => $application,
-            'answers' => $answers,
-            'skills' => $skills,
-            'boardColumns' => $boardColumns,
+            'application'   => $application,
+            'answers'       => $answers,
+            'skills'        => $skills,
+            'boardColumns'  => $boardColumns,
         ]);
     }
         public function changeStatus(Request $request, $id)
