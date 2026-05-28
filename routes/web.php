@@ -308,6 +308,3 @@ Route::name('jobs.')
     ->group(function () {
         Route::get('{slug}', [FrontJobsController::class, 'customPage'])->name('custom-page');
     });
-Route::post('job-applications/{id}/change-status',
-    [JobApplicationController::class, 'changeStatus']
-)->name('admin.job-applications.change-status');
