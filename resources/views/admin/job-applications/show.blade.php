@@ -39,7 +39,7 @@
     <div class="border-b border-[#F0EEE9] bg-white px-5">
         <div class="flex items-center justify-between border-b border-[#F0EEE9] py-3.5">
             <span class="text-[10.5px] font-bold uppercase tracking-[0.09em] text-[#B0B8C4]">@lang('modules.jobApplication.ratingLabel')</span>
-           @if(user()->cans('edit_job_applications'))
+           @if($user->cans('edit_job_applications'))
                 <div class="stars stars-example-fontawesome [&_.br-theme-fontawesome-stars]:leading-none">
                     <select id="example-fontawesome" name="rating" autocomplete="off">
                         <option value=""></option>
