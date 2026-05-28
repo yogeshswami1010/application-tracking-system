@@ -37,7 +37,6 @@
         }
         .ja-filter-row {
             display: flex;
-            align-items: flex-end;
             gap: 10px;
             flex-wrap: nowrap;
         }
