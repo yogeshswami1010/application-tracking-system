@@ -103,7 +103,7 @@
                                     @endif
                                 </div>
                                 <h3 class="font-bold text-[17px] leading-snug tracking-[-0.01em] mb-1 text-[#1A1A2A] group-hover:text-[#2563EB] transition-colors">{{ ucwords($location->job->title) }}</h3>
-                                <!-- @if($location->job->company->show_in_frontend == 'true')
+                                @if($location->job->company->show_in_frontend == 'true')
                                     <p class="text-[13px] font-medium mb-5 text-[#8892A0]">
                                         @if($location->job->job_company_id != null && $location->job->job_company_id != '' && !is_null($location->job->jobCompany))
                                             @lang('app.by') {{ ucwords($location->job->jobCompany->company_name) }}
@@ -111,7 +111,7 @@
                                             @lang('app.by') {{ ucwords($location->job->company->company_name) }}
                                         @endif
                                     </p>
-                                @else -->
+                                @else
                                     <p class="text-[13px] font-medium mb-5 text-[#8892A0]">&nbsp;</p>
                                 @endif
                                 <div class="flex items-center justify-between pt-4 border-t border-[#F0EEE9]">
