@@ -232,12 +232,14 @@ class AdminJobApplicationController extends AdminBaseController
             ->get();
 
         $answers = JobApplicationAnswer::with('question')
-        ->where('job_application_id', $application->id)
-        ->get();
+            ->where('job_application_id', $application->id)
+            ->get();
 
         $skills = Skill::orderBy('name')->get();
 
         $boardColumns = ApplicationStatus::orderBy('position')->get();
+
+        $user = user();
 
         return view('admin.job-applications.show', [
             'application'   => $application,
