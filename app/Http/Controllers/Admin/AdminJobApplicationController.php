@@ -239,7 +239,7 @@ class AdminJobApplicationController extends AdminBaseController
 
         $boardColumns = ApplicationStatus::orderBy('position')->get();
 
-        return view('admin.job-applications.ajax.application-detail', [
+        return view('admin.job-applications.show', [
             'application'   => $application,
             'answers'       => $answers,
             'skills'        => $skills,
