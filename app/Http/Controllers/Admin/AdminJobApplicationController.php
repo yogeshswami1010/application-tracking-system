@@ -244,6 +244,7 @@ class AdminJobApplicationController extends AdminBaseController
             'answers'       => $answers,
             'skills'        => $skills,
             'boardColumns'  => $boardColumns,
+            'user'          => $user,
         ]);
     }
         public function changeStatus(Request $request, $id)
