@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recruit Admin — Update Application</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+          colors: {
+            navy: '#0F1F3D', azure: '#2563EB',
+            sand: '#F8F7F4', soft: '#EEF0F5',
+            muted: '#8892A0', bdr: '#E8E6E1',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    body { -webkit-font-smoothing: antialiased; }
+    .sidebar { transition: width 0.28s cubic-bezier(0.4,0,0.2,1), min-width 0.28s; }
+    .sidebar.mini { width: 60px !important; min-width: 60px !important; }
+    .sidebar.mini .hide { opacity: 0; width: 0; overflow: hidden; }
+    .nav-on::before { content:''; position:absolute; left:0; top:4px; bottom:4px; width:3px; background:#2563EB; border-radius:0 3px 3px 0; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #D1D9E8; border-radius: 4px; }
+    @keyframes fu { from{opacity:0;transform:translateY(12px);} to{opacity:1;transform:translateY(0);} }
+    @keyframes pulse-ring { 0%,100%{transform:scale(1);opacity:0.6;} 50%{transform:scale(1.15);opacity:0;} }
+    @keyframes spin { to{transform:rotate(360deg);} }
+    .a1{opacity:0;animation:fu 0.4s ease 0.04s forwards;}
+    .a2{opacity:0;animation:fu 0.4s ease 0.09s forwards;}
+    .a3{opacity:0;animation:fu 0.4s ease 0.14s forwards;}
+    .a4{opacity:0;animation:fu 0.4s ease 0.19s forwards;}
+    .pulse-ring { animation: pulse-ring 2s infinite; }
+    .spinner { animation: spin 0.7s linear infinite; }
+    @keyframes mIn { from{opacity:0;transform:scale(0.94) translateY(10px);} to{opacity:1;transform:scale(1) translateY(0);} }
+    .menter { animation: mIn 0.28s cubic-bezier(0.22,1,0.36,1) forwards; }
+  </style>
+</head>
+<body class="font-sans bg-soft text-navy h-screen overflow-hidden">
+<div class="flex h-full">
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside id="sb" class="sidebar flex flex-col overflow-hidden shrink-0 bg-navy" style="width:232px;min-width:232px;">
+    <div class="flex items-center gap-2.5 px-4 min-h-[58px] shrink-0" style="border-bottom:1px solid rgba(255,255,255,0.07);">
+      <div class="w-[30px] h-[30px] bg-azure rounded-lg flex items-center justify-center shrink-0">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2h4.5a3.5 3.5 0 010 7H2V2z" fill="#fff"/><circle cx="10" cy="11.5" r="2" fill="#fff" opacity="0.55"/></svg>
+      </div>
+      <span class="hide text-[15px] font-extrabold text-white tracking-tight whitespace-nowrap">recruit</span>
+    </div>
+    <div class="flex-1 overflow-y-auto py-2" style="scrollbar-width:none;">
+      <p class="hide px-4 pt-4 pb-1.5 text-[9.5px] font-bold tracking-[0.14em] uppercase text-white/20 whitespace-nowrap">Main</p>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Dashboard</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Job Categories</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Skills</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Company</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Job Locations</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Jobs</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Job Applications</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Candidate Database</span></a>
+      <p class="hide px-4 pt-4 pb-1.5 text-[9.5px] font-bold tracking-[0.14em] uppercase text-white/20 whitespace-nowrap">Recruitment</p>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Job OnBoard</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Interview Schedule</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Team</span></a>
+      <p class="hide px-4 pt-4 pb-1.5 text-[9.5px] font-bold tracking-[0.14em] uppercase text-white/20 whitespace-nowrap">General</p>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg><span class="hide text-[12.5px] font-medium text-white/55">ToDos</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Job Alert</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Report</span></a>
+      <a class="nav-on relative flex items-center gap-2.5 px-4 py-2 bg-azure/20 whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span class="hide text-[12.5px] font-semibold text-white">Settings</span></a>
+      <p class="hide px-4 pt-4 pb-1.5 text-[9.5px] font-bold tracking-[0.14em] uppercase text-white/20 whitespace-nowrap">Miscellaneous</p>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Front Website</span></a>
+    </div>
+    <div class="px-4 pb-5 shrink-0">
+      <button onclick="toggleSB()" class="flex items-center gap-2 w-full px-2.5 py-2 rounded-xl border border-white/10 bg-white/[0.04] text-white/45 text-xs font-medium hover:bg-white/10 hover:text-white/75 transition-all whitespace-nowrap cursor-pointer">
+        <svg id="cbico" width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
+        <span class="hide">Collapse</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ══ MAIN ══ -->
+  <div class="flex flex-col flex-1 overflow-hidden">
+
+    <!-- Topbar -->
+    <div class="flex items-center justify-between h-[58px] bg-white border-b border-bdr px-6 shrink-0">
+      <div class="flex items-center gap-2">
+        <button onclick="toggleSB()" class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors mr-1 cursor-pointer border-none bg-transparent">
+          <svg width="17" height="17" fill="none" stroke="#8892A0" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <svg class="w-3.5 h-3.5 text-bdr" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        <span class="text-bdr mx-1.5">›</span>
+        <span class="text-[12.5px] text-muted hover:text-navy cursor-pointer transition-colors">Settings</span>
+        <span class="text-bdr mx-1.5">›</span>
+        <span class="text-[12.5px] font-semibold text-navy">Update Application</span>
+      </div>
+      <div class="flex items-center gap-2.5">
+        <div class="relative hidden sm:block">
+          <input type="text" placeholder="Search anything…" class="text-[12.5px] bg-soft text-muted rounded-xl pl-8 pr-4 py-2 outline-none w-44" />
+          <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        </div>
+        <button class="relative p-2 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer border-none bg-transparent">
+          <svg width="17" height="17" fill="none" stroke="#8892A0" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          <span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+        </button>
+        <div class="flex items-center gap-2 pl-3 border-l border-bdr">
+          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-azure to-purple-600 text-white text-xs font-bold flex items-center justify-center shrink-0">A</div>
+          <div class="hidden sm:block">
+            <p class="text-[12.5px] font-semibold text-navy">Admin</p>
+            <p class="text-[10.5px] text-muted">Super Admin</p>
+          </div>
+          <svg class="w-3 h-3 text-gray-400 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="flex-1 overflow-y-auto p-6">
+
+      <!-- Page header -->
+      <div class="flex items-center justify-between mb-5 a1">
+        <div>
+          <h1 class="text-[22px] font-extrabold tracking-tight text-navy">
+            Update <span class="text-[20px] font-normal italic text-azure" style="font-family:'Instrument Serif',serif;">Application</span>
+          </h1>
+          <p class="text-[12.5px] text-muted mt-1">Keep your recruitment platform up to date with the latest features and fixes.</p>
+        </div>
+      </div>
+
+      <!-- Warning banner -->
+      <div class="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-5 a1">
+        <div class="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
+          <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        </div>
+        <div>
+          <p class="text-[13px] font-bold text-amber-800">Important — Read before updating</p>
+          <p class="text-[12.5px] text-amber-700 mt-1 leading-relaxed">Do <strong>not</strong> click update if the application has been customised. Your changes will be lost.<br/>Take a full backup of files and database before proceeding with the update.</p>
+        </div>
+      </div>
+
+      <!-- Two-column layout -->
+      <div class="flex gap-5">
+
+        <!-- LEFT: Update card + changelog -->
+        <div class="flex-1 min-w-0 flex flex-col gap-5">
+
+          <!-- New update hero card -->
+          <div class="bg-white border border-bdr rounded-2xl overflow-hidden a2">
+            <div class="flex items-center justify-between px-6 py-5" style="background:linear-gradient(135deg,#0F1F3D,#162849);">
+              <div class="flex items-center gap-4">
+                <!-- Animated update icon -->
+                <div class="relative w-12 h-12 flex items-center justify-center">
+                  <div class="pulse-ring absolute inset-0 rounded-full bg-azure/30"></div>
+                  <div class="w-12 h-12 rounded-2xl bg-azure flex items-center justify-center relative z-10">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/></svg>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex items-center gap-2 mb-1">
+                    <h2 class="text-white font-bold text-[17px]">New Update Available</h2>
+                    <span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-azure text-white">v3.0.0</span>
+                    <span class="text-[10.5px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">Latest</span>
+                  </div>
+                  <p class="text-[12.5px] text-white/60">Released 23 Mar, 2026 · You are on <span class="text-white/80 font-semibold">v2.4.1</span></p>
+                </div>
+              </div>
+              <div class="flex flex-col items-end gap-2">
+                <button onclick="startUpdate()" id="updateBtn" class="flex items-center gap-2 bg-azure hover:bg-blue-600 text-white text-[13px] font-bold px-6 py-2.5 rounded-xl transition-all hover:shadow-lg hover:shadow-azure/40 border-none cursor-pointer">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/></svg>
+                  Update Now
+                </button>
+                <button class="text-[11.5px] font-semibold text-white/50 hover:text-white/80 transition-colors cursor-pointer bg-transparent border-none">Update later</button>
+              </div>
+            </div>
+            <!-- Note bar -->
+            <div class="flex items-center gap-2 px-6 py-3 border-b border-gray-100 bg-blue-50">
+              <svg class="w-4 h-4 text-azure shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <p class="text-[12.5px] text-azure font-medium">You will be logged out after the update. Please log in again to continue using the application.</p>
+            </div>
+          </div>
+
+          <!-- Changelog timeline -->
+          <div class="bg-white border border-bdr rounded-2xl overflow-hidden a3">
+            <div class="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+              <div class="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4 text-azure" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+              </div>
+              <div>
+                <h3 class="text-[15px] font-bold text-navy">Update Summary</h3>
+                <p class="text-[12px] text-muted mt-0.5">Version history and release notes</p>
+              </div>
+            </div>
+
+            <div class="px-5 py-5 flex flex-col gap-0">
+
+              <!-- Version 3.0.0 -->
+              <div class="relative pl-8 pb-6">
+                <div class="absolute left-0 top-1 w-4 h-4 rounded-full bg-azure flex items-center justify-center ring-4 ring-blue-50 z-10">
+                  <div class="w-2 h-2 rounded-full bg-white"></div>
+                </div>
+                <div class="absolute left-[7px] top-6 bottom-0 w-0.5 bg-gray-200"></div>
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="text-[13px] font-bold text-azure">Version 3.0.0</span>
+                  <span class="text-[10.5px] font-bold px-2 py-0.5 rounded-full bg-azure text-white">Latest</span>
+                  <span class="text-[11.5px] text-muted ml-1">· Release date: 23 Mar, 2026</span>
+                </div>
+                <div class="bg-soft rounded-xl p-4">
+                  <div class="flex flex-col gap-2">
+                    <div class="flex items-center gap-2.5">
+                      <span class="w-5 h-5 rounded-full bg-azure/10 flex items-center justify-center shrink-0">
+                        <svg class="w-3 h-3 text-azure" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                      </span>
+                      <span class="text-[13px] font-semibold text-navy">New Design</span>
+                      <span class="text-[10.5px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">UI/UX</span>
+                    </div>
+                    <div class="flex items-center gap-2.5">
+                      <span class="w-5 h-5 rounded-full bg-azure/10 flex items-center justify-center shrink-0">
+                        <svg class="w-3 h-3 text-azure" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                      </span>
+                      <span class="text-[13px] font-semibold text-navy">Tailwind CSS Framework</span>
+                      <span class="text-[10.5px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Tech</span>
+                    </div>
+                    <div class="flex items-center gap-2.5">
+                      <span class="w-5 h-5 rounded-full bg-azure/10 flex items-center justify-center shrink-0">
+                        <svg class="w-3 h-3 text-azure" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                      </span>
+                      <span class="text-[13px] font-semibold text-navy">Performance improvements</span>
+                      <span class="text-[10.5px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Perf</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Version 2.4.21 -->
+              <div class="relative pl-8 pb-6">
+                <div class="absolute left-0 top-1 w-4 h-4 rounded-full bg-gray-300 flex items-center justify-center ring-4 ring-gray-50 z-10">
+                  <div class="w-2 h-2 rounded-full bg-white"></div>
+                </div>
+                <div class="absolute left-[7px] top-6 bottom-0 w-0.5 bg-gray-200"></div>
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="text-[13px] font-bold text-slate-600">Version 2.4.21</span>
+                  <span class="text-[11.5px] text-muted ml-1">· Release date: 29 Dec, 2025</span>
+                </div>
+                <div class="bg-soft rounded-xl p-4">
+                  <div class="flex items-center gap-2.5">
+                    <span class="w-5 h-5 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+                      <svg class="w-3 h-3 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01"/></svg>
+                    </span>
+                    <span class="text-[13px] font-semibold text-navy">Bug Fixes</span>
+                    <span class="text-[10.5px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">Fix</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Version 2.4.2 -->
+              <div class="relative pl-8">
+                <div class="absolute left-0 top-1 w-4 h-4 rounded-full bg-gray-300 flex items-center justify-center ring-4 ring-gray-50 z-10">
+                  <div class="w-2 h-2 rounded-full bg-white"></div>
+                </div>
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="text-[13px] font-bold text-slate-600">Version 2.4.2</span>
+                  <span class="text-[11.5px] text-muted ml-1">· Release date: 06 Sep, 2023</span>
+                </div>
+                <div class="bg-soft rounded-xl p-4">
+                  <div class="flex items-center gap-2.5">
+                    <span class="w-5 h-5 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+                      <svg class="w-3 h-3 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01"/></svg>
+                    </span>
+                    <span class="text-[13px] font-semibold text-navy">Bug Fixes</span>
+                    <span class="text-[10.5px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">Fix</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Footer links -->
+            <div class="flex items-center justify-center gap-3 px-5 py-4 border-t border-gray-100">
+              <button class="flex items-center gap-2 text-[12.5px] font-semibold text-slate-600 hover:text-azure px-4 py-2 rounded-xl hover:bg-blue-50 transition-all border-none bg-transparent cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                View Version Log
+              </button>
+              <div class="w-px h-5 bg-gray-200"></div>
+              <button class="flex items-center gap-2 text-[12.5px] font-semibold text-slate-600 hover:text-amber-600 px-4 py-2 rounded-xl hover:bg-amber-50 transition-all border-none bg-transparent cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+                Rate on Codecanyon
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT: System details -->
+        <div class="w-[300px] shrink-0 flex flex-col gap-4">
+
+          <!-- System Details card -->
+          <div class="bg-white border border-bdr rounded-2xl overflow-hidden a3">
+            <div class="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+              <div class="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+              </div>
+              <h3 class="text-[14px] font-bold text-navy">System Details</h3>
+            </div>
+            <div class="px-5 py-4 flex flex-col gap-0">
+              <!-- Row helper -->
+              <div class="flex items-center justify-between py-2.5 border-b border-gray-100">
+                <div class="flex items-center gap-2 text-[12.5px] text-muted">
+                  <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+                  App Version
+                </div>
+                <span class="text-[12.5px] font-bold text-navy bg-soft px-2 py-0.5 rounded-lg">2.4.1</span>
+              </div>
+              <div class="flex items-center justify-between py-2.5 border-b border-gray-100">
+                <div class="flex items-center gap-2 text-[12.5px] text-muted">
+                  <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/></svg>
+                  App Environment
+                </div>
+                <span class="text-[12.5px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-lg">development</span>
+              </div>
+              <div class="flex items-center justify-between py-2.5 border-b border-gray-100">
+                <div class="flex items-center gap-2 text-[12.5px] text-muted">
+                  <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                  Laravel Version
+                </div>
+                <span class="text-[12.5px] font-bold text-navy bg-soft px-2 py-0.5 rounded-lg">12.55.1</span>
+              </div>
+              <div class="flex items-center justify-between py-2.5 border-b border-gray-100">
+                <div class="flex items-center gap-2 text-[12.5px] text-muted">
+                  <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                  PHP Version
+                </div>
+                <span class="text-[12.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg">8.3.30</span>
+              </div>
+              <div class="flex items-center justify-between py-2.5 border-b border-gray-100">
+                <div class="flex items-center gap-2 text-[12.5px] text-muted">
+                  <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>
+                  MySQL Version
+                </div>
+                <span class="text-[12.5px] font-bold text-navy bg-soft px-2 py-0.5 rounded-lg">8.0.42</span>
+              </div>
+              <div class="flex items-center justify-between py-2.5 border-b border-gray-100">
+                <div class="flex items-center gap-2 text-[12.5px] text-muted">
+                  <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/></svg>
+                  Server Software
+                </div>
+                <span class="text-[12.5px] font-bold text-navy bg-soft px-2 py-0.5 rounded-lg">nginx/1.29.0</span>
+              </div>
+              <div class="flex items-center justify-between py-2.5 border-b border-gray-100">
+                <div class="flex items-center gap-2 text-[12.5px] text-muted">
+                  <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+                  Server OS
+                </div>
+                <span class="text-[11.5px] font-bold text-navy bg-soft px-2 py-0.5 rounded-lg">Darwin 23.5.0</span>
+              </div>
+              <div class="flex items-center justify-between py-2.5 border-b border-gray-100">
+                <div class="flex items-center gap-2 text-[12.5px] text-muted">
+                  <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  Memory Limit
+                </div>
+                <span class="text-[12.5px] font-bold text-navy bg-soft px-2 py-0.5 rounded-lg">512M</span>
+              </div>
+              <div class="flex items-center justify-between py-2.5 border-b border-gray-100">
+                <div class="flex items-center gap-2 text-[12.5px] text-muted">
+                  <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  Max Execution Time
+                </div>
+                <span class="text-[12.5px] font-bold text-navy bg-soft px-2 py-0.5 rounded-lg">30s</span>
+              </div>
+              <div class="flex items-center justify-between pt-2.5">
+                <div class="flex items-center gap-2 text-[12.5px] text-muted">
+                  <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                  Upload Max Filesize
+                </div>
+                <span class="text-[12.5px] font-bold text-navy bg-soft px-2 py-0.5 rounded-lg">512M</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Backup reminder -->
+          <div class="bg-white border border-bdr rounded-2xl p-5 a4">
+            <p class="text-[10.5px] font-bold tracking-widest uppercase text-muted mb-3">Pre-Update Checklist</p>
+            <div class="flex flex-col gap-2.5">
+              <label class="flex items-center gap-2.5 cursor-pointer select-none">
+                <input type="checkbox" class="hidden peer" />
+                <div class="w-4 h-4 border-2 border-gray-300 rounded-[4px] flex items-center justify-center shrink-0 peer-checked:bg-azure peer-checked:border-azure transition-all">
+                  <svg class="w-2.5 h-2.5 text-white opacity-0 peer-checked:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                </div>
+                <span class="text-[12.5px] font-medium text-slate-600">Database backup taken</span>
+              </label>
+              <label class="flex items-center gap-2.5 cursor-pointer select-none">
+                <input type="checkbox" class="hidden peer" />
+                <div class="w-4 h-4 border-2 border-gray-300 rounded-[4px] flex items-center justify-center shrink-0 peer-checked:bg-azure peer-checked:border-azure transition-all">
+                  <svg class="w-2.5 h-2.5 text-white opacity-0 peer-checked:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                </div>
+                <span class="text-[12.5px] font-medium text-slate-600">Files backup taken</span>
+              </label>
+              <label class="flex items-center gap-2.5 cursor-pointer select-none">
+                <input type="checkbox" class="hidden peer" />
+                <div class="w-4 h-4 border-2 border-gray-300 rounded-[4px] flex items-center justify-center shrink-0 peer-checked:bg-azure peer-checked:border-azure transition-all">
+                  <svg class="w-2.5 h-2.5 text-white opacity-0 peer-checked:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                </div>
+                <span class="text-[12.5px] font-medium text-slate-600">No custom code changes</span>
+              </label>
+              <label class="flex items-center gap-2.5 cursor-pointer select-none">
+                <input type="checkbox" class="hidden peer" />
+                <div class="w-4 h-4 border-2 border-gray-300 rounded-[4px] flex items-center justify-center shrink-0 peer-checked:bg-azure peer-checked:border-azure transition-all">
+                  <svg class="w-2.5 h-2.5 text-white opacity-0 peer-checked:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                </div>
+                <span class="text-[12.5px] font-medium text-slate-600">Users notified about downtime</span>
+              </label>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <p class="text-[12px] text-muted mt-6">© 2026 Froiden Technologies Pvt Ltd</p>
+
+    </div>
+  </div>
+</div>
+
+<!-- UPDATE PROGRESS MODAL -->
+<div id="updateModal" class="hidden fixed inset-0 bg-navy/60 z-50 flex items-center justify-center backdrop-blur-sm">
+  <div class="menter bg-white rounded-2xl w-[440px] max-w-[95vw] overflow-hidden shadow-2xl p-8 text-center">
+    <div class="relative w-16 h-16 mx-auto mb-5">
+      <svg class="spinner w-16 h-16 text-azure" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"/>
+        <path class="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+      </svg>
+    </div>
+    <h3 class="text-[18px] font-extrabold text-navy mb-2">Updating to v3.0.0…</h3>
+    <p class="text-[13px] text-muted mb-5">Please do not close this window or refresh the page.</p>
+    <!-- Progress bar -->
+    <div class="h-2 bg-gray-100 rounded-full overflow-hidden mb-3">
+      <div id="progressBar" class="h-full bg-gradient-to-r from-azure to-blue-400 rounded-full transition-all duration-300" style="width:0%"></div>
+    </div>
+    <p class="text-[12.5px] font-semibold text-muted" id="progressLabel">Initialising update…</p>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="fixed bottom-6 right-6 bg-navy text-white text-[13px] font-medium px-4 py-3 rounded-xl flex items-center gap-2 z-50 opacity-0 translate-y-2 transition-all duration-300 pointer-events-none shadow-xl">
+  <span id="tdot" class="w-2 h-2 rounded-full shrink-0"></span>
+  <span id="tmsg"></span>
+</div>
+
+<script>
+/* SIDEBAR */
+let mini = false;
+function toggleSB() {
+  mini = !mini;
+  const sb = document.getElementById('sb');
+  sb.style.width = mini ? '60px' : '232px';
+  sb.style.minWidth = mini ? '60px' : '232px';
+  sb.classList.toggle('mini', mini);
+  const ico = document.getElementById('cbico');
+  ico.innerHTML = mini
+    ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>'
+    : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>';
+}
+
+/* UPDATE FLOW */
+function startUpdate() {
+  const modal = document.getElementById('updateModal');
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+
+  const steps = [
+    [10,  'Verifying update package…'],
+    [25,  'Downloading files…'],
+    [45,  'Backing up current version…'],
+    [65,  'Installing update…'],
+    [80,  'Running database migrations…'],
+    [92,  'Clearing cache…'],
+    [100, 'Update complete!'],
+  ];
+
+  let i = 0;
+  function tick() {
+    if (i >= steps.length) {
+      setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        showToast('Updated to v3.0.0 successfully! 🎉', '#059669');
+      }, 800);
+      return;
+    }
+    const [pct, label] = steps[i++];
+    document.getElementById('progressBar').style.width = pct + '%';
+    document.getElementById('progressLabel').textContent = label;
+    setTimeout(tick, pct === 100 ? 600 : 700 + Math.random() * 400);
+  }
+  tick();
+}
+
+/* TOAST */
+let tt;
+function showToast(msg, color) {
+  const el = document.getElementById('toast');
+  document.getElementById('tmsg').textContent = msg;
+  document.getElementById('tdot').style.background = color;
+  el.classList.remove('opacity-0','translate-y-2');
+  el.classList.add('opacity-100','translate-y-0');
+  clearTimeout(tt);
+  tt = setTimeout(() => {
+    el.classList.add('opacity-0','translate-y-2');
+    el.classList.remove('opacity-100','translate-y-0');
+  }, 3500);
+}
+</script>
+</body>
+</html>

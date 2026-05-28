@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recruit Admin — Roles & Permissions</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+          colors: {
+            navy: '#0F1F3D', azure: '#2563EB',
+            sand: '#F8F7F4', soft: '#EEF0F5',
+            muted: '#8892A0', bdr: '#E8E6E1',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    body { -webkit-font-smoothing: antialiased; }
+    .sidebar { transition: width 0.28s cubic-bezier(0.4,0,0.2,1), min-width 0.28s; }
+    .sidebar.mini { width: 60px !important; min-width: 60px !important; }
+    .sidebar.mini .hide { opacity: 0; width: 0; overflow: hidden; }
+    .nav-on::before { content:''; position:absolute; left:0; top:4px; bottom:4px; width:3px; background:#2563EB; border-radius:0 3px 3px 0; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #D1D9E8; border-radius: 4px; }
+    .tog { transition: background-color 0.2s; }
+    .tog-thumb { transition: left 0.18s cubic-bezier(0.4,0,0.2,1); }
+    @keyframes fu { from{opacity:0;transform:translateY(10px);} to{opacity:1;transform:translateY(0);} }
+    @keyframes mIn { from{opacity:0;transform:scale(0.94) translateY(10px);} to{opacity:1;transform:scale(1) translateY(0);} }
+    .a1{opacity:0;animation:fu 0.38s ease 0.04s forwards;}
+    .a2{opacity:0;animation:fu 0.38s ease 0.09s forwards;}
+    .a3{opacity:0;animation:fu 0.38s ease 0.14s forwards;}
+    .menter{animation:mIn 0.28s cubic-bezier(0.22,1,0.36,1) forwards;}
+  </style>
+</head>
+<body class="font-sans bg-soft text-navy h-screen overflow-hidden">
+<div class="flex h-full">
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside id="sb" class="sidebar flex flex-col overflow-hidden shrink-0 bg-navy" style="width:232px;min-width:232px;">
+    <div class="flex items-center gap-2.5 px-4 min-h-[58px] shrink-0" style="border-bottom:1px solid rgba(255,255,255,0.07);">
+      <div class="w-[30px] h-[30px] bg-azure rounded-lg flex items-center justify-center shrink-0">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2h4.5a3.5 3.5 0 010 7H2V2z" fill="#fff"/><circle cx="10" cy="11.5" r="2" fill="#fff" opacity="0.55"/></svg>
+      </div>
+      <span class="hide text-[15px] font-extrabold text-white tracking-tight whitespace-nowrap">recruit</span>
+    </div>
+    <div class="flex-1 overflow-y-auto py-2" style="scrollbar-width:none;">
+      <p class="hide px-4 pt-4 pb-1.5 text-[9.5px] font-bold tracking-[0.14em] uppercase text-white/20 whitespace-nowrap">Main</p>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Dashboard</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Job Categories</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Skills</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Company</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Job Locations</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Jobs</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Job Applications</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Candidate Database</span></a>
+      <p class="hide px-4 pt-4 pb-1.5 text-[9.5px] font-bold tracking-[0.14em] uppercase text-white/20 whitespace-nowrap">Recruitment</p>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Job OnBoard</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Interview Schedule</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Team</span></a>
+      <p class="hide px-4 pt-4 pb-1.5 text-[9.5px] font-bold tracking-[0.14em] uppercase text-white/20 whitespace-nowrap">General</p>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg><span class="hide text-[12.5px] font-medium text-white/55">ToDos</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Job Alert</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Report</span></a>
+      <a class="nav-on relative flex items-center gap-2.5 px-4 py-2 bg-azure/20 whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span class="hide text-[12.5px] font-semibold text-white">Settings</span></a>
+      <p class="hide px-4 pt-4 pb-1.5 text-[9.5px] font-bold tracking-[0.14em] uppercase text-white/20 whitespace-nowrap">Miscellaneous</p>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Front Website</span></a>
+    </div>
+    <div class="px-4 pb-5 shrink-0">
+      <button onclick="toggleSB()" class="flex items-center gap-2 w-full px-2.5 py-2 rounded-xl border border-white/10 bg-white/[0.04] text-white/45 text-xs font-medium hover:bg-white/10 hover:text-white/75 transition-all whitespace-nowrap cursor-pointer">
+        <svg id="cbico" width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
+        <span class="hide">Collapse</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ══ MAIN ══ -->
+  <div class="flex flex-col flex-1 overflow-hidden">
+
+    <!-- Topbar -->
+    <div class="flex items-center justify-between h-[58px] bg-white border-b border-bdr px-6 shrink-0">
+      <div class="flex items-center gap-2">
+        <button onclick="toggleSB()" class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors mr-1 cursor-pointer border-none bg-transparent">
+          <svg width="17" height="17" fill="none" stroke="#8892A0" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <svg class="w-3.5 h-3.5 text-bdr" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        <span class="text-bdr mx-1.5">›</span>
+        <span class="text-[12.5px] text-muted hover:text-navy cursor-pointer transition-colors">Settings</span>
+        <span class="text-bdr mx-1.5">›</span>
+        <span class="text-[12.5px] font-semibold text-navy">Roles &amp; Permissions</span>
+      </div>
+      <div class="flex items-center gap-2.5">
+        <div class="relative hidden sm:block">
+          <input type="text" placeholder="Search anything…" class="text-[12.5px] bg-soft text-muted rounded-xl pl-8 pr-4 py-2 outline-none w-44" />
+          <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        </div>
+        <button class="relative p-2 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer border-none bg-transparent">
+          <svg width="17" height="17" fill="none" stroke="#8892A0" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          <span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+        </button>
+        <div class="flex items-center gap-2 pl-3 border-l border-bdr">
+          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-azure to-purple-600 text-white text-xs font-bold flex items-center justify-center shrink-0">A</div>
+          <div class="hidden sm:block">
+            <p class="text-[12.5px] font-semibold text-navy">Admin</p>
+            <p class="text-[10.5px] text-muted">Super Admin</p>
+          </div>
+          <svg class="w-3 h-3 text-gray-400 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scroll Content -->
+    <div class="flex-1 overflow-y-auto p-6">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-5 a1">
+        <div>
+          <h1 class="text-[22px] font-extrabold tracking-tight text-navy">
+            Roles &amp; <span class="text-[20px] font-normal italic text-azure" style="font-family:'Instrument Serif',serif;">Permissions</span>
+          </h1>
+          <p class="text-[12.5px] text-muted mt-1">Control what each role can see and do across the platform.</p>
+        </div>
+        <button onclick="openManageRole()" class="flex items-center gap-2 bg-azure hover:bg-blue-700 text-white text-[13px] font-semibold px-5 py-2.5 rounded-xl transition-all hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5 active:translate-y-0 border-none cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+          Manage Roles
+        </button>
+      </div>
+
+      <!-- Role tabs + stat row -->
+      <div class="flex items-center gap-3 mb-5 a2 overflow-x-auto pb-1">
+        <div id="roleTabs" class="flex items-center gap-2"></div>
+      </div>
+
+      <!-- Two-column layout: permission matrix + sidebar -->
+      <div class="flex gap-5 a3">
+
+        <!-- PERMISSION MATRIX -->
+        <div class="flex-1 min-w-0 bg-white border border-bdr rounded-2xl overflow-hidden">
+
+          <!-- Role header bar -->
+          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100" style="background:linear-gradient(135deg,#0F1F3D,#162849);">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center">
+                <svg class="w-[18px] h-[18px] text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+              </div>
+              <div>
+                <h2 class="text-white font-bold text-[16px]" id="activeRoleName">Manager</h2>
+                <p class="text-white/50 text-[12px] mt-0.5" id="activeRoleDesc">Standard role with module-level access control</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <label class="flex items-center gap-2 cursor-pointer select-none">
+                <input type="checkbox" id="selectAllCb" onchange="toggleSelectAll(this)" class="hidden peer" />
+                <div class="w-4 h-4 border-2 border-white/30 rounded-[4px] flex items-center justify-center shrink-0 peer-checked:bg-azure peer-checked:border-azure transition-all">
+                  <svg class="w-2.5 h-2.5 text-white opacity-0 peer-checked:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                </div>
+                <span class="text-white/70 text-[12.5px] font-semibold">Select All</span>
+              </label>
+              <button onclick="savePermissions()" class="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white text-[12.5px] font-semibold px-4 py-2 rounded-xl border border-white/15 transition-all cursor-pointer">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                Save Changes
+              </button>
+            </div>
+          </div>
+
+          <!-- Column headers -->
+          <div class="grid gap-0" id="permGrid">
+            <div class="grid grid-cols-5 bg-sand border-b border-gray-100 px-6 py-2.5 sticky top-0 z-10">
+              <div class="col-span-1 text-[10.5px] font-bold uppercase tracking-widest text-muted">Module</div>
+              <div class="text-center text-[10.5px] font-bold uppercase tracking-widest text-muted">
+                <span class="inline-flex items-center gap-1"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>Add</span>
+              </div>
+              <div class="text-center text-[10.5px] font-bold uppercase tracking-widest text-muted">
+                <span class="inline-flex items-center gap-1"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>View</span>
+              </div>
+              <div class="text-center text-[10.5px] font-bold uppercase tracking-widest text-muted">
+                <span class="inline-flex items-center gap-1"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>Update</span>
+              </div>
+              <div class="text-center text-[10.5px] font-bold uppercase tracking-widest text-muted">
+                <span class="inline-flex items-center gap-1"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>Delete</span>
+              </div>
+            </div>
+            <div id="moduleRows" class="overflow-y-auto" style="max-height:calc(100vh - 360px);"></div>
+          </div>
+        </div>
+
+        <!-- RIGHT SIDEBAR -->
+        <div class="w-[260px] shrink-0 flex flex-col gap-4">
+
+          <!-- Role summary card -->
+          <div class="bg-white border border-bdr rounded-2xl p-5">
+            <p class="text-[10.5px] font-bold tracking-widest uppercase text-muted mb-3">Role Summary</p>
+            <div id="roleSummary" class="flex flex-col gap-2"></div>
+          </div>
+
+          <!-- Permission legend -->
+          <div class="bg-white border border-bdr rounded-2xl p-5">
+            <p class="text-[10.5px] font-bold tracking-widest uppercase text-muted mb-3">Legend</p>
+            <div class="flex flex-col gap-3">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-4 rounded-full bg-azure relative shrink-0"><div class="absolute top-0.5 right-0.5 w-3 h-3 rounded-full bg-white shadow-sm"></div></div>
+                <span class="text-[12px] text-slate-600 font-medium">Permission granted</span>
+              </div>
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-4 rounded-full bg-gray-200 relative shrink-0"><div class="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white shadow-sm"></div></div>
+                <span class="text-[12px] text-slate-600 font-medium">Permission denied</span>
+              </div>
+              <div class="flex items-center gap-2.5">
+                <div class="w-4 h-4 rounded-[4px] bg-azure flex items-center justify-center shrink-0"><svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg></div>
+                <span class="text-[12px] text-slate-600 font-medium">Select all toggles</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tips -->
+          <div class="bg-white border border-bdr rounded-2xl p-5">
+            <p class="text-[10.5px] font-bold tracking-widest uppercase text-muted mb-3">Tips</p>
+            <div class="flex flex-col gap-2.5">
+              <div class="flex items-start gap-2">
+                <div class="w-4 h-4 rounded-full bg-blue-50 flex items-center justify-center shrink-0 mt-0.5"><span class="text-[8px] text-azure font-extrabold leading-none">1</span></div>
+                <p class="text-[12px] text-slate-500 leading-relaxed">Changes take effect immediately after saving</p>
+              </div>
+              <div class="flex items-start gap-2">
+                <div class="w-4 h-4 rounded-full bg-blue-50 flex items-center justify-center shrink-0 mt-0.5"><span class="text-[8px] text-azure font-extrabold leading-none">2</span></div>
+                <p class="text-[12px] text-slate-500 leading-relaxed">App Administrator cannot be modified</p>
+              </div>
+              <div class="flex items-start gap-2">
+                <div class="w-4 h-4 rounded-full bg-orange-50 flex items-center justify-center shrink-0 mt-0.5"><span class="text-[8px] text-orange-500 font-extrabold leading-none">!</span></div>
+                <p class="text-[12px] text-slate-500 leading-relaxed">Delete permission should be given with caution</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MANAGE ROLES MODAL -->
+<div id="roleModalBg" onclick="closeRoleModal(event)" class="hidden fixed inset-0 bg-navy/50 z-50 items-center justify-center backdrop-blur-sm">
+  <div class="menter bg-white rounded-2xl w-[440px] max-w-[95vw] overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+          <svg class="w-[18px] h-[18px] text-azure" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+        </div>
+        <div>
+          <h3 class="text-[15.5px] font-bold text-navy">Manage Roles</h3>
+          <p class="text-[11.5px] text-muted mt-0.5">Add or remove custom roles.</p>
+        </div>
+      </div>
+      <button onclick="closeRoleModal()" class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors border-none bg-transparent cursor-pointer text-muted">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="px-6 py-5 flex flex-col gap-4">
+      <div id="roleList" class="flex flex-col gap-2 max-h-60 overflow-y-auto"></div>
+      <div class="flex gap-2 pt-2 border-t border-gray-100">
+        <input id="newRoleName" type="text" placeholder="New role name…" onkeydown="if(event.key==='Enter')addRole()" class="flex-1 border border-gray-200 rounded-xl px-3.5 py-2.5 text-[13px] text-navy placeholder-gray-300 outline-none focus:border-azure focus:ring-2 focus:ring-azure/10 transition-all" />
+        <button onclick="addRole()" class="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-azure hover:bg-blue-700 text-white text-[13px] font-semibold border-none cursor-pointer transition-all">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+          Add
+        </button>
+      </div>
+    </div>
+    <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100">
+      <button onclick="closeRoleModal()" class="px-5 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-slate-600 text-[13px] font-semibold transition-colors border-none cursor-pointer">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="fixed bottom-6 right-6 bg-navy text-white text-[13px] font-medium px-4 py-3 rounded-xl flex items-center gap-2 z-50 opacity-0 translate-y-2 transition-all duration-300 pointer-events-none shadow-xl">
+  <span id="tdot" class="w-2 h-2 rounded-full shrink-0"></span>
+  <span id="tmsg"></span>
+</div>
+
+<script>
+/* SIDEBAR */
+let mini = false;
+function toggleSB() {
+  mini = !mini;
+  const sb = document.getElementById('sb');
+  sb.style.width = mini ? '60px' : '232px';
+  sb.style.minWidth = mini ? '60px' : '232px';
+  sb.classList.toggle('mini', mini);
+  const ico = document.getElementById('cbico');
+  ico.innerHTML = mini
+    ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>'
+    : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>';
+}
+
+/* ── DATA ── */
+const MODULES = [
+  { key:'jobCategories',  label:'Job Categories',   icon:'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10', perms:['add','view','update','delete'] },
+  { key:'jobSkills',      label:'Job Skills',        icon:'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z', perms:['add','view','update','delete'] },
+  { key:'jobApplications',label:'Job Applications',  icon:'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', perms:['add','view','update','delete'] },
+  { key:'jobLocations',   label:'Job Locations',     icon:'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z', perms:['add','view','update','delete'] },
+  { key:'jobs',           label:'Jobs',              icon:'M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', perms:['add','view','update','delete'] },
+  { key:'settings',       label:'Settings',          icon:'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z', perms:['add'] },
+  { key:'team',           label:'Team',              icon:'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z', perms:['add','view','update','delete'] },
+  { key:'question',       label:'Question',          icon:'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z', perms:['add','view','update','delete'] },
+  { key:'schedule',       label:'Schedule',          icon:'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', perms:['add','view','update','delete'] },
+  { key:'company',        label:'Company',           icon:'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4', perms:['add','view','update','delete'] },
+];
+
+const DEFAULT_PERMS = () => {
+  const p = {};
+  MODULES.forEach(m => {
+    p[m.key] = {};
+    ['add','view','update','delete'].forEach(a => {
+      p[m.key][a] = m.perms.includes(a);
+    });
+  });
+  return p;
+};
+
+let roles = [
+  { id:1, name:'App Administrator', isAdmin:true, color:'bg-amber-500' },
+  { id:2, name:'Manager',           isAdmin:false, color:'bg-blue-500' },
+  { id:3, name:'Recruiter',         isAdmin:false, color:'bg-emerald-500' },
+  { id:4, name:'HR',                isAdmin:false, color:'bg-purple-500' },
+];
+let nextRoleId = 5;
+
+let permissions = {};
+roles.forEach(r => { permissions[r.id] = DEFAULT_PERMS(); });
+// Settings: Recruiter and HR have limited access
+permissions[3].settings.add = false;
+permissions[4].settings.add = false;
+permissions[3].jobApplications.delete = false;
+permissions[4].jobApplications.delete = false;
+
+let activeRoleId = 2;
+
+/* ── RENDER ROLE TABS ── */
+const ROLE_COLORS = ['bg-amber-500','bg-blue-500','bg-emerald-500','bg-purple-500','bg-rose-500','bg-teal-500','bg-indigo-500'];
+function renderRoleTabs() {
+  const container = document.getElementById('roleTabs');
+  container.innerHTML = roles.map(r => `
+    <button onclick="setRole(${r.id})" class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-semibold transition-all border-none cursor-pointer whitespace-nowrap ${activeRoleId===r.id ? 'bg-navy text-white shadow-lg' : 'bg-white text-slate-600 border border-bdr hover:border-azure hover:text-azure'}">
+      <span class="w-2 h-2 rounded-full ${r.color} shrink-0"></span>
+      ${r.name}
+      ${r.isAdmin ? `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 ml-0.5">Admin</span>` : ''}
+    </button>`).join('');
+}
+
+function setRole(id) {
+  activeRoleId = id;
+  const r = roles.find(x => x.id === id);
+  document.getElementById('activeRoleName').textContent = r.name;
+  document.getElementById('activeRoleDesc').textContent = r.isAdmin ? 'Full access — cannot be modified' : 'Configurable role with module-level permissions';
+  renderRoleTabs();
+  renderRows();
+  updateSummary();
+}
+
+/* ── RENDER PERMISSION ROWS ── */
+function renderRows() {
+  const perms = permissions[activeRoleId];
+  const role  = roles.find(r => r.id === activeRoleId);
+  const locked = role?.isAdmin;
+
+  document.getElementById('moduleRows').innerHTML = MODULES.map((m, i) => {
+    const rowBg = i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50';
+    return `
+    <div class="grid grid-cols-5 items-center px-6 py-3.5 ${rowBg} border-b border-gray-100 hover:bg-blue-50/20 transition-colors">
+      <div class="col-span-1 flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-lg bg-soft flex items-center justify-center shrink-0">
+          <svg class="w-3.5 h-3.5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="${m.icon}"/></svg>
+        </div>
+        <span class="text-[13.5px] font-semibold text-navy">${m.label}</span>
+        ${locked ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-500">All</span>` : ''}
+      </div>
+      ${['add','view','update','delete'].map(action => {
+        const hasAccess = m.perms.includes(action);
+        if (!hasAccess) return `<div class="flex justify-center"><span class="text-[11.5px] text-gray-300 font-medium">—</span></div>`;
+        const isOn = locked || perms[m.key][action];
+        const disabled = locked || !hasAccess;
+        return `
+        <div class="flex justify-center">
+          <button onclick="${disabled ? '' : `togglePerm('${m.key}','${action}')`}" 
+            class="w-[42px] h-[23px] rounded-full ${isOn ? (action==='delete'&&!locked?'bg-red-500':'bg-azure') : 'bg-gray-200'} relative ${disabled?'cursor-not-allowed opacity-60':'cursor-pointer'} border-none tog shrink-0"
+            title="${isOn ? 'Enabled' : 'Disabled'}">
+            <div class="tog-thumb absolute top-[3px] w-[17px] h-[17px] rounded-full bg-white shadow-sm" style="left:${isOn?'22px':'3px'};"></div>
+          </button>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+}
+
+/* ── TOGGLE ── */
+function togglePerm(moduleKey, action) {
+  const role = roles.find(r => r.id === activeRoleId);
+  if (role?.isAdmin) return;
+  permissions[activeRoleId][moduleKey][action] = !permissions[activeRoleId][moduleKey][action];
+  renderRows();
+  updateSummary();
+  syncSelectAll();
+}
+
+function toggleSelectAll(cb) {
+  const role = roles.find(r => r.id === activeRoleId);
+  if (role?.isAdmin) { cb.checked = true; return; }
+  const val = cb.checked;
+  MODULES.forEach(m => {
+    ['add','view','update','delete'].forEach(a => {
+      if (m.perms.includes(a)) permissions[activeRoleId][m.key][a] = val;
+    });
+  });
+  renderRows(); updateSummary();
+}
+
+function syncSelectAll() {
+  const all = MODULES.every(m =>
+    ['add','view','update','delete'].every(a => !m.perms.includes(a) || permissions[activeRoleId][m.key][a])
+  );
+  document.getElementById('selectAllCb').checked = all;
+}
+
+/* ── SUMMARY ── */
+function updateSummary() {
+  const perms = permissions[activeRoleId];
+  const role  = roles.find(r => r.id === activeRoleId);
+  let granted = 0, denied = 0;
+  MODULES.forEach(m => {
+    ['add','view','update','delete'].forEach(a => {
+      if (!m.perms.includes(a)) return;
+      if (role?.isAdmin || perms[m.key][a]) granted++;
+      else denied++;
+    });
+  });
+  document.getElementById('roleSummary').innerHTML = `
+    <div class="flex items-center justify-between py-2.5 border-b border-gray-100">
+      <span class="text-[12.5px] font-semibold text-slate-600">Total Modules</span>
+      <span class="text-[13px] font-bold text-navy">${MODULES.length}</span>
+    </div>
+    <div class="flex items-center justify-between py-2.5 border-b border-gray-100">
+      <span class="text-[12.5px] font-semibold text-emerald-600">Granted</span>
+      <span class="text-[13px] font-bold text-emerald-600">${granted}</span>
+    </div>
+    <div class="flex items-center justify-between py-2.5">
+      <span class="text-[12.5px] font-semibold text-red-400">Denied</span>
+      <span class="text-[13px] font-bold text-red-400">${denied}</span>
+    </div>
+    <div class="mt-3">
+      <div class="flex items-center justify-between mb-1.5">
+        <span class="text-[11px] text-muted font-semibold">Access Level</span>
+        <span class="text-[11px] font-bold text-azure">${Math.round(granted/(granted+denied)*100)||0}%</span>
+      </div>
+      <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+        <div class="h-full bg-gradient-to-r from-azure to-emerald-500 rounded-full transition-all duration-500" style="width:${Math.round(granted/(granted+denied)*100)||0}%;"></div>
+      </div>
+    </div>`;
+}
+
+/* ── SAVE ── */
+function savePermissions() {
+  showToast(`${roles.find(r=>r.id===activeRoleId).name} permissions saved`, '#059669');
+}
+
+/* ── MANAGE ROLES MODAL ── */
+function openManageRole() {
+  renderRoleList();
+  const bg = document.getElementById('roleModalBg');
+  bg.classList.remove('hidden'); bg.classList.add('flex');
+  const box = bg.querySelector('div');
+  box.classList.remove('menter'); void box.offsetWidth; box.classList.add('menter');
+}
+function closeRoleModal(e) {
+  if (!e || e.target === document.getElementById('roleModalBg')) {
+    document.getElementById('roleModalBg').classList.add('hidden');
+    document.getElementById('roleModalBg').classList.remove('flex');
+  }
+}
+
+function renderRoleList() {
+  document.getElementById('roleList').innerHTML = roles.map(r => `
+    <div class="flex items-center justify-between px-3 py-2.5 rounded-xl ${r.isAdmin ? 'bg-amber-50' : 'bg-soft'} border ${r.isAdmin ? 'border-amber-100' : 'border-gray-200'}">
+      <div class="flex items-center gap-2.5">
+        <span class="w-2.5 h-2.5 rounded-full ${r.color} shrink-0"></span>
+        <span class="text-[13px] font-semibold ${r.isAdmin ? 'text-amber-700' : 'text-navy'}">${r.name}</span>
+        ${r.isAdmin ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-600">Protected</span>` : ''}
+      </div>
+      ${!r.isAdmin ? `
+      <button onclick="deleteRole(${r.id})" class="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors border-none cursor-pointer">
+        <svg class="w-3 h-3 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+      </button>` : `<svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>`}
+    </div>`).join('');
+}
+
+function addRole() {
+  const name = document.getElementById('newRoleName').value.trim();
+  if (!name) return;
+  const colorPool = ['bg-blue-500','bg-emerald-500','bg-purple-500','bg-rose-500','bg-teal-500','bg-indigo-500'];
+  const newRole = { id: nextRoleId++, name, isAdmin: false, color: colorPool[roles.length % colorPool.length] };
+  roles.push(newRole);
+  permissions[newRole.id] = DEFAULT_PERMS();
+  MODULES.forEach(m => { ['add','view','update','delete'].forEach(a => { permissions[newRole.id][m.key][a] = false; }); });
+  document.getElementById('newRoleName').value = '';
+  renderRoleList(); renderRoleTabs();
+  showToast(`Role "${name}" created`, '#059669');
+}
+
+function deleteRole(id) {
+  const r = roles.find(x => x.id === id);
+  roles = roles.filter(x => x.id !== id);
+  delete permissions[id];
+  if (activeRoleId === id) { activeRoleId = roles.find(x => !x.isAdmin)?.id || roles[0]?.id; }
+  renderRoleList(); renderRoleTabs();
+  setRole(activeRoleId);
+  showToast(`Role "${r.name}" deleted`, '#EF4444');
+}
+
+/* ── TOAST ── */
+let tt;
+function showToast(msg, color) {
+  const el = document.getElementById('toast');
+  document.getElementById('tmsg').textContent = msg;
+  document.getElementById('tdot').style.background = color;
+  el.classList.remove('opacity-0','translate-y-2');
+  el.classList.add('opacity-100','translate-y-0');
+  clearTimeout(tt);
+  tt = setTimeout(() => {
+    el.classList.add('opacity-0','translate-y-2');
+    el.classList.remove('opacity-100','translate-y-0');
+  }, 2700);
+}
+
+/* INIT */
+renderRoleTabs();
+setRole(activeRoleId);
+</script>
+</body>
+</html>

@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recruit Admin — Job Locations</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: #EEF0F5; color: #1A1E2E; -webkit-font-smoothing: antialiased; }
+    .app { display: flex; height: 100vh; }
+
+    /* SIDEBAR */
+    .sidebar { width: 232px; min-width: 232px; background: #0F1F3D; display: flex; flex-direction: column; transition: width 0.28s cubic-bezier(0.4,0,0.2,1), min-width 0.28s; overflow: hidden; flex-shrink: 0; }
+    .sidebar.mini { width: 60px; min-width: 60px; }
+    .logo-wrap { padding: 18px 16px; border-bottom: 1px solid rgba(255,255,255,0.07); display: flex; align-items: center; gap: 10px; flex-shrink: 0; min-height: 58px; }
+    .logo-icon { width: 30px; height: 30px; background: #2563EB; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .logo-txt { font-size: 15px; font-weight: 800; color: #fff; letter-spacing: -0.02em; white-space: nowrap; transition: opacity 0.2s, width 0.2s; overflow: hidden; }
+    .sidebar.mini .logo-txt { opacity: 0; width: 0; }
+    .nav-scroll { flex: 1; overflow-y: auto; padding: 8px 0; }
+    .nav-scroll::-webkit-scrollbar { display: none; }
+    .sec-title { font-size: 9.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.22); padding: 16px 16px 6px; white-space: nowrap; transition: opacity 0.2s; }
+    .sidebar.mini .sec-title { opacity: 0; }
+    .nav-link { display: flex; align-items: center; gap: 10px; padding: 8px 16px; cursor: pointer; position: relative; white-space: nowrap; transition: background 0.15s; }
+    .nav-link:hover { background: rgba(255,255,255,0.06); }
+    .nav-link.on { background: rgba(37,99,235,0.22); }
+    .nav-link.on::before { content:''; position: absolute; left: 0; top: 4px; bottom: 4px; width: 3px; background: #2563EB; border-radius: 0 3px 3px 0; }
+    .ni { width: 17px; height: 17px; flex-shrink: 0; }
+    .nl { font-size: 12.5px; font-weight: 500; color: rgba(255,255,255,0.58); overflow: hidden; white-space: nowrap; transition: opacity 0.2s, color 0.15s; }
+    .nav-link.on .nl { color: #fff; font-weight: 600; }
+    .nav-link:hover .nl { color: rgba(255,255,255,0.88); }
+    .sidebar.mini .nl { opacity: 0; width: 0; }
+    .nbadge { margin-left: auto; background: #2563EB; color: #fff; font-size: 9.5px; font-weight: 700; padding: 1px 6px; border-radius: 999px; flex-shrink: 0; transition: opacity 0.2s; }
+    .sidebar.mini .nbadge { opacity: 0; }
+    .collapse-row { padding: 12px 16px 20px; flex-shrink: 0; }
+    .collapse-btn { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 9px; cursor: pointer; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.45); font-size: 12px; font-weight: 500; transition: background 0.15s, color 0.15s; white-space: nowrap; }
+    .collapse-btn:hover { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.75); }
+    .clabel { overflow: hidden; transition: opacity 0.2s, width 0.2s; }
+    .sidebar.mini .clabel { opacity: 0; width: 0; }
+
+    /* MAIN */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .topbar { height: 58px; background: #fff; border-bottom: 1px solid #E8E6E1; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; flex-shrink: 0; }
+    .bc { font-size: 12.5px; color: #8892A0; }
+    .bc.on { color: #1A1E2E; font-weight: 600; }
+    .bc-sep { color: #C4CBD4; margin: 0 5px; }
+    .av { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg,#2563EB,#7C3AED); color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .scroll { flex: 1; overflow-y: auto; padding: 24px; }
+    .scroll::-webkit-scrollbar { width: 4px; }
+    .scroll::-webkit-scrollbar-thumb { background: #D1D9E8; border-radius: 4px; }
+
+    /* TABLE */
+    .table-card { background: #fff; border: 1px solid #E8E6E1; border-radius: 18px; overflow: hidden; }
+    .table-toolbar { padding: 14px 20px; border-bottom: 1px solid #F0EEE9; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .t-search { display: flex; align-items: center; gap: 8px; background: #F5F6FA; border: 1.5px solid transparent; border-radius: 10px; padding: 7px 12px; transition: border-color 0.2s; }
+    .t-search:focus-within { border-color: #2563EB; background: #fff; }
+    .t-search input { border: none; background: transparent; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; color: #1A1E2E; outline: none; width: 200px; }
+    .t-search input::placeholder { color: #B0B8C4; }
+
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: #F8F7F4; }
+    thead th { padding: 11px 20px; text-align: left; font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #8892A0; white-space: nowrap; }
+    thead th.right { text-align: right; }
+    tbody tr { border-top: 1px solid #F0EEE9; transition: background 0.12s; }
+    tbody tr:hover { background: #FAFBFD; }
+    tbody tr.selected { background: #EFF6FF; }
+    tbody td { padding: 13px 20px; font-size: 13.5px; color: #3D4A5C; vertical-align: middle; }
+    tbody td.right { text-align: right; }
+    tbody td.num { font-size: 12.5px; font-weight: 600; color: #C4CBD4; }
+
+    .loc-cell { display: flex; align-items: center; gap: 10px; }
+    .loc-icon { width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .loc-name { font-size: 13.5px; font-weight: 700; color: #1A1E2E; }
+    .loc-state { font-size: 11.5px; color: #8892A0; margin-top: 1px; }
+
+    .country-cell { display: flex; align-items: center; gap: 8px; }
+    .flag { font-size: 18px; line-height: 1; }
+    .country-name { font-size: 13px; font-weight: 600; color: #3D4A5C; }
+
+    .jobs-pill { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+
+    .action-btn { width: 30px; height: 30px; border-radius: 8px; border: none; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
+    .action-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.10); }
+    .btn-edit { background: #EFF6FF; }
+    .btn-edit:hover { background: #DBEAFE; }
+    .btn-del  { background: #FFF1F2; }
+    .btn-del:hover  { background: #FFE4E6; }
+
+    /* CHECKBOX */
+    .cb-wrap input[type=checkbox] { display: none; }
+    .cb-box { width: 16px; height: 16px; border: 2px solid #D1D9E8; border-radius: 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; flex-shrink: 0; }
+    .cb-wrap input:checked ~ .cb-box { background: #2563EB; border-color: #2563EB; }
+    .cb-chk { display: none; }
+    .cb-wrap input:checked ~ .cb-box .cb-chk { display: block; }
+
+    /* MAP CARD */
+    .map-card { background: linear-gradient(135deg,#0F1F3D 0%,#162849 60%,#1B3560 100%); border-radius: 18px; overflow: hidden; position: relative; height: 100%; min-height: 200px; }
+    .map-card::after { content:''; position:absolute;inset:0; background-image:radial-gradient(circle,rgba(255,255,255,0.04) 1px,transparent 1px); background-size:22px 22px; pointer-events:none; }
+    .map-dot { position: absolute; width: 12px; height: 12px; border-radius: 50%; cursor: pointer; transition: transform 0.2s; }
+    .map-dot::before { content:''; position:absolute; inset:-4px; border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:0.6;transform:scale(1);} 50%{opacity:0;transform:scale(2);} }
+    .map-dot:hover { transform: scale(1.4); }
+    .map-label { position: absolute; background: rgba(255,255,255,0.12); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; white-space: nowrap; pointer-events: none; }
+
+    /* MODAL */
+    .modal-bg { display: none; position: fixed; inset: 0; background: rgba(15,31,61,0.5); z-index: 200; align-items: center; justify-content: center; backdrop-filter: blur(3px); }
+    .modal-bg.show { display: flex; animation: fi 0.2s ease; }
+    @keyframes fi { from{opacity:0;} to{opacity:1;} }
+    .modal { background: #fff; border-radius: 20px; width: 440px; max-width: 94vw; overflow: hidden; animation: pi 0.28s cubic-bezier(0.22,1,0.36,1); }
+    @keyframes pi { from{opacity:0;transform:scale(0.94) translateY(8px);} to{opacity:1;transform:scale(1) translateY(0);} }
+    .modal-hd { padding: 20px 24px 16px; border-bottom: 1px solid #F0EEE9; display: flex; align-items: center; justify-content: space-between; }
+    .modal-body { padding: 22px 24px; display: flex; flex-direction: column; gap: 14px; }
+    .modal-footer { padding: 14px 24px; border-top: 1px solid #F0EEE9; display: flex; justify-content: flex-end; gap: 10px; }
+    .fl { font-size: 11.5px; font-weight: 700; color: #5A6478; margin-bottom: 5px; }
+    .fi { width: 100%; border: 1.5px solid #E2DED8; border-radius: 10px; padding: 10px 14px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; color: #1A1E2E; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+    .fi:focus { border-color: #2563EB; box-shadow: 0 0 0 3px rgba(37,99,235,0.09); }
+    .fi::placeholder { color: #C4CBD4; }
+    .fs { width: 100%; border: 1.5px solid #E2DED8; border-radius: 10px; padding: 10px 32px 10px 14px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; color: #1A1E2E; background: #fff; appearance: none; cursor: pointer; outline: none; transition: border-color 0.2s; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239CA3AF' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+    .fs:focus { border-color: #2563EB; }
+    .btn-c { background: #F1F3F7; color: #5A6478; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 600; border: none; border-radius: 9px; padding: 10px 20px; cursor: pointer; }
+    .btn-c:hover { background: #E5E7ED; }
+    .btn-s { background: #2563EB; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 700; border: none; border-radius: 9px; padding: 10px 24px; cursor: pointer; transition: background 0.2s, box-shadow 0.2s; }
+    .btn-s:hover { background: #1d4ed8; box-shadow: 0 4px 14px rgba(37,99,235,0.38); }
+    .btn-danger { background: #EF4444; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 600; border: none; border-radius: 9px; padding: 10px 20px; cursor: pointer; }
+    .btn-danger:hover { background: #DC2626; }
+
+    /* TOAST */
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #1A1E2E; color: #fff; font-size: 13px; font-weight: 500; padding: 12px 18px; border-radius: 12px; display: flex; align-items: center; gap: 8px; z-index: 300; opacity: 0; transform: translateY(8px); transition: opacity 0.25s, transform 0.25s; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .tdot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+    /* EMPTY */
+    .empty-row td { text-align: center; padding: 48px 20px; }
+
+    /* ANIMATIONS */
+    @keyframes fu { from{opacity:0;transform:translateY(12px);} to{opacity:1;transform:translateY(0);} }
+    .a { opacity:0; animation:fu 0.42s ease forwards; }
+    .a1{animation-delay:0.04s;} .a2{animation-delay:0.09s;} .a3{animation-delay:0.14s;} .a4{animation-delay:0.18s;}
+  </style>
+</head>
+<body>
+<div class="app">
+
+<!-- ═══════════ SIDEBAR ═══════════ -->
+<aside class="sidebar" id="sb">
+  <div class="logo-wrap">
+    <div class="logo-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2h4.5a3.5 3.5 0 010 7H2V2z" fill="#fff"/><circle cx="10" cy="11.5" r="2" fill="#fff" opacity="0.55"/></svg></div>
+    <span class="logo-txt">recruit</span>
+  </div>
+  <div class="nav-scroll">
+    <div class="sec-title">Main</div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg><span class="nl">Dashboard</span></div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg><span class="nl">Job Categories</span></div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg><span class="nl">Skills</span></div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg><span class="nl">Company</span></div>
+    <div class="nav-link on">
+      <svg class="ni" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      <span class="nl">Job Locations</span>
+    </div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg><span class="nl">Jobs</span></div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><span class="nl">Job Applications</span><span class="nbadge">20</span></div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg><span class="nl">Candidate Database</span></div>
+    <div class="sec-title">Recruitment</div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg><span class="nl">Job OnBoard</span></div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><span class="nl">Interview Schedule</span><span class="nbadge">7</span></div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span class="nl">Team</span></div>
+    <div class="sec-title">General</div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg><span class="nl">ToDos</span></div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg><span class="nl">Job Alert</span></div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><span class="nl">Report</span></div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span class="nl">Settings</span></div>
+    <div class="sec-title">Miscellaneous</div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg><span class="nl">Front Website</span></div>
+  </div>
+  <div class="collapse-row">
+    <div class="collapse-btn" onclick="toggleSB()">
+      <svg id="cbico" width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
+      <span class="clabel">Collapse</span>
+    </div>
+  </div>
+</aside>
+
+<!-- ═══════════ MAIN ═══════════ -->
+<div class="main">
+  <div class="topbar">
+    <div class="flex items-center gap-2">
+      <button onclick="toggleSB()" class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors mr-1">
+        <svg width="17" height="17" fill="none" stroke="#8892A0" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <svg class="w-3.5 h-3.5" style="color:#C4CBD4;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      <span class="bc-sep">›</span>
+      <span class="bc on">Job Locations</span>
+    </div>
+    <div class="flex items-center gap-2.5">
+      <div class="relative hidden sm:block">
+        <input type="text" placeholder="Search anything…" class="text-[12.5px] bg-[#EEF0F5] rounded-xl pl-8 pr-4 py-2 outline-none" style="color:#5A6478;width:180px;" />
+        <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" fill="none" stroke="#9CA3AF" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      </div>
+      <button class="relative p-2 rounded-xl hover:bg-gray-100 transition-colors">
+        <svg width="17" height="17" fill="none" stroke="#8892A0" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+        <span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+      </button>
+      <div class="flex items-center gap-2 pl-3" style="border-left:1px solid #ECEAE5;">
+        <div class="av">A</div>
+        <div class="hidden sm:block"><p class="text-[12.5px] font-semibold" style="color:#1A1E2E;">Admin</p><p class="text-[10.5px]" style="color:#8892A0;">Super Admin</p></div>
+        <svg class="w-3 h-3 ml-0.5" fill="none" stroke="#9CA3AF" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="scroll">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-5 a a1">
+      <div>
+        <h1 class="font-bold tracking-[-0.025em]" style="font-size:22px;color:#1A1E2E;">
+          Job <span style="font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;color:#2563EB;font-size:20px;">Locations</span>
+        </h1>
+        <p class="text-[12.5px] mt-0.5" style="color:#8892A0;">Manage cities and regions where your jobs are available.</p>
+      </div>
+      <button onclick="openCreate()" class="flex items-center gap-2 text-[13px] font-semibold px-5 py-2.5 rounded-xl" style="background:#2563EB;color:#fff;">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+        Create New
+      </button>
+    </div>
+
+    <!-- Stat cards + map row -->
+    <div class="grid grid-cols-4 gap-4 mb-5 a a2">
+      <div class="bg-white border rounded-2xl p-4 flex items-center gap-3" style="border-color:#E8E6E1;">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background:#EFF6FF;">
+          <svg width="18" height="18" fill="none" stroke="#2563EB" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </div>
+        <div>
+          <p class="text-[10.5px] font-bold tracking-widest uppercase" style="color:#8892A0;">Total Cities</p>
+          <p class="text-[20px] font-extrabold tracking-tight" style="color:#1A1E2E;" id="statCities">3</p>
+        </div>
+      </div>
+      <div class="bg-white border rounded-2xl p-4 flex items-center gap-3" style="border-color:#E8E6E1;">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background:#F5F3FF;">
+          <svg width="18" height="18" fill="none" stroke="#7C3AED" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"/></svg>
+        </div>
+        <div>
+          <p class="text-[10.5px] font-bold tracking-widest uppercase" style="color:#8892A0;">Countries</p>
+          <p class="text-[20px] font-extrabold tracking-tight" style="color:#1A1E2E;" id="statCountries">1</p>
+        </div>
+      </div>
+      <div class="bg-white border rounded-2xl p-4 flex items-center gap-3" style="border-color:#E8E6E1;">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background:#ECFDF5;">
+          <svg width="18" height="18" fill="none" stroke="#059669" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+        </div>
+        <div>
+          <p class="text-[10.5px] font-bold tracking-widest uppercase" style="color:#8892A0;">Active Jobs</p>
+          <p class="text-[20px] font-extrabold tracking-tight" style="color:#1A1E2E;">3</p>
+        </div>
+      </div>
+      <div class="bg-white border rounded-2xl p-4 flex items-center gap-3" style="border-color:#E8E6E1;">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background:#FFF7ED;">
+          <svg width="18" height="18" fill="none" stroke="#F97316" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </div>
+        <div>
+          <p class="text-[10.5px] font-bold tracking-widest uppercase" style="color:#8892A0;">Candidates</p>
+          <p class="text-[20px] font-extrabold tracking-tight" style="color:#1A1E2E;">20</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main grid: table + map -->
+    <div class="grid gap-5 a a3" style="grid-template-columns: 1fr 340px;">
+
+      <!-- TABLE -->
+      <div class="table-card">
+        <div class="table-toolbar">
+          <div class="flex items-center gap-3">
+            <div class="t-search">
+              <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="#9CA3AF" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              <input type="text" id="tableSearch" placeholder="Search locations…" oninput="filterTable()" />
+            </div>
+            <select id="countryFilter" onchange="filterTable()" class="text-[12.5px] font-medium border rounded-xl px-3 py-2 outline-none" style="border-color:#E2DED8;color:#5A6478;background:#fff;cursor:pointer;appearance:none;padding-right:28px;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239CA3AF' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 10px center;">
+              <option value="">All Countries</option>
+              <option>India</option>
+              <option>USA</option>
+              <option>UAE</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2 text-[12px]" style="color:#8892A0;">
+            Showing <span class="font-semibold mx-1" style="color:#1A1E2E;" id="showCount">3</span> of <span class="font-semibold mx-1" style="color:#1A1E2E;" id="totalCount">3</span>
+          </div>
+        </div>
+
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:46px;padding-left:20px;">
+                  <label class="cb-wrap flex"><input type="checkbox" id="masterCb" onchange="toggleAll(this)" /><div class="cb-box"><svg class="cb-chk w-2.5 h-2.5" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg></div></label>
+                </th>
+                <th style="width:50px;">#</th>
+                <th>Location</th>
+                <th>Country</th>
+                <th>Open Jobs</th>
+                <th>Added</th>
+                <th class="right" style="padding-right:20px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+          <div id="emptyState" style="display:none;" class="text-center py-12">
+            <div class="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3" style="background:#F1F3F7;">
+              <svg class="w-6 h-6" fill="none" stroke="#C4CBD4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            </div>
+            <p class="text-[13.5px] font-semibold" style="color:#5A6478;">No locations found</p>
+            <p class="text-[12px] mt-1" style="color:#B0B8C4;">Try a different search or filter</p>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between px-5 py-3" style="border-top:1px solid #F0EEE9;">
+          <p class="text-[12px]" style="color:#8892A0;">© 2026 Froiden Technologies Pvt Ltd</p>
+          <div id="bulkBar" style="display:none;" class="flex items-center gap-2">
+            <span class="text-[12.5px] font-semibold" style="color:#5A6478;" id="selCount">0 selected</span>
+            <button onclick="bulkDelete()" class="text-[12px] font-semibold px-3 py-1.5 rounded-lg" style="background:#FFF1F2;color:#EF4444;">Delete selected</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAP + SIDEBAR -->
+      <div class="flex flex-col gap-4">
+        <!-- Map card -->
+        <div class="map-card" style="height:260px;">
+          <!-- India map outline (SVG) -->
+          <div class="relative z-10 h-full p-5 flex flex-col justify-between">
+            <div>
+              <p class="text-[10px] font-bold tracking-widest uppercase mb-1" style="color:rgba(255,255,255,0.35);">Location Map</p>
+              <h3 class="font-bold text-white text-[15px]">Active Hiring Cities</h3>
+            </div>
+            <!-- SVG India simplified -->
+            <div class="relative flex-1 flex items-center justify-center" style="min-height:150px;">
+              <svg viewBox="0 0 200 200" width="180" height="160" style="opacity:0.15;position:absolute;">
+                <path d="M100 20 L140 30 L160 55 L155 80 L170 100 L160 130 L140 150 L120 170 L100 180 L80 170 L60 150 L40 130 L30 100 L45 80 L40 55 L60 30 Z" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+              </svg>
+              <!-- City dots positioned roughly on India -->
+              <div style="position:relative;width:180px;height:160px;">
+                <!-- Bangalore ~south -->
+                <div class="map-dot" style="left:95px;top:115px;background:#34D399;" title="Bangalore">
+                  <div style="position:absolute;inset:-4px;border-radius:50%;background:rgba(52,211,153,0.3);animation:pulse 2s infinite;"></div>
+                </div>
+                <div class="map-label" style="left:108px;top:109px;">Bangalore</div>
+                <!-- Delhi ~north -->
+                <div class="map-dot" style="left:88px;top:52px;background:#60A5FA;" title="Delhi">
+                  <div style="position:absolute;inset:-4px;border-radius:50%;background:rgba(96,165,250,0.3);animation:pulse 2s infinite 0.5s;"></div>
+                </div>
+                <div class="map-label" style="left:102px;top:46px;">Delhi</div>
+                <!-- Jaipur ~north-west -->
+                <div class="map-dot" style="left:70px;top:64px;background:#F9A8D4;" title="Jaipur">
+                  <div style="position:absolute;inset:-4px;border-radius:50%;background:rgba(249,168,212,0.3);animation:pulse 2s infinite 1s;"></div>
+                </div>
+                <div class="map-label" style="left:84px;top:58px;">Jaipur</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Country breakdown -->
+        <div class="bg-white border rounded-2xl p-5" style="border-color:#E8E6E1;">
+          <p class="text-[10.5px] font-bold tracking-widest uppercase mb-4" style="color:#8892A0;letter-spacing:0.12em;">By Country</p>
+          <div class="flex flex-col gap-3" id="countryBreakdown"></div>
+        </div>
+
+        <!-- Quick add -->
+        <div class="bg-white border rounded-2xl p-5" style="border-color:#E8E6E1;">
+          <p class="text-[10.5px] font-bold tracking-widest uppercase mb-3" style="color:#8892A0;letter-spacing:0.12em;">Quick Add City</p>
+          <div class="flex gap-2">
+            <input type="text" id="quickCity" placeholder="City name…" class="flex-1 border rounded-xl px-3 py-2 text-[13px] outline-none" style="border-color:#E2DED8;" onkeydown="if(event.key==='Enter')quickAdd()" />
+            <button onclick="quickAdd()" class="px-4 py-2 rounded-xl text-[13px] font-semibold" style="background:#2563EB;color:#fff;">Add</button>
+          </div>
+          <p class="text-[11px] mt-2" style="color:#B0B8C4;">Defaults to India — edit via the table.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- CREATE / EDIT MODAL -->
+<div class="modal-bg" id="modalBg" onclick="closeMod(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-hd">
+      <div>
+        <h3 class="font-bold text-[15.5px]" style="color:#1A1E2E;" id="modalTitle">Add Location</h3>
+        <p class="text-[11.5px] mt-0.5" style="color:#8892A0;" id="modalSub">Add a new hiring city to the system.</p>
+      </div>
+      <button onclick="closeMod()" class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100">
+        <svg class="w-4 h-4" fill="none" stroke="#8892A0" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="grid grid-cols-2 gap-4">
+        <div class="col-span-2">
+          <p class="fl">City / Location <span style="color:#EF4444;">*</span></p>
+          <input type="text" id="iCity" class="fi" placeholder="e.g. Mumbai" />
+          <p id="cityErr" class="text-[11.5px] text-red-500 mt-1.5" style="display:none;">Please enter a location name.</p>
+        </div>
+        <div>
+          <p class="fl">State / Region</p>
+          <input type="text" id="iState" class="fi" placeholder="e.g. Maharashtra" />
+        </div>
+        <div>
+          <p class="fl">Country <span style="color:#EF4444;">*</span></p>
+          <select id="iCountry" class="fs">
+            <option>India</option>
+            <option>USA</option>
+            <option>UAE</option>
+            <option>UK</option>
+            <option>Singapore</option>
+            <option>Australia</option>
+          </select>
+        </div>
+        <div>
+          <p class="fl">Open Jobs</p>
+          <input type="number" id="iJobs" class="fi" placeholder="0" min="0" value="0" />
+        </div>
+        <div>
+          <p class="fl">Status</p>
+          <select id="iStatus" class="fs">
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-c" onclick="closeMod()">Cancel</button>
+      <button class="btn-s" onclick="saveLoc()">Save Location</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM -->
+<div class="modal-bg" id="delBg" onclick="closeDelMod(event)">
+  <div class="modal" onclick="event.stopPropagation()" style="width:380px;">
+    <div class="modal-hd">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:#FFF1F2;"><svg width="18" height="18" fill="none" stroke="#EF4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></div>
+        <div><h3 class="font-bold text-[15px]" style="color:#1A1E2E;">Delete Location</h3><p class="text-[11.5px]" style="color:#8892A0;">This action cannot be undone.</p></div>
+      </div>
+      <button onclick="closeDelMod()" class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100"><svg class="w-4 h-4" fill="none" stroke="#8892A0" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <p class="text-[13.5px] leading-relaxed" style="color:#5A6478;">Are you sure you want to delete <span class="font-semibold" style="color:#1A1E2E;" id="delName"></span>? Jobs listed in this location may be affected.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-c" onclick="closeDelMod()">Cancel</button>
+      <button class="btn-danger" onclick="confirmDel()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span class="tdot" id="tdot"></span><span id="tmsg"></span></div>
+
+<script>
+/* SIDEBAR */
+let mini = false;
+function toggleSB() {
+  mini = !mini;
+  document.getElementById('sb').classList.toggle('mini', mini);
+  const ico = document.getElementById('cbico');
+  ico.innerHTML = mini
+    ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>'
+    : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>';
+}
+
+/* DATA */
+const COUNTRY_FLAGS = { India:'🇮🇳', USA:'🇺🇸', UAE:'🇦🇪', UK:'🇬🇧', Singapore:'🇸🇬', Australia:'🇦🇺' };
+const CITY_ICONS = { Bangalore:'🏙️', Delhi:'🏛️', Jaipur:'🏰', Mumbai:'🌆', Chennai:'🌊', Hyderabad:'💎', Pune:'🎓' };
+const CITY_COLORS = ['#EFF6FF','#ECFDF5','#FFF7ED','#F5F3FF','#FFF1F2','#F0FDFA'];
+const CITY_TEXT   = ['#1D4ED8','#065F46','#C2410C','#5B21B6','#9F1239','#0D9488'];
+
+let locs = [
+  { id:1, city:'Bangalore', state:'Karnataka',  country:'India', jobs:9, date:'Jan 10, 2025', status:'active' },
+  { id:2, city:'Delhi',     state:'Delhi NCR',   country:'India', jobs:7, date:'Jan 12, 2025', status:'active' },
+  { id:3, city:'Jaipur',    state:'Rajasthan',   country:'India', jobs:4, date:'Feb 1, 2025',  status:'active' },
+];
+let nextId = 4, editId = null, delId = null;
+let selected = new Set();
+
+/* RENDER TABLE */
+function getFiltered() {
+  const q = (document.getElementById('tableSearch')?.value || '').toLowerCase();
+  const c = (document.getElementById('countryFilter')?.value || '');
+  return locs.filter(l =>
+    (!q || l.city.toLowerCase().includes(q) || l.country.toLowerCase().includes(q) || (l.state||'').toLowerCase().includes(q)) &&
+    (!c || l.country === c)
+  );
+}
+
+function renderTable() {
+  const data = getFiltered();
+  const tbody = document.getElementById('tableBody');
+  const empty = document.getElementById('emptyState');
+  document.getElementById('showCount').textContent  = data.length;
+  document.getElementById('totalCount').textContent = locs.length;
+  document.getElementById('statCities').textContent = locs.length;
+  document.getElementById('statCountries').textContent = new Set(locs.map(l=>l.country)).size;
+
+  if (!data.length) { tbody.innerHTML = ''; empty.style.display = 'block'; renderBreakdown(); return; }
+  empty.style.display = 'none';
+
+  tbody.innerHTML = data.map((l, i) => {
+    const flag   = COUNTRY_FLAGS[l.country] || '🌍';
+    const icon   = CITY_ICONS[l.city]  || '📍';
+    const ci = i % CITY_COLORS.length;
+    const sel = selected.has(l.id);
+    const statusBg = l.status === 'active' ? '#ECFDF5' : '#F1F3F7';
+    const statusTc = l.status === 'active' ? '#059669' : '#8892A0';
+    return `
+    <tr class="${sel ? 'selected' : ''}" id="row-${l.id}">
+      <td style="padding-left:20px;">
+        <label class="cb-wrap flex" onclick="toggleSel(${l.id})">
+          <input type="checkbox" ${sel?'checked':''} />
+          <div class="cb-box"><svg class="cb-chk w-2.5 h-2.5" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg></div>
+        </label>
+      </td>
+      <td class="num">${String(i+1).padStart(2,'0')}</td>
+      <td>
+        <div class="loc-cell">
+          <div class="loc-icon" style="background:${CITY_COLORS[ci]};font-size:16px;">${icon}</div>
+          <div>
+            <div class="loc-name">${l.city}</div>
+            ${l.state ? `<div class="loc-state">${l.state}</div>` : ''}
+          </div>
+        </div>
+      </td>
+      <td>
+        <div class="country-cell">
+          <span class="flag">${flag}</span>
+          <span class="country-name">${l.country}</span>
+        </div>
+      </td>
+      <td>
+        <span class="jobs-pill" style="background:${CITY_COLORS[ci]};color:${CITY_TEXT[ci]};">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          ${l.jobs} open
+        </span>
+      </td>
+      <td class="text-[12.5px]" style="color:#8892A0;">${l.date}</td>
+      <td class="right" style="padding-right:20px;">
+        <div class="flex items-center justify-end gap-2">
+          <button class="action-btn btn-edit" onclick="openEdit(${l.id})">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="#2563EB" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          </button>
+          <button class="action-btn btn-del" onclick="openDel(${l.id})">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="#EF4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // bulk bar
+  document.getElementById('bulkBar').style.display = selected.size > 0 ? 'flex' : 'none';
+  document.getElementById('selCount').textContent = `${selected.size} selected`;
+  renderBreakdown();
+}
+
+/* COUNTRY BREAKDOWN */
+function renderBreakdown() {
+  const counts = {};
+  locs.forEach(l => { counts[l.country] = (counts[l.country] || 0) + 1; });
+  const total = locs.length || 1;
+  document.getElementById('countryBreakdown').innerHTML = Object.entries(counts).map(([country, n]) => {
+    const flag = COUNTRY_FLAGS[country] || '🌍';
+    const pct  = Math.round(n / total * 100);
+    return `<div>
+      <div class="flex items-center justify-between mb-1.5">
+        <span class="flex items-center gap-2 text-[12.5px] font-semibold" style="color:#1A1E2E;">${flag} ${country}</span>
+        <span class="text-[12px] font-bold" style="color:#2563EB;">${n} city</span>
+      </div>
+      <div style="height:5px;background:#EEF0F5;border-radius:999px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:#2563EB;border-radius:999px;transition:width 0.6s;"></div>
+      </div>
+    </div>`;
+  }).join('') || '<p style="color:#B0B8C4;font-size:12.5px;">No locations yet.</p>';
+}
+
+/* FILTER */
+function filterTable() { renderTable(); }
+
+/* SELECTION */
+function toggleSel(id) { if(selected.has(id)) selected.delete(id); else selected.add(id); renderTable(); }
+function toggleAll(cb) {
+  if(cb.checked) getFiltered().forEach(l => selected.add(l.id));
+  else selected.clear();
+  renderTable();
+}
+function bulkDelete() {
+  const n = selected.size;
+  locs = locs.filter(l => !selected.has(l.id));
+  selected.clear();
+  renderTable();
+  showToast(`${n} location${n>1?'s':''} deleted`, '#EF4444');
+}
+
+/* MODAL */
+function openCreate() {
+  editId = null;
+  document.getElementById('modalTitle').textContent = 'Add Location';
+  document.getElementById('modalSub').textContent   = 'Add a new hiring city to the system.';
+  document.getElementById('iCity').value    = '';
+  document.getElementById('iState').value   = '';
+  document.getElementById('iCountry').value = 'India';
+  document.getElementById('iJobs').value    = '0';
+  document.getElementById('iStatus').value  = 'active';
+  document.getElementById('cityErr').style.display = 'none';
+  document.getElementById('modalBg').classList.add('show');
+  setTimeout(() => document.getElementById('iCity').focus(), 80);
+}
+
+function openEdit(id) {
+  const l = locs.find(x => x.id === id);
+  editId = id;
+  document.getElementById('modalTitle').textContent = 'Edit Location';
+  document.getElementById('modalSub').textContent   = `Editing "${l.city}"`;
+  document.getElementById('iCity').value    = l.city;
+  document.getElementById('iState').value   = l.state || '';
+  document.getElementById('iCountry').value = l.country;
+  document.getElementById('iJobs').value    = l.jobs;
+  document.getElementById('iStatus').value  = l.status;
+  document.getElementById('cityErr').style.display = 'none';
+  document.getElementById('modalBg').classList.add('show');
+}
+
+function closeMod(e) { if(!e||e.target===document.getElementById('modalBg')) document.getElementById('modalBg').classList.remove('show'); }
+
+function saveLoc() {
+  const city = document.getElementById('iCity').value.trim();
+  if (!city) { document.getElementById('cityErr').style.display='block'; return; }
+  document.getElementById('cityErr').style.display='none';
+  const now = new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  if (editId) {
+    const l = locs.find(x => x.id === editId);
+    l.city = city; l.state = document.getElementById('iState').value.trim();
+    l.country = document.getElementById('iCountry').value;
+    l.jobs = +document.getElementById('iJobs').value || 0;
+    l.status = document.getElementById('iStatus').value;
+    showToast(`"${city}" updated`, '#059669');
+  } else {
+    locs.push({ id: nextId++, city, state: document.getElementById('iState').value.trim(), country: document.getElementById('iCountry').value, jobs: +document.getElementById('iJobs').value||0, date: now, status: document.getElementById('iStatus').value });
+    showToast(`"${city}" added`, '#059669');
+  }
+  closeMod(); renderTable();
+}
+
+/* DELETE */
+function openDel(id) {
+  delId = id;
+  document.getElementById('delName').textContent = `"${locs.find(l=>l.id===id).city}"`;
+  document.getElementById('delBg').classList.add('show');
+}
+function closeDelMod(e) { if(!e||e.target===document.getElementById('delBg')) document.getElementById('delBg').classList.remove('show'); }
+function confirmDel() {
+  const l = locs.find(x => x.id === delId);
+  locs = locs.filter(x => x.id !== delId);
+  selected.delete(delId);
+  closeDelMod(); renderTable();
+  showToast(`"${l.city}" deleted`, '#EF4444');
+}
+
+/* QUICK ADD */
+function quickAdd() {
+  const city = document.getElementById('quickCity').value.trim();
+  if (!city) return;
+  const now = new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  locs.push({ id: nextId++, city, state:'', country:'India', jobs:0, date:now, status:'active' });
+  document.getElementById('quickCity').value = '';
+  renderTable();
+  showToast(`"${city}" added quickly`, '#059669');
+}
+
+/* TOAST */
+let tt;
+function showToast(msg, color) {
+  const t = document.getElementById('toast');
+  document.getElementById('tmsg').textContent = msg;
+  document.getElementById('tdot').style.background = color;
+  t.classList.add('show'); clearTimeout(tt);
+  tt = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+renderTable();
+</script>
+</body>
+</html>

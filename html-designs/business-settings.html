@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recruit Admin — Business Settings</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: #EEF0F5; color: #1A1E2E; -webkit-font-smoothing: antialiased; }
+    .app { display: flex; height: 100vh; }
+
+    /* SIDEBAR */
+    .sidebar { width: 232px; min-width: 232px; background: #0F1F3D; display: flex; flex-direction: column; transition: width 0.28s cubic-bezier(0.4,0,0.2,1), min-width 0.28s; overflow: hidden; flex-shrink: 0; }
+    .sidebar.mini { width: 60px; min-width: 60px; }
+    .logo-wrap { padding: 18px 16px; border-bottom: 1px solid rgba(255,255,255,0.07); display: flex; align-items: center; gap: 10px; flex-shrink: 0; min-height: 58px; }
+    .logo-icon { width: 30px; height: 30px; background: #2563EB; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .logo-txt { font-size: 15px; font-weight: 800; color: #fff; letter-spacing: -0.02em; white-space: nowrap; transition: opacity 0.2s, width 0.2s; overflow: hidden; }
+    .sidebar.mini .logo-txt { opacity: 0; width: 0; }
+    .nav-scroll { flex: 1; overflow-y: auto; padding: 8px 0; }
+    .nav-scroll::-webkit-scrollbar { display: none; }
+    .sec-title { font-size: 9.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.22); padding: 16px 16px 6px; white-space: nowrap; transition: opacity 0.2s; }
+    .sidebar.mini .sec-title { opacity: 0; }
+    .nav-link { display: flex; align-items: center; gap: 10px; padding: 8px 16px; cursor: pointer; position: relative; white-space: nowrap; transition: background 0.15s; }
+    .nav-link:hover { background: rgba(255,255,255,0.06); }
+    .nav-link.on { background: rgba(37,99,235,0.22); }
+    .nav-link.on::before { content:''; position: absolute; left: 0; top: 4px; bottom: 4px; width: 3px; background: #2563EB; border-radius: 0 3px 3px 0; }
+    .ni { width: 17px; height: 17px; flex-shrink: 0; }
+    .nl { font-size: 12.5px; font-weight: 500; color: rgba(255,255,255,0.58); overflow: hidden; white-space: nowrap; transition: opacity 0.2s, color 0.15s; }
+    .nav-link.on .nl { color: #fff; font-weight: 600; }
+    .nav-link:hover .nl { color: rgba(255,255,255,0.88); }
+    .sidebar.mini .nl { opacity: 0; width: 0; }
+    .nbadge { margin-left: auto; background: #2563EB; color: #fff; font-size: 9.5px; font-weight: 700; padding: 1px 6px; border-radius: 999px; flex-shrink: 0; transition: opacity 0.2s; }
+    .sidebar.mini .nbadge { opacity: 0; }
+    /* sub-links */
+    .sub-link { display: flex; align-items: center; gap: 8px; padding: 6px 16px 6px 36px; cursor: pointer; white-space: nowrap; transition: background 0.15s; }
+    .sub-link:hover { background: rgba(255,255,255,0.05); }
+    .sub-link.on .sub-dot { background: #2563EB; }
+    .sub-link.on .sub-label { color: #fff; font-weight: 600; }
+    .sub-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.2); flex-shrink: 0; }
+    .sub-label { font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.45); overflow: hidden; white-space: nowrap; }
+    .sidebar.mini .sub-link { display: none; }
+    .collapse-row { padding: 12px 16px 20px; flex-shrink: 0; }
+    .collapse-btn { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 9px; cursor: pointer; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.45); font-size: 12px; font-weight: 500; transition: background 0.15s, color 0.15s; white-space: nowrap; }
+    .collapse-btn:hover { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.75); }
+    .clabel { overflow: hidden; transition: opacity 0.2s, width 0.2s; }
+    .sidebar.mini .clabel { opacity: 0; width: 0; }
+
+    /* MAIN */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .topbar { height: 58px; background: #fff; border-bottom: 1px solid #E8E6E1; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; flex-shrink: 0; }
+    .bc { font-size: 12.5px; color: #8892A0; }
+    .bc.on { color: #1A1E2E; font-weight: 600; }
+    .bc-sep { color: #C4CBD4; margin: 0 5px; }
+    .av { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg,#2563EB,#7C3AED); color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .scroll { flex: 1; overflow-y: auto; padding: 24px; }
+    .scroll::-webkit-scrollbar { width: 4px; }
+    .scroll::-webkit-scrollbar-thumb { background: #D1D9E8; border-radius: 4px; }
+
+    /* SETTINGS TABS */
+    .settings-tab { display: flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 10px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all 0.15s; color: #8892A0; white-space: nowrap; border: none; background: transparent; }
+    .settings-tab:hover { background: #F1F3F7; color: #3D4A5C; }
+    .settings-tab.on { background: #EFF6FF; color: #2563EB; }
+
+    /* FORM */
+    .section-card { background: #fff; border: 1px solid #E8E6E1; border-radius: 18px; overflow: hidden; margin-bottom: 16px; }
+    .section-hd { padding: 18px 24px; border-bottom: 1px solid #F0EEE9; display: flex; align-items: center; gap: 12px; }
+    .section-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .section-body { padding: 22px 24px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
+    @media(max-width:900px) { .grid-2,.grid-3 { grid-template-columns: 1fr; } }
+
+    .field-label { font-size: 11.5px; font-weight: 700; color: #5A6478; margin-bottom: 5px; letter-spacing: 0.02em; display: flex; align-items: center; gap: 4px; }
+    .field-req { color: #EF4444; }
+    .field-hint { font-size: 11px; color: #B0B8C4; margin-top: 4px; }
+
+    .f-input { width: 100%; border: 1.5px solid #E2DED8; border-radius: 11px; padding: 10px 14px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13.5px; color: #1A1E2E; background: #fff; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+    .f-input:focus { border-color: #2563EB; box-shadow: 0 0 0 3px rgba(37,99,235,0.09); }
+    .f-input::placeholder { color: #C4CBD4; }
+    .f-input-wrap { position: relative; }
+    .f-input-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #B0B8C4; }
+    .f-input-wrap:focus-within .f-input-icon { color: #2563EB; }
+    .f-input-wrap .f-input { padding-left: 38px; }
+    .f-sel { width: 100%; border: 1.5px solid #E2DED8; border-radius: 11px; padding: 10px 32px 10px 14px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13.5px; color: #1A1E2E; background: #fff; outline: none; appearance: none; cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239CA3AF' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; transition: border-color 0.2s, box-shadow 0.2s; }
+    .f-sel:focus { border-color: #2563EB; box-shadow: 0 0 0 3px rgba(37,99,235,0.09); }
+    .f-textarea { width: 100%; border: 1.5px solid #E2DED8; border-radius: 11px; padding: 10px 14px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13.5px; color: #1A1E2E; background: #fff; outline: none; resize: vertical; min-height: 90px; transition: border-color 0.2s, box-shadow 0.2s; }
+    .f-textarea:focus { border-color: #2563EB; box-shadow: 0 0 0 3px rgba(37,99,235,0.09); }
+
+    /* UPLOAD ZONE */
+    .upload-zone { border: 1.5px dashed #D1D9E8; border-radius: 12px; padding: 18px; display: flex; align-items: center; gap: 14px; cursor: pointer; background: #F8FAFF; transition: border-color 0.2s, background 0.2s; }
+    .upload-zone:hover { border-color: #2563EB; background: #EFF6FF; }
+    .upload-preview { width: 52px; height: 52px; border-radius: 10px; object-fit: cover; border: 2px solid #E2DED8; background: #F1F3F7; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
+    .upload-preview img { width: 100%; height: 100%; object-fit: cover; display: none; }
+    .upload-btn { font-size: 13px; font-weight: 600; color: #2563EB; }
+    .upload-hint { font-size: 11.5px; color: #B0B8C4; margin-top: 2px; }
+
+    /* TOGGLE */
+    .toggle { width: 38px; height: 21px; border-radius: 999px; background: #D1D9E8; position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0; }
+    .toggle.on { background: #2563EB; }
+    .toggle-thumb { position: absolute; top: 2.5px; left: 2.5px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
+    .toggle.on .toggle-thumb { left: 19.5px; }
+
+    /* MAP PLACEHOLDER */
+    .map-placeholder { background: linear-gradient(135deg, #0F1F3D 0%, #162849 100%); border-radius: 14px; height: 220px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+    .map-placeholder::after { content:''; position:absolute;inset:0; background-image:radial-gradient(circle,rgba(255,255,255,0.04) 1px,transparent 1px); background-size:22px 22px; }
+    .map-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px); background-size: 40px 40px; }
+    .map-pin { width: 40px; height: 40px; background: #2563EB; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); position: relative; z-index: 1; box-shadow: 0 4px 20px rgba(37,99,235,0.5); }
+    .map-pin::after { content:''; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 16px; height: 16px; background: #fff; border-radius: 50%; }
+
+    /* LOCATION SEARCH */
+    .loc-search { display: flex; gap: 8px; }
+    .loc-search .f-input { flex: 1; }
+    .loc-btn { display: flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 11px; border: none; background: #2563EB; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.2s; }
+    .loc-btn:hover { background: #1d4ed8; }
+
+    /* FOOTER BUTTONS */
+    .btn-save { background: #2563EB; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13.5px; font-weight: 700; border: none; border-radius: 11px; padding: 12px 30px; cursor: pointer; transition: background 0.2s, box-shadow 0.2s, transform 0.15s; display: flex; align-items: center; gap: 7px; }
+    .btn-save:hover { background: #1d4ed8; box-shadow: 0 6px 18px rgba(37,99,235,0.38); transform: translateY(-1px); }
+    .btn-reset { background: #F1F3F7; color: #5A6478; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13.5px; font-weight: 600; border: 1.5px solid #E2DED8; border-radius: 11px; padding: 12px 24px; cursor: pointer; transition: all 0.15s; }
+    .btn-reset:hover { background: #E8EBEF; border-color: #C4CBD4; }
+
+    /* TOAST */
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #1A1E2E; color: #fff; font-size: 13px; font-weight: 500; padding: 12px 18px; border-radius: 12px; display: flex; align-items: center; gap: 8px; z-index: 300; opacity: 0; transform: translateY(8px); transition: opacity 0.25s, transform 0.25s; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .tdot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ANIM */
+    @keyframes fu { from{opacity:0;transform:translateY(12px);} to{opacity:1;transform:translateY(0);} }
+    .a { opacity:0; animation:fu 0.42s ease forwards; }
+    .a1{animation-delay:0.04s;} .a2{animation-delay:0.09s;} .a3{animation-delay:0.14s;} .a4{animation-delay:0.18s;} .a5{animation-delay:0.22s;}
+  </style>
+</head>
+<body>
+<div class="app">
+
+<!-- ═══════════ SIDEBAR ═══════════ -->
+<aside class="sidebar" id="sb">
+  <div class="logo-wrap">
+    <div class="logo-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2h4.5a3.5 3.5 0 010 7H2V2z" fill="#fff"/><circle cx="10" cy="11.5" r="2" fill="#fff" opacity="0.55"/></svg></div>
+    <span class="logo-txt">recruit</span>
+  </div>
+  <div class="nav-scroll">
+    <div class="sec-title">Main</div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg><span class="nl">Dashboard</span></div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg><span class="nl">Job Categories</span></div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg><span class="nl">Skills</span></div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg><span class="nl">Company</span></div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span class="nl">Job Locations</span></div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg><span class="nl">Jobs</span></div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><span class="nl">Job Applications</span><span class="nbadge">20</span></div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg><span class="nl">Candidate Database</span></div>
+    <div class="sec-title">Recruitment</div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg><span class="nl">Job OnBoard</span></div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><span class="nl">Interview Schedule</span><span class="nbadge">7</span></div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span class="nl">Team</span></div>
+    <div class="sec-title">General</div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg><span class="nl">ToDos</span></div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg><span class="nl">Job Alert</span></div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><span class="nl">Report</span></div>
+    <!-- Settings (active parent) -->
+    <div class="nav-link on"><svg class="ni" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span class="nl">Settings</span></div>
+    <div class="sub-link on"><div class="sub-dot"></div><span class="sub-label">Business Settings</span></div>
+    <div class="sub-link"><div class="sub-dot"></div><span class="sub-label">Application Settings</span></div>
+    <div class="sub-link"><div class="sub-dot"></div><span class="sub-label">Currency Setting</span></div>
+    <div class="sub-link"><div class="sub-dot"></div><span class="sub-label">Roles &amp; Permissions</span></div>
+    <div class="sub-link"><div class="sub-dot"></div><span class="sub-label">Language Settings</span></div>
+    <div class="sub-link"><div class="sub-dot"></div><span class="sub-label">Footer Links</span></div>
+    <div class="sub-link"><div class="sub-dot"></div><span class="sub-label">Theme Settings</span></div>
+    <div class="sec-title">Miscellaneous</div>
+    <div class="nav-link"><svg class="ni" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg><span class="nl">Front Website</span></div>
+  </div>
+  <div class="collapse-row">
+    <div class="collapse-btn" onclick="toggleSB()">
+      <svg id="cbico" width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
+      <span class="clabel">Collapse</span>
+    </div>
+  </div>
+</aside>
+
+<!-- ═══════════ MAIN ═══════════ -->
+<div class="main">
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="flex items-center gap-2">
+      <button onclick="toggleSB()" class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors mr-1">
+        <svg width="17" height="17" fill="none" stroke="#8892A0" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <svg class="w-3.5 h-3.5" style="color:#C4CBD4;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      <span class="bc-sep">›</span>
+      <span class="bc">Settings</span>
+      <span class="bc-sep">›</span>
+      <span class="bc on">Business Settings</span>
+    </div>
+    <div class="flex items-center gap-2.5">
+      <div class="relative hidden sm:block">
+        <input type="text" placeholder="Search anything…" class="text-[12.5px] bg-[#EEF0F5] rounded-xl pl-8 pr-4 py-2 outline-none" style="color:#5A6478;width:180px;" />
+        <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" fill="none" stroke="#9CA3AF" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      </div>
+      <button class="relative p-2 rounded-xl hover:bg-gray-100 transition-colors">
+        <svg width="17" height="17" fill="none" stroke="#8892A0" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+        <span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+      </button>
+      <div class="flex items-center gap-2 pl-3" style="border-left:1px solid #ECEAE5;">
+        <div class="av">A</div>
+        <div class="hidden sm:block"><p class="text-[12.5px] font-semibold" style="color:#1A1E2E;">Admin</p><p class="text-[10.5px]" style="color:#8892A0;">Super Admin</p></div>
+        <svg class="w-3 h-3 ml-0.5" fill="none" stroke="#9CA3AF" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="scroll">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-5 a a1">
+      <div>
+        <h1 class="font-bold tracking-[-0.025em]" style="font-size:22px;color:#1A1E2E;">
+          Business <span style="font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;color:#2563EB;font-size:20px;">Settings</span>
+        </h1>
+        <p class="text-[12.5px] mt-0.5" style="color:#8892A0;">Configure your company details, branding, and regional preferences.</p>
+      </div>
+    </div>
+
+    <!-- Settings sub-tabs -->
+    <div class="flex items-center gap-1 mb-5 overflow-x-auto pb-1 a a1" style="flex-shrink:0;">
+      <button class="settings-tab on" onclick="setTab(this)">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+        Business
+      </button>
+      <button class="settings-tab" onclick="setTab(this)">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Application
+      </button>
+      <button class="settings-tab" onclick="setTab(this)">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Currency
+      </button>
+      <button class="settings-tab" onclick="setTab(this)">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        Roles &amp; Permissions
+      </button>
+      <button class="settings-tab" onclick="setTab(this)">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>
+        Language
+      </button>
+      <button class="settings-tab" onclick="setTab(this)">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+        Footer Links
+      </button>
+      <button class="settings-tab" onclick="setTab(this)">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        Theme
+      </button>
+    </div>
+
+    <!-- Two-column layout -->
+    <div class="flex gap-5">
+
+      <!-- LEFT — main form -->
+      <div class="flex-1 min-w-0">
+
+        <!-- Section 1: Company Info -->
+        <div class="section-card a a2">
+          <div class="section-hd">
+            <div class="section-icon" style="background:#EFF6FF;">
+              <svg class="w-4.5 h-4.5" width="18" height="18" fill="none" stroke="#2563EB" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+            </div>
+            <div>
+              <h3 class="font-bold text-[15px]" style="color:#1A1E2E;">Company Information</h3>
+              <p class="text-[12px] mt-0.5" style="color:#8892A0;">Basic details about your organisation</p>
+            </div>
+          </div>
+          <div class="section-body">
+            <div class="grid-2" style="margin-bottom:16px;">
+              <div>
+                <p class="field-label">Company Name <span class="field-req">*</span></p>
+                <input type="text" class="f-input" value="Froiden Technologies Pvt Ltd" />
+              </div>
+              <div>
+                <p class="field-label">Company Email <span class="field-req">*</span></p>
+                <div class="f-input-wrap">
+                  <svg class="f-input-icon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                  <input type="email" class="f-input" value="company@example.com" />
+                </div>
+              </div>
+              <div>
+                <p class="field-label">Company Phone</p>
+                <div class="f-input-wrap">
+                  <svg class="f-input-icon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                  <input type="tel" class="f-input" value="1234512345" />
+                </div>
+              </div>
+              <div>
+                <p class="field-label">Company Website</p>
+                <div class="f-input-wrap">
+                  <svg class="f-input-icon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
+                  <input type="url" class="f-input" value="http://www.example.xyz.com" />
+                </div>
+              </div>
+            </div>
+            <div>
+              <p class="field-label">Company Address</p>
+              <textarea class="f-textarea" placeholder="Full company address…">Jaipur, India</textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Branding -->
+        <div class="section-card a a3">
+          <div class="section-hd">
+            <div class="section-icon" style="background:#F5F3FF;">
+              <svg class="w-4.5 h-4.5" width="18" height="18" fill="none" stroke="#7C3AED" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            </div>
+            <div>
+              <h3 class="font-bold text-[15px]" style="color:#1A1E2E;">Brand Assets</h3>
+              <p class="text-[12px] mt-0.5" style="color:#8892A0;">Upload your company logo and favicon</p>
+            </div>
+          </div>
+          <div class="section-body">
+            <div class="grid-2">
+              <div>
+                <p class="field-label">Company Logo</p>
+                <label class="upload-zone" for="logoFile">
+                  <div class="upload-preview">
+                    <svg class="w-6 h-6" fill="none" stroke="#D1D9E8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <img id="logoPreview" />
+                  </div>
+                  <div>
+                    <p class="upload-btn">Upload logo</p>
+                    <p class="upload-hint">PNG, JPG · Max 2 MB</p>
+                  </div>
+                  <input type="file" id="logoFile" accept="image/*" class="hidden" onchange="previewImg(this,'logoPreview')" />
+                </label>
+              </div>
+              <div>
+                <p class="field-label">Company Favicon</p>
+                <label class="upload-zone" for="faviconFile">
+                  <div class="upload-preview">
+                    <svg class="w-6 h-6" fill="none" stroke="#D1D9E8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <img id="faviconPreview" />
+                  </div>
+                  <div>
+                    <p class="upload-btn">Upload favicon</p>
+                    <p class="upload-hint">ICO, PNG · 32×32 px</p>
+                  </div>
+                  <input type="file" id="faviconFile" accept="image/*" class="hidden" onchange="previewImg(this,'faviconPreview')" />
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Regional -->
+        <div class="section-card a a4">
+          <div class="section-hd">
+            <div class="section-icon" style="background:#FFF7ED;">
+              <svg class="w-4.5 h-4.5" width="18" height="18" fill="none" stroke="#F97316" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div>
+              <h3 class="font-bold text-[15px]" style="color:#1A1E2E;">Regional Preferences</h3>
+              <p class="text-[12px] mt-0.5" style="color:#8892A0;">Timezone, language and currency settings</p>
+            </div>
+          </div>
+          <div class="section-body">
+            <div class="grid-3">
+              <div>
+                <p class="field-label">Default Timezone</p>
+                <select class="f-sel">
+                  <option>Asia/Kolkata (IST)</option>
+                  <option>America/New_York (EST)</option>
+                  <option>Europe/London (GMT)</option>
+                  <option>Asia/Dubai (GST)</option>
+                  <option>Asia/Singapore (SGT)</option>
+                </select>
+              </div>
+              <div>
+                <p class="field-label">Language</p>
+                <select class="f-sel">
+                  <option>English</option>
+                  <option>Hindi</option>
+                  <option>French</option>
+                  <option>Spanish</option>
+                  <option>Arabic</option>
+                </select>
+              </div>
+              <div>
+                <p class="field-label">Currency</p>
+                <select class="f-sel">
+                  <option>INR — ₹ Indian Rupee</option>
+                  <option>USD — $ US Dollar</option>
+                  <option>EUR — € Euro</option>
+                  <option>GBP — £ Pound Sterling</option>
+                  <option>AED — د.إ UAE Dirham</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 4: Features -->
+        <div class="section-card a a4">
+          <div class="section-hd">
+            <div class="section-icon" style="background:#ECFDF5;">
+              <svg class="w-4.5 h-4.5" width="18" height="18" fill="none" stroke="#059669" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            </div>
+            <div>
+              <h3 class="font-bold text-[15px]" style="color:#1A1E2E;">Feature Toggles</h3>
+              <p class="text-[12px] mt-0.5" style="color:#8892A0;">Enable or disable platform features</p>
+            </div>
+          </div>
+          <div class="section-body flex flex-col gap-0">
+            <div class="flex items-center justify-between py-3.5" style="border-bottom:1px solid #F0EEE9;">
+              <div>
+                <p class="text-[13.5px] font-semibold" style="color:#1A1E2E;">Ajax Update</p>
+                <p class="text-[12px] mt-0.5" style="color:#8892A0;">Enable AJAX-powered live page updates without full reload</p>
+              </div>
+              <div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div>
+            </div>
+            <div class="flex items-center justify-between py-3.5" style="border-bottom:1px solid #F0EEE9;">
+              <div>
+                <p class="text-[13.5px] font-semibold" style="color:#1A1E2E;">Print Language</p>
+                <p class="text-[12px] mt-0.5" style="color:#8892A0;">Allow localised language in print / export documents</p>
+              </div>
+              <div class="toggle" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div>
+            </div>
+            <div class="flex items-center justify-between py-3.5">
+              <div>
+                <p class="text-[13.5px] font-semibold" style="color:#1A1E2E;">RTL Mode</p>
+                <p class="text-[12px] mt-0.5" style="color:#8892A0;">Right-to-left layout for Arabic, Hebrew and similar languages</p>
+              </div>
+              <div class="toggle" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 5: Location -->
+        <div class="section-card a a5">
+          <div class="section-hd">
+            <div class="section-icon" style="background:#EFF6FF;">
+              <svg class="w-4.5 h-4.5" width="18" height="18" fill="none" stroke="#2563EB" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            </div>
+            <div>
+              <h3 class="font-bold text-[15px]" style="color:#1A1E2E;">Business Location</h3>
+              <p class="text-[12px] mt-0.5" style="color:#8892A0;">Set your office location on the map</p>
+            </div>
+          </div>
+          <div class="section-body">
+            <div class="loc-search mb-4">
+              <input type="text" class="f-input" id="locInput" placeholder="Enter city, address or coordinates…" />
+              <button class="loc-btn" onclick="pinLocation()">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                Search
+              </button>
+            </div>
+
+            <!-- Styled map replacement -->
+            <div class="map-placeholder">
+              <div class="map-grid"></div>
+              <!-- Grid lines overlay -->
+              <div style="position:absolute;inset:0;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(4,1fr);opacity:0.06;">
+                <div style="border:1px solid #fff;"></div><div style="border:1px solid #fff;"></div><div style="border:1px solid #fff;"></div><div style="border:1px solid #fff;"></div><div style="border:1px solid #fff;"></div><div style="border:1px solid #fff;"></div><div style="border:1px solid #fff;"></div><div style="border:1px solid #fff;"></div>
+                <div style="border:1px solid #fff;"></div><div style="border:1px solid #fff;"></div><div style="border:1px solid #fff;"></div><div style="border:1px solid #fff;"></div><div style="border:1px solid #fff;"></div><div style="border:1px solid #fff;"></div><div style="border:1px solid #fff;"></div><div style="border:1px solid #fff;"></div>
+                <div style="border:1px solid #fff;"></div><div style="border:1px solid #fff;"></div><div style="border:1px solid #fff;"></div><div style="border:1px solid #fff;"></div><div style="border:1px solid #fff;"></div><div style="border:1px solid #fff;"></div><div style="border:1px solid #fff;"></div><div style="border:1px solid #fff;"></div>
+                <div style="border:1px solid #fff;"></div><div style="border:1px solid #fff;"></div><div style="border:1px solid #fff;"></div><div style="border:1px solid #fff;"></div><div style="border:1px solid #fff;"></div><div style="border:1px solid #fff;"></div><div style="border:1px solid #fff;"></div><div style="border:1px solid #fff;"></div>
+              </div>
+              <div class="relative z-10 text-center">
+                <div style="transform:rotate(45deg);margin:0 auto 16px;" class="map-pin"></div>
+                <p id="mapLabel" class="text-[13px] font-bold text-white">Jaipur, India</p>
+                <p class="text-[11.5px] mt-1" style="color:rgba(255,255,255,0.45);">26.9124° N, 75.7873° E</p>
+                <p class="text-[11px] mt-3 px-4 py-1.5 rounded-full" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.55);display:inline-block;">Click Search to update location</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Save / Reset -->
+        <div class="flex items-center gap-3 a a5">
+          <button class="btn-save" onclick="saveSettings()">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+            Save Settings
+          </button>
+          <button class="btn-reset" onclick="resetSettings()">Reset</button>
+          <p class="text-[12px] ml-auto" style="color:#B0B8C4;">Last saved: never</p>
+        </div>
+      </div>
+
+      <!-- RIGHT — sidebar info -->
+      <div style="width:260px;flex-shrink:0;" class="flex flex-col gap-4 a a2">
+
+        <!-- Save reminder -->
+        <div class="bg-white border rounded-2xl p-5" style="border-color:#E8E6E1;">
+          <p class="text-[10.5px] font-bold tracking-widest uppercase mb-3" style="color:#8892A0;letter-spacing:0.12em;">Quick Info</p>
+          <div class="flex flex-col gap-3">
+            <div class="flex items-start gap-2.5">
+              <div class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style="background:#ECFDF5;"><svg class="w-3 h-3" style="color:#059669;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg></div>
+              <p class="text-[12.5px]" style="color:#5A6478;">Changes take effect immediately after saving</p>
+            </div>
+            <div class="flex items-start gap-2.5">
+              <div class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style="background:#ECFDF5;"><svg class="w-3 h-3" style="color:#059669;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg></div>
+              <p class="text-[12.5px]" style="color:#5A6478;">Logo should be at least 200×200px for best results</p>
+            </div>
+            <div class="flex items-start gap-2.5">
+              <div class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style="background:#FFF7ED;"><svg class="w-3 h-3" style="color:#F97316;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+              <p class="text-[12.5px]" style="color:#5A6478;">Timezone affects all scheduled reports and alerts</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Completion -->
+        <div class="bg-white border rounded-2xl p-5" style="border-color:#E8E6E1;">
+          <p class="text-[10.5px] font-bold tracking-widest uppercase mb-3" style="color:#8892A0;letter-spacing:0.12em;">Setup Checklist</p>
+          <div class="flex flex-col gap-2.5">
+            <div class="flex items-center gap-2.5">
+              <div class="w-5 h-5 rounded-md flex items-center justify-center shrink-0" style="background:#ECFDF5;border:2px solid #059669;">
+                <svg class="w-2.5 h-2.5" fill="none" stroke="#059669" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+              </div>
+              <span class="text-[12.5px] line-through" style="color:#B0B8C4;">Company name set</span>
+            </div>
+            <div class="flex items-center gap-2.5">
+              <div class="w-5 h-5 rounded-md flex items-center justify-center shrink-0" style="background:#ECFDF5;border:2px solid #059669;">
+                <svg class="w-2.5 h-2.5" fill="none" stroke="#059669" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+              </div>
+              <span class="text-[12.5px] line-through" style="color:#B0B8C4;">Company email set</span>
+            </div>
+            <div class="flex items-center gap-2.5">
+              <div class="w-5 h-5 rounded-md border-2 shrink-0" style="border-color:#E2DED8;"></div>
+              <span class="text-[12.5px] font-medium" style="color:#3D4A5C;">Upload company logo</span>
+            </div>
+            <div class="flex items-center gap-2.5">
+              <div class="w-5 h-5 rounded-md border-2 shrink-0" style="border-color:#E2DED8;"></div>
+              <span class="text-[12.5px] font-medium" style="color:#3D4A5C;">Set business address</span>
+            </div>
+            <div class="flex items-center gap-2.5">
+              <div class="w-5 h-5 rounded-md border-2 shrink-0" style="border-color:#E2DED8;"></div>
+              <span class="text-[12.5px] font-medium" style="color:#3D4A5C;">Configure SMTP settings</span>
+            </div>
+          </div>
+          <!-- Progress bar -->
+          <div class="mt-4">
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-[11px] font-semibold" style="color:#8892A0;">Completion</span>
+              <span class="text-[11px] font-bold" style="color:#2563EB;">40%</span>
+            </div>
+            <div style="height:5px;background:#EEF0F5;border-radius:999px;overflow:hidden;">
+              <div style="height:100%;width:40%;background:linear-gradient(90deg,#2563EB,#34D399);border-radius:999px;transition:width 0.6s;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Danger zone -->
+        <div class="bg-white border rounded-2xl p-5" style="border-color:#FFE4E6;">
+          <p class="text-[10.5px] font-bold tracking-widest uppercase mb-3" style="color:#EF4444;letter-spacing:0.12em;">Danger Zone</p>
+          <p class="text-[12px] leading-relaxed mb-3" style="color:#5A6478;">Clear all business settings and return to factory defaults.</p>
+          <button class="text-[12.5px] font-semibold px-4 py-2 rounded-xl w-full" style="background:#FFF1F2;color:#EF4444;border:none;cursor:pointer;" onclick="showToast('Settings cleared', '#EF4444')">Clear All Settings</button>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast"><span class="tdot" id="tdot"></span><span id="tmsg"></span></div>
+
+<script>
+/* SIDEBAR */
+let mini = false;
+function toggleSB() {
+  mini = !mini;
+  document.getElementById('sb').classList.toggle('mini', mini);
+  const ico = document.getElementById('cbico');
+  ico.innerHTML = mini
+    ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>'
+    : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>';
+}
+
+/* TABS */
+function setTab(btn) {
+  document.querySelectorAll('.settings-tab').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+}
+
+/* LOGO/FAVICON PREVIEW */
+function previewImg(input, previewId) {
+  if (!input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById(previewId);
+    img.src = e.target.result;
+    img.style.display = 'block';
+    img.parentElement.querySelector('svg').style.display = 'none';
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+/* MAP LOCATION */
+function pinLocation() {
+  const val = document.getElementById('locInput').value.trim();
+  if (!val) return;
+  document.getElementById('mapLabel').textContent = val;
+  showToast(`Location set to "${val}"`, '#2563EB');
+}
+
+/* SAVE / RESET */
+function saveSettings() { showToast('Business settings saved successfully!', '#059669'); }
+function resetSettings() { showToast('Settings reset to defaults', '#F97316'); }
+
+/* TOAST */
+let tt;
+function showToast(msg, color) {
+  const t = document.getElementById('toast');
+  document.getElementById('tmsg').textContent = msg;
+  document.getElementById('tdot').style.background = color;
+  t.classList.add('show'); clearTimeout(tt);
+  tt = setTimeout(() => t.classList.remove('show'), 2700);
+}
+</script>
+</body>
+</html>

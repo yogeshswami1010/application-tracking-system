@@ -1,0 +1,54 @@
+@extends('layouts.app')
+
+@php
+    $isEdit = false;
+@endphp
+
+@push('head-script')
+    @include('admin.jobs.partials.job-form-head')
+@endpush
+
+@section('page-title-html')
+<div>
+    <h1 class="text-[22px] font-extrabold tracking-tight text-[#0F1F3D]">
+        @if ($isEdit)
+            @lang('app.edit') <span class="text-[20px] font-normal italic text-[#2563EB]" style="font-family:'Instrument Serif',serif;">@lang('menu.jobs')</span>
+        @else
+            @lang('app.createNew') <span class="text-[20px] font-normal italic text-[#2563EB]" style="font-family:'Instrument Serif',serif;">@lang('menu.jobs')</span>
+        @endif
+    </h1>
+   
+</div>
+@endsection
+
+@section('page-subtitle')
+<p class="mt-1 text-[12.5px] text-[#8892A0]">@lang('modules.jobs.jobTitle') · @lang('menu.locations') · @lang('app.status')</p> 
+@endsection
+
+
+    @section('create-button')
+    <div class="hidden lg:flex items-center gap-0 mt-1.5 shrink-0">
+        <div class="flex items-center gap-2">
+            <div class="flex h-7 w-7 items-center justify-center rounded-full bg-[#2563EB] text-[11.5px] font-bold text-white">1</div>
+            <span class="text-[12px] font-semibold text-[#2563EB]">@lang('app.basic')</span>
+        </div>
+        <div class="mx-2 h-0.5 w-10 rounded-full bg-[#2563EB]"></div>
+        <div class="flex items-center gap-2">
+            <div class="flex h-7 w-7 items-center justify-center rounded-full bg-[#2563EB] text-[11.5px] font-bold text-white">2</div>
+            <span class="text-[12px] font-semibold text-[#2563EB]">@lang('app.details')</span>
+        </div>
+        <div class="mx-2 h-0.5 w-10 rounded-full bg-gray-200"></div>
+        <div class="flex items-center gap-2">
+            <div class="flex h-7 w-7 items-center justify-center rounded-full border-2 border-gray-200 bg-gray-100 text-[11.5px] font-bold text-gray-400">3</div>
+            <span class="text-[12px] font-semibold text-gray-400">@lang('app.visibility')</span>
+        </div>
+    </div>
+    @endsection
+
+
+
+@section('content')
+    @include('admin.jobs.partials.job-form')
+@endsection
+
+@include('admin.jobs.partials.job-form-scripts')

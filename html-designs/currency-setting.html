@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recruit Admin — Currency Setting</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+          colors: {
+            navy: '#0F1F3D',
+            azure: '#2563EB',
+            sand: '#F8F7F4',
+            soft: '#EEF0F5',
+            muted: '#8892A0',
+            bdr: '#E8E6E1',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    body { -webkit-font-smoothing: antialiased; }
+    .sidebar { transition: width 0.28s cubic-bezier(0.4,0,0.2,1), min-width 0.28s; }
+    .sidebar.mini { width: 60px !important; min-width: 60px !important; }
+    .sidebar.mini .hide { opacity: 0; width: 0; overflow: hidden; }
+    .nav-on::before { content:''; position:absolute; left:0; top:4px; bottom:4px; width:3px; background:#2563EB; border-radius:0 3px 3px 0; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #D1D9E8; border-radius: 4px; }
+    .sel { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239CA3AF' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+    @keyframes fu { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes modalIn { from { opacity:0; transform:scale(0.94) translateY(10px); } to { opacity:1; transform:scale(1) translateY(0); } }
+    .a1 { opacity:0; animation: fu 0.4s ease 0.04s forwards; }
+    .a2 { opacity:0; animation: fu 0.4s ease 0.09s forwards; }
+    .a3 { opacity:0; animation: fu 0.4s ease 0.14s forwards; }
+    .modal-enter { animation: modalIn 0.28s cubic-bezier(0.22,1,0.36,1) forwards; }
+    .thumb { transition: left 0.2s; }
+  </style>
+</head>
+<body class="font-sans bg-soft text-navy h-screen overflow-hidden">
+<div class="flex h-full">
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside id="sb" class="sidebar flex flex-col overflow-hidden shrink-0 bg-navy" style="width:232px;min-width:232px;">
+    <div class="flex items-center gap-2.5 px-4 min-h-[58px] shrink-0" style="border-bottom:1px solid rgba(255,255,255,0.07);">
+      <div class="w-[30px] h-[30px] bg-azure rounded-lg flex items-center justify-center shrink-0">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2h4.5a3.5 3.5 0 010 7H2V2z" fill="#fff"/><circle cx="10" cy="11.5" r="2" fill="#fff" opacity="0.55"/></svg>
+      </div>
+      <span class="hide text-[15px] font-extrabold text-white tracking-tight whitespace-nowrap">recruit</span>
+    </div>
+
+    <div class="flex-1 overflow-y-auto py-2" style="scrollbar-width:none;">
+      <p class="hide px-4 pt-4 pb-1.5 text-[9.5px] font-bold tracking-[0.14em] uppercase text-white/20 whitespace-nowrap">Main</p>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Dashboard</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Job Categories</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Skills</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Company</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Job Locations</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Jobs</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Job Applications</span><span class="hide ml-auto bg-azure text-white text-[9.5px] font-bold px-1.5 py-0.5 rounded-full shrink-0">20</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Candidate Database</span></a>
+
+      <p class="hide px-4 pt-4 pb-1.5 text-[9.5px] font-bold tracking-[0.14em] uppercase text-white/20 whitespace-nowrap">Recruitment</p>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Job OnBoard</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Interview Schedule</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Team</span></a>
+
+      <p class="hide px-4 pt-4 pb-1.5 text-[9.5px] font-bold tracking-[0.14em] uppercase text-white/20 whitespace-nowrap">General</p>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg><span class="hide text-[12.5px] font-medium text-white/55">ToDos</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Job Alert</span></a>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Report</span></a>
+      <!-- Settings ACTIVE -->
+      <a class="nav-on relative flex items-center gap-2.5 px-4 py-2 bg-azure/20 whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span class="hide text-[12.5px] font-semibold text-white">Settings</span></a>
+
+      <p class="hide px-4 pt-4 pb-1.5 text-[9.5px] font-bold tracking-[0.14em] uppercase text-white/20 whitespace-nowrap">Miscellaneous</p>
+      <a class="flex items-center gap-2.5 px-4 py-2 hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"><svg class="w-[17px] h-[17px] shrink-0" fill="none" stroke="rgba(255,255,255,0.45)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg><span class="hide text-[12.5px] font-medium text-white/55">Front Website</span></a>
+    </div>
+
+    <div class="px-4 pb-5 shrink-0">
+      <button onclick="toggleSB()" class="flex items-center gap-2 w-full px-2.5 py-2 rounded-xl border border-white/10 bg-white/[0.04] text-white/45 text-xs font-medium hover:bg-white/10 hover:text-white/75 transition-all whitespace-nowrap cursor-pointer">
+        <svg id="cbico" width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
+        <span class="hide">Collapse</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ══ MAIN ══ -->
+  <div class="flex flex-col flex-1 overflow-hidden">
+
+    <!-- Topbar -->
+    <div class="flex items-center justify-between h-[58px] bg-white border-b border-bdr px-6 shrink-0">
+      <div class="flex items-center gap-2">
+        <button onclick="toggleSB()" class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors mr-1 cursor-pointer border-none bg-transparent">
+          <svg width="17" height="17" fill="none" stroke="#8892A0" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <svg class="w-3.5 h-3.5 text-bdr" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        <span class="text-bdr mx-1.5">›</span>
+        <span class="text-[12.5px] text-muted hover:text-navy cursor-pointer transition-colors">Settings</span>
+        <span class="text-bdr mx-1.5">›</span>
+        <span class="text-[12.5px] font-semibold text-navy">Currency Setting</span>
+      </div>
+      <div class="flex items-center gap-2.5">
+        <div class="relative hidden sm:block">
+          <input type="text" placeholder="Search anything…" class="text-[12.5px] bg-soft text-muted rounded-xl pl-8 pr-4 py-2 outline-none w-44" />
+          <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        </div>
+        <button class="relative p-2 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer border-none bg-transparent">
+          <svg width="17" height="17" fill="none" stroke="#8892A0" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          <span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+        </button>
+        <div class="flex items-center gap-2 pl-3 border-l border-bdr">
+          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-azure to-purple-600 text-white text-xs font-bold flex items-center justify-center shrink-0">A</div>
+          <div class="hidden sm:block">
+            <p class="text-[12.5px] font-semibold text-navy">Admin</p>
+            <p class="text-[10.5px] text-muted">Super Admin</p>
+          </div>
+          <svg class="w-3 h-3 text-gray-400 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="flex-1 overflow-y-auto p-6">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-5 a1">
+        <div>
+          <h1 class="text-[22px] font-extrabold tracking-tight text-navy">
+            Currency <span class="text-[20px] font-normal italic text-azure" style="font-family:'Instrument Serif',serif;">Setting</span>
+          </h1>
+          <p class="text-[12.5px] text-muted mt-1">Manage currencies, symbols and codes used across the platform.</p>
+        </div>
+        <button onclick="openModal()" class="flex items-center gap-2 bg-azure hover:bg-blue-700 text-white text-[13px] font-semibold px-5 py-2.5 rounded-xl transition-all hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5 active:translate-y-0 border-none cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+          Create New
+        </button>
+      </div>
+
+      <!-- Stats row -->
+      <div class="grid grid-cols-3 gap-4 mb-5 a2">
+        <div class="bg-white border border-bdr rounded-2xl p-4 flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+            <svg class="w-[18px] h-[18px] text-azure" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <div>
+            <p class="text-[10.5px] font-bold uppercase tracking-widest text-muted">Total Currencies</p>
+            <p class="text-[20px] font-extrabold tracking-tight text-navy" id="statTotal">4</p>
+          </div>
+        </div>
+        <div class="bg-white border border-bdr rounded-2xl p-4 flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
+            <svg class="w-[18px] h-[18px] text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <div>
+            <p class="text-[10.5px] font-bold uppercase tracking-widest text-muted">Default Currency</p>
+            <p class="text-[20px] font-extrabold tracking-tight text-navy" id="statDefault">USD</p>
+          </div>
+        </div>
+        <div class="bg-white border border-bdr rounded-2xl p-4 flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
+            <svg class="w-[18px] h-[18px] text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/></svg>
+          </div>
+          <div>
+            <p class="text-[10.5px] font-bold uppercase tracking-widest text-muted">Active Regions</p>
+            <p class="text-[20px] font-extrabold tracking-tight text-navy">4</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table card -->
+      <div class="bg-white border border-bdr rounded-2xl overflow-hidden a3">
+
+        <!-- Toolbar -->
+        <div class="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
+          <div class="relative">
+            <input id="searchInput" type="text" placeholder="Search currencies…" oninput="renderTable()" class="text-[13px] bg-soft text-navy rounded-xl pl-8 pr-4 py-2 outline-none w-52 border border-transparent focus:border-azure focus:bg-white transition-all" />
+            <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          </div>
+          <p class="text-[12px] text-muted">Showing <span id="showCount" class="font-semibold text-navy">4</span> of <span id="totalCount" class="font-semibold text-navy">4</span> currencies</p>
+        </div>
+
+        <!-- Table -->
+        <div class="overflow-x-auto">
+          <table class="w-full border-collapse">
+            <thead>
+              <tr class="bg-sand">
+                <th class="px-5 py-3 text-left text-[10.5px] font-bold tracking-[0.1em] uppercase text-muted w-12">#</th>
+                <th class="px-4 py-3 text-left text-[10.5px] font-bold tracking-[0.1em] uppercase text-muted">Currency Name</th>
+                <th class="px-4 py-3 text-left text-[10.5px] font-bold tracking-[0.1em] uppercase text-muted">Symbol</th>
+                <th class="px-4 py-3 text-left text-[10.5px] font-bold tracking-[0.1em] uppercase text-muted">Code</th>
+                <th class="px-4 py-3 text-left text-[10.5px] font-bold tracking-[0.1em] uppercase text-muted">Default</th>
+                <th class="px-5 py-3 text-right text-[10.5px] font-bold tracking-[0.1em] uppercase text-muted">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+          <div id="emptyState" class="hidden text-center py-12">
+            <div class="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
+              <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <p class="text-[14px] font-semibold text-slate-500">No currencies found</p>
+            <p class="text-[12px] text-gray-400 mt-1">Try a different search or add a new currency</p>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between px-5 py-3.5 border-t border-gray-100">
+          <p class="text-[12px] text-muted">© 2026 Froiden Technologies Pvt Ltd</p>
+          <div id="bulkBar" class="hidden items-center gap-2">
+            <span class="text-[12.5px] font-semibold text-muted" id="selCount">0 selected</span>
+            <button onclick="bulkDelete()" class="text-[12px] font-semibold px-3 py-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors border-none cursor-pointer">Delete selected</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL ══ -->
+<div id="modalBg" onclick="closeMod(event)" class="hidden fixed inset-0 bg-navy/50 z-50 items-center justify-center backdrop-blur-sm">
+  <div class="modal-enter bg-white rounded-2xl w-[460px] max-w-[94vw] overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
+
+    <!-- Modal header -->
+    <div class="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+          <svg class="w-[18px] h-[18px] text-azure" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div>
+          <h3 id="modalTitle" class="text-[15.5px] font-bold text-navy">Add Currency</h3>
+          <p id="modalSub" class="text-[11.5px] text-muted mt-0.5">Add a new currency to the system.</p>
+        </div>
+      </div>
+      <button onclick="closeMod()" class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors border-none bg-transparent cursor-pointer text-muted">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <!-- Modal body -->
+    <div class="px-6 py-5 flex flex-col gap-4">
+
+      <div class="grid grid-cols-2 gap-4">
+        <!-- Currency Name -->
+        <div class="col-span-2">
+          <label class="block text-[11.5px] font-bold text-slate-500 mb-1.5 uppercase tracking-wide">Currency Name <span class="text-red-500">*</span></label>
+          <div class="relative">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <input id="iName" type="text" placeholder="e.g. Indian Rupee" class="w-full border border-gray-200 rounded-xl pl-9 pr-3.5 py-2.5 text-[13px] text-navy placeholder-gray-300 outline-none focus:border-azure focus:ring-2 focus:ring-azure/10 transition-all" />
+          </div>
+          <p id="nameErr" class="hidden text-[11.5px] text-red-500 mt-1.5">Please enter a currency name.</p>
+        </div>
+
+        <!-- Symbol -->
+        <div>
+          <label class="block text-[11.5px] font-bold text-slate-500 mb-1.5 uppercase tracking-wide">Symbol <span class="text-red-500">*</span></label>
+          <input id="iSymbol" type="text" placeholder="e.g. ₹" maxlength="4" class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-[18px] font-bold text-center text-navy placeholder-gray-300 outline-none focus:border-azure focus:ring-2 focus:ring-azure/10 transition-all" />
+          <p id="symErr" class="hidden text-[11.5px] text-red-500 mt-1.5">Please enter a symbol.</p>
+        </div>
+
+        <!-- Code -->
+        <div>
+          <label class="block text-[11.5px] font-bold text-slate-500 mb-1.5 uppercase tracking-wide">Currency Code <span class="text-red-500">*</span></label>
+          <input id="iCode" type="text" placeholder="e.g. INR" maxlength="5" oninput="this.value=this.value.toUpperCase()" class="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-[13.5px] font-bold text-center text-navy placeholder-gray-300 outline-none focus:border-azure focus:ring-2 focus:ring-azure/10 transition-all tracking-widest" />
+          <p id="codeErr" class="hidden text-[11.5px] text-red-500 mt-1.5">Please enter a code.</p>
+        </div>
+      </div>
+
+      <!-- Set as default toggle -->
+      <div class="flex items-center justify-between bg-soft rounded-xl px-4 py-3">
+        <div>
+          <p class="text-[13px] font-semibold text-navy">Set as Default Currency</p>
+          <p class="text-[11.5px] text-muted mt-0.5">This will be used as the platform-wide default</p>
+        </div>
+        <button id="defToggle" onclick="toggleDefault()" class="w-[42px] h-[23px] rounded-full bg-gray-300 relative cursor-pointer border-none shrink-0 transition-colors duration-200">
+          <div id="defThumb" class="thumb absolute top-[3px] w-[17px] h-[17px] rounded-full bg-white shadow-sm" style="left:3px;"></div>
+        </button>
+      </div>
+
+      <!-- Quick-pick common currencies -->
+      <div>
+        <p class="text-[11px] font-bold uppercase tracking-widest text-muted mb-2">Quick Select</p>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="quickPick('US Dollar','$','USD')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-soft hover:bg-blue-50 hover:text-azure border border-gray-200 hover:border-azure text-[12px] font-semibold text-slate-600 transition-all cursor-pointer"><span class="text-base">$</span> USD</button>
+          <button onclick="quickPick('British Pound','£','GBP')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-soft hover:bg-blue-50 hover:text-azure border border-gray-200 hover:border-azure text-[12px] font-semibold text-slate-600 transition-all cursor-pointer"><span class="text-base">£</span> GBP</button>
+          <button onclick="quickPick('Euro','€','EUR')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-soft hover:bg-blue-50 hover:text-azure border border-gray-200 hover:border-azure text-[12px] font-semibold text-slate-600 transition-all cursor-pointer"><span class="text-base">€</span> EUR</button>
+          <button onclick="quickPick('Indian Rupee','₹','INR')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-soft hover:bg-blue-50 hover:text-azure border border-gray-200 hover:border-azure text-[12px] font-semibold text-slate-600 transition-all cursor-pointer"><span class="text-base">₹</span> INR</button>
+          <button onclick="quickPick('UAE Dirham','د.إ','AED')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-soft hover:bg-blue-50 hover:text-azure border border-gray-200 hover:border-azure text-[12px] font-semibold text-slate-600 transition-all cursor-pointer"><span class="text-base">د.إ</span> AED</button>
+          <button onclick="quickPick('Japanese Yen','¥','JPY')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-soft hover:bg-blue-50 hover:text-azure border border-gray-200 hover:border-azure text-[12px] font-semibold text-slate-600 transition-all cursor-pointer"><span class="text-base">¥</span> JPY</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal footer -->
+    <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100">
+      <button onclick="closeMod()" class="px-5 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-slate-600 text-[13px] font-semibold transition-colors border-none cursor-pointer">Cancel</button>
+      <button onclick="saveCurrency()" class="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-azure hover:bg-blue-700 text-white text-[13px] font-bold transition-all hover:shadow-lg hover:shadow-azure/30 border-none cursor-pointer">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+        <span id="saveLabel">Save Currency</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div id="delBg" onclick="closeDelMod(event)" class="hidden fixed inset-0 bg-navy/50 z-50 items-center justify-center backdrop-blur-sm">
+  <div class="modal-enter bg-white rounded-2xl w-[380px] max-w-[94vw] overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
+          <svg class="w-[18px] h-[18px] text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        </div>
+        <div>
+          <h3 class="text-[15px] font-bold text-navy">Delete Currency</h3>
+          <p class="text-[11.5px] text-muted mt-0.5">This action cannot be undone.</p>
+        </div>
+      </div>
+      <button onclick="closeDelMod()" class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors border-none bg-transparent cursor-pointer text-muted"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    </div>
+    <div class="px-6 py-5">
+      <p class="text-[13.5px] text-slate-500 leading-relaxed">Are you sure you want to delete <span id="delCurrName" class="font-semibold text-navy"></span>? This may affect financial reports.</p>
+    </div>
+    <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100">
+      <button onclick="closeDelMod()" class="px-5 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-slate-600 text-[13px] font-semibold transition-colors border-none cursor-pointer">Cancel</button>
+      <button onclick="confirmDel()" class="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-[13px] font-bold transition-all border-none cursor-pointer">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        Delete
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="fixed bottom-6 right-6 bg-navy text-white text-[13px] font-medium px-4 py-3 rounded-xl flex items-center gap-2 z-50 opacity-0 translate-y-2 transition-all duration-300 pointer-events-none">
+  <span id="tdot" class="w-2 h-2 rounded-full shrink-0"></span>
+  <span id="tmsg"></span>
+</div>
+
+<script>
+/* ── SIDEBAR ── */
+let mini = false;
+function toggleSB() {
+  mini = !mini;
+  const sb = document.getElementById('sb');
+  sb.style.width = mini ? '60px' : '232px';
+  sb.style.minWidth = mini ? '60px' : '232px';
+  sb.classList.toggle('mini', mini);
+  const ico = document.getElementById('cbico');
+  ico.innerHTML = mini
+    ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>'
+    : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>';
+}
+
+/* ── DATA ── */
+let currencies = [
+  { id:1, name:'US Dollar',     symbol:'$',    code:'USD', isDefault:true  },
+  { id:2, name:'British Pound', symbol:'£',    code:'GBP', isDefault:false },
+  { id:3, name:'Euro',          symbol:'€',    code:'EUR', isDefault:false },
+  { id:4, name:'Indian Rupee',  symbol:'₹',    code:'INR', isDefault:false },
+];
+let nextId = 5, editId = null, delId = null, setDefault = false;
+let selected = new Set();
+
+/* ── RENDER TABLE ── */
+const SYMBOL_COLORS = [
+  'bg-blue-50 text-blue-600',
+  'bg-purple-50 text-purple-600',
+  'bg-emerald-50 text-emerald-600',
+  'bg-orange-50 text-orange-600',
+  'bg-rose-50 text-rose-600',
+  'bg-teal-50 text-teal-600',
+];
+
+function getFiltered() {
+  const q = (document.getElementById('searchInput')?.value || '').toLowerCase();
+  return currencies.filter(c =>
+    !q || c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q) || c.symbol.includes(q)
+  );
+}
+
+function renderTable() {
+  const data = getFiltered();
+  const tbody = document.getElementById('tableBody');
+  const empty = document.getElementById('emptyState');
+  document.getElementById('showCount').textContent = data.length;
+  document.getElementById('totalCount').textContent = currencies.length;
+  document.getElementById('statTotal').textContent = currencies.length;
+  const def = currencies.find(c => c.isDefault);
+  document.getElementById('statDefault').textContent = def ? def.code : '—';
+
+  if (!data.length) { tbody.innerHTML = ''; empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+
+  tbody.innerHTML = data.map((c, i) => {
+    const sc = SYMBOL_COLORS[c.id % SYMBOL_COLORS.length];
+    const sel = selected.has(c.id);
+    return `
+    <tr class="${sel ? 'bg-blue-50/50' : 'hover:bg-gray-50/70'} transition-colors border-t border-gray-100">
+      <td class="px-5 py-3.5">
+        <label class="flex cursor-pointer" onclick="toggleSel(${c.id})">
+          <input type="checkbox" class="hidden peer" ${sel?'checked':''} />
+          <div class="w-4 h-4 border-2 border-gray-300 rounded-[4px] flex items-center justify-center shrink-0 peer-checked:bg-azure peer-checked:border-azure transition-all">
+            ${sel ? `<svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>` : ''}
+          </div>
+        </label>
+      </td>
+      <td class="px-4 py-3.5">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl ${sc} flex items-center justify-center text-[18px] font-bold shrink-0">${c.symbol}</div>
+          <div>
+            <p class="text-[13.5px] font-semibold text-navy">${c.name}</p>
+            ${c.isDefault ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-azure/10 text-azure">Default</span>` : ''}
+          </div>
+        </div>
+      </td>
+      <td class="px-4 py-3.5">
+        <span class="text-[20px] font-bold text-slate-600">${c.symbol}</span>
+      </td>
+      <td class="px-4 py-3.5">
+        <span class="text-[13px] font-bold tracking-widest text-slate-600 bg-gray-100 px-2.5 py-1 rounded-lg">${c.code}</span>
+      </td>
+      <td class="px-4 py-3.5">
+        <button onclick="setAsDefault(${c.id})" class="${c.isDefault ? 'bg-azure text-white cursor-default' : 'bg-gray-100 text-muted hover:bg-blue-50 hover:text-azure'} text-[11.5px] font-semibold px-3 py-1.5 rounded-lg transition-all border-none cursor-pointer">
+          ${c.isDefault ? '✓ Default' : 'Set Default'}
+        </button>
+      </td>
+      <td class="px-5 py-3.5">
+        <div class="flex items-center justify-end gap-1.5">
+          <button onclick="openEdit(${c.id})" class="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-colors border-none cursor-pointer" title="Edit">
+            <svg class="w-3.5 h-3.5 text-azure" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          </button>
+          ${!c.isDefault ? `<button onclick="openDel(${c.id})" class="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors border-none cursor-pointer" title="Delete">
+            <svg class="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </button>` : `<div class="w-8 h-8"></div>`}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('bulkBar').style.display = selected.size > 0 ? 'flex' : 'none';
+  document.getElementById('selCount').textContent = `${selected.size} selected`;
+}
+
+/* ── SELECTION ── */
+function toggleSel(id) { if(selected.has(id)) selected.delete(id); else selected.add(id); renderTable(); }
+function bulkDelete() {
+  const n = selected.size;
+  currencies = currencies.filter(c => !selected.has(c.id) || c.isDefault);
+  selected.clear(); renderTable();
+  showToast(`${n} currencies removed`, '#EF4444');
+}
+
+/* ── SET DEFAULT ── */
+function setAsDefault(id) {
+  currencies.forEach(c => c.isDefault = (c.id === id));
+  renderTable();
+  const c = currencies.find(x => x.id === id);
+  showToast(`${c.name} (${c.code}) set as default`, '#2563EB');
+}
+
+/* ── MODAL ── */
+function openModal() {
+  editId = null; setDefault = false;
+  document.getElementById('modalTitle').textContent = 'Add Currency';
+  document.getElementById('modalSub').textContent = 'Add a new currency to the platform.';
+  document.getElementById('saveLabel').textContent = 'Save Currency';
+  document.getElementById('iName').value = '';
+  document.getElementById('iSymbol').value = '';
+  document.getElementById('iCode').value = '';
+  ['nameErr','symErr','codeErr'].forEach(id => document.getElementById(id).classList.add('hidden'));
+  resetDefaultToggle(false);
+  showMod();
+  setTimeout(() => document.getElementById('iName').focus(), 80);
+}
+
+function openEdit(id) {
+  const c = currencies.find(x => x.id === id);
+  editId = id;
+  document.getElementById('modalTitle').textContent = 'Edit Currency';
+  document.getElementById('modalSub').textContent = `Editing "${c.name}"`;
+  document.getElementById('saveLabel').textContent = 'Update Currency';
+  document.getElementById('iName').value = c.name;
+  document.getElementById('iSymbol').value = c.symbol;
+  document.getElementById('iCode').value = c.code;
+  ['nameErr','symErr','codeErr'].forEach(id => document.getElementById(id).classList.add('hidden'));
+  setDefault = c.isDefault;
+  resetDefaultToggle(c.isDefault);
+  showMod();
+}
+
+function showMod() {
+  const bg = document.getElementById('modalBg');
+  bg.classList.remove('hidden');
+  bg.classList.add('flex');
+  bg.querySelector('div').classList.remove('modal-enter');
+  void bg.querySelector('div').offsetWidth;
+  bg.querySelector('div').classList.add('modal-enter');
+}
+
+function closeMod(e) {
+  if (!e || e.target === document.getElementById('modalBg')) {
+    document.getElementById('modalBg').classList.add('hidden');
+    document.getElementById('modalBg').classList.remove('flex');
+  }
+}
+
+function quickPick(name, symbol, code) {
+  document.getElementById('iName').value = name;
+  document.getElementById('iSymbol').value = symbol;
+  document.getElementById('iCode').value = code;
+  ['nameErr','symErr','codeErr'].forEach(id => document.getElementById(id).classList.add('hidden'));
+}
+
+function toggleDefault() {
+  setDefault = !setDefault;
+  const btn = document.getElementById('defToggle');
+  const thumb = document.getElementById('defThumb');
+  btn.style.backgroundColor = setDefault ? '#2563EB' : '#D1D5DB';
+  thumb.style.left = setDefault ? '22px' : '3px';
+}
+
+function resetDefaultToggle(val) {
+  setDefault = val;
+  const btn = document.getElementById('defToggle');
+  const thumb = document.getElementById('defThumb');
+  btn.style.backgroundColor = val ? '#2563EB' : '#D1D5DB';
+  thumb.style.left = val ? '22px' : '3px';
+}
+
+function saveCurrency() {
+  const name = document.getElementById('iName').value.trim();
+  const sym  = document.getElementById('iSymbol').value.trim();
+  const code = document.getElementById('iCode').value.trim();
+  let ok = true;
+  if (!name) { document.getElementById('nameErr').classList.remove('hidden'); ok = false; }
+  else document.getElementById('nameErr').classList.add('hidden');
+  if (!sym)  { document.getElementById('symErr').classList.remove('hidden'); ok = false; }
+  else document.getElementById('symErr').classList.add('hidden');
+  if (!code) { document.getElementById('codeErr').classList.remove('hidden'); ok = false; }
+  else document.getElementById('codeErr').classList.add('hidden');
+  if (!ok) return;
+
+  if (setDefault) currencies.forEach(c => c.isDefault = false);
+
+  if (editId) {
+    const c = currencies.find(x => x.id === editId);
+    c.name = name; c.symbol = sym; c.code = code; c.isDefault = setDefault || c.isDefault;
+    showToast(`"${name}" updated`, '#059669');
+  } else {
+    currencies.push({ id: nextId++, name, symbol: sym, code, isDefault: setDefault });
+    showToast(`"${name}" added`, '#059669');
+  }
+  closeMod(); renderTable();
+}
+
+/* ── DELETE ── */
+function openDel(id) {
+  delId = id;
+  document.getElementById('delCurrName').textContent = `"${currencies.find(c=>c.id===id).name}"`;
+  const bg = document.getElementById('delBg');
+  bg.classList.remove('hidden'); bg.classList.add('flex');
+}
+function closeDelMod(e) {
+  if (!e || e.target === document.getElementById('delBg')) {
+    document.getElementById('delBg').classList.add('hidden');
+    document.getElementById('delBg').classList.remove('flex');
+  }
+}
+function confirmDel() {
+  const c = currencies.find(x => x.id === delId);
+  currencies = currencies.filter(x => x.id !== delId);
+  closeDelMod(); renderTable();
+  showToast(`"${c.name}" deleted`, '#EF4444');
+}
+
+/* ── TOAST ── */
+let tt;
+function showToast(msg, color) {
+  const el = document.getElementById('toast');
+  document.getElementById('tmsg').textContent = msg;
+  document.getElementById('tdot').style.background = color;
+  el.classList.remove('opacity-0', 'translate-y-2');
+  el.classList.add('opacity-100', 'translate-y-0');
+  clearTimeout(tt);
+  tt = setTimeout(() => {
+    el.classList.add('opacity-0', 'translate-y-2');
+    el.classList.remove('opacity-100', 'translate-y-0');
+  }, 2700);
+}
+
+renderTable();
+</script>
+</body>
+</html>
