@@ -438,39 +438,73 @@
     </div>
 
 </div>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-@if($user->cans('edit_job_applications'))
-    <script src="{{ asset('assets/plugins/jquery-bar-rating-master/dist/jquery.barrating.min.js') }}"
-            type="text/javascript"></script>
-    <script>
-        $('#example-fontawesome').barrating({
-            theme: 'fontawesome-stars',
-            showSelectedRating: false,
-            onSelect: function (value, text, event) {
-                if (event !== undefined && value !== '') {
-                    var url = "{{ route('admin.job-applications.rating-save',':id') }}";
-                    url = url.replace(':id', {{$application->id}});
-                    var token = '{{ csrf_token() }}';
-                    var id = {{$application->id}};
-                    $.easyAjax({
-                        type: 'Post',
-                        url: url,
-                        container: '#example-fontawesome',
-                        data: {'rating': value, '_token': token},
-                        success: function (response) {
-                            $('#example-fontawesome_' + id).barrating('set', value);
-                        }
-                    });
-                }
+<script>
+$(document).ready(function () {
+
+    @if($user->cans('edit_job_applications'))
+    $('#example-fontawesome').barrating({
+        theme: 'fontawesome-stars',
+        showSelectedRating: false,
+        onSelect: function (value, text, event) {
+
+            if (event !== undefined && value !== '') {
+
+                var url = "{{ route('admin.job-applications.rating-save',':id') }}";
+                url = url.replace(':id', {{$application->id}});
+
+                $.easyAjax({
+                    type: 'POST',
+                    url: url,
+                    container: '#example-fontawesome',
+                    data: {
+                        rating: value,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function (response) {
+                        $('#example-fontawesome').barrating('set', value);
+                    }
+                });
 
             }
-        });
-        @if($application->rating !== null)
-        $('#example-fontawesome').barrating('set', {{$application->rating}});
-        @endif
+        }
+    });
 
-    </script>
-@endif
+    @if($application->rating !== null)
+    $('#example-fontawesome').barrating('set', {{$application->rating}});
+    @endif
+    @endif
+
+    $('.select2#skills').select2();
+
+    $('#update-status-btn').on('click', function () {
+
+        let statusId = $('#change-status').val();
+
+        $.easyAjax({
+            url: "{{ route('admin.job-applications.change-status', $application->id) }}",
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                status_id: statusId
+            },
+            success: function (response) {
+
+                if(response.status == 'success') {
+
+                    if (window.raCloseRightSidebar) {
+                        window.raCloseRightSidebar();
+                    }
+
+                    loadData();
+                }
+            }
+        });
+
+    });
+
+});
+</script>
+
 <script>
     $('.select2#skills').select2();
 
