@@ -49,8 +49,7 @@ class JobController extends Controller
                 'job_type'    => $job->jobType->job_type ?? '',
                 'salary'      => $salary,
                 'experience'  => $experience,
-
-               'apply_url' => route('jobs.jobDetail', [$job->slug, 0]),
+                'apply_url' => route('jobs.jobDetail', [$job->slug, $job->id]),
             ];
         }
 
