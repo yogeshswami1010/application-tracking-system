@@ -1,10 +1,7 @@
 <link rel="stylesheet" href="{{ asset('assets/plugins/jquery-bar-rating-master/dist/themes/fontawesome-stars.css') }}">
 @php
-    $user = user();
-
     $detailCatName = optional($application->job->category)->name ?? __('app.category');
     $detailCatKey = \Illuminate\Support\Str::slug($detailCatName);
-
     $detailCatClass = match (true) {
         str_contains($detailCatKey, 'engineer') || str_contains($detailCatKey, 'tech') || str_contains($detailCatKey, 'it') => 'bg-[#EFF6FF] text-[#1D4ED8]',
         str_contains($detailCatKey, 'sale') || str_contains($detailCatKey, 'market') => 'bg-[#FFF7ED] text-[#C2410C]',
@@ -12,7 +9,6 @@
         str_contains($detailCatKey, 'hr') || str_contains($detailCatKey, 'people') => 'bg-[#F5F3FF] text-[#5B21B6]',
         default => 'bg-[#F1F3F7] text-[#5A6478]',
     };
-
     $stagePillBg = $application->status->color ?? '#0F1F3D';
 @endphp
 <style>
@@ -43,7 +39,7 @@
     <div class="border-b border-[#F0EEE9] bg-white px-5">
         <div class="flex items-center justify-between border-b border-[#F0EEE9] py-3.5">
             <span class="text-[10.5px] font-bold uppercase tracking-[0.09em] text-[#B0B8C4]">@lang('modules.jobApplication.ratingLabel')</span>
-           @if($user->cans('edit_job_applications'))
+            @if($user->cans('edit_job_applications'))
                 <div class="stars stars-example-fontawesome [&_.br-theme-fontawesome-stars]:leading-none">
                     <select id="example-fontawesome" name="rating" autocomplete="off">
                         <option value=""></option>
@@ -63,44 +59,7 @@
             <span class="text-[13px] font-semibold text-[#1A1E2E]">{{ $application->created_at->timezone($global->timezone)->format('d M, Y') }}</span>
         </div>
     </div>
-@if($user->cans('edit_job_applications'))
-<div class="bg-white rounded-2xl border border-[#F0EEE9] p-5 shadow-[0_1px_3px_rgba(15,31,61,0.04)] mx-4 mt-4">
 
-    <h3 class="text-lg font-bold text-gray-900 mb-4 pb-3 border-b border-[#F0EEE9]">
-        <i class="fa fa-exchange mr-2 text-blue-600"></i>
-        Move Application
-    </h3>
-
-    <div class="flex gap-3">
-
-        <select id="change-status"
-            class="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-
-            @foreach($boardColumns as $column)
-
-                <option value="{{ $column->id }}"
-                    {{ $application->status_id == $column->id ? 'selected' : '' }}>
-
-                    {{ ucfirst($column->status) }}
-
-                </option>
-
-            @endforeach
-
-        </select>
-
-        <button type="button"
-            id="update-status-btn"
-            class="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-
-            Update
-
-        </button>
-
-    </div>
-
-</div>
-@endif
     <div class="flex flex-col gap-2.5 border-b border-[#F0EEE9] bg-white px-5 py-4">
         <div class="flex flex-wrap gap-2" id="resume-{{ $application->id }}">
             @if ($application->resume_url)
@@ -438,17 +397,38 @@
     </div>
 
 </div>
-<script>
-$(document).ready(function () {
+@if($user->cans('edit_job_applications'))
+    <script src="{{ asset('assets/plugins/jquery-bar-rating-master/dist/jquery.barrating.min.js') }}"
+            type="text/javascript"></script>
+    <script>
+        $('#example-fontawesome').barrating({
+            theme: 'fontawesome-stars',
+            showSelectedRating: false,
+            onSelect: function (value, text, event) {
+                if (event !== undefined && value !== '') {
+                    var url = "{{ route('admin.job-applications.rating-save',':id') }}";
+                    url = url.replace(':id', {{$application->id}});
+                    var token = '{{ csrf_token() }}';
+                    var id = {{$application->id}};
+                    $.easyAjax({
+                        type: 'Post',
+                        url: url,
+                        container: '#example-fontawesome',
+                        data: {'rating': value, '_token': token},
+                        success: function (response) {
+                            $('#example-fontawesome_' + id).barrating('set', value);
+                        }
+                    });
+                }
 
-    $('#example-fontawesome').barrating({
-        theme: 'fontawesome-stars',
-        showSelectedRating: false
-    });
+            }
+        });
+        @if($application->rating !== null)
+        $('#example-fontawesome').barrating('set', {{$application->rating}});
+        @endif
 
-});
-</script>
-
+    </script>
+@endif
 <script>
     $('.select2#skills').select2();
 
@@ -517,38 +497,7 @@ $(document).ready(function () {
             }
         });
     }
-$('#update-status-btn').on('click', function () {
 
-    let statusId = $('#change-status').val();
-
-    $.easyAjax({
-
-        url: "{{ route('admin.job-applications.change-status', $application->id) }}",
-
-        type: 'POST',
-
-        data: {
-            _token: '{{ csrf_token() }}',
-            status_id: statusId
-        },
-
-        success: function (response) {
-
-            if(response.status == 'success') {
-
-                if (window.raCloseRightSidebar) {
-                    window.raCloseRightSidebar();
-                }
-
-                loadData();
-
-            }
-
-        }
-
-    });
-
-});
     function archiveApplication(applicationId) {
         swal({
             title: "@lang('errors.areYouSure')",
@@ -587,53 +536,7 @@ $('#update-status-btn').on('click', function () {
             }
         });
     }
-$('#move-status-btn').on('click', function () {
 
-    let statusId = $('#move-status').val();
-
-    if (statusId == '') {
-        swal("Warning", "Please select a status", "warning");
-        return;
-    }
-
-    $.easyAjax({
-        url: "{{ route('admin.job-applications.updateIndex') }}",
-        type: 'POST',
-        data: {
-            '_token': '{{ csrf_token() }}',
-
-            boardColumnIds: [statusId],
-            applicationIds: ['{{ $application->id }}'],
-            prioritys: [1],
-
-            draggingTaskId: '{{ $application->id }}',
-            draggedTaskId: '{{ $application->id }}',
-
-            jobs: $('#jobs').val(),
-            search: $('#search').val()
-        },
-
-        success: function (response) {
-
-            if (response.status == 'success') {
-
-                if (window.raCloseRightSidebar) {
-                    window.raCloseRightSidebar();
-                }
-
-                loadData();
-
-                swal({
-                    title: "Success",
-                    text: "Application moved successfully",
-                    type: "success",
-                    timer: 1500,
-                    showConfirmButton: false
-                });
-            }
-        }
-    });
-});
     $('#add-note').click(function () {
         var url = "{{ route('admin.applicant-note.store') }}";
         var id = {{$application->id}};
