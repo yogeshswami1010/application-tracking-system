@@ -230,93 +230,123 @@
 
             {{-- Always-visible filter bar --}}
             <div class="ja-filter-card">
-                <div class="ja-filter-row">
+            <div class="ja-filter-row">
 
-                    {{-- Filter icon + label --}}
-                    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-bottom:4px;">
-                        <svg style="width:15px;height:15px;color:#2563EB;flex-shrink:0;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
-                        <span style="font-size:12px;font-weight:700;color:#1A1E2E;white-space:nowrap;">@lang('app.filterBy')</span>
-                    </div>
+                {{-- Filter icon + label --}}
+                <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-bottom:4px;">
+                    <svg style="width:15px;height:15px;color:#2563EB;flex-shrink:0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"
+                            d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+                    </svg>
+                    <span style="font-size:12px;font-weight:700;color:#1A1E2E;white-space:nowrap;">
+                        @lang('app.filterBy')
+                    </span>
+                </div>
 
-                    <div class="ja-filter-divider"></div>
+                <div class="ja-filter-divider"></div>
 
-                    {{-- Company --}}
-                    <div class="ja-filter-field">
-                        <span class="ja-filter-label">@lang('app.company')</span>
-                        <select class="select2 w-full" name="company" id="company">
-                            <option value="all">@lang('modules.jobApplication.allCompany')</option>
-                            @forelse($companies as $company)
-                                <option title="{{ ucfirst($company->company_name) }}" value="{{ $company->id }}">{{ ucfirst($company->company_name) }}</option>
-                            @empty
-                            @endforelse
-                        </select>
-                    </div>
+                {{-- Company --}}
+                <div class="ja-filter-field">
+                    <span class="ja-filter-label">@lang('app.company')</span>
+                    <select class="select2 w-full" name="company" id="company">
+                        <option value="all">@lang('modules.jobApplication.allCompany')</option>
+                        @forelse($companies as $company)
+                            <option title="{{ ucfirst($company->company_name) }}" value="{{ $company->id }}">
+                                {{ ucfirst($company->company_name) }}
+                            </option>
+                        @empty
+                        @endforelse
+                    </select>
+                </div>
 
-                    {{-- Jobs --}}
-                    <div class="ja-filter-field">
-                        <span class="ja-filter-label">@lang('menu.jobs')</span>
-                        <select class="select2 w-full" name="jobs" id="jobs">
-                            <option value="all">@lang('modules.jobApplication.allJobs')</option>
-                            @forelse($jobs as $job)
-                                <option title="{{ ucfirst($job->title) }}" value="{{ $job->id }}">{{ ucfirst($job->title) }}</option>
-                            @empty
-                            @endforelse
-                        </select>
-                        {{-- Total applied badge below jobs select --}}
+                {{-- Jobs --}}
+                <div class="ja-filter-field">
+
+                    {{-- Label + Badge (RIGHT SIDE) --}}
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                        <span class="ja-filter-label" style="margin:0;">
+                            @lang('menu.jobs')
+                        </span>
+
                         <span id="ja-job-total-badge" class="ja-job-badge">
-                            <svg style="width:11px;height:11px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/></svg>
+                            <svg style="width:11px;height:11px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/>
+                            </svg>
                             <span id="ja-job-total-count">0</span>&nbsp;@lang('app.applied')
                         </span>
                     </div>
 
-                    {{-- Location --}}
-                    <div class="ja-filter-field">
-                        <span class="ja-filter-label">@lang('menu.locations')</span>
-                        <select class="select2 w-full" name="location" id="location">
-                            <option value="all">@lang('modules.jobApplication.allLocation')</option>
-                            @forelse($locations as $location)
-                                <option value="{{ $location->id }}">{{ ucfirst($location->location) }}</option>
-                            @empty
-                            @endforelse
-                        </select>
-                    </div>
-
-                    {{-- Custom Question --}}
-                    <div class="ja-filter-field">
-                        <span class="ja-filter-label">@lang('modules.jobApplication.allQuestion')</span>
-                        <select class="select2 w-full" name="question" id="questions">
-                            <option value="all">@lang('modules.jobApplication.allQuestion')</option>
-                            @forelse($questions as $question)
-                                <option value="{{ $question->id }}">{{ ucfirst($question->question) }}</option>
-                            @empty
-                            @endforelse
-                        </select>
-                    </div>
-
-                    {{-- Question value (conditional) --}}
-                    <div class="ja-filter-field" id="question_value" style="display:none;">
-                        <span class="ja-filter-label">@lang('app.filterBy')</span>
-                        <input type="text"
-                               style="height:36px;border:1.5px solid #E2DED8;border-radius:9px;background:#F8F7F5;font-size:13px;padding:0 11px;outline:none;transition:border-color .15s;width:100%;"
-                               name="question_value" id="question-value" placeholder="">
-                    </div>
-
-                    <div class="ja-filter-divider"></div>
-
-                    {{-- Action buttons — same row, aligned to bottom --}}
-                    <div class="ja-filter-actions">
-                        <button type="button" id="apply-filters" class="ja-btn-apply">
-                            <svg style="width:13px;height:13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                            @lang('app.apply')
-                        </button>
-                        <button type="button" id="reset-filters" class="ja-btn-reset">
-                            <svg style="width:13px;height:13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                            @lang('app.reset')
-                        </button>
-                    </div>
+                    {{-- Jobs Select --}}
+                    <select class="select2 w-full" name="jobs" id="jobs">
+                        <option value="all">@lang('modules.jobApplication.allJobs')</option>
+                        @forelse($jobs as $job)
+                            <option title="{{ ucfirst($job->title) }}" value="{{ $job->id }}">
+                                {{ ucfirst($job->title) }}
+                            </option>
+                        @empty
+                        @endforelse
+                    </select>
 
                 </div>
+
+                {{-- Location --}}
+                <div class="ja-filter-field">
+                    <span class="ja-filter-label">@lang('menu.locations')</span>
+                    <select class="select2 w-full" name="location" id="location">
+                        <option value="all">@lang('modules.jobApplication.allLocation')</option>
+                        @forelse($locations as $location)
+                            <option value="{{ $location->id }}">{{ ucfirst($location->location) }}</option>
+                        @empty
+                        @endforelse
+                    </select>
+                </div>
+
+                {{-- Custom Question --}}
+                <div class="ja-filter-field">
+                    <span class="ja-filter-label">@lang('modules.jobApplication.allQuestion')</span>
+                    <select class="select2 w-full" name="question" id="questions">
+                        <option value="all">@lang('modules.jobApplication.allQuestion')</option>
+                        @forelse($questions as $question)
+                            <option value="{{ $question->id }}">
+                                {{ ucfirst($question->question) }}
+                            </option>
+                        @empty
+                        @endforelse
+                    </select>
+                </div>
+
+                {{-- Question value (conditional) --}}
+                <div class="ja-filter-field" id="question_value" style="display:none;">
+                    <span class="ja-filter-label">@lang('app.filterBy')</span>
+                    <input type="text"
+                        style="height:36px;border:1.5px solid #E2DED8;border-radius:9px;background:#F8F7F5;font-size:13px;padding:0 11px;outline:none;transition:border-color .15s;width:100%;"
+                        name="question_value"
+                        id="question-value"
+                        placeholder="">
+                </div>
+
+                <div class="ja-filter-divider"></div>
+
+                {{-- Action buttons --}}
+                <div class="ja-filter-actions">
+                    <button type="button" id="apply-filters" class="ja-btn-apply">
+                        <svg style="width:13px;height:13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        @lang('app.apply')
+                    </button>
+
+                    <button type="button" id="reset-filters" class="ja-btn-reset">
+                        <svg style="width:13px;height:13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        @lang('app.reset')
+                    </button>
+                </div>
+
             </div>
+        </div>
 
             <div class="container-scroll flex min-h-0 flex-1 flex-col overflow-hidden pt-1">
                 <div class="container-row job-apps-kanban-scroll flex min-h-[min(480px,calc(100dvh-19rem))] flex-1 gap-3.5 overflow-x-auto overflow-y-hidden pb-2">
