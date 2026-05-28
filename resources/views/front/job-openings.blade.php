@@ -106,9 +106,9 @@
                                 @if($location->job->company->show_in_frontend == 'true')
                                     <p class="text-[13px] font-medium mb-5 text-[#8892A0]">
                                         @if($location->job->job_company_id != null && $location->job->job_company_id != '' && !is_null($location->job->jobCompany))
-                                            @lang('app.by') {{ ucwords($location->job->jobCompany->company_name) }}
+                                            <!-- @lang('app.by') {{ ucwords($location->job->jobCompany->company_name) }} -->
                                         @else
-                                            @lang('app.by') {{ ucwords($location->job->company->company_name) }}
+                                            <!-- @lang('app.by') {{ ucwords($location->job->company->company_name) }} -->
                                         @endif
                                     </p>
                                 @else
