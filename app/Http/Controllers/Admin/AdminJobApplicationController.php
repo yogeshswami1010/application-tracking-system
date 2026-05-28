@@ -606,21 +606,22 @@ class AdminJobApplicationController extends AdminBaseController
                 $answer->save();
             }
         }
-        // Auto-move to rejected column if any radio question answered 'no'
-        $hasRejectionAnswer = JobApplicationAnswer::where('job_application_id', $jobApplication->id)
+        // ── Auto-reject: if any radio question was answered "No", move to Rejected column ──
+        $hasDisqualifyingAnswer = $application->answers()
             ->whereHas('question', function ($q) {
                 $q->where('type', 'radio');
             })
-            ->where(DB::raw('LOWER(TRIM(answer))'), 'no')
+            ->whereRaw('LOWER(TRIM(answer)) = ?', ['no'])
             ->exists();
 
-        if ($hasRejectionAnswer) {
-            $rejectedStatus = ApplicationStatus::where('status', 'rejected')->first();
-            if ($rejectedStatus) {
-                $jobApplication->status_id = $rejectedStatus->id;
-                $jobApplication->save();
+        if ($hasDisqualifyingAnswer) {
+            $rejectedStatus = \App\Models\ApplicationStatus::whereRaw('LOWER(TRIM(status)) = ?', ['rejected'])->first();
+            if ($rejectedStatus && $application->status_id !== $rejectedStatus->id) {
+                $application->status_id = $rejectedStatus->id;
+                $application->save();
             }
         }
+      
         return Reply::redirect(route('admin.job-applications.index'), __('menu.jobApplications').' '.__('messages.createdSuccessfully'));
     }
 
@@ -702,19 +703,18 @@ class AdminJobApplicationController extends AdminBaseController
         if ($mailSetting[$request->status_id]['status'] && $isStatusDirty) {
             Notification::send($jobApplication, new CandidateStatusChange($jobApplication));
         }
-        // Auto-move to rejected column if any radio question answered 'no'
-        $hasRejectionAnswer = JobApplicationAnswer::where('job_application_id', $jobApplication->id)
-            ->whereHas('question', function ($q) {
-                $q->where('type', 'radio');
-            })
-            ->where(DB::raw('LOWER(TRIM(answer))'), 'no')
-            ->exists();
+        $hasDisqualifyingAnswer = $application->answers()
+        ->whereHas('question', function ($q) {
+            $q->where('type', 'radio');
+        })
+        ->whereRaw('LOWER(TRIM(answer)) = ?', ['no'])
+        ->exists();
 
-        if ($hasRejectionAnswer) {
-            $rejectedStatus = ApplicationStatus::where('status', 'rejected')->first();
-            if ($rejectedStatus) {
-                $jobApplication->status_id = $rejectedStatus->id;
-                $jobApplication->save();
+        if ($hasDisqualifyingAnswer) {
+            $rejectedStatus = \App\Models\ApplicationStatus::whereRaw('LOWER(TRIM(status)) = ?', ['rejected'])->first();
+            if ($rejectedStatus && $application->status_id !== $rejectedStatus->id) {
+                $application->status_id = $rejectedStatus->id;
+                $application->save();
             }
         }
         return Reply::redirect(route('admin.job-applications.table'), __('menu.jobApplications').' '.__('messages.updatedSuccessfully'));
