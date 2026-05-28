@@ -1,7 +1,10 @@
 <link rel="stylesheet" href="{{ asset('assets/plugins/jquery-bar-rating-master/dist/themes/fontawesome-stars.css') }}">
 @php
+    $user = user();
+
     $detailCatName = optional($application->job->category)->name ?? __('app.category');
     $detailCatKey = \Illuminate\Support\Str::slug($detailCatName);
+
     $detailCatClass = match (true) {
         str_contains($detailCatKey, 'engineer') || str_contains($detailCatKey, 'tech') || str_contains($detailCatKey, 'it') => 'bg-[#EFF6FF] text-[#1D4ED8]',
         str_contains($detailCatKey, 'sale') || str_contains($detailCatKey, 'market') => 'bg-[#FFF7ED] text-[#C2410C]',
@@ -9,6 +12,7 @@
         str_contains($detailCatKey, 'hr') || str_contains($detailCatKey, 'people') => 'bg-[#F5F3FF] text-[#5B21B6]',
         default => 'bg-[#F1F3F7] text-[#5A6478]',
     };
+
     $stagePillBg = $application->status->color ?? '#0F1F3D';
 @endphp
 <style>
