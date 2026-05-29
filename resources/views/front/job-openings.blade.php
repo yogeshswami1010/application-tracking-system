@@ -23,7 +23,7 @@
             Welcome to Consortium Staffing Solutions
         </h1>
         <p class="font-normal leading-relaxed max-w-md mx-auto mb-10 text-white/50 text-[16.5px]">
-            {!! strip_tags($welcomeSub, '<br><a><strong><em>') !!}
+          Explore our open positions to find roles that align with your interests and expertise. From entry-level positions to leadership roles.
         </p>
 
         <div class="fr-search-wrap max-w-3xl mx-auto">
