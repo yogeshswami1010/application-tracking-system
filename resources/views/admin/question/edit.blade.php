@@ -151,53 +151,55 @@
         return $('#is_knockout').is(':checked');
     }
 
-    // ✅ isKnockout and savedKnockout passed explicitly — not read from DOM
     function buildOptionRow(value, isKnockout, savedKnockout) {
         optionCounter++;
         const uid       = optionCounter;
-        const safeValue = $('<div>').text(value).html();
         const saved     = (savedKnockout || '').trim();
         const isChecked = isKnockout && saved !== '' && value.trim() === saved;
 
-        return `
-            <div class="flex items-center gap-2 radio-option-row" data-uid="${uid}">
+        // ✅ Build the row using jQuery DOM methods — no HTML encoding issues
+        const $row = $('<div class="flex items-center gap-2 radio-option-row"></div>').attr('data-uid', uid);
 
-                <input type="text"
-                       name="radio_options[]"
-                       value="${safeValue}"
-                       placeholder="Enter option label"
-                       class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm
-                              focus:outline-none focus:ring-primary focus:border-primary text-sm option-input">
+        // Text input
+        const $input = $('<input type="text" name="radio_options[]" placeholder="Enter option label">')
+            .val(value)  // ✅ .val() sets raw value safely — no encoding issues
+            .addClass('flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary text-sm option-input');
 
-                <div class="knockout-col w-32 justify-center ${isKnockout ? 'flex' : 'hidden'}">
-                    <label class="flex items-center gap-1.5 cursor-pointer select-none">
-                        <input type="radio"
-                               name="knockout_answer"
-                               value="${safeValue}"
-                               class="knockout-radio accent-red-500 w-4 h-4"
-                               ${isChecked ? 'checked' : ''}>
-                        <span class="text-xs text-red-600 font-medium">Set as knockout</span>
-                    </label>
-                </div>
+        // Knockout column
+        const $knockoutCol = $('<div class="knockout-col w-32 justify-center"></div>');
+        if (isKnockout) {
+            $knockoutCol.addClass('flex');
+        } else {
+            $knockoutCol.addClass('hidden');
+        }
 
-                <button type="button"
-                        class="remove-option w-7 h-7 flex items-center justify-center text-gray-400
-                               hover:text-red-500 hover:bg-red-50 rounded focus:outline-none transition-colors"
-                        title="Remove option">
-                    <i class="fa fa-times text-xs"></i>
-                </button>
+        const $radioLabel = $('<label class="flex items-center gap-1.5 cursor-pointer select-none"></label>');
 
-            </div>
-        `;
+        const $radio = $('<input type="radio" name="knockout_answer" class="knockout-radio accent-red-500 w-4 h-4">')
+            .val(value);  // ✅ .val() sets raw value safely
+
+        if (isChecked) {
+            $radio.prop('checked', true);
+        }
+
+        const $radioSpan = $('<span class="text-xs text-red-600 font-medium">Set as knockout</span>');
+        $radioLabel.append($radio, $radioSpan);
+        $knockoutCol.append($radioLabel);
+
+        // Remove button
+        const $removeBtn = $('<button type="button" title="Remove option">')
+            .addClass('remove-option w-7 h-7 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 rounded focus:outline-none transition-colors')
+            .html('<i class="fa fa-times text-xs"></i>');
+
+        $row.append($input, $knockoutCol, $removeBtn);
+        return $row;
     }
 
-    // ✅ appendOption uses current DOM state for new rows added by user
     function appendOption(value) {
         const isKnockout = isKnockoutEnabled();
         $('#radio-options-list').append(buildOptionRow(value || '', isKnockout, ''));
     }
 
-    // ✅ loadOptions accepts explicit isKnockout + savedKnockout for pre-fill
     function loadOptions(options, isKnockout, savedKnockout) {
         $('#radio-options-list').html('');
         optionCounter = 0;
@@ -229,7 +231,6 @@
     $(document).ready(function () {
         if ($('#type').val() === 'radio') {
             const isKnockout = $('#is_knockout').is(':checked');
-            // ✅ Pass knockout state and saved answer directly to loadOptions
             loadOptions(existingOptions, isKnockout, existingKnockout);
             syncKnockoutColumns();
         }
@@ -253,7 +254,6 @@
 
     // ── Knockout toggle ───────────────────────────────────────────────────
     $('#is_knockout').on('change', function () {
-        // ✅ Re-render all rows with updated knockout state
         const isKnockout = $(this).is(':checked');
         const saved      = isKnockout ? existingKnockout : '';
         const current    = $('.radio-option-row .option-input').map(function () {
