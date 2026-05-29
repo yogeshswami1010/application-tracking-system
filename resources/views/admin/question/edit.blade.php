@@ -5,6 +5,8 @@
     $existingOptions = ['Yes', 'No'];
 
     if (
+        isset($question) &&
+        $question &&
         $question->type === 'radio' &&
         !empty($question->answer_type)
     ) {
@@ -33,7 +35,7 @@
                         <label for="question" class="block text-sm font-medium text-gray-700 mb-1">
                             @lang('menu.question')
                         </label>
-                        <input type="text" name="question" value="{{ $question->question }}"
+                        <input type="text" name="question" @if(optional($question)->is_knockout)
                             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
                             placeholder="@lang('menu.question')" id="question">
                     </div>
@@ -61,17 +63,17 @@
                             id="type">
                             <option @if($question->type == 'text') selected @endif value="text">@lang('app.text')</option>
                             <option @if($question->type == 'file') selected @endif value="file">@lang('app.file')</option>
-                            <option @if($question->type == 'radio') selected @endif value="radio">Radio</option>
+                            <option {{ optional($question)->type == 'radio' ? '' : 'hidden' }} selected @endif value="radio">Radio</option>
                         </select>
                     </div>
 
                     {{-- ✅ Knockout Toggle — visible only for radio type --}}
-                    <div class="mb-4 {{ $question->type == 'radio' ? '' : 'hidden' }}" id="knockout-wrapper">
+                    <div class="mb-4 {{ optional($question)->type == 'radio' ? '' : 'hidden' }}" id="knockout-wrapper">
                         <div class="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-md">
                             <label class="relative inline-flex items-center cursor-pointer mt-0.5">
                                 <input type="checkbox" name="is_knockout" id="is_knockout" value="1"
                                     class="sr-only peer"
-                                    @if($question->is_knockout) checked @endif>
+                                    @if(optional($question)->is_knockout) checked @endif>
                                 <div class="w-11 h-6 bg-gray-200 rounded-full peer
                                     peer-focus:ring-2 peer-focus:ring-amber-300
                                     peer-checked:bg-amber-500
@@ -91,7 +93,7 @@
                     </div>
 
                     {{-- ✅ Radio Options --}}
-                    <div class="mb-4 {{ $question->type == 'radio' ? '' : 'hidden' }}" id="radio-options-wrapper">
+                    <div class="mb-4 {{ optional($question)->type == 'radio' ? '' : 'hidden' }}" id="radio-options-wrapper">
 
                         <div class="flex items-center justify-between mb-2">
                             <label class="block text-sm font-medium text-gray-700">Radio Options</label>
