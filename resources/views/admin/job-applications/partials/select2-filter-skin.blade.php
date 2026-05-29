@@ -2,7 +2,7 @@
 <style>
     #ja-filter-bar,
     #ja-table-filter-bar {
-        max-height: 0;
+        /* max-height: 0; */
         padding-top: 0;
         padding-bottom: 0;
         overflow: hidden;
