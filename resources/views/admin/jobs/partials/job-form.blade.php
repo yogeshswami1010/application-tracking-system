@@ -477,114 +477,72 @@
                             </div>
                         </div>
                     </div>
+@if (count($questions) > 0)
 
-                    @if (count($questions) > 0)
     <div class="overflow-hidden rounded-2xl border border-[#E8E6E1] bg-white job-page-question-wrapper">
 
         {{-- Header --}}
         <div class="border-b border-gray-100 px-5 py-4 flex items-center justify-between">
+
             <div>
                 <h3 class="text-[15px] font-bold text-[#0F1F3D]">
                     @lang('modules.front.questions')
                 </h3>
+
                 <p class="mt-0.5 text-[12px] text-[#8892A0]">
-                    @lang('app.optional')
+                    Select questions for this job
                 </p>
             </div>
 
-            {{-- Add New Question --}}
+            {{-- Add Question --}}
             <a href="{{ route('admin.questions.create') }}"
+               target="_blank"
                class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-700 transition">
                 <i class="fa fa-plus"></i>
                 Add Question
             </a>
+
         </div>
 
-        {{-- Questions --}}
-        <div class="space-y-3 p-5">
+        <div class="p-5">
 
-            @foreach ($questions as $question)
+            {{-- Original selection UI --}}
+            @include('admin.jobs.partials.question-options', [
+                'questions' => $questions,
+                'jobQuestion' => $jobQuestion ?? [],
+            ])
 
-                <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            {{-- Edit buttons --}}
+            <div class="mt-5 border-t border-gray-100 pt-4">
 
-                    {{-- Top Row --}}
-                    <div class="flex items-start justify-between gap-3">
+                <div class="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                    Manage Questions
+                </div>
 
-                        <div class="flex-1">
+                <div class="flex flex-wrap gap-2">
 
-                            {{-- Question --}}
-                            <h4 class="text-sm font-semibold text-gray-800">
-                                {{ $question->question }}
-                            </h4>
+                    @foreach($questions as $question)
 
-                            {{-- Meta --}}
-                            <div class="mt-1 flex flex-wrap items-center gap-2">
+                        <a href="{{ route('admin.questions.edit', $question->id) }}"
+                           target="_blank"
+                           class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition">
 
-                                <span class="rounded bg-blue-100 px-2 py-0.5 text-[11px] font-medium text-blue-700">
-                                    {{ ucfirst($question->type) }}
-                                </span>
+                            <i class="fa fa-pencil"></i>
 
-                                @if($question->required == 'yes')
-                                    <span class="rounded bg-red-100 px-2 py-0.5 text-[11px] font-medium text-red-700">
-                                        Required
-                                    </span>
-                                @endif
+                            {{ \Illuminate\Support\Str::limit($question->question, 40) }}
 
-                                @if($question->is_knockout)
-                                    <span class="rounded bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700">
-                                        Knockout
-                                    </span>
-                                @endif
+                        </a>
 
-                            </div>
-
-                            {{-- Radio Options --}}
-                            @if($question->type == 'radio' && !empty($question->answer_type))
-                                <div class="mt-3 flex flex-wrap gap-2">
-                                    @foreach(explode(',', $question->answer_type) as $option)
-
-                                        @php
-                                            $option = trim($option);
-                                            $isKnockout = $question->knockout_answer == $option;
-                                        @endphp
-
-                                        <span class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium
-                                            {{ $isKnockout
-                                                ? 'bg-red-100 text-red-700 border border-red-200'
-                                                : 'bg-gray-100 text-gray-700 border border-gray-200' }}">
-                                            {{ $option }}
-
-                                            @if($isKnockout)
-                                                <i class="fa fa-ban text-[10px]"></i>
-                                            @endif
-                                        </span>
-
-                                    @endforeach
-                                </div>
-                            @endif
-
-                        </div>
-
-                        {{-- Actions --}}
-                        <div class="flex items-center gap-2">
-
-                            {{-- Edit --}}
-                            <a href="{{ route('admin.questions.edit', $question->id) }}"
-                               class="flex h-9 w-9 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 transition"
-                               title="Edit Question">
-                                <i class="fa fa-pencil"></i>
-                            </a>
-
-                        </div>
-
-                    </div>
+                    @endforeach
 
                 </div>
 
-            @endforeach
+            </div>
 
         </div>
+
     </div>
+
 @endif
 
                     <div class="overflow-hidden rounded-2xl border border-[#E8E6E1] bg-white">
