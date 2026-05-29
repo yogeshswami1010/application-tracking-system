@@ -142,15 +142,9 @@
 
 @push('footer-script')
 <script>
-    // ── Existing values from DB (passed from PHP to JS) ───────────────────
-    const existingOptions   = @json(
-        $question->type === 'radio' && $question->answer_type
-            ? array_filter(array_map('trim', explode(',', $question->answer_type)))
-            : ['Yes', 'No']
-    );
-   const existingOptions   = {{ json_encode($question->type === 'radio' && $question->answer_type ? array_values(array_filter(array_map('trim', explode(',', $question->answer_type)))) : ['Yes', 'No']) }};
-const existingKnockout  = {{ json_encode($question->knockout_answer ?? '') }};
-const isKnockoutChecked = {{ json_encode((bool) $question->is_knockout) }};
+    const existingOptions   = {{ json_encode($question->type === 'radio' && $question->answer_type ? array_values(array_filter(array_map('trim', explode(',', $question->answer_type)))) : ['Yes', 'No']) }};
+    const existingKnockout  = {{ json_encode($question->knockout_answer ?? '') }};
+    const isKnockoutChecked = {{ json_encode((bool) $question->is_knockout) }};
 
     let optionCounter = 0;
 
@@ -160,9 +154,8 @@ const isKnockoutChecked = {{ json_encode((bool) $question->is_knockout) }};
 
     function buildOptionRow(value) {
         optionCounter++;
-        const uid       = optionCounter;
+        const uid        = optionCounter;
         const isKnockout = isKnockoutEnabled();
-        // Pre-check the radio if this option matches the saved knockout answer
         const isChecked  = isKnockout && existingKnockout !== '' && value.trim() === existingKnockout.trim();
 
         return `
@@ -207,7 +200,6 @@ const isKnockoutChecked = {{ json_encode((bool) $question->is_knockout) }};
         options.forEach(function (v) { appendOption(v); });
     }
 
-    // Keep each knockout radio value in sync with its text input
     function syncRadioValues() {
         $('.radio-option-row').each(function () {
             const val = $(this).find('.option-input').val();
@@ -215,10 +207,8 @@ const isKnockoutChecked = {{ json_encode((bool) $question->is_knockout) }};
         });
     }
 
-    // Show/hide knockout column across all rows + header
     function syncKnockoutColumns() {
         const on = isKnockoutEnabled();
-
         if (on) {
             $('#knockout-col-header').removeClass('hidden');
             $('.knockout-col').removeClass('hidden').addClass('flex');
@@ -229,20 +219,18 @@ const isKnockoutChecked = {{ json_encode((bool) $question->is_knockout) }};
         }
     }
 
-    // ── On page load: render existing options ─────────────────────────────
     $(document).ready(function () {
         if ($('#type').val() === 'radio') {
             loadOptions(existingOptions);
-            syncKnockoutColumns(); // apply saved knockout state
+            syncKnockoutColumns();
         }
     });
 
-    // ── Event: type select changes ────────────────────────────────────────
     $('#type').on('change', function () {
         if ($(this).val() === 'radio') {
             $('#radio-options-wrapper').removeClass('hidden');
             $('#knockout-wrapper').removeClass('hidden');
-            loadOptions(['Yes', 'No']); // fresh defaults when switching to radio
+            loadOptions(['Yes', 'No']);
             syncKnockoutColumns();
         } else {
             $('#radio-options-wrapper').addClass('hidden');
@@ -253,20 +241,17 @@ const isKnockoutChecked = {{ json_encode((bool) $question->is_knockout) }};
         }
     });
 
-    // ── Event: knockout toggle changes ────────────────────────────────────
     $('#is_knockout').on('change', function () {
         syncKnockoutColumns();
         $('#knockout-hint').addClass('hidden');
     });
 
-    // ── Event: Add Option button ──────────────────────────────────────────
     $('#add-radio-option').on('click', function () {
         appendOption('');
         syncKnockoutColumns();
         syncRadioValues();
     });
 
-    // ── Event: Remove option ──────────────────────────────────────────────
     $(document).on('click', '.remove-option', function () {
         if ($('.radio-option-row').length <= 2) {
             alert('A radio question must have at least 2 options.');
@@ -275,16 +260,12 @@ const isKnockoutChecked = {{ json_encode((bool) $question->is_knockout) }};
         $(this).closest('.radio-option-row').remove();
     });
 
-    // ── Event: Option label typed — keep knockout radio value in sync ─────
     $(document).on('input', '.option-input', function () {
         const row = $(this).closest('.radio-option-row');
         row.find('.knockout-radio').val($(this).val());
     });
 
-    // ── Save ──────────────────────────────────────────────────────────────
     $('#save-form').on('click', function () {
-
-        // Validate: knockout ON but no answer selected
         if (isKnockoutEnabled() && $('#type').val() === 'radio') {
             syncRadioValues();
             const chosen = $('input[name="knockout_answer"]:checked').val();
@@ -303,7 +284,6 @@ const isKnockoutChecked = {{ json_encode((bool) $question->is_knockout) }};
             redirect: true,
             data: $('#createForm').serialize()
         });
-
     });
 </script>
 @endpush
