@@ -105,7 +105,7 @@
         <div class="bg-white rounded-2xl border border-[#F0EEE9] p-5 mb-4 shadow-[0_1px_3px_rgba(15,31,61,0.04)]">
             <h3 class="text-lg font-bold text-gray-900 mb-4 pb-3 border-b border-[#F0EEE9]">
                 <i class="fa fa-user mr-2 text-blue-600"></i>
-                @lang('modules.jobApplication.personalInformation')
+                @lang('Personal Information')
             </h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="bg-gray-50 rounded-lg p-4">
