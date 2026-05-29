@@ -316,24 +316,15 @@
 
                             @endphp
 
-                            @include('admin.jobs.partials.job-rich-field', [
-
+                           @include('admin.jobs.partials.job-rich-field', [
                                 'name' => 'job_description',
-
                                 'textareaId' => 'job_description',
-
                                 'editorId' => 'job_description_editor',
-
-                                'label' => __('Job Description & Requirements'),
-
-                                'placeholder' => 'Write complete job description, responsibilities, requirements, qualifications, benefits etc.',
-
+                                'label' => __('modules.jobs.jobDescription'),
+                                'placeholder' => __('modules.jobs.jobRichDescriptionPlaceholder'),
                                 'required' => true,
-
                                 'showLinkButton' => true,
-
-                                'value' => $combinedContent,
-
+                                'value' => old('job_description', $job->job_description ?? ''),
                             ])
 
                             {{-- Hidden field for backend compatibility --}}

@@ -200,7 +200,6 @@ class AdminJobsController extends AdminBaseController
         }
         $job->title = $request->title;
         $job->job_description = $request->job_description;
-        $job->job_requirement = $request->job_requirement;
         $job->total_positions = $request->total_positions;
         // Handle manual category entry
 if ($request->filled('category_new')) {
@@ -362,17 +361,17 @@ if ($request->filled('category_new')) {
         }
         $job->title = $request->title;
         $job->job_description = $request->job_description;
-        $job->job_requirement = $request->job_requirement;
+       
         $job->total_positions = $request->total_positions;
-// Handle manual category entry
-if ($request->filled('category_new')) {
-    $category = JobCategory::firstOrCreate(
-        ['name' => trim($request->category_new)]
-    );
-    $job->category_id = $category->id;
-} else {
-    $job->category_id = $request->category_id;
-}
+        // Handle manual category entry
+        if ($request->filled('category_new')) {
+            $category = JobCategory::firstOrCreate(
+                ['name' => trim($request->category_new)]
+            );
+            $job->category_id = $category->id;
+        } else {
+            $job->category_id = $request->category_id;
+        }
         $job->start_date = $request->start_date;
         $job->end_date = $request->end_date;
         $job->status = $request->status;
