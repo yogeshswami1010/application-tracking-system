@@ -11,10 +11,21 @@
         default => 'bg-slate-100 text-slate-700',
     };
 
+    // ✅ Updated knockout logic
     $isRejected = collect($application->answers ?? [])->contains(function ($answer) {
-        return isset($answer->question)
-            && $answer->question->type == 'radio'
-            && strtolower(trim($answer->answer)) == 'no';
+        if (!isset($answer->question)) {
+            return false;
+        }
+
+        $question = $answer->question;
+
+        // Must be radio type AND marked as a knockout question
+        if ($question->type !== 'radio' || !$question->is_knockout) {
+            return false;
+        }
+
+        // Applicant's answer must match the stored knockout answer
+        return strtolower(trim($answer->answer)) === strtolower(trim($question->knockout_answer ?? ''));
     });
 @endphp
 

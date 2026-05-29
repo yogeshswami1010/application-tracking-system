@@ -60,15 +60,19 @@ class AdminQuestionController extends AdminBaseController
 public function store(StoreRequest $request)
 {
     abort_if(! $this->user->cans('add_question'), 403);
-    $question = new Question;
-    $question->question = $request->question;
-    $question->required = $request->required;
-    $question->type = $request->type;
 
-    // ✅ Fix: convert radio_options array to comma-separated string
+    $question = new Question;
+    $question->question        = $request->question;
+    $question->required        = $request->required;
+    $question->type            = $request->type;
+
     $question->answer_type = $request->type == 'radio'
         ? implode(',', array_filter(array_map('trim', $request->radio_options ?? [])))
         : null;
+
+    // ✅ Knockout fields
+    $question->is_knockout     = $request->type == 'radio' && $request->boolean('is_knockout');
+    $question->knockout_answer = $question->is_knockout ? $request->input('knockout_answer') : null;
 
     $question->job_category_id = $request->job_category_id ?: null;
     $question->save();
@@ -76,6 +80,38 @@ public function store(StoreRequest $request)
     return Reply::redirect(
         route('admin.questions.index'),
         __('menu.question').' '.__('messages.createdSuccessfully')
+    );
+}
+ /**
+     * Update the specified resource in storage.
+     *
+     * @param  Request  $request
+     * @param  int  $id
+     * @return Response
+     */
+public function update(UpdateRequest $request, $id)
+{
+    abort_if(! $this->user->cans('edit_question'), 403);
+
+    $question = Question::find($id);
+    $question->question        = $request->question;
+    $question->required        = $request->required;
+    $question->type            = $request->type;
+
+    $question->answer_type = $request->type == 'radio'
+        ? implode(',', array_filter(array_map('trim', $request->radio_options ?? [])))
+        : null;
+
+    // ✅ Knockout fields
+    $question->is_knockout     = $request->type == 'radio' && $request->boolean('is_knockout');
+    $question->knockout_answer = $question->is_knockout ? $request->input('knockout_answer') : null;
+
+    $question->job_category_id = $request->job_category_id ?: null;
+    $question->save();
+
+    return Reply::redirect(
+        route('admin.questions.index'),
+        __('menu.question').' '.__('messages.updatedSuccessfully')
     );
 }
 
@@ -106,35 +142,8 @@ public function store(StoreRequest $request)
         return view('admin.question.edit', $this->data);
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  Request  $request
-     * @param  int  $id
-     * @return Response
-     */
- public function update(UpdateRequest $request, $id)
-{
-    abort_if(! $this->user->cans('edit_question'), 403);
+   
 
-    $question = Question::find($id);
-    $question->question = $request->question;
-    $question->required = $request->required;
-    $question->type = $request->type;
-
-    // ✅ Fix: convert radio_options array to comma-separated string
-    $question->answer_type = $request->type == 'radio'
-        ? implode(',', array_filter(array_map('trim', $request->radio_options ?? [])))
-        : null;
-
-    $question->job_category_id = $request->job_category_id ?: null;
-    $question->save();
-
-    return Reply::redirect(
-        route('admin.questions.index'),
-        __('menu.question').' '.__('messages.updatedSuccessfully')
-    );
-}
 
     /**
      * Remove the specified resource from storage.

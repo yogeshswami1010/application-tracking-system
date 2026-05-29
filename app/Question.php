@@ -8,6 +8,11 @@ class Question extends Model
 {
     protected $guarded = ['id'];
 
+    // ✅ Add this cast so is_knockout always returns true/false
+    protected $casts = [
+        'is_knockout' => 'boolean',
+    ];
+
     public function jobs()
     {
         return $this->belongsToMany(Job::class, 'job_questions');
