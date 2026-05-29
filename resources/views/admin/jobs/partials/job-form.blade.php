@@ -483,7 +483,6 @@
 
         {{-- Header --}}
         <div class="border-b border-gray-100 px-5 py-4 flex items-center justify-between">
-
             <div>
                 <h3 class="text-[15px] font-bold text-[#0F1F3D]">
                     @lang('modules.front.questions')
@@ -501,43 +500,110 @@
                 <i class="fa fa-plus"></i>
                 Add Question
             </a>
-
         </div>
 
-        <div class="p-5">
+        {{-- Questions --}}
+        <div class="space-y-3 p-5">
 
-            {{-- Original selection UI --}}
-            @include('admin.jobs.partials.question-options', [
-                'questions' => $questions,
-                'jobQuestion' => $jobQuestion ?? [],
-            ])
+            @foreach ($questions as $question)
 
-            {{-- Edit buttons --}}
-            <div class="mt-5 border-t border-gray-100 pt-4">
+                <label
+                    class="flex items-start justify-between gap-4 rounded-xl border border-gray-200 bg-white p-4 cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition">
 
-                <div class="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                    Manage Questions
-                </div>
+                    {{-- Left --}}
+                    <div class="flex items-start gap-3 flex-1">
 
-                <div class="flex flex-wrap gap-2">
+                        {{-- Checkbox --}}
+                        <div class="pt-0.5">
+                            <input type="checkbox"
+                                   name="question[]"
+                                   value="{{ $question->id }}"
+                                   class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
 
-                    @foreach($questions as $question)
+                                   @if(in_array($question->id, $jobQuestion ?? []))
+                                       checked
+                                   @endif>
+                        </div>
 
-                        <a href="{{ route('admin.questions.edit', $question->id) }}"
-                           target="_blank"
-                           class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition">
+                        {{-- Content --}}
+                        <div class="flex-1">
 
-                            <i class="fa fa-pencil"></i>
+                            <div class="flex flex-wrap items-center gap-2">
 
-                            {{ \Illuminate\Support\Str::limit($question->question, 40) }}
+                                <h4 class="text-sm font-semibold text-gray-800">
+                                    {{ $question->question }}
+                                </h4>
 
-                        </a>
+                                {{-- Type --}}
+                                <span class="rounded bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+                                    {{ ucfirst($question->type) }}
+                                </span>
 
-                    @endforeach
+                                {{-- Required --}}
+                                @if($question->required == 'yes')
+                                    <span class="rounded bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700">
+                                        Required
+                                    </span>
+                                @endif
 
-                </div>
+                                {{-- Knockout --}}
+                                @if($question->is_knockout)
+                                    <span class="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                                        Knockout
+                                    </span>
+                                @endif
 
-            </div>
+                            </div>
+
+                            {{-- Radio Options --}}
+                            @if($question->type == 'radio' && !empty($question->answer_type))
+
+                                <div class="mt-3 flex flex-wrap gap-2">
+
+                                    @foreach(explode(',', $question->answer_type) as $option)
+
+                                        @php
+                                            $option = trim($option);
+                                            $isKnockout = $question->knockout_answer == $option;
+                                        @endphp
+
+                                        <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px]
+                                            {{ $isKnockout
+                                                ? 'bg-red-100 text-red-700 border border-red-200'
+                                                : 'bg-gray-100 text-gray-700 border border-gray-200' }}">
+
+                                            {{ $option }}
+
+                                            @if($isKnockout)
+                                                <i class="fa fa-ban text-[9px]"></i>
+                                            @endif
+
+                                        </span>
+
+                                    @endforeach
+
+                                </div>
+
+                            @endif
+
+                        </div>
+
+                    </div>
+
+                    {{-- Edit --}}
+                    <a href="{{ route('admin.questions.edit', $question->id) }}"
+                       target="_blank"
+                       onclick="event.stopPropagation();"
+                       class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 transition"
+                       title="Edit Question">
+
+                        <i class="fa fa-pencil"></i>
+
+                    </a>
+
+                </label>
+
+            @endforeach
 
         </div>
 
