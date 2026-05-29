@@ -251,40 +251,144 @@
                         </div>
                     </div>
 
-                    {{-- Job description --}}
+             
+                   {{-- Job Description & Requirement Combined --}}
                     <div class="overflow-hidden rounded-2xl border border-[#E8E6E1] bg-white">
+
+                        {{-- Header --}}
                         <div class="flex items-center gap-3 border-b border-gray-100 px-5 py-4">
+
                             <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-purple-50">
-                                <svg class="h-[18px] w-[18px] text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+
+                                <svg class="h-[18px] w-[18px] text-purple-600"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                    aria-hidden="true">
+
+                                    <path stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="1.8"
+                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+
+                                </svg>
+
                             </div>
+
                             <div>
-                                <h3 class="text-[15px] font-bold text-[#0F1F3D]">@lang('modules.jobs.jobDescription')</h3>
-                                <p class="mt-0.5 text-[12px] text-[#8892A0]">@lang('modules.jobs.jobDescriptionCardSubtitle')</p>
+
+                                <h3 class="text-[15px] font-bold text-[#0F1F3D]">
+                                    Job Description & Requirements
+                                </h3>
+
+                                <p class="mt-0.5 text-[12px] text-[#8892A0]">
+                                    Add complete job details, responsibilities, qualifications and requirements
+                                </p>
+
                             </div>
+
                         </div>
-                        <div class="flex flex-col gap-4 p-5">
+
+                        {{-- Content --}}
+                        <div class="p-5">
+
+                            @php
+
+                                $combinedContent = old(
+                                    'job_description',
+
+                                    ($job->job_description ?? '') .
+
+                                    (
+                                        !empty($job->job_requirement)
+
+                                        ? '
+
+                                        <hr>
+
+                                        <h3><strong>Requirements</strong></h3>
+
+                                        ' . $job->job_requirement
+
+                                        : ''
+                                    )
+                                );
+
+                            @endphp
+
                             @include('admin.jobs.partials.job-rich-field', [
+
                                 'name' => 'job_description',
+
                                 'textareaId' => 'job_description',
+
                                 'editorId' => 'job_description_editor',
-                                'label' => __('modules.jobs.jobDescription'),
-                                'placeholder' => __('modules.jobs.jobRichDescriptionPlaceholder'),
+
+                                'label' => __('Job Description & Requirements'),
+
+                                'placeholder' => 'Write complete job description, responsibilities, requirements, qualifications, benefits etc.',
+
                                 'required' => true,
+
                                 'showLinkButton' => true,
-                                'value' => old('job_description', $job->job_description ?? ''),
+
+                                'value' => $combinedContent,
+
                             ])
-                            @include('admin.jobs.partials.job-rich-field', [
-                                'name' => 'job_requirement',
-                                'textareaId' => 'job_requirement',
-                                'editorId' => 'job_requirement_editor',
-                                'label' => __('modules.jobs.jobRequirement'),
-                                'placeholder' => __('modules.jobs.jobRichRequirementPlaceholder'),
-                                'required' => true,
-                                'showLinkButton' => false,
-                                'value' => old('job_requirement', $job->job_requirement ?? ''),
-                            ])
+
+                            {{-- Hidden field for backend compatibility --}}
+                            <input
+                                type="hidden"
+                                name="job_requirement"
+                                id="job_requirement_hidden"
+                            >
+
                         </div>
+
                     </div>
+
+                    <script>
+
+                    document.addEventListener('DOMContentLoaded', function () {
+
+                        const saveBtn = document.getElementById('save-form');
+
+                        if (saveBtn) {
+
+                            saveBtn.addEventListener('click', function () {
+
+                                let content = '';
+
+                                // Quill editor
+                                if (typeof quillJobDescription !== 'undefined') {
+
+                                    content = quillJobDescription.root.innerHTML;
+
+                                }
+
+                                // Fallback
+                                else {
+
+                                    const textarea = document.getElementById('job_description');
+
+                                    if (textarea) {
+
+                                        content = textarea.value;
+
+                                    }
+
+                                }
+
+                                // Save same content in requirement field
+                                document.getElementById('job_requirement_hidden').value = content;
+
+                            });
+
+                        }
+
+                    });
+
+                    </script>
 
                     {{-- Job details — overflow-visible so portaled dropdowns (Select2) are not clipped --}}
                     <div class="overflow-visible rounded-2xl border border-[#E8E6E1] bg-white">
