@@ -636,7 +636,7 @@
                         </div>
                     </div>
 
-                    <div class="overflow-hidden rounded-2xl border border-[#E8E6E1] bg-white">
+                    <!-- <div class="overflow-hidden rounded-2xl border border-[#E8E6E1] bg-white">
                         <div class="border-b border-gray-100 px-5 py-4">
                             <h3 class="text-[15px] font-bold text-[#0F1F3D]">@lang('modules.jobs.sectionVisibility')</h3>
                         </div>
@@ -659,7 +659,7 @@
                                 @endif
                             </div>
                         </div>
-                    </div>
+                    </div> -->
 
                     <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                         <button type="button" id="save-form" class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2563EB] px-8 py-3 text-[13.5px] font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/25 focus:outline-none focus:ring-2 focus:ring-blue-500/30 active:translate-y-0">
