@@ -142,13 +142,13 @@
 
 @push('footer-script')
 <script>
-    // ✅ Fallback to ['Yes','No'] if answer_type is null/empty
-    const existingOptions  = {{ json_encode(
+    const existingOptions = @json(
         $question->type === 'radio' && !empty($question->answer_type)
             ? array_values(array_filter(array_map('trim', explode(',', $question->answer_type))))
             : ['Yes', 'No']
-    ) }};
-    const existingKnockout = {{ json_encode($question->knockout_answer ?? '') }};
+    );
+
+    const existingKnockout = @json($question->knockout_answer ?? '');
 
     let optionCounter = 0;
 
