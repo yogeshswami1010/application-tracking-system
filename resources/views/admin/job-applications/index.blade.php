@@ -174,7 +174,7 @@
                 </div>
             </div>
 
-            <div class="jc-table-card ra-dt-wrap mt-4 w-full overflow-hidden rounded-[12px] border border-[#E8E6E1] bg-white shadow-sm">
+            <div class="jc-table-card table-wrapper ra-dt-wrap mt-4 w-full overflow-hidden rounded-[12px] border border-[#E8E6E1] bg-white shadow-sm">
                 <table id="myTable" class="jc-cat-table display w-full" style="width:100%">
                     <thead>
                     <tr>
