@@ -1,7 +1,20 @@
 @extends('layouts.app')
 
 @section('content')
+@php
+    $existingOptions = ['Yes', 'No'];
 
+    if (
+        $question->type === 'radio' &&
+        !empty($question->answer_type)
+    ) {
+        $existingOptions = array_values(
+            array_filter(
+                array_map('trim', explode(',', $question->answer_type))
+            )
+        );
+    }
+@endphp
 <div class="flex flex-col">
     <div class="w-full">
         <div class="bg-white rounded-lg shadow-md">
@@ -141,13 +154,8 @@
 @endsection
 
 @push('footer-script')
-<script>
-    const existingOptions = @json(
-        $question->type === 'radio' && !empty($question->answer_type)
-            ? array_values(array_filter(array_map('trim', explode(',', $question->answer_type))))
-            : ['Yes', 'No']
-    );
-
+ <script>
+    const existingOptions = @json($existingOptions);
     const existingKnockout = @json($question->knockout_answer ?? '');
 
     let optionCounter = 0;
