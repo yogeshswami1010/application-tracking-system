@@ -52,10 +52,10 @@
                     {!! $job->job_description !!}
                 </div>
 
-                <p class="fr-sec-title">@lang('modules.jobs.jobRequirement')</p>
+                <!-- <p class="fr-sec-title">@lang('modules.jobs.jobRequirement')</p>
                 <div class="font-normal text-[#3D4A5C] text-base leading-relaxed">
                     {!! $job->job_requirement !!}
-                </div>
+                </div> -->
             </div>
         </main>
 
