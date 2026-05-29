@@ -479,7 +479,7 @@
                     </div>
 
                     @if (count($questions) > 0)
-                        <div class="overflow-hidden rounded-2xl border border-[#E8E6E1] bg-white">
+                        <div class="overflow-hidden rounded-2xl border border-[#E8E6E1] bg-white job-page-question-wrapper">
                             <div class="border-b border-gray-100 px-5 py-4">
                                 <h3 class="text-[15px] font-bold text-[#0F1F3D]">@lang('modules.front.questions')</h3>
                                 <p class="mt-0.5 text-[12px] text-[#8892A0]">@lang('app.optional')</p>
