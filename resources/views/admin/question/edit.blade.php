@@ -148,8 +148,9 @@
             ? array_filter(array_map('trim', explode(',', $question->answer_type)))
             : ['Yes', 'No']
     );
-    const existingKnockout  = @json($question->knockout_answer ?? '');
-    const isKnockoutChecked = @json((bool) $question->is_knockout);
+   const existingOptions   = {{ json_encode($question->type === 'radio' && $question->answer_type ? array_values(array_filter(array_map('trim', explode(',', $question->answer_type)))) : ['Yes', 'No']) }};
+const existingKnockout  = {{ json_encode($question->knockout_answer ?? '') }};
+const isKnockoutChecked = {{ json_encode((bool) $question->is_knockout) }};
 
     let optionCounter = 0;
 
