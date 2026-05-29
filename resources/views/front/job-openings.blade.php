@@ -15,12 +15,12 @@
 
 <section class="fr-hero relative px-6 pt-16 pb-20">
     <div class="max-w-4xl mx-auto text-center relative z-10">
-        <div class="inline-flex items-center gap-2 border text-xs font-semibold tracking-wide rounded-full px-4 py-2 mb-8 bg-white/[0.08] border-white/[0.12] text-white/65">
+        <!-- <div class="inline-flex items-center gap-2 border text-xs font-semibold tracking-wide rounded-full px-4 py-2 mb-8 bg-white/[0.08] border-white/[0.12] text-white/65">
             <span class="w-1.5 h-1.5 rounded-full inline-block bg-emerald-400"></span>
             @lang('modules.front.jobOpeningHeading') &nbsp;·&nbsp; {{ $companyShort }}
-        </div>
+        </div> -->
         <h1 class="text-white font-bold leading-[1.1] tracking-[-0.025em] mb-5 text-[clamp(36px,5vw,58px)]">
-            {!! $headlineHtml !!}
+            Welcome to Consortium Staffing Solutions
         </h1>
         <p class="font-normal leading-relaxed max-w-md mx-auto mb-10 text-white/50 text-[16.5px]">
             {!! strip_tags($welcomeSub, '<br><a><strong><em>') !!}
