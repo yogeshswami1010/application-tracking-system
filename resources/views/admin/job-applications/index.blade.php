@@ -482,10 +482,9 @@
             });
         });
         $(document).on('click', '.right-side-toggle', function () {
-    $('#right-sidebar-backdrop').css({
-        display: '',
-        visibility: ''
-    });
+    $('#right-sidebar-backdrop')
+        .addClass('hidden')
+        .attr('style', 'display:none !important; visibility:hidden !important;');
 });
     </script>
 @endpush
