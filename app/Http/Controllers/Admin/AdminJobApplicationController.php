@@ -571,6 +571,8 @@ class AdminJobApplicationController extends AdminBaseController
 
     public function store(StoreJobApplication $request)
     {
+
+    dd($request->all());
         abort_if(! $this->user->cans('add_job_applications'), 403);
         // Save currency to jobs table
         if ($request->filled('currency_id')) {
