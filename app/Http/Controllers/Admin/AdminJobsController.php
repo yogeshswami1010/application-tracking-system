@@ -202,14 +202,14 @@ class AdminJobsController extends AdminBaseController
         $job->job_description = $request->job_description;
         $job->total_positions = $request->total_positions;
         // Handle manual category entry
-if ($request->filled('category_new')) {
-    $category = JobCategory::firstOrCreate(
-        ['name' => trim($request->category_new)]
-    );
-    $job->category_id = $category->id;
-} else {
-    $job->category_id = $request->category_id;
-}
+        if ($request->filled('category_new')) {
+            $category = JobCategory::firstOrCreate(
+                ['name' => trim($request->category_new)]
+            );
+            $job->category_id = $category->id;
+        } else {
+            $job->category_id = $request->category_id;
+        }
         $job->start_date = $request->start_date;
         $job->end_date = $request->end_date;
         $job->status = $request->status;
@@ -219,6 +219,7 @@ if ($request->filled('category_new')) {
         $job->pay_according = $request->pay_according;
         $job->starting_salary = $request->starting_salary;
         $job->maximum_salary = $request->maximum_salary;
+        $job->currency_id = $request->currency_id;
         $job->required_columns = $required_columns;
         $job->section_visibility = $section_visibility;
         $job->meta_details = [
@@ -381,6 +382,7 @@ if ($request->filled('category_new')) {
         $job->pay_according = $request->pay_according;
         $job->starting_salary = $request->starting_salary;
         $job->maximum_salary = $request->maximum_salary;
+        $job->currency_id = $request->currency_id;
         $job->required_columns = $required_columns;
         $job->section_visibility = $section_visibility;
         $job->meta_details = [
