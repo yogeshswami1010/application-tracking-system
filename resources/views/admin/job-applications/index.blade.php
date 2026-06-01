@@ -481,5 +481,11 @@
                 },
             });
         });
+        $(document).on('click', '.right-side-toggle', function () {
+    $('#right-sidebar-backdrop').css({
+        display: '',
+        visibility: ''
+    });
+});
     </script>
 @endpush
