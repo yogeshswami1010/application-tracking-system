@@ -526,17 +526,64 @@
                     </div>
 
                     <div class="hidden rounded-2xl border border-dashed border-[#E8E6E1] bg-white p-5" id="amount_field">
-                        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                            <div class="form-group mb-0" id="start_amt">
-                                <label for="startingSalary" class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">@lang('modules.jobs.startingSalary')</label>
-                                <input class="form-control rounded-xl border border-gray-200 px-3.5 py-2.5 text-[13px]" type="number" id="startingSalary" name="starting_salary" value="{{ $job ? $job->starting_salary : null }}">
+                    {{-- Currency selector row --}}
+                    <div class="mb-4 form-group">
+                        <label class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">
+                            @lang('modules.currency.currency') <span class="text-red-500">*</span>
+                        </label>
+                        <select
+                            name="currency_id"
+                            id="salary_currency_id"
+                            class="job-form-sel form-control w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-[13px] text-[#0F1F3D] outline-none transition-all focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10"
+                        >
+                            <option value="">— @lang('modules.currency.selectCurrency') —</option>
+                            @foreach ($currencies as $currency)
+                                <option
+                                    value="{{ $currency->id }}"
+                                    data-symbol="{{ $currency->currency_symbol }}"
+                                    @if ($job && $job->currency_id == $currency->id) selected
+                                    @elseif (!$job && $global->currency_id == $currency->id) selected
+                                    @endif
+                                >
+                                    {{ strtoupper($currency->currency_code) }} — {{ $currency->currency_name }} ({{ $currency->currency_symbol }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div class="form-group mb-0" id="start_amt">
+                            <label for="startingSalary" class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">
+                                @lang('modules.jobs.startingSalary')
+                            </label>
+                            <div class="relative">
+                                <span id="salary-symbol-start" class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] font-bold text-slate-400"></span>
+                                <input
+                                    class="form-control rounded-xl border border-gray-200 py-2.5 text-[13px] pl-8 pr-3.5"
+                                    type="number"
+                                    id="startingSalary"
+                                    name="starting_salary"
+                                    value="{{ $job ? $job->starting_salary : null }}"
+                                >
                             </div>
-                            <div class="form-group mb-0 hidden" id="end_amt">
-                                <label for="maximunSalary" class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">@lang('modules.jobs.maximumSalary')</label>
-                                <input class="form-control rounded-xl border border-gray-200 px-3.5 py-2.5 text-[13px]" type="number" id="maximunSalary" name="maximum_salary" value="{{ $job ? $job->maximum_salary : null }}">
+                        </div>
+                        <div class="form-group mb-0 hidden" id="end_amt">
+                            <label for="maximunSalary" class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">
+                                @lang('modules.jobs.maximumSalary')
+                            </label>
+                            <div class="relative">
+                                <span id="salary-symbol-end" class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] font-bold text-slate-400"></span>
+                                <input
+                                    class="form-control rounded-xl border border-gray-200 py-2.5 text-[13px] pl-8 pr-3.5"
+                                    type="number"
+                                    id="maximunSalary"
+                                    name="maximum_salary"
+                                    value="{{ $job ? $job->maximum_salary : null }}"
+                                >
                             </div>
                         </div>
                     </div>
+                </div>
 
                     <div class="form-group pay_according mb-0 hidden rounded-2xl border border-dashed border-[#E8E6E1] bg-white p-5" id="payaccording">
                         <label for="pay_according" class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">@lang('modules.jobs.rate')</label>
@@ -958,4 +1005,28 @@ $(document).ready(function () {
         handleDualSelect(this, 'company');
     });
 });
+
+
+
+    function updateSalarySymbol() {
+        var sel = document.getElementById('salary_currency_id');
+        if (!sel) return;
+        var opt = sel.options[sel.selectedIndex];
+        var sym = opt ? (opt.getAttribute('data-symbol') || '') : '';
+        var els = ['salary-symbol-start', 'salary-symbol-end'];
+        els.forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.textContent = sym;
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var sel = document.getElementById('salary_currency_id');
+        if (sel) {
+            sel.addEventListener('change', updateSalarySymbol);
+            updateSalarySymbol();
+        }
+    });
+
 </script>
+
