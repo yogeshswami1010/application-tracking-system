@@ -34,6 +34,10 @@
             display: none;
         }
         .ja-filter-active-count.show { display: inline-flex; }
+        .hidden {
+                display: none !important;
+                visibility: hidden !important;
+            }
     </style>
 @endpush
 
@@ -481,10 +485,6 @@
                 },
             });
         });
-        $(document).on('click', '.right-side-toggle', function () {
-    $('#right-sidebar-backdrop')
-        .addClass('hidden')
-        .attr('style', 'display:none !important; visibility:hidden !important;');
-});
+   
     </script>
 @endpush
