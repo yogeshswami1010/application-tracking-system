@@ -572,6 +572,13 @@ class AdminJobApplicationController extends AdminBaseController
     public function store(StoreJobApplication $request)
     {
         abort_if(! $this->user->cans('add_job_applications'), 403);
+        // Save currency to jobs table
+        if ($request->filled('currency_id')) {
+            Job::where('id', $request->job_id)
+                ->update([
+                    'currency_id' => $request->currency_id
+                ]);
+        }
 
         $jobApplication = new JobApplication;
         $jobApplication->full_name = $request->full_name;
@@ -661,6 +668,13 @@ class AdminJobApplicationController extends AdminBaseController
         $jobApplication->phone = $request->phone;
         $jobApplication->address = $request->address;
         $jobApplication->cover_letter = $request->cover_letter;
+
+        if ($request->filled('currency_id')) {
+            Job::where('id', $request->job_id)
+                ->update([
+                    'currency_id' => $request->currency_id
+                ]);
+        }
 
         if ($request->has('gender')) {
             $jobApplication->gender = $request->gender;
