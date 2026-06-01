@@ -574,135 +574,186 @@
                     </div>
 @if (count($questions) > 0)
 
-    <div class="overflow-hidden rounded-2xl border border-[#E8E6E1] bg-white job-page-question-wrapper">
+<div class="overflow-hidden rounded-2xl border border-[#E8E6E1] bg-white job-page-question-wrapper">
 
-        {{-- Header --}}
-        <div class="border-b border-gray-100 px-5 py-4 flex items-center justify-between">
-            <div>
-                <h3 class="text-[15px] font-bold text-[#0F1F3D]">
-                    @lang('modules.front.questions')
-                </h3>
-
-                <p class="mt-0.5 text-[12px] text-[#8892A0]">
-                    Select questions for this job
-                </p>
-            </div>
-
-            {{-- Add Question --}}
-            <a href="{{ route('admin.questions.create') }}"
-               target="_blank"
-               class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-700 transition">
-                <i class="fa fa-plus"></i>
-                Add Question
-            </a>
+    {{-- Header --}}
+    <div class="border-b border-gray-100 px-5 py-4 flex items-center justify-between">
+        <div>
+            <h3 class="text-[15px] font-bold text-[#0F1F3D]">
+                @lang('modules.front.questions')
+            </h3>
+            <p class="mt-0.5 text-[12px] text-[#8892A0]">
+                Select questions for this job
+            </p>
         </div>
-
-        {{-- Questions --}}
-        <div class="space-y-3 p-5">
-
-            @foreach ($questions as $question)
-
-                <label
-                    class="flex items-start justify-between gap-4 rounded-xl border border-gray-200 bg-white p-4 cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition">
-
-                    {{-- Left --}}
-                    <div class="flex items-start gap-3 flex-1">
-
-                        {{-- Checkbox --}}
-                        <div class="pt-0.5">
-                            <input type="checkbox"
-                                   name="question[]"
-                                   value="{{ $question->id }}"
-                                   class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-
-                                   @if(in_array($question->id, $jobQuestion ?? []))
-                                       checked
-                                   @endif>
-                        </div>
-
-                        {{-- Content --}}
-                        <div class="flex-1">
-
-                            <div class="flex flex-wrap items-center gap-2">
-
-                                <h4 class="text-sm font-semibold text-gray-800">
-                                    {{ $question->question }}
-                                </h4>
-
-                                {{-- Type --}}
-                                <span class="rounded bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
-                                    {{ ucfirst($question->type) }}
-                                </span>
-
-                                {{-- Required --}}
-                                @if($question->required == 'yes')
-                                    <span class="rounded bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700">
-                                        Required
-                                    </span>
-                                @endif
-
-                                {{-- Knockout --}}
-                                @if($question->is_knockout)
-                                    <span class="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
-                                        Knockout
-                                    </span>
-                                @endif
-
-                            </div>
-
-                            {{-- Radio Options --}}
-                            @if($question->type == 'radio' && !empty($question->answer_type))
-
-                                <div class="mt-3 flex flex-wrap gap-2">
-
-                                    @foreach(explode(',', $question->answer_type) as $option)
-
-                                        @php
-                                            $option = trim($option);
-                                            $isKnockout = $question->knockout_answer == $option;
-                                        @endphp
-
-                                        <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px]
-                                            {{ $isKnockout
-                                                ? 'bg-red-100 text-red-700 border border-red-200'
-                                                : 'bg-gray-100 text-gray-700 border border-gray-200' }}">
-
-                                            {{ $option }}
-
-                                            @if($isKnockout)
-                                                <i class="fa fa-ban text-[9px]"></i>
-                                            @endif
-
-                                        </span>
-
-                                    @endforeach
-
-                                </div>
-
-                            @endif
-
-                        </div>
-
-                    </div>
-
-                    {{-- Edit --}}
-                    <a href="{{ route('admin.questions.edit', $question->id) }}"
-                       target="_blank"
-                       onclick="event.stopPropagation();"
-                       class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 transition"
-                       title="Edit Question">
-
-                        <i class="fa fa-pencil"></i>
-
-                    </a>
-
-                </label>
-
-            @endforeach
-
-        </div>
-
+        <a href="{{ route('admin.questions.create') }}"
+           target="_blank"
+           class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-700 transition">
+            <i class="fa fa-plus"></i>
+            Add Question
+        </a>
     </div>
+
+    {{-- Search bar --}}
+    <div class="px-5 pt-4 pb-2">
+        <div class="relative">
+            <i class="fa fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
+            <input
+                type="text"
+                id="question-search"
+                placeholder="Search questions..."
+                class="w-full rounded-xl border border-gray-200 bg-white pl-9 pr-4 py-2.5 text-[13px] text-[#0F1F3D] placeholder:text-gray-300 outline-none transition-all focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10"
+                oninput="filterQuestions()"
+            >
+        </div>
+        <div class="mt-2 flex items-center justify-between">
+            <span id="question-count-label" class="text-[11px] text-gray-400"></span>
+            <span id="question-selected-label" class="text-[11px] font-semibold text-blue-600"></span>
+        </div>
+    </div>
+
+    {{-- Questions list --}}
+    <div id="question-list" class="space-y-3 px-5 pb-4">
+        @foreach ($questions as $question)
+            <label
+                data-question-text="{{ strtolower($question->question) }}"
+                class="question-item flex items-start justify-between gap-4 rounded-xl border border-gray-200 bg-white p-4 cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition">
+
+                <div class="flex items-start gap-3 flex-1">
+                    <div class="pt-0.5">
+                        <input type="checkbox"
+                               name="question[]"
+                               value="{{ $question->id }}"
+                               class="question-checkbox h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                               @if(in_array($question->id, $jobQuestion ?? [])) checked @endif
+                               onchange="updateSelectedCount()">
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <h4 class="text-sm font-semibold text-gray-800">
+                                {{ $question->question }}
+                            </h4>
+                            <span class="rounded bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+                                {{ ucfirst($question->type) }}
+                            </span>
+                            @if($question->required == 'yes')
+                                <span class="rounded bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700">Required</span>
+                            @endif
+                            @if($question->is_knockout)
+                                <span class="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">Knockout</span>
+                            @endif
+                        </div>
+                        @if($question->type == 'radio' && !empty($question->answer_type))
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                @foreach(explode(',', $question->answer_type) as $option)
+                                    @php $option = trim($option); $isKnockout = $question->knockout_answer == $option; @endphp
+                                    <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px]
+                                        {{ $isKnockout ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-gray-100 text-gray-700 border border-gray-200' }}">
+                                        {{ $option }}
+                                        @if($isKnockout)<i class="fa fa-ban text-[9px]"></i>@endif
+                                    </span>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                <a href="{{ route('admin.questions.edit', $question->id) }}"
+                   target="_blank"
+                   onclick="event.stopPropagation();"
+                   class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 transition"
+                   title="Edit Question">
+                    <i class="fa fa-pencil"></i>
+                </a>
+            </label>
+        @endforeach
+    </div>
+
+    {{-- Pagination --}}
+    <div id="question-pagination" class="flex items-center justify-between border-t border-gray-100 px-5 py-3">
+        <button type="button"
+                id="q-prev-btn"
+                onclick="changePage(-1)"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-[12px] font-medium text-gray-600 transition hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
+            <i class="fa fa-chevron-left text-[10px]"></i> Previous
+        </button>
+        <span id="q-page-info" class="text-[12px] text-gray-500"></span>
+        <button type="button"
+                id="q-next-btn"
+                onclick="changePage(1)"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-[12px] font-medium text-gray-600 transition hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
+            Next <i class="fa fa-chevron-right text-[10px]"></i>
+        </button>
+    </div>
+
+</div>
+
+<script>
+(function () {
+    const PER_PAGE = 5;
+    let currentPage = 1;
+    let filtered = [];
+
+    function allItems() {
+        return Array.from(document.querySelectorAll('.question-item'));
+    }
+
+    function getFilteredItems() {
+        const q = (document.getElementById('question-search').value || '').toLowerCase().trim();
+        return allItems().filter(el =>
+            !q || el.dataset.questionText.includes(q)
+        );
+    }
+
+    function render() {
+        const items = getFilteredItems();
+        filtered = items;
+        const total = items.length;
+        const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
+        if (currentPage > totalPages) currentPage = totalPages;
+
+        const start = (currentPage - 1) * PER_PAGE;
+        const end   = start + PER_PAGE;
+
+        allItems().forEach(el => el.style.display = 'none');
+        items.forEach((el, i) => {
+            el.style.display = (i >= start && i < end) ? 'flex' : 'none';
+        });
+
+        document.getElementById('q-page-info').textContent =
+            total === 0
+                ? 'No results'
+                : `Page ${currentPage} of ${totalPages}  (${total} question${total !== 1 ? 's' : ''})`;
+
+        document.getElementById('question-count-label').textContent =
+            total < allItems().length ? `Showing ${total} of ${allItems().length} questions` : `${total} question${total !== 1 ? 's' : ''}`;
+
+        document.getElementById('q-prev-btn').disabled = currentPage <= 1;
+        document.getElementById('q-next-btn').disabled = currentPage >= totalPages;
+
+        updateSelectedCount();
+    }
+
+    window.filterQuestions = function () {
+        currentPage = 1;
+        render();
+    };
+
+    window.changePage = function (dir) {
+        const totalPages = Math.max(1, Math.ceil(getFilteredItems().length / PER_PAGE));
+        currentPage = Math.min(Math.max(1, currentPage + dir), totalPages);
+        render();
+    };
+
+    window.updateSelectedCount = function () {
+        const count = document.querySelectorAll('.question-checkbox:checked').length;
+        const el = document.getElementById('question-selected-label');
+        el.textContent = count > 0 ? `${count} selected` : '';
+    };
+
+    document.addEventListener('DOMContentLoaded', render);
+})();
+</script>
 
 @endif
 
