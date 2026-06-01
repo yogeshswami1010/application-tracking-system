@@ -87,14 +87,7 @@
                         </button>
                     </div>
                     <form id="filter-form" class="flex flex-wrap items-end gap-3.5 pb-3">
-                        <div class="flex min-w-[min(100%,280px)] flex-1 flex-col gap-1">
-                            <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('app.dateRange')</label>
-                            <div class="flex flex-wrap items-center gap-2">
-                                <input type="text" class="form-control min-w-[8rem] flex-1 rounded-[10px] border-[1.5px] border-[#E2DED8] bg-[#F8F7F4] text-[13px]" id="start-date" name="start_date" value="{{ $jaDefaultStart }}" autocomplete="off">
-                                <span class="shrink-0 rounded-lg bg-[#0F1F3D] px-3 py-2 text-xs font-semibold text-white">@lang('app.to')</span>
-                                <input type="text" class="form-control min-w-[8rem] flex-1 rounded-[10px] border-[1.5px] border-[#E2DED8] bg-[#F8F7F4] text-[13px]" id="end-date" name="end_date" value="{{ $jaDefaultEnd }}" autocomplete="off">
-                            </div>
-                        </div>
+                        
 
                         <div class="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[220px]">
                             <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('app.status')</label>
@@ -108,43 +101,11 @@
                         </div>
 
                         <div class="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[220px]">
-                            <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('app.company')</label>
-                            <select class="select2 w-full" name="company" id="company">
-                                <option value="all">@lang('modules.jobApplication.allCompany')</option>
-                                @forelse($companies as $company)
-                                    <option title="{{ ucfirst($company->company_name) }}" value="{{ $company->id }}">{{ ucfirst($company->company_name) }}</option>
-                                @empty
-                                @endforelse
-                            </select>
-                        </div>
-
-                        <div class="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[220px]">
                             <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('menu.jobs')</label>
                             <select class="select2 w-full" name="jobs" id="jobs">
                                 <option value="all">@lang('modules.jobApplication.allJobs')</option>
                                 @forelse($jobs as $job)
                                     <option title="{{ ucfirst($job->title) }}" value="{{ $job->id }}">{{ ucfirst($job->title) }}</option>
-                                @empty
-                                @endforelse
-                            </select>
-                        </div>
-
-                        <div class="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[220px]">
-                            <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('menu.locations')</label>
-                            <select class="select2 w-full" name="location" id="location">
-                                <option value="all">@lang('modules.jobApplication.allLocation')</option>
-                                @forelse($locations as $location)
-                                    <option value="{{ $location->id }}">{{ ucfirst($location->location) }}</option>
-                                @empty
-                                @endforelse
-                            </select>
-                        </div>
-
-                        <div class="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[240px]">
-                            <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('menu.skills')</label>
-                            <select class="select2 w-full" name="skill[]" multiple="multiple" id="skill">
-                                @forelse($skills as $skill)
-                                    <option value="{{ $skill->id }}">{{ ucfirst($skill->name) }}</option>
                                 @empty
                                 @endforelse
                             </select>
@@ -271,14 +232,9 @@
         });
         function jaTableSyncFilterBadge() {
             var n = 0;
-            if (($('#start-date').val() || '') !== jaDefaultStart) n++;
-            if (($('#end-date').val() || '') !== jaDefaultEnd) n++;
             if (($('#status').val() || 'all') !== 'all') n++;
             if (($('#company').val() || 'all') !== 'all') n++;
             if (($('#jobs').val() || 'all') !== 'all') n++;
-            if (($('#location').val() || 'all') !== 'all') n++;
-            var sk = $('#skill').val();
-            if (sk && sk.length) n++;
             if (($('#questions').val() || 'all') !== 'all') n++;
             var $b = $('#ja-table-filter-active-count');
             $b.text(n);
@@ -290,23 +246,7 @@
         jaTableSyncFilterBadge();
 
         $('#reset-filters').on('click', function () {
-            $('#filter-form')[0].reset();
-            $('#filter-form select.select2').each(function () {
-                var $el = $(this);
-                if ($el.prop('multiple')) {
-                    $el.val(null).trigger('change');
-                } else {
-                    $el.val('all').trigger('change');
-                }
-            });
-            $('#start-date').val(jaDefaultStart);
-            $('#end-date').val(jaDefaultEnd);
-            $('#start-date').datepicker('update');
-            $('#end-date').datepicker('update');
-            $('#question_value').addClass('hidden');
-            $('#question-value').val('');
-            tableLoad('load');
-            jaTableSyncFilterBadge();
+            window.location.reload();
         });
 
         $('#apply-filters').on('click', function () {
@@ -317,11 +257,10 @@
         function tableLoad(type) {
             var status = $('#status').val();
             var jobs = $('#jobs').val();
-            var skill = $('#skill').val();
+        
             var questions = $('#questions').val();
-            var location = $('#location').val();
-            var startDate = $('#start-date').val();
-            var endDate = $('#end-date').val();
+   
+
             var company = $('#company').val();
             var question_value = $('#question-value').val();
 
@@ -330,7 +269,7 @@
                 processing: true,
                 serverSide: true,
                 destroy: true,
-                ajax: '{!! route('admin.job-applications.data') !!}?status=' + status + '&location=' + location + '&startDate=' + startDate + '&endDate=' + endDate + '&jobs=' + jobs + '&skill=' + skill + '&questions=' + questions + '&question_value=' + question_value + '&company=' + company,
+                ajax: '{!! route('admin.job-applications.data') !!}?status=' + status + '&startDate=' + startDate + '&endDate=' + endDate + '&jobs=' + jobs + '&questions=' + questions + '&question_value=' + question_value + '&company=' + company,
                 language: languageOptions(),
                 stripeClasses: [],
                 dom: '<"jc-table-toolbar"lf>rt<"jc-table-toolbar jc-table-toolbar--footer"ip>',
