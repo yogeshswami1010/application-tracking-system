@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="{{ asset('assets/node_modules_files/bootstrap-datepicker/bootstrap-datepicker.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/node_modules_files/multiselect/css/multi-select.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/plugins/iCheck/all.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
     @include('admin.job-applications.partials.select2-filter-skin')
 
     <style>
