@@ -395,68 +395,68 @@
                         <div class="flex flex-col gap-4 p-5">
                             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                                <div class="form-group mb-0">
-    <label class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">
-        @lang('Locations')
-    </label>
+                                    <label class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">
+                                        @lang('Locations')
+                                    </label>
 
-    {{-- Location Dropdown --}}
-    <select 
-        name="location_id[]" 
-        id="location_id" 
-        multiple="multiple"
-        class="form-control select2"
-        onchange="toggleNewLocationField(this)"
-    >
+                                    {{-- Location Dropdown --}}
+                                    <select 
+                                        name="location_id[]" 
+                                        id="location_id" 
+                                        multiple="multiple"
+                                        class="form-control select2"
+                                        onchange="toggleNewLocationField(this)"
+                                    >
 
-        {{-- Add New Location FIRST --}}
-        <option value="new">@lang('Add New Location')</option>
+                                        {{-- Add New Location FIRST --}}
+                                        <option value="new">@lang('Add New Location')</option>
 
-        {{-- Existing Locations --}}
-        @foreach ($locations as $location)
-            <option 
-                value="{{ $location->id }}"
-                @if (in_array($location->id, $selectedLocationIds)) selected @endif
-            >
-                {{ ucfirst($location->location) . ($location->country ? ' (' . $location->country->country_code . ')' : '') }}
-            </option>
-        @endforeach
-    </select>
+                                        {{-- Existing Locations --}}
+                                        @foreach ($locations as $location)
+                                            <option 
+                                                value="{{ $location->id }}"
+                                                @if (in_array($location->id, $selectedLocationIds)) selected @endif
+                                            >
+                                                {{ ucfirst($location->location) . ($location->country ? ' (' . $location->country->country_code . ')' : '') }}
+                                            </option>
+                                        @endforeach
+                                    </select>
 
-    {{-- New Location Field --}}
-    <div id="new-location-wrapper" class="mt-3 hidden">
-        <input
-            type="text"
-            id="location_new"
-            name="location_new"
-            placeholder="{{ __('Add New Location') }}"
-            class="form-control w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-[13px] text-[#0F1F3D] placeholder:text-gray-300 outline-none transition-all focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10"
-            value="{{ old('location_new') }}"
-        >
-    </div>
-</div>
+                                    {{-- New Location Field --}}
+                                    <div id="new-location-wrapper" class="mt-3 hidden">
+                                        <input
+                                            type="text"
+                                            id="location_new"
+                                            name="location_new"
+                                            placeholder="{{ __('Add New Location') }}"
+                                            class="form-control w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-[13px] text-[#0F1F3D] placeholder:text-gray-300 outline-none transition-all focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10"
+                                            value="{{ old('location_new') }}"
+                                        >
+                                    </div>
+                                </div>
 
-<script>
-    function toggleNewLocationField(select) {
-        const wrapper = document.getElementById('new-location-wrapper');
+                                <script>
+                                    function toggleNewLocationField(select) {
+                                        const wrapper = document.getElementById('new-location-wrapper');
 
-        let values = $(select).val();
+                                        let values = $(select).val();
 
-        if (values && values.includes('new')) {
-            wrapper.classList.remove('hidden');
-        } else {
-            wrapper.classList.add('hidden');
-        }
-    }
+                                        if (values && values.includes('new')) {
+                                            wrapper.classList.remove('hidden');
+                                        } else {
+                                            wrapper.classList.add('hidden');
+                                        }
+                                    }
 
-    document.addEventListener('DOMContentLoaded', function () {
-        let values = $('#location_id').val();
+                                    document.addEventListener('DOMContentLoaded', function () {
+                                        let values = $('#location_id').val();
 
-        if (values && values.includes('new')) {
-            document.getElementById('new-location-wrapper')
-                .classList.remove('hidden');
-        }
-    });
-</script>
+                                        if (values && values.includes('new')) {
+                                            document.getElementById('new-location-wrapper')
+                                                .classList.remove('hidden');
+                                        }
+                                    });
+                                </script>
                                 <div class="form-group mb-0">
                                     <label for="status" class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">@lang('app.status')</label>
                                     <select name="status" id="status" class="job-form-sel form-control w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-[13px] text-[#0F1F3D] outline-none transition-all focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10">
@@ -524,7 +524,9 @@
                             </div>
                         </div>
                     </div>
-
+                    <pre>
+                    {{ print_r(array_keys(get_defined_vars()), true) }}
+                    </pre>
                     <div class="hidden rounded-2xl border border-dashed border-[#E8E6E1] bg-white p-5" id="amount_field">
                     {{-- Currency selector row --}}
                     <div class="mb-4 form-group">
@@ -537,7 +539,7 @@
                             class="job-form-sel form-control w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-[13px] text-[#0F1F3D] outline-none transition-all focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10"
                         >
                             <option value="">— @lang('modules.currency.selectCurrency') —</option>
-                            @foreach ($currencies as $currency)
+                            @foreach ($currencySettings as $currency)
                                 <option
                                     value="{{ $currency->id }}"
                                     data-symbol="{{ $currency->currency_symbol }}"
@@ -545,7 +547,9 @@
                                     @elseif (!$job && $global->currency_id == $currency->id) selected
                                     @endif
                                 >
-                                    {{ strtoupper($currency->currency_code) }} — {{ $currency->currency_name }} ({{ $currency->currency_symbol }})
+                                    {{ strtoupper($currency->currency_code) }}
+                                    — {{ $currency->currency_name }}
+                                    ({{ $currency->currency_symbol }})
                                 </option>
                             @endforeach
                         </select>
