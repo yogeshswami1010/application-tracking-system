@@ -62,39 +62,65 @@
         language: languageOptions(),
         stripeClasses: [],
         dom: '<"jc-table-toolbar"lf>rt<"jc-table-toolbar jc-table-toolbar--footer"ip>',
+
         drawCallback: function () {
-            $('[data-toggle="tooltip"]').tooltip();
+
+            // Bootstrap tooltip exists
+            if (typeof $.fn.tooltip === 'function') {
+                $('[data-toggle="tooltip"]').tooltip();
+            }
+
         },
+
         order: [[1, 'asc']],
+
         columns: [
-            { data: 'DT_Row_Index', orderable: false, searchable: false },
-            { data: 'name', name: 'name' },
-            { data: 'action', name: 'action', width: '15%', searchable: false, className: 'jc-td-right' }
+            {
+                data: 'DT_Row_Index',
+                orderable: false,
+                searchable: false
+            },
+            {
+                data: 'name',
+                name: 'name'
+            },
+            {
+                data: 'action',
+                name: 'action',
+                width: '15%',
+                searchable: false,
+                className: 'jc-td-right'
+            }
         ]
     });
 
     $('#addDocument').addClass('hidden');
 
-    $('#addNewDoc').click(function() {
+    $('#addNewDoc').on('click', function () {
         $('#addDocument').toggleClass('hidden');
     });
 
-    $('#addDocument').submit(function(e) {
+    $('#addDocument').on('submit', function (e) {
         e.preventDefault();
 
-        const form = $(this);
-
         $.easyAjax({
-            url: form.attr('action'),
+            url: $(this).attr('action'),
             type: 'POST',
             container: '#addDocument',
             file: true,
+
             success: function (response) {
-                if (response.status == 'success') {
-                    docTable.draw(false)
+
+                if (response.status === 'success') {
+
+                    docTable.draw(false);
+
                     resetForm();
+
+                    $('#addDocument').addClass('hidden');
                 }
+
             }
-        })
+        });
     });
 </script>
