@@ -327,7 +327,39 @@
       <!-- MAP + SIDEBAR -->
       <div class="flex flex-col gap-4">
         <!-- Map card -->
-        
+        <div class="map-card" style="height:260px;">
+          <!-- India map outline (SVG) -->
+          <div class="relative z-10 h-full p-5 flex flex-col justify-between">
+            <div>
+              <p class="text-[10px] font-bold tracking-widest uppercase mb-1" style="color:rgba(255,255,255,0.35);">Location Map</p>
+              <h3 class="font-bold text-white text-[15px]">Active Hiring Cities</h3>
+            </div>
+            <!-- SVG India simplified -->
+            <div class="relative flex-1 flex items-center justify-center" style="min-height:150px;">
+              <svg viewBox="0 0 200 200" width="180" height="160" style="opacity:0.15;position:absolute;">
+                <path d="M100 20 L140 30 L160 55 L155 80 L170 100 L160 130 L140 150 L120 170 L100 180 L80 170 L60 150 L40 130 L30 100 L45 80 L40 55 L60 30 Z" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+              </svg>
+              <!-- City dots positioned roughly on India -->
+              <div style="position:relative;width:180px;height:160px;">
+                <!-- Bangalore ~south -->
+                <div class="map-dot" style="left:95px;top:115px;background:#34D399;" title="Bangalore">
+                  <div style="position:absolute;inset:-4px;border-radius:50%;background:rgba(52,211,153,0.3);animation:pulse 2s infinite;"></div>
+                </div>
+                <div class="map-label" style="left:108px;top:109px;">Bangalore</div>
+                <!-- Delhi ~north -->
+                <div class="map-dot" style="left:88px;top:52px;background:#60A5FA;" title="Delhi">
+                  <div style="position:absolute;inset:-4px;border-radius:50%;background:rgba(96,165,250,0.3);animation:pulse 2s infinite 0.5s;"></div>
+                </div>
+                <div class="map-label" style="left:102px;top:46px;">Delhi</div>
+                <!-- Jaipur ~north-west -->
+                <div class="map-dot" style="left:70px;top:64px;background:#F9A8D4;" title="Jaipur">
+                  <div style="position:absolute;inset:-4px;border-radius:50%;background:rgba(249,168,212,0.3);animation:pulse 2s infinite 1s;"></div>
+                </div>
+                <div class="map-label" style="left:84px;top:58px;">Jaipur</div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <!-- Country breakdown -->
         <div class="bg-white border rounded-2xl p-5" style="border-color:#E8E6E1;">
