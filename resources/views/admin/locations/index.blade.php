@@ -224,7 +224,7 @@
             </div>
 
             <div class="flex min-w-0 flex-col gap-4">
-                <div class="relative min-h-[260px] overflow-hidden rounded-[18px] bg-gradient-to-br from-[#0F1F3D] via-[#162849] to-[#1B3560]">
+                <!-- <div class="relative min-h-[260px] overflow-hidden rounded-[18px] bg-gradient-to-br from-[#0F1F3D] via-[#162849] to-[#1B3560]">
                     <div class="pointer-events-none absolute inset-0 opacity-40" style="background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px); background-size: 22px 22px;"></div>
                     <div class="relative z-10 flex h-full min-h-[260px] flex-col justify-between p-5">
                         <div>
@@ -257,7 +257,7 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </div> -->
 
                 <div class="rounded-2xl border border-[#E8E6E1] bg-white p-5">
                     <p class="mb-4 text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#8892A0]">{{ __('modules.locationsPage.byCountry') }}</p>
