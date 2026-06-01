@@ -43,6 +43,7 @@ use Illuminate\Support\Str;
 use Maatwebsite\Excel\Excel as ExcelExcel;
 use Maatwebsite\Excel\Facades\Excel;
 use Yajra\DataTables\Facades\DataTables;
+use App\Models\Currency;
 
 class AdminJobApplicationController extends AdminBaseController
 {
@@ -233,12 +234,16 @@ class AdminJobApplicationController extends AdminBaseController
         return view('admin.job-applications.board', $this->data);
     }
 
+    
+
     public function create()
     {
         abort_if(! $this->user->cans('add_job_applications'), 403);
 
         $this->jobs = Job::activeJobs();
-        $this->locations = JobJobLocation::select('job_job_locations.*')->with(['job', 'location_data'])
+
+        $this->locations = JobJobLocation::select('job_job_locations.*')
+            ->with(['job', 'location_data'])
             ->join('jobs', 'jobs.id', 'job_job_locations.job_id')
             ->get();
 
@@ -247,6 +252,9 @@ class AdminJobApplicationController extends AdminBaseController
             'female' => __('modules.front.female'),
             'others' => __('modules.front.others'),
         ];
+
+        // Add this
+        $this->currencies = Currency::all();
 
         return view('admin.job-applications.create', $this->data);
     }
@@ -304,6 +312,7 @@ class AdminJobApplicationController extends AdminBaseController
         return Reply::dataOnly($data);
     }
 
+
     public function edit($id)
     {
         abort_if(! $this->user->cans('edit_job_applications'), 403);
@@ -311,11 +320,24 @@ class AdminJobApplicationController extends AdminBaseController
         $this->statuses = ApplicationStatus::all();
         $this->application = JobApplication::find($id);
         $this->jobQuestion = $this->application->job->questions;
-        $this->jobs = Job::select('id', 'title', 'location_id', 'status', 'start_date', 'end_date', 'section_visibility')->with('location:id,location')->get();
 
-        $this->locations = JobJobLocation::select('job_job_locations.*')->with(['job', 'location'])
+        $this->jobs = Job::select(
+            'id',
+            'title',
+            'location_id',
+            'status',
+            'start_date',
+            'end_date',
+            'section_visibility'
+        )->with('location:id,location')->get();
+
+        $this->locations = JobJobLocation::select('job_job_locations.*')
+            ->with(['job', 'location'])
             ->join('jobs', 'jobs.id', 'job_job_locations.job_id')
             ->get();
+
+        // Add this
+        $this->currencies = Currency::all();
 
         return view('admin.job-applications.edit', $this->data);
     }
