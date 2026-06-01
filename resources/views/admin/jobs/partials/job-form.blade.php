@@ -533,19 +533,20 @@
                         <select
                             name="currency_id"
                             id="salary_currency_id"
-                            class="job-form-sel form-control w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-[13px] text-[#0F1F3D] outline-none transition-all focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10"
+                            class="job-form-sel form-control"
                         >
-                            <option value="">— Select Currency —</option>
-                            @foreach ($currencySettings as $currency)
+                            <option value="">-- Select Currency --</option>
+
+                            @foreach($currencySettings as $currency)
                                 <option
                                     value="{{ $currency->id }}"
                                     data-symbol="{{ $currency->currency_symbol }}"
-                                    @if ($job && $job->currency_id == $currency->id) selected
-                                    @elseif (!$job && $global->currency_id == $currency->id) selected
-                                    @endif
+                                    {{ old('currency_id',
+                                        isset($job) && $job ? $job->currency_id : $global->currency_id
+                                    ) == $currency->id ? 'selected' : '' }}
                                 >
                                     {{ strtoupper($currency->currency_code) }}
-                                    — {{ $currency->currency_name }}
+                                    - {{ $currency->currency_name }}
                                     ({{ $currency->currency_symbol }})
                                 </option>
                             @endforeach
@@ -980,7 +981,22 @@ function handleDualInput(inputEl, key) {
         }
     }
 }
+$(document).ready(function () {
 
+    function updateCurrencySymbol() {
+        let symbol = $('#salary_currency_id option:selected').data('symbol') || '';
+
+        $('#salary-symbol-start').text(symbol);
+        $('#salary-symbol-end').text(symbol);
+    }
+
+    updateCurrencySymbol();
+
+    $('#salary_currency_id').on('change', function () {
+        updateCurrencySymbol();
+    });
+
+});
 function handleDualSelect(selEl, key) {
     const inputEl = document.getElementById(
         key === 'location' ? 'location_new' :
