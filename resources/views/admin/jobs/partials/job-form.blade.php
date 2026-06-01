@@ -524,21 +524,18 @@
                             </div>
                         </div>
                     </div>
-                    <pre>
-                    {{ print_r(array_keys(get_defined_vars()), true) }}
-                    </pre>
                     <div class="hidden rounded-2xl border border-dashed border-[#E8E6E1] bg-white p-5" id="amount_field">
                     {{-- Currency selector row --}}
                     <div class="mb-4 form-group">
                         <label class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">
-                            @lang('modules.currency.currency') <span class="text-red-500">*</span>
+                            currency <span class="text-red-500">*</span>
                         </label>
                         <select
                             name="currency_id"
                             id="salary_currency_id"
                             class="job-form-sel form-control w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-[13px] text-[#0F1F3D] outline-none transition-all focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10"
                         >
-                            <option value="">— @lang('modules.currency.selectCurrency') —</option>
+                            <option value="">— Select Currency —</option>
                             @foreach ($currencySettings as $currency)
                                 <option
                                     value="{{ $currency->id }}"
