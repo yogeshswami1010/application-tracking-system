@@ -96,29 +96,64 @@
                         <p class="fr-sidebar-value">{{ $job->jobType->job_type }}</p>
                     </div>
                     @endif
-                    @if($job->show_salary)
-                        @if($job->pay_type == 'Range')
+                   @if($job->show_salary)
+
+                    @php
+                        $currencySymbol = $job->currency->currency_symbol ?? '$';
+                    @endphp
+
+                    @if($job->pay_type == 'Range')
                         <div class="pt-4 border-t border-[#F0EEE9]">
-                            <p class="fr-sidebar-label">@lang('menu.salary') @lang('modules.jobs.range')</p>
-                            <p class="fr-sidebar-value">{{ $job->starting_salary. '--' .$job->maximum_salary . ' ' . '/'.$job->pay_according}}</p>
+                            <p class="fr-sidebar-label">
+                                @lang('menu.salary') @lang('modules.jobs.range')
+                            </p>
+
+                            <p class="fr-sidebar-value">
+                                {{ $currencySymbol }}{{ number_format($job->starting_salary) }}
+                                -
+                                {{ $currencySymbol }}{{ number_format($job->maximum_salary) }}
+                                /{{ $job->pay_according }}
+                            </p>
                         </div>
-                        @elseif($job->pay_type == 'Starting')
+
+                    @elseif($job->pay_type == 'Starting')
                         <div class="pt-4 border-t border-[#F0EEE9]">
-                            <p class="fr-sidebar-label">@lang('modules.jobs.startingSalary')</p>
-                            <p class="fr-sidebar-value">{{ $job->starting_salary . ' ' . '/'.$job->pay_according}}</p>
+                            <p class="fr-sidebar-label">
+                                @lang('modules.jobs.startingSalary')
+                            </p>
+
+                            <p class="fr-sidebar-value">
+                                {{ $currencySymbol }}{{ number_format($job->starting_salary) }}
+                                /{{ $job->pay_according }}
+                            </p>
                         </div>
-                        @elseif($job->pay_type == 'Maximum')
+
+                    @elseif($job->pay_type == 'Maximum')
                         <div class="pt-4 border-t border-[#F0EEE9]">
-                            <p class="fr-sidebar-label">@lang('modules.jobs.maximumSalary')</p>
-                            <p class="fr-sidebar-value">{{ $job->starting_salary . ' ' . '/'.$job->pay_according }}</p>
+                            <p class="fr-sidebar-label">
+                                @lang('modules.jobs.maximumSalary')
+                            </p>
+
+                            <p class="fr-sidebar-value">
+                                {{ $currencySymbol }}{{ number_format($job->maximum_salary) }}
+                                /{{ $job->pay_according }}
+                            </p>
                         </div>
-                        @elseif($job->pay_type == 'Exact Amount')
+
+                    @elseif($job->pay_type == 'Exact Amount')
                         <div class="pt-4 border-t border-[#F0EEE9]">
-                            <p class="fr-sidebar-label">@lang('modules.jobs.exactSalary')</p>
-                            <p class="fr-sidebar-value">{{ $job->starting_salary . ' ' . '/'.$job->pay_according }}</p>
+                            <p class="fr-sidebar-label">
+                                @lang('modules.jobs.exactSalary')
+                            </p>
+
+                            <p class="fr-sidebar-value">
+                                {{ $currencySymbol }}{{ number_format($job->starting_salary) }}
+                                /{{ $job->pay_according }}
+                            </p>
                         </div>
-                        @endif
                     @endif
+
+                @endif
                 </div>
 
                 <div class="fr-sidebar-card text-center">

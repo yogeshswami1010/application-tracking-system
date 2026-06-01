@@ -108,8 +108,12 @@ class Job extends Model
         return $this->belongsTo(JobLocation::class, 'location_id');
     }
     public function experience()
-{
-    return $this->belongsTo(\App\WorkExperience::class, 'work_experience_id');
-}
+    {
+        return $this->belongsTo(\App\WorkExperience::class, 'work_experience_id');
+    }
+    public function currency()
+    {
+        return $this->belongsTo(\App\Models\Currency::class, 'currency_id');
+    }
 
 }
