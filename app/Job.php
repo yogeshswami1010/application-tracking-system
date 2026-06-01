@@ -111,9 +111,9 @@ class Job extends Model
     {
         return $this->belongsTo(\App\WorkExperience::class, 'work_experience_id');
     }
-    public function currency()
+   public function currency()
     {
-        return $this->belongsTo(\App\Models\Currency::class, 'currency_id');
+        return $this->belongsTo(Currency::class, 'currency_id');
     }
 
 }
