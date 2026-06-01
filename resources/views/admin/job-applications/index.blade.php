@@ -270,23 +270,7 @@
         jaTableSyncFilterBadge();
 
         $('#reset-filters').on('click', function () {
-            $('#filter-form')[0].reset();
-            $('#filter-form select.select2').each(function () {
-                var $el = $(this);
-                if ($el.prop('multiple')) {
-                    $el.val(null).trigger('change');
-                } else {
-                    $el.val('all').trigger('change');
-                }
-            });
-            $('#start-date').val(jaDefaultStart);
-            $('#end-date').val(jaDefaultEnd);
-            $('#start-date').datepicker('update');
-            $('#end-date').datepicker('update');
-            $('#question_value').addClass('hidden');
-            $('#question-value').val('');
-            tableLoad('load');
-            jaTableSyncFilterBadge();
+            window.location.reload();
         });
 
         $('#apply-filters').on('click', function () {
