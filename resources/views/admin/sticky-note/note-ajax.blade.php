@@ -8,8 +8,8 @@
                     @lang("modules.sticky.lastUpdated"): {{ $note->updated_at->diffForHumans() }}
                 </div>
                 <div class="mt-1 flex flex-wrap gap-3">
-                    <a href="javascript:;" class="text-white hover:underline" onclick="showEditNoteModal({{$note->id}})"><i class="ti-pencil-alt"></i> @lang('app.edit')</a>
-                    <a href="javascript:;" class="text-white hover:underline" onclick="deleteSticky({{$note->id}})"><i class="ti-close"></i> @lang('app.delete')</a>
+                    <a href="javascript:;" class=" hover:underline" onclick="showEditNoteModal({{$note->id}})"><i class="ti-pencil-alt"></i> @lang('app.edit')</a>
+                    <a href="javascript:;" class=" hover:underline" onclick="deleteSticky({{$note->id}})"><i class="ti-close"></i> @lang('app.delete')</a>
                 </div>
             </div>
         </div>
