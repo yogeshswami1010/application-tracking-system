@@ -74,6 +74,7 @@ class AdminJobsController extends AdminBaseController
                 'title' => $job->title,
                 'company' => $job->company ? ucwords($job->company->company_name) : '—',
                 'companyId' => (int) $job->company_id,
+                'companyLocation' => $job->company_location ?? '',
                 'category' => $job->category ? ucfirst($job->category->name) : '—',
                 'jobType' => $job->jobType ? $job->jobType->job_type : '—',
                 'openings' => (int) $job->total_positions,
