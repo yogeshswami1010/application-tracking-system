@@ -79,9 +79,11 @@
             language: languageOptions(),
             stripeClasses: [],
             dom: '<"jc-table-toolbar"lf>rt<"jc-table-toolbar jc-table-toolbar--footer"ip>',
-            drawCallback: function () {
-                $('[data-toggle="tooltip"]').tooltip();
-            },
+           drawCallback: function () {
+                if ($.fn.tooltip) {
+                    $('[data-toggle="tooltip"]').tooltip();
+                }
+            }
             columns: [
                 { data: 'DT_Row_Index', orderable: false, searchable: false},
                 { data: 'question', name: 'question' },
