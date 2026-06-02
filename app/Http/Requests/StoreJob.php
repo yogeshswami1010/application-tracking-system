@@ -35,6 +35,7 @@ class StoreJob extends CoreRequest
             'pay_type'           => 'required',
             'starting_salary'    => 'required',
             'pay_according'      => 'required',
+            'company_location' => 'nullable|string|max:191',
         ];
 
         if (request('pay_type') == 'Range') {

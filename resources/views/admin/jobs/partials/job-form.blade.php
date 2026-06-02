@@ -83,129 +83,143 @@
                             </div>
                         </div>
                         <div class="flex flex-col gap-4 p-5">
-                            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                                <div class="form-group mb-0">
-    <label class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">
-        @lang('Company') <span class="text-red-500">*</span>
-    </label>
+                                    <label class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">
+                                        @lang('Company') <span class="text-red-500">*</span>
+                                    </label>
 
-    {{-- Existing Company Dropdown --}}
-    <select
-        name="company"
-        id="company"
-        class="job-form-sel form-control w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-[13px] text-[#0F1F3D] outline-none transition-all focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10"
-        onchange="toggleNewCompanyField(this)"
-    >
-        <option value="">@lang('Select Company')</option>
+                                    {{-- Existing Company Dropdown --}}
+                                    <select
+                                        name="company"
+                                        id="company"
+                                        class="job-form-sel form-control w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-[13px] text-[#0F1F3D] outline-none transition-all focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10"
+                                        onchange="toggleNewCompanyField(this)"
+                                    >
+                                        <option value="">@lang('Select Company')</option>
 
-        {{-- Add New Option FIRST --}}
-        <option value="new">@lang('Add New Company')</option>
+                                        {{-- Add New Option FIRST --}}
+                                        <option value="new">@lang('Add New Company')</option>
 
-        {{-- Existing companies --}}
-        @foreach ($companies as $comp)
-            <option 
-                value="{{ $comp->id }}"
-                @if ($job && $job->company_id == $comp->id) selected @endif
-            >
-                {{ ucwords($comp->company_name) }}
-            </option>
-        @endforeach
-    </select>
+                                        {{-- Existing companies --}}
+                                        @foreach ($companies as $comp)
+                                            <option 
+                                                value="{{ $comp->id }}"
+                                                @if ($job && $job->company_id == $comp->id) selected @endif
+                                            >
+                                                {{ ucwords($comp->company_name) }}
+                                            </option>
+                                        @endforeach
+                                    </select>
 
-    {{-- New Company Text Field --}}
-    <div id="new-company-wrapper" class="mt-3 hidden">
-        <input
-            type="text"
-            id="company_new"
-            name="company_new"
-            placeholder="{{ __('Add New Company') }}"
-            class="form-control w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-[13px] text-[#0F1F3D] placeholder:text-gray-300 outline-none transition-all focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10"
-            value="{{ old('company_new') }}"
-        >
-    </div>
-</div>
+                                    {{-- New Company Text Field --}}
+                                    <div id="new-company-wrapper" class="mt-3 hidden">
+                                        <input
+                                            type="text"
+                                            id="company_new"
+                                            name="company_new"
+                                            placeholder="{{ __('Add New Company') }}"
+                                            class="form-control w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-[13px] text-[#0F1F3D] placeholder:text-gray-300 outline-none transition-all focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10"
+                                            value="{{ old('company_new') }}"
+                                        >
+                                    </div>
+                                </div>
 
-<script>
-    function toggleNewCompanyField(select) {
-        const wrapper = document.getElementById('new-company-wrapper');
+                                <script>
+                                    function toggleNewCompanyField(select) {
+                                        const wrapper = document.getElementById('new-company-wrapper');
 
-        if (select.value === 'new') {
-            wrapper.classList.remove('hidden');
-        } else {
-            wrapper.classList.add('hidden');
-        }
-    }
+                                        if (select.value === 'new') {
+                                            wrapper.classList.remove('hidden');
+                                        } else {
+                                            wrapper.classList.add('hidden');
+                                        }
+                                    }
 
-    document.addEventListener('DOMContentLoaded', function () {
-        const companySelect = document.getElementById('company');
+                                    document.addEventListener('DOMContentLoaded', function () {
+                                        const companySelect = document.getElementById('company');
 
-        if (companySelect.value === 'new') {
-            document.getElementById('new-company-wrapper')
-                .classList.remove('hidden');
-        }
-    });
-</script>
+                                        if (companySelect.value === 'new') {
+                                            document.getElementById('new-company-wrapper')
+                                                .classList.remove('hidden');
+                                        }
+                                    });
+                                </script>
+
+                                <div class="form-group mb-0">
+                                    <label class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">
+                                        @lang('Company Location')
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="company_location"
+                                        name="company_location"
+                                        placeholder="{{ __('e.g. New York, USA') }}"
+                                        class="form-control w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-[13px] text-[#0F1F3D] placeholder:text-gray-300 outline-none transition-all focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10"
+                                        value="{{ old('company_location', $job->company_location ?? '') }}"
+                                    >
+                                </div>
                               <div class="form-group mb-0">
-    <label class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">
-        @lang('menu.jobCategories') <span class="text-red-500">*</span>
-    </label>
+                                <label class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">
+                                    @lang('menu.jobCategories') <span class="text-red-500">*</span>
+                                </label>
 
-    {{-- Job Category Dropdown --}}
-    <select
-        name="category_id"
-        id="category_id"
-        class="job-form-sel form-control w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-[13px] text-[#0F1F3D] outline-none transition-all focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10"
-        onchange="toggleNewCategoryField(this)"
-    >
-        <option value="">@lang('Choose job Categories')</option>
+                                {{-- Job Category Dropdown --}}
+                                <select
+                                    name="category_id"
+                                    id="category_id"
+                                    class="job-form-sel form-control w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-[13px] text-[#0F1F3D] outline-none transition-all focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10"
+                                    onchange="toggleNewCategoryField(this)"
+                                >
+                                    <option value="">@lang('Choose job Categories')</option>
 
-        {{-- Add New Category FIRST --}}
-        <option value="new">@lang('Add New Category')</option>
+                                    {{-- Add New Category FIRST --}}
+                                    <option value="new">@lang('Add New Category')</option>
 
-        {{-- Existing categories --}}
-        @foreach ($categories as $category)
-            <option 
-                value="{{ $category->id }}"
-                @if ($job && $job->category_id == $category->id) selected @endif
-            >
-                {{ ucfirst($category->name) }}
-            </option>
-        @endforeach
-    </select>
+                                    {{-- Existing categories --}}
+                                    @foreach ($categories as $category)
+                                        <option 
+                                            value="{{ $category->id }}"
+                                            @if ($job && $job->category_id == $category->id) selected @endif
+                                        >
+                                            {{ ucfirst($category->name) }}
+                                        </option>
+                                    @endforeach
+                                </select>
 
-    {{-- New Category Field --}}
-    <div id="new-category-wrapper" class="mt-3 hidden">
-        <input
-            type="text"
-            id="category_new"
-            name="category_new"
-            placeholder="{{ __('Add New Category') }}"
-            class="form-control w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-[13px] text-[#0F1F3D] placeholder:text-gray-300 outline-none transition-all focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10"
-            value="{{ old('category_new') }}"
-        >
-    </div>
-</div>
+                                {{-- New Category Field --}}
+                                <div id="new-category-wrapper" class="mt-3 hidden">
+                                    <input
+                                        type="text"
+                                        id="category_new"
+                                        name="category_new"
+                                        placeholder="{{ __('Add New Category') }}"
+                                        class="form-control w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-[13px] text-[#0F1F3D] placeholder:text-gray-300 outline-none transition-all focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10"
+                                        value="{{ old('category_new') }}"
+                                    >
+                                </div>
+                            </div>
 
-<script>
-    function toggleNewCategoryField(select) {
-        const wrapper = document.getElementById('new-category-wrapper');
+                            <script>
+                                function toggleNewCategoryField(select) {
+                                    const wrapper = document.getElementById('new-category-wrapper');
 
-        if (select.value === 'new') {
-            wrapper.classList.remove('hidden');
-        } else {
-            wrapper.classList.add('hidden');
-        }
-    }
+                                    if (select.value === 'new') {
+                                        wrapper.classList.remove('hidden');
+                                    } else {
+                                        wrapper.classList.add('hidden');
+                                    }
+                                }
 
-    document.addEventListener('DOMContentLoaded', function () {
-        const categorySelect = document.getElementById('category_id');
+                                document.addEventListener('DOMContentLoaded', function () {
+                                    const categorySelect = document.getElementById('category_id');
 
-        if (categorySelect.value === 'new') {
-            document.getElementById('new-category-wrapper')
-                .classList.remove('hidden');
-        }
-    });
-</script>
+                                    if (categorySelect.value === 'new') {
+                                        document.getElementById('new-category-wrapper')
+                                            .classList.remove('hidden');
+                                    }
+                                });
+                            </script>
                             </div>
                             <div class="form-group mb-0">
                                 <div class="mb-1.5 flex items-center justify-between gap-2">

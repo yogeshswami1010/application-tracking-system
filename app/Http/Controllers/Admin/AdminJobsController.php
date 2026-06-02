@@ -199,6 +199,7 @@ class AdminJobsController extends AdminBaseController
         } else {
             $job->company_id = $request->company;
         }
+        $job->company_location = $request->company_location;
         $job->title = $request->title;
         $job->job_description = $request->job_description;
         $job->total_positions = $request->total_positions;
@@ -362,6 +363,7 @@ class AdminJobsController extends AdminBaseController
         } else {
             $job->company_id = $request->company;
         }
+        $job->company_location = $request->company_location;
         $job->title = $request->title;
         $job->job_description = $request->job_description;
        
