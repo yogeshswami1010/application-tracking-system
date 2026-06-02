@@ -61,7 +61,7 @@
 @endif
 
 @section('content')
-<div class="mx-auto  pb-8">
+<div class="mx-auto  pb-8 job-page-listing">
 
     {{-- KPI cards (compact — shared scale with dashboard .rd-sc) --}}
     <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
