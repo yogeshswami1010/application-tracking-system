@@ -147,11 +147,11 @@
         </div>
         <div class="flex items-center gap-2.5 shrink-0">
             @auth
-                <div class="relative hidden sm:block">
+                <!-- <div class="relative hidden sm:block">
                     <label class="sr-only" for="ra-top-search">@lang('app.searchAnything')</label>
                     <input type="search" id="ra-top-search" placeholder="@lang('app.searchAnything')" class="text-[12.5px] bg-[#EEF0F5] rounded-xl pl-8 pr-4 py-2 outline-none border-0 w-[180px] text-[#5A6478]" autocomplete="off">
                     <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none" fill="none" stroke="#9CA3AF" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                </div>
+                </div> -->
 
                 <div class="relative" id="top-notification-dropdown" x-data="{ open: false }">
                     <button type="button" @click="open = !open" class="relative p-2 rounded-xl hover:bg-gray-100 transition-colors" aria-expanded="false" :aria-expanded="open">
