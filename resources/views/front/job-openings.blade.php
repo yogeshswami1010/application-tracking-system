@@ -39,18 +39,18 @@
                     <option value="{{ $category->id }}">{{ ucfirst($category->name) }}</option>
                 @endforeach
             </select>
-            <select class="fr-search-select myselect" name="company_name" id="company">
+            <!-- <select class="fr-search-select myselect" name="company_name" id="company">
                 <option value="all">@lang('modules.front.allCompany')</option>
                 @foreach($companies as $company)
                     <option value="{{ $company->id }}">{{ ucfirst($company->company_name) }}</option>
                 @endforeach
-            </select>
-            <select class="fr-search-select myselect" name="name" id="skill">
+            </select> -->
+            <!-- <select class="fr-search-select myselect" name="name" id="skill">
                 <option value="all">@lang('modules.front.allSkill')</option>
                 @foreach($skills as $skill)
                     <option value="{{ $skill->id }}">{{ ucfirst($skill->name) }}</option>
                 @endforeach
-            </select>
+            </select> -->
             <button type="button" name="search" class="fr-btn-search" id="search">@lang('modules.front.searchButton')</button>
         </div>
 
