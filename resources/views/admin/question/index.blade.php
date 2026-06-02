@@ -79,13 +79,15 @@
             language: languageOptions(),
             stripeClasses: [],
             dom: '<"jc-table-toolbar"lf>rt<"jc-table-toolbar jc-table-toolbar--footer"ip>',
-           drawCallback: function () {
+
+            drawCallback: function () {
                 if ($.fn.tooltip) {
                     $('[data-toggle="tooltip"]').tooltip();
                 }
-            }
+            }, // ← comma required here
+
             columns: [
-                { data: 'DT_Row_Index', orderable: false, searchable: false},
+                { data: 'DT_Row_Index', orderable: false, searchable: false },
                 { data: 'question', name: 'question' },
                 { data: 'category', name: 'category.name', orderable: false },
                 { data: 'required', name: 'required' },
