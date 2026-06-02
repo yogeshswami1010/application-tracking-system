@@ -145,6 +145,7 @@ class AdminJobsController extends AdminBaseController
         $this->jobTypes = JobType::all();
         $this->workExperiences = WorkExperience::all();
         $this->questions = $this->getQuestionsForCategory($selectedCategoryId);
+        $this->jobUsageCounts = $this->getQuestionJobUsageCounts($this->questions->pluck('id')->toArray()); 
         $this->companies = Company::all();
 
         return view('admin.jobs.create', $this->data);
@@ -306,6 +307,7 @@ class AdminJobsController extends AdminBaseController
         $this->skills = Skill::where('category_id', $this->job->category_id)->get();
         $this->jobQuestion = $this->job->questions->pluck('id')->toArray();
         $this->questions = $this->getQuestionsForCategory((int) $this->job->category_id);
+        $this->jobUsageCounts = $this->getQuestionJobUsageCounts($this->questions->pluck('id')->toArray()); 
         $this->companies = Company::all();
         $this->jobTypes = JobType::all();
         $this->workExperiences = WorkExperience::all();
@@ -874,7 +876,19 @@ class AdminJobsController extends AdminBaseController
             ->orderBy('id', 'desc')
             ->get();
     }
+    private function getQuestionJobUsageCounts(array $questionIds): array
+    {
+        if (empty($questionIds)) {
+            return [];
+        }
 
+        return DB::table('job_questions')
+            ->select('question_id', DB::raw('COUNT(DISTINCT job_id) as job_count'))
+            ->whereIn('question_id', $questionIds)
+            ->groupBy('question_id')
+            ->pluck('job_count', 'question_id')
+            ->toArray();
+    }
     private function resolvePlainApiKey(string $key): string
     {
         $key = trim($key);

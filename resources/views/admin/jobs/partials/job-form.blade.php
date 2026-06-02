@@ -691,6 +691,14 @@
                             @if($question->is_knockout)
                                 <span class="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">Knockout</span>
                             @endif
+
+                            {{-- Job usage count badge --}}
+                            @php $usedInJobs = $jobUsageCounts[$question->id] ?? 0; @endphp
+                            <span class="rounded px-2 py-0.5 text-[10px] font-medium inline-flex items-center gap-1
+                                {{ $usedInJobs > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400' }}">
+                                <i class="fa fa-briefcase text-[9px]"></i>
+                                {{ $usedInJobs > 0 ? 'Used in ' . $usedInJobs . ' job' . ($usedInJobs > 1 ? 's' : '') : 'Not used yet' }}
+                            </span>
                         </div>
                         @if($question->type == 'radio' && !empty($question->answer_type))
                             <div class="mt-3 flex flex-wrap gap-2">
