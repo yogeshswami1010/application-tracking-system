@@ -232,6 +232,13 @@
         function submitApplicantForm() {
             var $form = $('#createForm');
             var fd = new FormData($form[0]);
+            var selectedJobLocation = $('#job_job_location_id').val();
+
+            if (!selectedJobLocation) {
+                fd.delete('job_job_location_id');
+                fd.delete('job_id');
+                fd.delete('location_id');
+            }
 
             $.ajax({
                 url: '{{ route('admin.job-applications.store') }}',
