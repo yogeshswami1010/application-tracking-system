@@ -1,5 +1,5 @@
 @php
-    $catName = optional($application->job->category)->name ?? __('app.category');
+    $catName = optional($application->job?->category)->name ?? __('app.category');
 
     $catKey = \Illuminate\Support\Str::slug($catName);
 
@@ -89,7 +89,7 @@
 
         {{-- Job Title --}}
         <p class="mb-[10px] break-words text-[12px] leading-[1.45] text-[#5A6478]">
-            {{ ucwords($application->job->title) }}
+             {{ ucwords($application->job?->title ?? '—') }}
         </p>
 
         {{-- Footer --}}
