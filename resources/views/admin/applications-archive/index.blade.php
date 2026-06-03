@@ -52,6 +52,11 @@
                 <i class="fa fa-upload"></i> @lang('menu.export')
             </button>
 
+            <a href="{{ route('admin.job-applications.create') }}"
+                class="inline-flex items-center gap-1.5 rounded-[9px] bg-[#2563EB] px-3.5 py-[8px] text-[12.5px] font-bold text-white shadow-sm transition hover:bg-[#1d4ed8] focus:outline-none">
+                <i class="fa fa-plus"></i> Create Applicant
+            </a>
+
             <button type="button" class="btn btn-sm btn-danger deleteButton hidden" id="deleteAllSelectedRecords">
                 @lang('app.delete')
             </button>
