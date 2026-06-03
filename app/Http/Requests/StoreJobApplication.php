@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Job;
+use App\JobJobLocation;
 use App\Question;
 use Illuminate\Support\Arr;
 
@@ -25,67 +26,54 @@ class StoreJobApplication extends CoreRequest
      */
     public function rules()
     {
-        $job = null;
+        $job = Job::where('id', $this->job_id)->first();
 
-        if ($this->filled('job_id')) {
-            $job = Job::where('id', $this->job_id)->first();
-        }
+        $requiredColumns = $job->required_columns;
+        $sectionVisibility = $job->section_visibility;
 
         $rules = [
             'full_name' => 'required',
             'email' => 'email|required',
             'phone' => 'numeric|required',
-            'job_id' => 'nullable|exists:jobs,id',
-            'job_job_location_id' => 'nullable|exists:job_job_locations,id',
-            'location_id' => 'nullable|integer',
-            'resume' => 'nullable|mimes:jpeg,jpg,png,doc,docx,rtf,xls,xlsx,pdf,txt',
-            'skills' => 'nullable|string',
+            'job_id' => 'required|exists:jobs,id'
         ];
 
-        if ($job) {
-            $requiredColumns = $job->required_columns ?: [];
-            $sectionVisibility = $job->section_visibility;
+        if ($requiredColumns['gender']) {
+            $rules = Arr::add($rules, 'gender', 'required|in:male,female,others');
+        }
+        if ($requiredColumns['dob']) {
+            $rules = Arr::add($rules, 'dob', 'required|date');
+        }
+        if ($requiredColumns['country']) {
+            $rules = Arr::add($rules, 'country', 'required|integer|min:1');
+            $rules = Arr::add($rules, 'state', 'required|integer|min:1');
+            $rules = Arr::add($rules, 'city', 'required');
+        }
 
-            if (!empty($requiredColumns['gender'])) {
-                $rules = Arr::add($rules, 'gender', 'required|in:male,female,others');
-            }
-
-            if (!empty($requiredColumns['dob'])) {
-                $rules = Arr::add($rules, 'dob', 'required|date');
-            }
-
-            if (!empty($requiredColumns['country'])) {
-                $rules = Arr::add($rules, 'country', 'required|integer|min:1');
-                $rules = Arr::add($rules, 'state', 'required|integer|min:1');
-                $rules = Arr::add($rules, 'city', 'required');
-            }
-
-            if (!is_null($sectionVisibility)) {
-                foreach ($sectionVisibility as $key => $section) {
-                    if ($section === 'yes') {
-                        if ($key === 'profile_image') {
-                            $rules = Arr::add($rules, 'photo', 'required|mimes:jpeg,jpg,png');
-                        }
-
-                        if ($key === 'resume') {
-                            $rules['resume'] = 'required|mimes:jpeg,jpg,png,doc,docx,rtf,xls,xlsx,pdf,txt';
-                        }
+        if (!is_null($sectionVisibility)) {
+            foreach ($sectionVisibility as $key => $section) {
+                if ($section === 'yes') {
+                    if ($key === 'profile_image') {
+                        $rules = Arr::add($rules, 'photo', 'required|mimes:jpeg,jpg,png');
+                    }
+                    if ($key === 'resume') {
+                        $rules = Arr::add($rules, 'resume', 'required|mimes:jpeg,jpg,png,doc,docx,rtf,xls,xlsx,pdf');
                     }
                 }
             }
+    
         }
 
         $answers = $this->get('answer');
-        if (isset($answers) && !empty($answers)) {
-            foreach ($answers as $key => $value) {
-                $answer = Question::where('id', $key)->first();
+        if (isset($answers) && !empty($this->get('answer'))) {
+            foreach ($this->get('answer') as $key => $value) {
 
-                if ($answer && $answer->required == 'yes') {
+                $answer = Question::where('id', $key)->first();
+                if ($answer->required == 'yes')
                     $rules["answer.{$key}"] = 'required';
-                }
             }
         }
-
+        
         return $rules;
     }
 
