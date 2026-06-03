@@ -50,51 +50,78 @@
 <div class="ja-applicant-detail max-h-[calc(100vh-0px)] overflow-y-auto bg-[#F8F7F4]">
 
     <div class="row">
-        <div class="relative bg-gradient-to-br from-[#0F1F3D] to-[#162849] px-5 pb-5 pt-6">
+        <div class="relative bg-gradient-to-br from-[#0F1F3D] to-[#162849] px-5 pb-6 pt-6">
 
-            <button type="button"
-                class="right-side-toggle absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-lg border border-white/15 bg-white/[0.07] text-white/80 transition hover:bg-white/10">
+        <button type="button"
+            class="right-side-toggle absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/10 text-white hover:bg-white/20">
+            <i class="fa fa-times text-sm"></i>
+        </button>
 
-                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-            </button>
-
+        <div class="flex items-start gap-4">
             <img src="{{ $application->photo_url }}"
-                class="h-12 w-12 rounded-full border-2 border-white object-cover shadow-lg">
+                alt="{{ $application->full_name }}"
+                class="h-16 w-16 rounded-full border-2 border-white object-cover shadow-lg">
 
-            <h2 class="mt-3 text-[17px] font-extrabold text-white">
-                {{ ucwords($application->full_name) }}
-            </h2>
+            <div class="flex-1">
+                <h2 class="text-xl font-bold text-white">
+                    {{ ucwords($application->full_name) }}
+                </h2>
 
-            <p class="mt-0.5 text-[12.5px] text-white/50">
-                {{ ucwords($application->job->title) }}
-            </p>
+                <p class="mt-1 text-sm text-white/70">
+                    {{ ucwords($application->job->title) }}
+                </p>
 
-            <div class="mt-3 flex flex-wrap gap-2">
-                <span class="rounded-full px-2.5 py-1 text-[11px] font-bold bg-red-500 text-white">
-                    Archived
-                </span>
+                @if(optional($application->location)->location)
+                    <p class="mt-1 text-xs text-white/50">
+                        <i class="fa fa-map-marker mr-1"></i>
+                        {{ optional($application->location)->location }}
+                    </p>
+                @endif
 
-                <span class="rounded-full px-2.5 py-1 text-[11px] font-bold {{ $detailCatClass }}">
-                    {{ ucfirst($detailCatName) }}
-                </span>
+                <div class="mt-3 flex flex-wrap gap-2">
+
+                    <span class="rounded-full bg-red-500 px-3 py-1 text-xs font-semibold text-white">
+                        Archived
+                    </span>
+
+                    <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $detailCatClass }}">
+                        {{ ucfirst($detailCatName) }}
+                    </span>
+
+                    @if($application->rating)
+                        <span class="rounded-full bg-yellow-100 text-yellow-700 px-3 py-1 text-xs font-semibold">
+                            ⭐ {{ $application->rating }}/5
+                        </span>
+                    @endif
+
+                </div>
             </div>
         </div>
 
-        <div class="col-md-8 right-panel-box">
-            <div class="w-full">
-                <strong>@lang('app.name')</strong><br>
-                <p class="text-muted">{{ ucwords($application->full_name) }}</p>
-            </div>
+        <div class="mt-5 flex flex-wrap gap-3">
 
-            <div class="w-full">
-                <strong>@lang('modules.jobApplication.appliedFor')</strong><br>
-                <p class="text-muted">{{ ucwords($application->job->title).' ('.ucwords(optional($application->location)->location ?? 'N/A').')' }}</p>
-            </div>
+            @if ($application->resume_url)
+                <a target="_blank"
+                    href="{{ $application->resume_url }}"
+                    class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                    <i class="fa fa-file-pdf-o"></i>
+                    @lang('app.view') @lang('modules.jobApplication.resume')
+                </a>
+            @endif
+
+            @if ($user->cans('delete_job_applications'))
+                <a href="javascript:unarchiveApplication({{ $application->id }})"
+                    class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700">
+                    <i class="fa fa-refresh"></i>
+                    @lang('modules.jobApplication.unarchiveApplication')
+                </a>
+            @endif
+
+        </div>
+    </div>
+
+        <div class="col-md-8 right-panel-box">
+        
 
             <div class="w-full">
                 <strong>@lang('app.email')</strong><br>
