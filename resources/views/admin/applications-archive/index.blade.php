@@ -11,7 +11,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
     @include('admin.job-applications.partials.select2-filter-skin')
     <style>
-        [type="checkbox"]:not(:checked), [type="checkbox"]:checked { position: absolute; left: auto !important; }
         .datepicker { z-index: 9999 !important; }
         .ja-board-scope { font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; }
         .ja-filter-btn-active {
@@ -53,13 +52,9 @@
             </button>
 
             <a href="{{ route('admin.job-applications.create') }}"
-                class="inline-flex items-center gap-1.5 rounded-[9px] bg-[#2563EB] px-3.5 py-[8px] text-[12.5px] font-bold text-white shadow-sm transition hover:bg-[#1d4ed8] focus:outline-none">
+                class="inline-flex items-center gap-1.5 rounded-[9px] bg-[#2563EB] px-3.5 py-2.5 text-[12.5px] font-bold text-white shadow-sm transition hover:bg-[#1d4ed8] focus:outline-none">
                 <i class="fa fa-plus"></i> Create Applicant
             </a>
-
-            <button type="button" class="btn btn-sm btn-danger deleteButton hidden" id="deleteAllSelectedRecords">
-                @lang('app.delete')
-            </button>
         </div>
 
         {{-- Filter Bar --}}
@@ -170,15 +165,11 @@
             <table id="myTable" class="jc-cat-table display w-full" style="width:100%">
                 <thead>
                     <tr>
-                        <th style="width:48px;">
-                            <input type="checkbox" id="chkCheckAll">
-                        </th>
                         <th>#</th>
                         <th>@lang('modules.jobApplication.applicantName')</th>
                         <th>@lang('menu.jobs')</th>
                         <th>@lang('menu.locations')</th>
                         <th>@lang('app.status')</th>
-                        <th>@lang('app.action')</th>
                     </tr>
                 </thead>
             </table>
@@ -298,12 +289,6 @@
                 },
                 columns: [
                             {
-                                data: 'select_orders',
-                                name: 'select_orders',
-                                orderable: false,
-                                searchable: false
-                            },
-                            {
                                 data: 'DT_Row_Index',
                                 orderable: false,
                                 searchable: false
@@ -324,67 +309,10 @@
                                 data: 'status',
                                 name: 'status_id',
                                 orderable: false
-                            },
-                            {
-                                data: 'action',
-                                name: 'action',
-                                searchable: false,
-                                orderable: false
                             }
                         ]
             });
         }
-
-        // ── Checkbox / bulk delete ─────────────────────────────────────
-        $("#deleteAllSelectedRecords").hide();
-
-        $('#chkCheckAll').on('click', function () {
-            $('.checkBoxClass').prop('checked', $(this).prop('checked'));
-            var checked = $('input[name="check[]"]').length;
-            (checked > 0 && this.checked)
-                ? $('#deleteAllSelectedRecords').show()
-                : $('#deleteAllSelectedRecords').hide();
-        });
-
-        $(document).on('change', 'input[name="check[]"]', function () {
-            var n = $('input[name="check[]"]:checked').length;
-            n > 0 ? $('#deleteAllSelectedRecords').show() : $('#deleteAllSelectedRecords').hide();
-        });
-
-        $('#deleteAllSelectedRecords').on('click', function (e) {
-            e.preventDefault();
-            var rowdIds = $("#myTable input:checkbox:checked").map(function () {
-                return $(this).val();
-            }).get();
-
-            swal({
-                title: "@lang('errors.areYouSure')",
-                text: "@lang('errors.deleteWarning')",
-                type: "warning",
-                showCancelButton: true,
-                confirmButtonColor: "#DD6B55",
-                confirmButtonText: "@lang('app.delete')",
-                cancelButtonText: "@lang('app.cancel')",
-                closeOnConfirm: true,
-                closeOnCancel: true
-            }, function (isConfirm) {
-                if (isConfirm) {
-                    var url = "{{ route('admin.applications-archive.deleteRecords', ':rowdIds') }}";
-                    url = url.replace(':rowdIds', rowdIds);
-                    $.easyAjax({
-                        type: 'POST',
-                        url: url,
-                        data: { '_token': "{{ csrf_token() }}" },
-                        success: function (response) {
-                            if (response.status === 'success') {
-                                $.unblockUI();
-                                table.draw(false);
-                            }
-                        }
-                    });
-                }
-            });
-        });
 
         // ── Show detail sidebar ────────────────────────────────────────
         $('#myTable').on('click', '.show-detail', function () {
