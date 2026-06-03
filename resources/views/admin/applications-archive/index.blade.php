@@ -305,13 +305,11 @@
                             },
                             {
                                 data: 'full_name',
-                                name: 'full_name',
-                                width: '17%'
+                                name: 'full_name'
                             },
                             {
                                 data: 'title',
-                                name: 'job_id',
-                                width: '17%'
+                                name: 'job_id'
                             },
                             {
                                 data: 'location',
@@ -319,14 +317,14 @@
                             },
                             {
                                 data: 'status',
-                                name: 'status_id'
+                                name: 'status_id',
+                                orderable: false
                             },
                             {
                                 data: 'action',
                                 name: 'action',
                                 searchable: false,
-                                orderable: false,
-                                width: '15%'
+                                orderable: false
                             }
                         ]
             });
