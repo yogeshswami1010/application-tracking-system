@@ -11,32 +11,40 @@
                 <div class="p-6">
                     <h4 class="text-xl font-semibold text-gray-900 mb-6">@lang('app.createNew')</h4>
 
-                    @if (count($jobs) == 0)
-                        <div class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">
-                            <h4 class="font-semibold mb-2"><i class="fa fa-warning"></i> Warning!</h4>
-                            <p>You do not have any job created. You need to create the job first to add the job application.
-                                <a href="{{ route('admin.jobs.create') }}" class="px-3 py-1.5 bg-cyan-600 text-white rounded hover:bg-cyan-700 text-sm inline-flex items-center ml-2"
-                                    style="text-decoration: none;"><i class="fa fa-plus-circle"></i> @lang('app.createNew')
-                                    @lang('menu.jobs')</a>
-                            </p>
-                        </div>
-                    @else
                         <form class="ajax-form 747474" method="POST" id="createForm">
                             @csrf
                             <input type="hidden" id="resume_text_for_ai" value="" autocomplete="off">
 
                             <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
                                 <div class="md:col-span-4">
-                                    <h5 class="text-lg font-semibold text-gray-900 required">@lang('modules.front.personalInformation')</h5>
+                                    <h5 class="text-lg font-semibold text-gray-900">Upload CV</h5>
+                                </div>
+
+                                <div class="md:col-span-8">
+                                    <div class="form-group">
+                                        <label class="control-label required">CV / Resume</label>
+                                        <input class="form-control" type="file" name="resume" id="resume"
+                                            accept=".pdf,.doc,.docx,.txt">
+                                        <button type="button" id="parse-resume" class="mt-3 px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 inline-flex items-center">
+                                            <i class="fa fa-magic mr-2"></i> Parse CV
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-12 gap-6 border-t border-gray-200 pt-6">
+                                <div class="md:col-span-4">
+                                    <h5 class="text-lg font-semibold text-gray-900">@lang('modules.front.personalInformation')</h5>
                                 </div>
 
                                 <div class="md:col-span-8">
                                     <div class="form-group">
                                         <input type="hidden" value="" name="job_id" id="job_id">
                                         <input type="hidden" value="" name="location_id" id="location_id">
-                                        <label class="control-label">@lang('menu.jobs')</label>
+                                        <label class="control-label">@lang('menu.jobs') <span class="text-gray-500 text-sm">(optional)</span></label>
                                         <select name="job_job_location_id" id="job_job_location_id" onchange="getQuestions(this.value)"
                                             class="select2 form-control">
+                                            <option value="">Create applicant without job</option>
                                             @foreach ($locations as $location)
                                                 <option value="{{ $location->id }}">
                                                     {{ ucwords($location->job->title) . '(' . ucwords($location->location->location) . ')' }}
@@ -63,30 +71,28 @@
                                             placeholder="@lang('app.phone')">
                                     </div>
                                     <div class="form-group">
+                                        <label class="control-label">Skills</label>
+                                        <input class="form-control" type="text" name="skills" id="skills"
+                                            placeholder="Skills from CV">
+                                    </div>
+                                    <div class="form-group">
                                         <label class="control-label">@lang('app.address')</label>
-                                        <textarea class="form-control" name="address"rows="4" cols="50" placeholder="@lang('app.address')"></textarea>
+                                        <textarea class="form-control" name="address" rows="4" cols="50" placeholder="@lang('app.address')"></textarea>
                                     </div>
 
                                     <div id="show-columns">
-                                        @include('admin.job-applications.required-columns', [
-                                            'job' => $jobs[0],
-                                            'gender' => $gender,
-                                        ])
                                     </div>
                                 </div>
                             </div>
                             <div id="show-sections">
-                                @include('admin.job-applications.required-sections', [
-                                    'section_visibility' => $jobs[0]->section_visibility,
-                                ])
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-12 gap-6 border-t border-gray-200 pt-6">
-                                <div class="md:col-span-4" id="questionBoxTitle">
+                                <div class="md:col-span-4 hidden" id="questionBoxTitle">
                                     <h5 class="text-lg font-semibold text-gray-900">@lang('modules.front.additionalDetails')</h5>
                                 </div>
 
-                                <div class="md:col-span-8" id="questionBox">
+                                <div class="md:col-span-8 hidden" id="questionBox">
 
                                 </div>
                             </div>
@@ -96,7 +102,6 @@
                             </div>
 
                         </form>
-                    @endif
                 </div>
             </div>
         </div>
@@ -133,22 +138,7 @@
         });
 
         $('#save-form').click(function() {
-            $.easyAjax({
-                url: '{{ route('admin.job-applications.store') }}',
-                container: '#createForm',
-                type: "POST",
-                redirect: true,
-                file: true,
-                data: $('#createForm').serialize(),
-                success: function(response) {
-                    if (response && response.status === 'success') {
-                        window.location.href = jobApplicationsIndexUrl;
-                    }
-                },
-                error: function(response) {
-                    handleFails(response);
-                }
-            })
+            submitApplicantForm();
         });
 
         var val = $('#job_job_location_id').val(); // get Current Selected Job
@@ -158,6 +148,16 @@
 
         // get Questions on change Job
         function getQuestions(id) {
+            if (typeof id === 'undefined' || id === '') {
+                $('#job_id').val('');
+                $('#location_id').val('');
+                $('#questionBox').addClass('hidden').html('');
+                $('#questionBoxTitle').addClass('hidden');
+                $('#show-columns').html('');
+                $('#show-sections').html('');
+                return;
+            }
+
             var url = "{{ route('admin.job-applications.question', ':id') }}";
             url = url.replace(':id', id);
 
@@ -194,6 +194,67 @@
                             loc.getCountries()
                         }
                     }
+                }
+            });
+        }
+
+        $('#parse-resume').click(function() {
+            var $btn = $(this);
+            var $form = $('#createForm');
+            var input = $form.find('input[name="resume"]')[0];
+
+            if (!input || !input.files || !input.files.length) {
+                alert('Please upload a CV first.');
+                return;
+            }
+
+            var prevHtml = $btn.html();
+            $btn.prop('disabled', true).html(pleaseWait);
+
+            parseResumeForAiIfSelected($form, function() {
+                $btn.prop('disabled', false).html(prevHtml);
+                if (typeof $.toast === 'function') {
+                    $.toast({
+                        text: 'CV parsed successfully.',
+                        position: 'top-right',
+                        loaderBg: '#00c292',
+                        icon: 'success',
+                        hideAfter: 3000,
+                    });
+                }
+            }, function() {
+                $btn.prop('disabled', false).html(prevHtml);
+            });
+        });
+
+        function submitApplicantForm() {
+            var $form = $('#createForm');
+            var fd = new FormData($form[0]);
+
+            $.ajax({
+                url: '{{ route('admin.job-applications.store') }}',
+                type: 'POST',
+                data: fd,
+                processData: false,
+                contentType: false,
+                dataType: 'json',
+                beforeSend: function() {
+                    if (typeof $.easyBlockUI === 'function') {
+                        $.easyBlockUI('#createForm');
+                    }
+                },
+                complete: function() {
+                    if (typeof $.easyUnblockUI === 'function') {
+                        $.easyUnblockUI('#createForm');
+                    }
+                },
+                success: function(response) {
+                    if (response && response.status === 'success') {
+                        window.location.href = jobApplicationsIndexUrl;
+                    }
+                },
+                error: function(response) {
+                    handleFails(response);
                 }
             });
         }
@@ -272,6 +333,14 @@
             });
         });
 
+        function normalizeAiSkills(data) {
+            var skills = data.skills || data.skill || data.skills_text || '';
+            if ($.isArray(skills)) {
+                return skills.filter(Boolean).join(', ');
+            }
+            return skills ? String(skills) : '';
+        }
+
         function applyResumeAiFields(data, $form) {
             if (!data || typeof data !== 'object') return;
             var $fullName = $form.find('input[name="full_name"]');
@@ -285,6 +354,11 @@
             var $phone = $form.find('input[name="phone"]');
             if ($phone.length && String($phone.val()).trim() === '' && data.phone) {
                 $phone.val(data.phone);
+            }
+            var $skills = $form.find('input[name="skills"]');
+            var parsedSkills = normalizeAiSkills(data);
+            if ($skills.length && String($skills.val()).trim() === '' && parsedSkills) {
+                $skills.val(parsedSkills);
             }
             var $address = $form.find('textarea[name="address"]');
             if ($address.length && String($address.val()).trim() === '' && data.address) {
