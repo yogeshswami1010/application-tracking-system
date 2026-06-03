@@ -285,7 +285,9 @@
                 stripeClasses: [],
                 dom: '<"jc-table-toolbar"lf>rt<"jc-table-toolbar jc-table-toolbar--footer"ip>',
                 drawCallback: function () {
+                if ($.fn.tooltip) {
                     $('[data-toggle="tooltip"]').tooltip();
+                }
                 },
                 columns: [
                             {
