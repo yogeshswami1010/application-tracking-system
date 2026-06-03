@@ -7,6 +7,10 @@ use App\Helper\Reply;
 use App\JobApplication;
 use App\JobApplicationAnswer;
 use App\Skill;
+use App\Job;
+use App\Location;
+use App\Company;
+use App\Question;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
@@ -23,14 +27,14 @@ class AdminApplicationArchiveController extends AdminBaseController
         $this->pageIcon = 'icon-drawer';
     }
 
-    /**
-     * Display a listing of the resource.
-     *
-     * @return Response
-     */
     public function index(Request $request)
     {
         abort_if(! $this->user->cans('view_job_applications'), 403);
+
+        $this->companies = Company::select('id', 'company_name')->orderBy('company_name')->get();
+        $this->jobs      = Job::select('id', 'title')->orderBy('title')->get();
+        $this->locations = Location::select('id', 'location')->orderBy('location')->get();
+        $this->questions = Question::select('id', 'question')->orderBy('question')->get();
 
         return view('admin.applications-archive.index', $this->data);
     }
@@ -39,34 +43,71 @@ class AdminApplicationArchiveController extends AdminBaseController
     {
         abort_if(! $this->user->cans('view_job_applications'), 403);
 
-        $jobApplications = JobApplication::onlyTrashed();
+        $jobApplications = JobApplication::onlyTrashed()
+            ->with(['job', 'location']);
 
-        // Filter by skills
-        if ($request->has('skill') && $request->skill !== null) {
-
-            $skill = Skill::select('id', 'name')->where('name', 'LIKE', '%'.strtolower($request->skill).'%')->first();
+        // ── Skill filter ───────────────────────────────────────────────
+        if ($request->filled('skill')) {
+            $skill = Skill::select('id', 'name')
+                ->where('name', 'LIKE', '%' . strtolower($request->skill) . '%')
+                ->first();
 
             if ($skill) {
-                $jobApplications = $jobApplications->whereJsonContains('skills', (string) $skill->id);
+                $jobApplications->whereJsonContains('skills', (string) $skill->id);
             } else {
-                $jobApplications = collect([]);
+                // No matching skill — return empty result
+                $jobApplications->whereRaw('1 = 0');
             }
-        } else {
-            $jobApplications = $jobApplications;
+        }
+
+        // ── Company filter ─────────────────────────────────────────────
+        if ($request->filled('company') && $request->company !== 'all') {
+            $jobApplications->whereHas('job', function ($q) use ($request) {
+                $q->where('company_id', $request->company);
+            });
+        }
+
+        // ── Job filter ────────────────────────────────────────────────
+        if ($request->filled('jobs') && $request->jobs !== 'all') {
+            $jobApplications->where('job_id', $request->jobs);
+        }
+
+        // ── Location filter ───────────────────────────────────────────
+        if ($request->filled('location') && $request->location !== 'all') {
+            $jobApplications->where('location_id', $request->location);
+        }
+
+        // ── Question / answer filter ──────────────────────────────────
+        if ($request->filled('questions') && $request->questions !== 'all') {
+            $jobApplications->whereHas('answers', function ($q) use ($request) {
+                $q->where('question_id', $request->questions);
+                if ($request->filled('question_value')) {
+                    $q->where('answer', 'LIKE', '%' . $request->question_value . '%');
+                }
+            });
+        }
+
+        // ── Date range filter ─────────────────────────────────────────
+        if ($request->filled('start_date') && $request->start_date != '0') {
+            $jobApplications->whereDate('created_at', '>=', $request->start_date);
+        }
+
+        if ($request->filled('end_date') && $request->end_date != '0') {
+            $jobApplications->whereDate('created_at', '<=', $request->end_date);
         }
 
         return DataTables::of($jobApplications)
             ->addColumn('select_orders', function ($row) {
-                return '<input type="checkbox"  name="check[]" class="checkBoxClass" value="'.$row->id.'"/>';
+                return '<input type="checkbox" name="check[]" class="checkBoxClass" value="' . $row->id . '"/>';
             })
             ->editColumn('full_name', function ($row) {
-                return '<a href="javascript:;" class="show-detail" data-row-id="'.$row->id.'">'.ucwords($row->full_name).'</a>';
+                return '<a href="javascript:;" class="show-detail" data-row-id="' . $row->id . '">' . ucwords($row->full_name) . '</a>';
             })
             ->editColumn('title', function ($row) {
-                return ucfirst($row->job->title);
+                return ucfirst(optional($row->job)->title);
             })
             ->editColumn('location', function ($row) {
-                return ucwords($row->location->location);
+                return ucwords(optional($row->location)->location);
             })
             ->rawColumns(['full_name', 'select_orders'])
             ->addIndexColumn()
@@ -80,18 +121,20 @@ class AdminApplicationArchiveController extends AdminBaseController
         $jobApplication = JobApplication::findOrFail($id);
 
         if ($jobApplication->photo) {
-            Storage::delete('candidate-photos/'.$jobApplication->photo);
+            Storage::delete('candidate-photos/' . $jobApplication->photo);
         }
 
         $jobApplication->delete();
 
-        // JobApplication::destroy($id);
         return Reply::success(__('messages.recordDeleted'));
     }
 
     public function show($id)
     {
-        $this->application = JobApplication::with(['schedule', 'notes', 'onboard', 'status', 'schedule.employee', 'schedule.comments.user'])->withTrashed()->find($id);
+        $this->application = JobApplication::with([
+            'schedule', 'notes', 'onboard', 'status',
+            'schedule.employee', 'schedule.comments.user'
+        ])->withTrashed()->find($id);
 
         $this->skills = Skill::select('id', 'name')->get();
 
@@ -107,58 +150,18 @@ class AdminApplicationArchiveController extends AdminBaseController
 
     public function export($skill)
     {
-        $filters = [
-            'skill' => $skill,
-        ];
+        $filters = ['skill' => $skill];
+        $data    = ['company' => $this->companyName];
 
-        $data = [
-            'company' => $this->companyName,
-        ];
-
-        // Initialize the array which will be passed into the Excel
-        // generator.
-        // $exportArray = [];
-
-        // // Define the Excel spreadsheet headers
-        // $exportArray[] = ;
-
-        // // Convert each member of the returned collection into an array,
-        // // and append it to the payments array.
-        // foreach ($jobApplications as $row) {
-        //     $exportArray[] = $row->toArray();
-        // }
-
-        // // Generate and return the spreadsheet
-        // Excel::create(__('modules.applicationArchive.exportFileName'), function ($excel) use ($exportArray) {
-
-        //     // Set the spreadsheet title, creator, and description
-        //     $excel->setTitle(__('menu.candidateDatabase'));
-        //     $excel->setCreator('Recruit')->setCompany($this->companyName);
-        //     $excel->setDescription(__('modules.applicationArchive.exportFileDescription'));
-
-        //     // Build the spreadsheet, passing in the payments array
-        //     $excel->sheet('sheet1', function ($sheet) use ($exportArray) {
-        //         $sheet->fromArray($exportArray, null, 'A1', false, false);
-
-        //         $sheet->row(1, function ($row) {
-
-        //             // call row manipulation methods
-        //             $row->setFont(array(
-        //                 'bold' => true
-        //             ));
-
-        //         });
-
-        //     });
-
-        // })->download('xlsx');
-
-        return Excel::download(new JobApplicationArchiveExport($filters, $data), __('modules.applicationArchive.exportFileName').'.xlsx', ExcelExcel::XLSX);
+        return Excel::download(
+            new JobApplicationArchiveExport($filters, $data),
+            __('modules.applicationArchive.exportFileName') . '.xlsx',
+            ExcelExcel::XLSX
+        );
     }
 
     public function deleteRecords(Request $request, $id)
     {
-
         JobApplication::whereIn('id', explode(',', $id))->forceDelete();
 
         return Reply::success(__('messages.recordDeleted'));
