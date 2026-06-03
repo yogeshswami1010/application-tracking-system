@@ -2,8 +2,10 @@
 <style>
 
     .right-panel-box {
-        overflow-x: scroll;
-        max-height: 34rem;
+        overflow-y: auto;
+        overflow-x: hidden;
+        max-height: 70vh;
+        padding-right: 10px;
     }
 
     .resume-button {
@@ -22,9 +24,11 @@
 <div class="rpanel-title"> @lang('menu.jobApplications') <span><i class="ti-close right-side-toggle"></i></span></div>
 <div class="r-panel-body p-3">
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-        <div class="md:col-span-1">
-            <img src="{{ $application->photo_url }}" class="img-circle img-fluid">
+    <div class="row">
+        <div class="col-md-4 text-center">
+            <img src="{{ $application->photo_url }}"
+            class="img-circle img-fluid mx-auto d-block"
+            style="width:120px;height:120px;object-fit:cover;">
             @if ($application->resume_url)
             {{-- <div class="col-sm-6"> --}}
                 <p class="text-muted resume-button">
@@ -56,7 +60,7 @@
             @endif
         </div>
 
-        <div class="md:col-span-2 right-panel-box">
+        <div class="col-md-8 right-panel-box">
             <div class="w-full">
                 <strong>@lang('app.name')</strong><br>
                 <p class="text-muted">{{ ucwords($application->full_name) }}</p>
