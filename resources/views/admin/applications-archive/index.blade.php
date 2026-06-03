@@ -13,7 +13,7 @@
 
 @section('content')
 
-    <div class="jc-table-card ra-dt-wrap overflow-hidden">
+    <div class="jc-table-card candidate-database ra-dt-wrap overflow-hidden">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-4 pt-4 pb-2">
             <div id="search-container" class="flex items-center flex-1 max-w-md">
                 <input id="skill" class="form-control flex-1" type="text" name="skill" placeholder="@lang('modules.applicationArchive.enterSkill')">
