@@ -63,7 +63,7 @@
                 class="h-16 w-16 rounded-full border-2 border-white object-cover shadow-lg">
 
             <div class="flex-1">
-                <h2 class="text-xl font-bold text-white">
+                <h2 class="text-2xl font-extrabold text-white leading-tight">
                     {{ ucwords($application->full_name) }}
                 </h2>
 
@@ -120,134 +120,187 @@
         </div>
     </div>
 
-        <div class="col-md-8 right-panel-box">
+        <div class="p-4 space-y-4">
         
+            <div class="rounded-2xl bg-white shadow-sm border border-gray-100 p-4">
+                <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+                    Contact Information
+                </h3>
 
-            <div class="w-full">
-                <strong>@lang('app.email')</strong><br>
-                <p class="text-muted">{{ $application->email }}</p>
-            </div>
+                <div class="space-y-4">
 
-            <div class="w-full">
-                <strong>@lang('app.phone')</strong><br>
-                <p class="text-muted">{{ $application->phone }}</p>
-            </div>
-
-            <div class="w-full">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    @if (!is_null($application->gender))
-                        <div class="w-full md:col-span-1">
-                            <strong>@lang('app.gender')</strong><br>
-                            <p class="text-muted" id="gender-{{ $application->id }}">{{ ucfirst($application->gender) }}</p>
-                        </div>
-                    @endif
-                    @if (!is_null($application->dob))
-                        <div class="w-full md:col-span-1">
-                            <strong>@lang('app.dob')</strong><br>
-                            <p class="text-muted" id="dob-{{ $application->id }}">{{ $application->dob->format('jS F, Y') }}</p>
-                        </div>
-                    @endif
-                </div>
-            </div>
-
-            @if (!is_null($application->country))
-                <div class="w-full">
-                    <div class="grid grid-cols-3 gap-4">
-                        <div class="col-span-1">
-                            <strong>@lang('app.country')</strong><br>
-                            <p class="text-muted" id="country-{{ $application->id }}">{{ $application->country }}</p>
-                        </div>
-                        <div class="col">
-                            <strong>@lang('app.state')</strong><br>
-                            <p class="text-muted" id="state-{{ $application->id }}">{{ $application->state }}</p>
-                        </div>
-                        <div class="col">
-                            <strong>@lang('app.city')</strong><br>
-                            <p class="text-muted" id="city-{{ $application->id }}">{{ $application->city }}</p>
-                        </div>
-                    </div>
-                </div>
-            @endif
-
-            <div class="w-full">
-                <strong>@lang('modules.jobApplication.appliedAt')</strong><br>
-                <p class="text-muted">{{ $application->created_at->format('d M, Y H:i') }}</p>
-            </div>
-            @if ($answers->count() > 0)
-                <div class="w-full">
-                    <h4>@lang('modules.front.additionalDetails')</h4>
-                    @forelse($answers as $answer)
-                        <strong>{{$answer->question->question}}</strong><br>
-                        <p class="text-muted">{{ ucfirst($answer->answer)}}</p>
-                    @empty
-                    @endforelse
-                </div>
-            @endif
-            @if(!is_null($application->schedule))
-                <hr>
-
-                <h5>@lang('modules.interviewSchedule.scheduleDetail')</h5>
-                <div class="w-full">
-                    <strong>@lang('modules.interviewSchedule.scheduleDate')</strong><br>
-                    <p class="text-muted">{{ $application->schedule->schedule_date->format('d M, Y H:i') }}</p>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="w-full">
-                        <strong>@lang('modules.interviewSchedule.assignedEmployee')</strong><br>
-                    </div>
-                    <div class="col-sm-6">
-                        <strong>@lang('modules.interviewSchedule.employeeResponse')</strong><br>
-                    </div>
-                    @forelse($application->schedule->employee as $key => $emp )
-                        <div class="w-full">
-                            <p class="text-muted">{{ ucwords($emp->user->name) }}</p>
-                        </div>
-
-                        <div class="col-sm-6">
-                            @if($emp->user_accept_status == 'accept')
-                                <label class="badge badge-success">{{ ucwords($emp->user_accept_status) }}</label>
-                            @elseif($emp->user_accept_status == 'refuse')
-                                <label class="badge badge-danger">{{ ucwords($emp->user_accept_status) }}</label>
-                            @else
-                                <label class="badge badge-warning">{{ ucwords($emp->user_accept_status) }}</label>
-                            @endif
-                        </div>
-                    @empty
-                    @endforelse
-                </div>
-
-            @endif
-
-            @if(isset($application->schedule->comments) == 'interview' && count($application->schedule->comments) > 0)
-                <hr>
-
-                <h5>@lang('modules.interviewSchedule.comments')</h5>
-                @forelse($application->schedule->comments as $key => $comment )
-
-                    <div class="w-full">
-                        <p class="text-muted"><b>{{$comment->user->name }}:</b> {{ $comment->comment }}</p>
-                    </div>
-                @empty
-                @endforelse
-
-            @endif
-            <div class="w-full">
-                <p class="text-muted">
-                    @if(!is_null($application->skype_id))
-                        <span class="skype-button rounded" data-contact-id="live:{{$application->skype_id}}"
-                              data-text="Call"></span>
-                    @endif
-                </p>
-            </div>
-            <div class="grid grid-cols-2 gap-4">
-                @if($user->cans('add_schedule') && $application->status->status == 'interview' && is_null($application->schedule))
-                    <div class="w-full">
-                        <p class="text-muted">
-                            <a onclick="createSchedule('{{$application->id}}')" href="javascript:;"
-                               class="btn btn-sm btn-info">@lang('modules.interviewSchedule.scheduleInterview')</a>
+                    <div>
+                        <p class="text-xs text-gray-400">Email</p>
+                        <p class="text-sm font-medium text-gray-900">
+                            {{ $application->email }}
                         </p>
                     </div>
+
+                    <div>
+                        <p class="text-xs text-gray-400">Phone</p>
+                        <p class="text-sm font-medium text-gray-900">
+                            {{ $application->phone }}
+                        </p>
+                    </div>
+
+                    <div>
+                        <p class="text-xs text-gray-400">Applied At</p>
+                        <p class="text-sm font-medium text-gray-900">
+                            {{ $application->created_at->format('d M Y h:i A') }}
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+            @if(
+                    $application->gender ||
+                    $application->dob ||
+                    $application->country
+                )
+
+                <div class="rounded-2xl bg-white shadow-sm border border-gray-100 p-4">
+
+                    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+                        Personal Information
+                    </h3>
+
+                    <div class="grid grid-cols-2 gap-4">
+
+                        @if($application->gender)
+                        <div>
+                            <p class="text-xs text-gray-400">Gender</p>
+                            <p class="font-medium">
+                                {{ ucfirst($application->gender) }}
+                            </p>
+                        </div>
+                        @endif
+
+                        @if($application->dob)
+                        <div>
+                            <p class="text-xs text-gray-400">Date Of Birth</p>
+                            <p class="font-medium">
+                                {{ $application->dob->format('d M Y') }}
+                            </p>
+                        </div>
+                        @endif
+
+                        @if($application->country)
+                        <div>
+                            <p class="text-xs text-gray-400">Country</p>
+                            <p class="font-medium">
+                                {{ $application->country }}
+                            </p>
+                        </div>
+                        @endif
+
+                        @if($application->state)
+                        <div>
+                            <p class="text-xs text-gray-400">State</p>
+                            <p class="font-medium">
+                                {{ $application->state }}
+                            </p>
+                        </div>
+                        @endif
+
+                        @if($application->city)
+                        <div>
+                            <p class="text-xs text-gray-400">City</p>
+                            <p class="font-medium">
+                                {{ $application->city }}
+                            </p>
+                        </div>
+                        @endif
+
+                    </div>
+
+                </div>
+
                 @endif
+
+                @if($answers->count())
+
+                <div class="rounded-2xl bg-white shadow-sm border border-gray-100 p-4">
+
+                    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+                        Additional Details
+                    </h3>
+
+                    <div class="space-y-4">
+
+                        @foreach($answers as $answer)
+
+                        <div class="rounded-xl bg-gray-50 p-3">
+
+                            <p class="text-sm font-semibold text-gray-900">
+                                {{ $answer->question->question }}
+                            </p>
+
+                            <p class="mt-1 text-sm text-gray-600">
+                                {{ ucfirst($answer->answer) }}
+                            </p>
+
+                        </div>
+
+                        @endforeach
+
+                    </div>
+
+                </div>
+
+                @endif
+                <div class="rounded-2xl bg-white shadow-sm border border-gray-100 p-4">
+
+                <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+                    Skills
+                </h3>
+
+                <select name="skills[]" id="skills"
+                    class="form-control select2 custom-select"
+                    multiple>
+                    ...
+                </select>
+
+                <div class="mt-3">
+                    <a href="javascript:addSkills({{ $application->id }});"
+                    class="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white">
+                        Save Skills
+                    </a>
+                </div>
+                <div class="rounded-2xl bg-white shadow-sm border border-gray-100 p-4">
+
+                    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+                        Applicant Notes
+                    </h3>
+
+                    <div id="applicant-notes">
+
+                        @foreach($application->notes as $notes)
+
+                        <div class="border-l-4 border-blue-500 bg-blue-50 rounded-r-xl p-3 mb-3">
+
+                            <div class="flex justify-between">
+
+                                <span class="font-semibold text-sm">
+                                    {{ $notes->user->name }}
+                                </span>
+
+                                <span class="text-xs text-gray-500">
+                                    {{ $notes->created_at->diffForHumans() }}
+                                </span>
+
+                            </div>
+
+                            <p class="mt-2 text-sm text-gray-700">
+                                {{ ucfirst($notes->note_text) }}
+                            </p>
+
+                        </div>
+
+                        @endforeach
+
+                    </div>
+
+                </div>
             </div>
         </div>
         @if ($user->cans('edit_job_applications'))
@@ -273,44 +326,7 @@
                 </a>
             </div>
         @endif
-        <div class="w-full">
-            <hr>
-            <div class="w-full mb-3">
-                <h5>@lang('modules.jobApplication.applicantNotes')</h5>
-            </div>
-
-            <div id="applicant-notes" class="w-full">
-                <ul class="list-none space-y-3">
-                    @foreach($application->notes as $key => $notes )
-                        <li class="flex items-start mb-3" id="note-{{ $notes->id }}">
-                            <div class="flex-1">
-                                <h6 class="mt-0 mb-1 flex items-center justify-between">
-                                    <span>{{ ucwords($notes->user->name) }}</span>
-                                    <span class="text-sm italic font-light flex items-center gap-2"><small> {{ $notes->created_at->diffForHumans() }} </small>
-                                        @if($user->cans('edit_job_applications'))
-                                            <a href="javascript:;" class="edit-note" data-note-id="{{ $notes->id }}"><i class="fa fa-edit ml-2"></i></a>
-                                            <a href="javascript:;" class="delete-note" data-note-id="{{ $notes->id }}"><i class="fa fa-trash ml-1 text-danger"></i></a>
-                                        @endif
-                                </span>
-                                </h6>
-                                <small class="note-text">{{ ucfirst($notes->note_text) }}</small>
-                                <div class="note-textarea"></div>
-                            </div>
-                        </li>
-                    @endforeach
-                </ul>
-            </div>
-
-            @if($user->cans('edit_job_applications'))
-                <div class="w-full">
-                    <div class="form-group mb-2">
-                        <textarea name="note" id="note_text" cols="30" rows="2" class="form-control"></textarea>
-                    </div>
-                    <a href="javascript:;" id="add-note" class="btn btn-sm btn-outline-primary">@lang('modules.jobApplication.addNote')</a>
-                </div>
-            @endif
-
-        </div>
+       
 
 
     </div>
