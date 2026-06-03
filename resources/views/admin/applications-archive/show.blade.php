@@ -248,16 +248,24 @@
                 </div>
 
                 @endif
-              
+              <p>Resume URL: {{ $application->resume_url }}</p>
+
+<p>Documents Count:
+    {{ $application->documents ? $application->documents->count() : 0 }}
+</p>
+
+@if($application->documents)
+    @foreach($application->documents as $doc)
+        <p>
+            {{ $doc->name }} -
+            {{ $doc->hashname }}
+        </p>
+    @endforeach
+@endif
 
                 <div class="rounded-2xl bg-white shadow-sm border border-gray-100 p-4">
 
-                  <div class="alert alert-info">
-    Resume URL: {{ $application->resume_url ?? 'NULL' }}
-    <br>
-    Resume: {{ $application->resume ?? 'NULL' }}
-</div>
-
+      
                     <div class="flex flex-wrap gap-2" id="resume-{{ $application->id }}">
                         @if ($application->resume_url)
                           <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">

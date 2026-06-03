@@ -184,8 +184,13 @@ class AdminApplicationArchiveController extends AdminBaseController
     public function show($id)
     {
         $this->application = JobApplication::with([
-            'schedule', 'notes', 'onboard', 'status',
-            'schedule.employee', 'schedule.comments.user'
+            'documents',
+            'schedule',
+            'notes',
+            'onboard',
+            'status',
+            'schedule.employee',
+            'schedule.comments.user'
         ])->withTrashed()->find($id);
 
         $this->skills = Skill::select('id', 'name')->get();
