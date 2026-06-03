@@ -248,41 +248,42 @@
                 </div>
 
                 @endif
-                @if ($application->resume_url)
+              
 
                 <div class="rounded-2xl bg-white shadow-sm border border-gray-100 p-4">
 
-                    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
-                        Resume
-                    </h3>
+                  
 
-                    <a href="{{ $application->resume_url }}"
-                    target="_blank"
-                    class="flex items-center justify-between rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 hover:bg-blue-100 transition">
-
-                        <div class="flex items-center gap-3">
-                            <div class="h-10 w-10 rounded-lg bg-blue-600 text-white flex items-center justify-center">
+                    <div class="flex flex-wrap gap-2" id="resume-{{ $application->id }}">
+                        @if ($application->resume_url)
+                          <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+                                Resume
+                            </h3>
+                            <a target="_blank" href="{{ $application->resume_url }}"
+                            class="inline-flex flex-1 min-w-[8rem] items-center justify-center gap-2 rounded-[10px] bg-[#2563EB] px-4 py-2.5 text-center text-[12.5px] font-bold text-white transition hover:bg-[#1d4ed8]">
                                 <i class="fa fa-file-pdf-o"></i>
-                            </div>
-
-                            <div>
-                                <p class="text-sm font-semibold text-gray-900">
-                                    View Uploaded Resume
-                                </p>
-
-                                <p class="text-xs text-gray-500">
-                                    Click to open applicant resume
-                                </p>
-                            </div>
-                        </div>
-
-                        <i class="fa fa-external-link text-blue-600"></i>
-
-                    </a>
+                                @lang('app.view') @lang('modules.jobApplication.resume')
+                            </a>
+                        @endif
+                        @if($user->cans('add_schedule') && $application->status->status == 'interview' && is_null($application->schedule))
+                            <a onclick="createSchedule('{{$application->id}}')" href="javascript:;"
+                            class="inline-flex flex-[2] min-w-[10rem] items-center justify-center gap-2 rounded-[10px] bg-[#2563EB] px-4 py-2.5 text-center text-[12.5px] font-bold text-white transition hover:bg-[#1d4ed8]">
+                                <i class="fa fa-calendar-plus-o"></i>
+                                @lang('modules.interviewSchedule.scheduleInterview')
+                            </a>
+                        @endif
+                        @if($application->status->status == 'hired' && is_null($application->onboard))
+                            <a href="{{ route('admin.job-onboard.create') }}?id={{$application->id}}"
+                            class="inline-flex flex-1 min-w-[8rem] items-center justify-center gap-2 rounded-[10px] bg-[#059669] px-4 py-2.5 text-center text-[12.5px] font-bold text-white transition hover:bg-[#047857]">
+                                <i class="fa fa-rocket"></i>
+                                @lang('app.startOnboard')
+                            </a>
+                        @endif
+                    </div>
 
                 </div>
 
-                @endif
+          
            <div class="rounded-2xl bg-white shadow-sm border border-gray-100 p-4">
 
                 <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
