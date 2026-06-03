@@ -1,6 +1,6 @@
 <link rel="stylesheet" href="{{ asset('assets/plugins/jquery-bar-rating-master/dist/themes/fontawesome-stars.css') }}">
 @php
-    $detailCatName = optional($application->job->category)->name ?? __('app.category');
+    $detailCatName = optional(optional($application->job)->category)->name ?? __('app.category');
     $detailCatKey = \Illuminate\Support\Str::slug($detailCatName);
     $detailCatClass = match (true) {
         str_contains($detailCatKey, 'engineer') || str_contains($detailCatKey, 'tech') || str_contains($detailCatKey, 'it') => 'bg-[#EFF6FF] text-[#1D4ED8]',
