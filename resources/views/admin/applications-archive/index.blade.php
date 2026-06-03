@@ -164,15 +164,17 @@
         <div class="jc-table-card table-wrapper ra-dt-wrap mt-4 w-full overflow-hidden rounded-[12px] border border-[#E8E6E1] bg-white shadow-sm">
             <table id="myTable" class="jc-cat-table display w-full" style="width:100%">
                 <thead>
-                <tr>
-                    <th style="width:48px;">
-                        <input type="checkbox" id="chkCheckAll" class="rounded border-gray-300 text-primary focus:ring-primary">
-                    </th>
-                    <th style="width:72px;">#</th>
-                    <th>@lang('modules.jobApplication.applicantName')</th>
-                    <th>@lang('menu.jobs')</th>
-                    <th>@lang('menu.locations')</th>
-                </tr>
+                    <tr>
+                        <th style="width:48px;">
+                            <input type="checkbox" id="chkCheckAll">
+                        </th>
+                        <th>#</th>
+                        <th>@lang('modules.jobApplication.applicantName')</th>
+                        <th>@lang('menu.jobs')</th>
+                        <th>@lang('menu.locations')</th>
+                        <th>@lang('app.status')</th>
+                        <th>@lang('app.action')</th>
+                    </tr>
                 </thead>
             </table>
         </div>
@@ -290,12 +292,43 @@
                     $('[data-toggle="tooltip"]').tooltip();
                 },
                 columns: [
-                    { data: 'select_orders', name: 'select_orders', orderable: false, searchable: false },
-                    { data: 'DT_Row_Index',  orderable: false, searchable: false },
-                    { data: 'full_name',  name: 'full_name' },
-                    { data: 'title',      name: 'job_id',      width: '17%' },
-                    { data: 'location',   name: 'location_id' }
-                ]
+                            {
+                                data: 'select_orders',
+                                name: 'select_orders',
+                                orderable: false,
+                                searchable: false
+                            },
+                            {
+                                data: 'DT_Row_Index',
+                                orderable: false,
+                                searchable: false
+                            },
+                            {
+                                data: 'full_name',
+                                name: 'full_name',
+                                width: '17%'
+                            },
+                            {
+                                data: 'title',
+                                name: 'job_id',
+                                width: '17%'
+                            },
+                            {
+                                data: 'location',
+                                name: 'location_id'
+                            },
+                            {
+                                data: 'status',
+                                name: 'status_id'
+                            },
+                            {
+                                data: 'action',
+                                name: 'action',
+                                searchable: false,
+                                orderable: false,
+                                width: '15%'
+                            }
+                        ]
             });
         }
 

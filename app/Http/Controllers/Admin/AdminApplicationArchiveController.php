@@ -45,7 +45,11 @@ class AdminApplicationArchiveController extends AdminBaseController
         abort_if(! $this->user->cans('view_job_applications'), 403);
 
         $jobApplications = JobApplication::onlyTrashed()
-            ->with(['job', 'location']);
+            ->with([
+                'job',
+                'location',
+                'status'
+            ]);
 
         // ── Skill filter ───────────────────────────────────────────────
         if ($request->filled('skill')) {
@@ -98,21 +102,64 @@ class AdminApplicationArchiveController extends AdminBaseController
         }
 
         return DataTables::of($jobApplications)
-            ->addColumn('select_orders', function ($row) {
-                return '<input type="checkbox" name="check[]" class="checkBoxClass" value="' . $row->id . '"/>';
-            })
-            ->editColumn('full_name', function ($row) {
-                return '<a href="javascript:;" class="show-detail" data-row-id="' . $row->id . '">' . ucwords($row->full_name) . '</a>';
-            })
-            ->editColumn('title', function ($row) {
-                return ucfirst(optional($row->job)->title);
-            })
-            ->editColumn('location', function ($row) {
-                return ucwords(optional($row->location)->location);
-            })
-            ->rawColumns(['full_name', 'select_orders'])
-            ->addIndexColumn()
-            ->make(true);
+
+        ->addColumn('select_orders', function ($row) {
+            return '<input type="checkbox" name="check[]" class="checkBoxClass" value="'.$row->id.'">';
+        })
+
+        ->editColumn('full_name', function ($row) {
+            return '<a href="javascript:;" class="show-detail" data-row-id="'.$row->id.'">'
+                . ucwords($row->full_name) .
+                '</a>';
+        })
+
+        ->addColumn('title', function ($row) {
+            return optional($row->job)->title;
+        })
+
+        ->addColumn('location', function ($row) {
+            return optional($row->location)->location;
+        })
+
+        ->addColumn('status', function ($row) {
+
+            if (!$row->status) {
+                return '<span class="label label-default">Archived</span>';
+            }
+
+            return '<span class="label label-success">'
+                . e($row->status->status) .
+                '</span>';
+        })
+
+        ->addColumn('action', function ($row) {
+
+            $buttons = '';
+
+            if ($this->user->cans('view_job_applications')) {
+                $buttons .= '
+                    <a href="javascript:;"
+                    class="btn btn-info btn-circle show-detail"
+                    data-row-id="'.$row->id.'">
+                        <i class="fa fa-search"></i>
+                    </a>';
+            }
+
+            return '
+                <div class="btn-group">
+                    '.$buttons.'
+                </div>';
+        })
+
+        ->rawColumns([
+            'select_orders',
+            'full_name',
+            'status',
+            'action'
+        ])
+
+        ->addIndexColumn()
+        ->make(true);
     }
 
     public function destroy($id)
