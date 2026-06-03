@@ -44,7 +44,7 @@ class AdminApplicationArchiveController extends AdminBaseController
     {
         abort_if(! $this->user->cans('view_job_applications'), 403);
 
-        $jobApplications = JobApplication::onlyTrashed()
+        $jobApplications = JobApplication::withTrashed()
             ->with([
                 'job',
                 'location',
@@ -123,13 +123,17 @@ class AdminApplicationArchiveController extends AdminBaseController
 
         ->addColumn('status', function ($row) {
 
-            if (!$row->status) {
-                return '<span class="label label-default">Archived</span>';
+            if ($row->trashed()) {
+                return '<span class="label label-danger">Archived</span>';
             }
 
-            return '<span class="label label-success">'
-                . e($row->status->status) .
-                '</span>';
+            if ($row->status) {
+                return '<span class="label label-success">'
+                    . e($row->status->status) .
+                    '</span>';
+            }
+
+            return '<span class="label label-default">No Status</span>';
         })
 
         ->addColumn('action', function ($row) {
@@ -166,7 +170,7 @@ class AdminApplicationArchiveController extends AdminBaseController
     {
         abort_if(! $this->user->cans('delete_job_applications'), 403);
 
-        $jobApplication = JobApplication::findOrFail($id);
+        $jobApplication = JobApplication::withTrashed()->findOrFail($id);
 
         if ($jobApplication->photo) {
             Storage::delete('candidate-photos/' . $jobApplication->photo);
