@@ -252,7 +252,11 @@
 
                 <div class="rounded-2xl bg-white shadow-sm border border-gray-100 p-4">
 
-                  
+                  <div class="alert alert-info">
+    Resume URL: {{ $application->resume_url ?? 'NULL' }}
+    <br>
+    Resume: {{ $application->resume ?? 'NULL' }}
+</div>
 
                     <div class="flex flex-wrap gap-2" id="resume-{{ $application->id }}">
                         @if ($application->resume_url)
