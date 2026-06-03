@@ -303,29 +303,7 @@
                 </div>
             </div>
         </div>
-        @if ($user->cans('edit_job_applications'))
-            <div class="w-full" id="skills-container">
-                <hr>
-                <div class="w-full mb-3">
-                    <h5>@lang('modules.jobApplication.skills')</h5>
-                </div>
-                <div class="form-group mb-2">
-                    <select name="skills[]" id="skills" class="form-control select2 custom-select" multiple>
-                        @forelse ($skills as $skill)
-                            <option @if (!is_null($application->skills) && in_array($skill->id, $application->skills)) selected @endif value="{{ $skill->id }}">{{ $skill->name }}</option>
-                        @empty
-                        @endforelse
-                    </select>
-                </div>
-                <a href="javascript:addSkills({{ $application->id}});" id="add-skills" class="btn btn-sm btn-outline-success">
-                    @if (!is_null($application->skills) && sizeof($application->skills) > 0)
-                        @lang('modules.jobApplication.updateSkills')
-                    @else
-                        @lang('modules.jobApplication.addSkills')
-                    @endif
-                </a>
-            </div>
-        @endif
+
        
 
 
