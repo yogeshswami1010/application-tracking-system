@@ -79,7 +79,20 @@
                                         <label class="control-label">@lang('app.address')</label>
                                         <textarea class="form-control" name="address" rows="4" cols="50" placeholder="@lang('app.address')"></textarea>
                                     </div>
-
+                                    <div class="form-group mt-4">
+                                        <label class="control-label">@lang('modules.jobApplication.applicantNotes')</label>
+                                        <div id="create-notes-list" class="space-y-2 mb-3"></div>
+                                        <div class="flex gap-2">
+                                            <textarea name="notes_input" id="notes_input" rows="2"
+                                                class="form-control flex-1 resize-none"
+                                                placeholder="@lang('modules.jobApplication.addNote')"></textarea>
+                                            <button type="button" id="add-create-note"
+                                                class="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium self-end whitespace-nowrap">
+                                                <i class="fa fa-plus mr-1"></i> Add
+                                            </button>
+                                        </div>
+                                        <div id="create-notes-hidden"></div>
+                                    </div>
                                     <div id="show-columns">
                                     </div>
                                 </div>
@@ -644,5 +657,39 @@
                 }
             }
         }
+        // Notes on create
+var createNotes = [];
+
+$('#add-create-note').on('click', function () {
+    var text = $('#notes_input').val().trim();
+    if (!text) return;
+
+    var index = createNotes.length;
+    createNotes.push(text);
+
+    // Render note pill
+    $('#create-notes-list').append(
+        '<div class="flex items-start justify-between bg-gray-50 rounded-lg p-3 border-l-4 border-blue-400" id="cn-' + index + '">' +
+            '<p class="text-sm text-gray-700 flex-1">' + $('<div>').text(text).html() + '</p>' +
+            '<button type="button" class="remove-create-note ml-3 text-red-400 hover:text-red-600 text-xs" data-index="' + index + '">' +
+                '<i class="fa fa-times"></i>' +
+            '</button>' +
+        '</div>'
+    );
+
+    // Add hidden input so it submits with the form
+    $('#create-notes-hidden').append(
+        '<input type="hidden" name="notes[]" id="cn-hidden-' + index + '" value="' + $('<div>').text(text).html() + '">'
+    );
+
+    $('#notes_input').val('');
+});
+
+$(document).on('click', '.remove-create-note', function () {
+    var index = $(this).data('index');
+    createNotes[index] = null;
+    $('#cn-' + index).remove();
+    $('#cn-hidden-' + index).remove();
+});
     </script>
 @endpush

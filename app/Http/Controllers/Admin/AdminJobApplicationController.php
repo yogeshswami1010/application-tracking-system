@@ -653,6 +653,16 @@ class AdminJobApplicationController extends AdminBaseController
                 $jobApplication->save();
             }
         }
+        if ($request->filled('notes') && is_array($request->notes)) {
+            foreach ($request->notes as $noteText) {
+                if (trim($noteText)) {
+                    $jobApplication->notes()->create([
+                        'note_text' => trim($noteText),
+                        'user_id'   => auth()->id(),
+                    ]);
+                }
+            }
+        }
         return Reply::redirect(route('admin.job-applications.index'), __('menu.jobApplications').' '.__('messages.createdSuccessfully'));
     }
 
