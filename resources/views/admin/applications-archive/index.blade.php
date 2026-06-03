@@ -186,8 +186,8 @@
     <script src="{{ asset('assets/node_modules_files/bootstrap-datepicker/bootstrap-datepicker.min.js') }}" type="text/javascript"></script>
 
     <script>
-        var jaDefaultStart = {{ json_encode($jaDefaultStart) }};
-        var jaDefaultEnd   = {{ json_encode($jaDefaultEnd) }};
+        var jaDefaultStart = @json($jaDefaultStart);
+        var jaDefaultEnd   = @json($jaDefaultEnd);
 
         // ── Datepickers ────────────────────────────────────────────────
         $('#start-date').datepicker({ format: 'yyyy-mm-dd', autoclose: true });
