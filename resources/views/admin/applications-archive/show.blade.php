@@ -248,20 +248,17 @@
                 </div>
 
                 @endif
-              <p>Resume URL: {{ $application->resume_url }}</p>
+<pre>
+Application ID: {{ $application->id }}
+Resume URL: {{ $application->resume_url }}
+Documents Count: {{ $application->documents()->count() }}
 
-<p>Documents Count:
-    {{ $application->documents ? $application->documents->count() : 0 }}
-</p>
+@foreach($application->documents as $doc)
+Name: {{ $doc->name }}
+Hash: {{ $doc->hashname }}
 
-@if($application->documents)
-    @foreach($application->documents as $doc)
-        <p>
-            {{ $doc->name }} -
-            {{ $doc->hashname }}
-        </p>
-    @endforeach
-@endif
+@endforeach
+</pre>
 
                 <div class="rounded-2xl bg-white shadow-sm border border-gray-100 p-4">
 
