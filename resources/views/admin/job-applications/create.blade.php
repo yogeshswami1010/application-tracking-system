@@ -111,6 +111,8 @@
 @push('footer-script')
     <script src="{{ asset('assets/plugins/datepicker/bootstrap-datepicker.js') }}"></script>
     <script src="{{ asset('assets/node_modules_files/select2/dist/js/select2.full.min.js') }}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
     <script>
         const fetchCountryState = "{{ route('jobs.fetchCountryState') }}";
         const csrfToken = "{{ csrf_token() }}";
@@ -118,8 +120,8 @@
         const selectState = "@lang('modules.front.selectState')";
         const selectCity = "@lang('modules.front.selectCity')";
         const pleaseWait = "@lang('app.aiGenerating')";
+        const resumeParsingText = "Parsing CV...";
         const aiGenerateCoverLetterUrl = "{{ route('admin.job-applications.ai-generate-cover-letter') }}";
-        const aiParseResumeUrl = "{{ route('admin.job-applications.ai-parse-resume') }}";
         const jobApplicationsIndexUrl = "{{ route('admin.job-applications.index') }}";
 
         let country = "";
@@ -209,9 +211,9 @@
             }
 
             var prevHtml = $btn.html();
-            $btn.prop('disabled', true).html(pleaseWait);
+            $btn.prop('disabled', true).html(resumeParsingText);
 
-            parseResumeForAiIfSelected($form, function() {
+            parseResumeIfSelected($form, function() {
                 $btn.prop('disabled', false).html(prevHtml);
                 if (typeof $.toast === 'function') {
                     $.toast({
@@ -328,7 +330,7 @@
                 });
             };
 
-            parseResumeForAiIfSelected($form, afterResumePrepared, function() {
+            parseResumeIfSelected($form, afterResumePrepared, function() {
                 $btn.prop('disabled', false).html(prevHtml);
             });
         });
@@ -341,7 +343,7 @@
             return skills ? String(skills) : '';
         }
 
-        function applyResumeAiFields(data, $form) {
+        function applyParsedResumeFields(data, $form) {
             if (!data || typeof data !== 'object') return;
             var $fullName = $form.find('input[name="full_name"]');
             if ($fullName.length && String($fullName.val()).trim() === '' && data.full_name) {
@@ -387,74 +389,195 @@
             }
         }
 
-        function parseResumeForAiIfSelected($form, onSuccess, onError) {
+        function readFileAsText(file) {
+            return new Promise(function(resolve, reject) {
+                var reader = new FileReader();
+                reader.onload = function(e) { resolve(e.target.result || ''); };
+                reader.onerror = function() { reject('Unable to read this CV file.'); };
+                reader.readAsText(file);
+            });
+        }
+
+        function readFileAsArrayBuffer(file) {
+            return new Promise(function(resolve, reject) {
+                var reader = new FileReader();
+                reader.onload = function(e) { resolve(e.target.result); };
+                reader.onerror = function() { reject('Unable to read this CV file.'); };
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function extractPdfText(file) {
+            if (typeof pdfjsLib === 'undefined') {
+                return Promise.reject('PDF parser is not loaded. Please check the pdf.js script.');
+            }
+            if (pdfjsLib.GlobalWorkerOptions) {
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            }
+
+            return readFileAsArrayBuffer(file).then(function(buffer) {
+                return pdfjsLib.getDocument({ data: buffer }).promise;
+            }).then(function(pdf) {
+                var pages = [];
+                for (var i = 1; i <= pdf.numPages; i++) {
+                    pages.push(pdf.getPage(i).then(function(page) {
+                        return page.getTextContent();
+                    }).then(function(content) {
+                        return content.items.map(function(item) {
+                            return item.str;
+                        }).join(' ');
+                    }));
+                }
+                return Promise.all(pages).then(function(textPages) {
+                    return textPages.join('\n');
+                });
+            });
+        }
+
+        function extractDocxText(file) {
+            if (typeof mammoth === 'undefined') {
+                return Promise.reject('DOCX parser is not loaded. Please check the mammoth script.');
+            }
+
+            return readFileAsArrayBuffer(file).then(function(buffer) {
+                return mammoth.extractRawText({ arrayBuffer: buffer });
+            }).then(function(result) {
+                return result.value || '';
+            });
+        }
+
+        function extractResumeText(file) {
+            var name = (file.name || '').toLowerCase();
+            var type = (file.type || '').toLowerCase();
+
+            if (type.indexOf('pdf') >= 0 || name.endsWith('.pdf')) {
+                return extractPdfText(file);
+            }
+            if (name.endsWith('.docx')) {
+                return extractDocxText(file);
+            }
+            if (type.indexOf('text') >= 0 || name.endsWith('.txt')) {
+                return readFileAsText(file);
+            }
+
+            return Promise.reject('Please upload a PDF, DOCX, or TXT CV for browser parsing.');
+        }
+
+        function escapeRegExp(value) {
+            return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function pickResumeName(text) {
+            var badHeadings = /^(resume|curriculum vitae|cv|profile|summary|objective|contact|email|phone|mobile|address|skills|technical skills|education|experience|work experience|projects|certifications)$/i;
+            var lines = String(text || '').split(/\n+/).map(function(line) {
+                return line.replace(/\s+/g, ' ').trim();
+            }).filter(Boolean).slice(0, 25);
+
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i];
+                if (badHeadings.test(line) || line.indexOf('@') >= 0 || /\d/.test(line) || line.length > 80) {
+                    continue;
+                }
+                if (/^[a-zA-Z][a-zA-Z .'-]{1,79}$/.test(line) && line.split(/\s+/).length <= 5) {
+                    return line;
+                }
+            }
+
+            return '';
+        }
+
+        function parseResumeSkills(text) {
+            var knownSkills = [
+                'PHP', 'Laravel', 'JavaScript', 'TypeScript', 'Vue', 'React', 'Angular', 'Node.js', 'Express',
+                'HTML', 'CSS', 'Tailwind', 'Bootstrap', 'jQuery', 'MySQL', 'PostgreSQL', 'MongoDB', 'Redis',
+                'Git', 'Docker', 'Kubernetes', 'AWS', 'Azure', 'GCP', 'Python', 'Django', 'Flask', 'Java',
+                'Spring', 'C#', '.NET', 'SQL', 'REST API', 'GraphQL', 'Excel', 'Power BI', 'Tableau',
+                'Communication', 'Leadership', 'Project Management', 'Sales', 'Marketing', 'Recruitment'
+            ];
+            var found = [];
+            var fullText = String(text || '');
+
+            knownSkills.forEach(function(skill) {
+                var pattern = new RegExp('(^|[^a-zA-Z0-9+#.])' + escapeRegExp(skill) + '([^a-zA-Z0-9+#.]|$)', 'i');
+                if (pattern.test(fullText)) {
+                    found.push(skill);
+                }
+            });
+
+            var section = fullText.match(/(?:^|\n)\s*(?:technical skills|key skills|skills)\s*[:\n]+([\s\S]{0,900}?)(?=\n\s*(?:experience|work experience|employment|education|projects|certifications|summary|profile|objective|languages)\b|$)/i);
+            if (section && section[1]) {
+                section[1].split(/[,|;\n-]+/).forEach(function(item) {
+                    var skill = item.replace(/\s+/g, ' ').trim();
+                    if (skill && skill.length <= 40) {
+                        found.push(skill);
+                    }
+                });
+            }
+
+            var unique = [];
+            found.forEach(function(skill) {
+                if (unique.map(function(s) { return s.toLowerCase(); }).indexOf(skill.toLowerCase()) === -1) {
+                    unique.push(skill);
+                }
+            });
+
+            return unique.slice(0, 30).join(', ');
+        }
+
+        function parseResumeText(text) {
+            var cleanText = String(text || '').replace(/\r/g, '\n').replace(/\t/g, ' ');
+            var emailMatch = cleanText.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+            var phoneMatch = cleanText.match(/(?:\+?\d[\d\s().-]{7,}\d)/);
+
+            return {
+                full_name: pickResumeName(cleanText),
+                email: emailMatch ? emailMatch[0] : '',
+                phone: phoneMatch ? phoneMatch[0].replace(/\s+/g, ' ').trim() : '',
+                skills: parseResumeSkills(cleanText),
+                resume_text: cleanText
+            };
+        }
+
+        function parseResumeIfSelected($form, onSuccess, onError) {
             var input = $form.find('input[name="resume"]')[0];
             if (!input || !input.files || !input.files.length) {
                 onSuccess();
                 return;
             }
 
-            var fd = new FormData();
-            fd.append('_token', csrfToken);
-            fd.append('resume', input.files[0]);
+            if (typeof $.easyBlockUI === 'function') {
+                $.easyBlockUI('#createForm');
+            }
 
-            $.ajax({
-                url: aiParseResumeUrl,
-                type: 'POST',
-                data: fd,
-                processData: false,
-                contentType: false,
-                dataType: 'json',
-                beforeSend: function() {
-                    if (typeof $.easyBlockUI === 'function') {
-                        $.easyBlockUI('#createForm');
-                    }
-                },
-                complete: function() {
-                    if (typeof $.easyUnblockUI === 'function') {
-                        $.easyUnblockUI('#createForm');
-                    }
-                },
-                success: function(response) {
-                    if (response && response.status === 'success') {
-                        applyResumeAiFields(response, $('#createForm'));
-                        onSuccess();
-                        return;
-                    }
+            extractResumeText(input.files[0]).then(function(text) {
+                if (!String(text || '').trim()) {
+                    throw 'No readable text found in this CV.';
+                }
 
-                    var failMsg = (response && response.message) ? response.message : 'Resume parsing failed.';
-                    if (typeof $.toast === 'function') {
-                        $.toast({
-                            text: failMsg,
-                            position: 'top-right',
-                            loaderBg: '#ff6849',
-                            icon: 'error',
-                            hideAfter: 5000,
-                        });
-                    }
-                    if (typeof onError === 'function') onError();
-                },
-                error: function(xhr) {
-                    var msg = 'Resume parsing failed.';
-                    try {
-                        var j = xhr.responseJSON;
-                        if (j && j.message) msg = j.message;
-                    } catch (e) {}
-                    if (typeof $.toast === 'function') {
-                        $.toast({
-                            text: msg,
-                            position: 'top-right',
-                            loaderBg: '#ff6849',
-                            icon: 'error',
-                            hideAfter: 5000,
-                        });
-                    }
-                    if (typeof onError === 'function') onError();
+                applyParsedResumeFields(parseResumeText(text), $('#createForm'));
+                onSuccess();
+            }).catch(function(error) {
+                var msg = error || 'CV parsing failed.';
+                if (typeof $.toast === 'function') {
+                    $.toast({
+                        text: msg,
+                        position: 'top-right',
+                        loaderBg: '#ff6849',
+                        icon: 'error',
+                        hideAfter: 5000,
+                    });
+                } else {
+                    alert(msg);
+                }
+                if (typeof onError === 'function') onError();
+            }).finally(function() {
+                if (typeof $.easyUnblockUI === 'function') {
+                    $.easyUnblockUI('#createForm');
                 }
             });
         }
 
-        // Do not auto-run AI on resume upload; only clear stale extracted text.
+        // Do not auto-run parsing on resume upload; only clear stale extracted text.
         $(document).on('change', '#createForm input[name="resume"]', function() {
             $('#resume_text_for_ai').val('');
         });
