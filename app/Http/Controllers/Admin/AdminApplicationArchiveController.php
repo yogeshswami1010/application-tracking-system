@@ -8,7 +8,7 @@ use App\JobApplication;
 use App\JobApplicationAnswer;
 use App\Skill;
 use App\Job;
-use App\Location;
+use App\JobLocation;
 use App\Company;
 use App\Question;
 use Illuminate\Http\Request;
@@ -33,7 +33,8 @@ class AdminApplicationArchiveController extends AdminBaseController
 
         $this->companies = Company::select('id', 'company_name')->orderBy('company_name')->get();
         $this->jobs      = Job::select('id', 'title')->orderBy('title')->get();
-        $this->locations = Location::select('id', 'location')->orderBy('location')->get();
+        $this->locations = JobLocation::select('id', 'location')->orderBy('location')->get();
+
         $this->questions = Question::select('id', 'question')->orderBy('question')->get();
 
         return view('admin.applications-archive.index', $this->data);
