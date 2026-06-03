@@ -254,7 +254,7 @@ class AdminJobApplicationController extends AdminBaseController
         ];
 
         // Add this
-        $this->currencies = Currency::all();
+        // $this->currencies = Currency::all();
 
         return view('admin.job-applications.create', $this->data);
     }
