@@ -1,3 +1,28 @@
+@php
+    $detailCatName = optional($application->job->category)->name ?? __('app.category');
+    $detailCatKey = \Illuminate\Support\Str::slug($detailCatName);
+
+    $detailCatClass = match (true) {
+        str_contains($detailCatKey, 'engineer') ||
+        str_contains($detailCatKey, 'tech') ||
+        str_contains($detailCatKey, 'it')
+            => 'bg-[#EFF6FF] text-[#1D4ED8]',
+
+        str_contains($detailCatKey, 'sale') ||
+        str_contains($detailCatKey, 'market')
+            => 'bg-[#FFF7ED] text-[#C2410C]',
+
+        str_contains($detailCatKey, 'content') ||
+        str_contains($detailCatKey, 'design')
+            => 'bg-[#ECFDF5] text-[#065F46]',
+
+        str_contains($detailCatKey, 'hr') ||
+        str_contains($detailCatKey, 'people')
+            => 'bg-[#F5F3FF] text-[#5B21B6]',
+
+        default => 'bg-[#F1F3F7] text-[#5A6478]',
+    };
+@endphp
 <link rel="stylesheet" href="{{ asset('assets/plugins/jquery-bar-rating-master/dist/themes/fontawesome-stars.css') }}">
 <style>
 
@@ -22,42 +47,42 @@
 
 </style>
 <div class="rpanel-title"> @lang('menu.jobApplications') <span><i class="ti-close right-side-toggle"></i></span></div>
-<div class="r-panel-body p-3">
+<div class="ja-applicant-detail max-h-[calc(100vh-0px)] overflow-y-auto bg-[#F8F7F4]">
 
     <div class="row">
-        <div class="col-md-4 text-center">
+        <div class="relative bg-gradient-to-br from-[#0F1F3D] to-[#162849] px-5 pb-5 pt-6">
+
+            <button type="button"
+                class="right-side-toggle absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-lg border border-white/15 bg-white/[0.07] text-white/80 transition hover:bg-white/10">
+
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+
             <img src="{{ $application->photo_url }}"
-            class="img-circle img-fluid mx-auto d-block"
-            style="width:120px;height:120px;object-fit:cover;">
-            @if ($application->resume_url)
-            {{-- <div class="col-sm-6"> --}}
-                <p class="text-muted resume-button">
-                    <a target="_blank" href="{{ $application->resume_url }}"
-                    class="btn btn-sm btn-primary">@lang('app.view') @lang('modules.jobApplication.resume')</a>
-                </p>
-            {{-- </div> --}}
-            @endif
+                class="h-12 w-12 rounded-full border-2 border-white object-cover shadow-lg">
 
-            @if($user->cans('edit_job_applications'))
-                <div class="stars stars-example-fontawesome text-center star-center">
-                    <select id="example-fontawesome" name="rating" autocomplete="off">
-                        <option value=""></option>
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                    </select>
-                </div>
-            @endif
+            <h2 class="mt-3 text-[17px] font-extrabold text-white">
+                {{ ucwords($application->full_name) }}
+            </h2>
 
-            @if ($user->cans('delete_job_applications'))
-                <div class="text-muted resume-button">
-                    <a href="javascript:unarchiveApplication({{ $application->id }})" class="btn btn-sm btn-info">
-                        @lang('modules.jobApplication.unarchiveApplication')
-                    </a>
-                </div>
-            @endif
+            <p class="mt-0.5 text-[12.5px] text-white/50">
+                {{ ucwords($application->job->title) }}
+            </p>
+
+            <div class="mt-3 flex flex-wrap gap-2">
+                <span class="rounded-full px-2.5 py-1 text-[11px] font-bold bg-red-500 text-white">
+                    Archived
+                </span>
+
+                <span class="rounded-full px-2.5 py-1 text-[11px] font-bold {{ $detailCatClass }}">
+                    {{ ucfirst($detailCatName) }}
+                </span>
+            </div>
         </div>
 
         <div class="col-md-8 right-panel-box">
