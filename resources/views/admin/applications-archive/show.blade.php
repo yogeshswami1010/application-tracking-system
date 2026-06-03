@@ -248,39 +248,93 @@
                 </div>
 
                 @endif
+                @if ($application->resume_url)
+
                 <div class="rounded-2xl bg-white shadow-sm border border-gray-100 p-4">
+
+                    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+                        Resume
+                    </h3>
+
+                    <a href="{{ $application->resume_url }}"
+                    target="_blank"
+                    class="flex items-center justify-between rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 hover:bg-blue-100 transition">
+
+                        <div class="flex items-center gap-3">
+                            <div class="h-10 w-10 rounded-lg bg-blue-600 text-white flex items-center justify-center">
+                                <i class="fa fa-file-pdf-o"></i>
+                            </div>
+
+                            <div>
+                                <p class="text-sm font-semibold text-gray-900">
+                                    View Uploaded Resume
+                                </p>
+
+                                <p class="text-xs text-gray-500">
+                                    Click to open applicant resume
+                                </p>
+                            </div>
+                        </div>
+
+                        <i class="fa fa-external-link text-blue-600"></i>
+
+                    </a>
+
+                </div>
+
+                @endif
+           <div class="rounded-2xl bg-white shadow-sm border border-gray-100 p-4">
 
                 <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
                     Skills
                 </h3>
 
-                <select name="skills[]" id="skills"
+                <select
+                    name="skills[]"
+                    id="skills"
                     class="form-control select2 custom-select"
                     multiple>
-                    ...
+
+                    @foreach($skills as $skill)
+                        <option
+                            @if(!is_null($application->skills) && in_array($skill->id, $application->skills))
+                                selected
+                            @endif
+                            value="{{ $skill->id }}">
+                            {{ $skill->name }}
+                        </option>
+                    @endforeach
+
                 </select>
 
                 <div class="mt-3">
+
                     <a href="javascript:addSkills({{ $application->id }});"
-                    class="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white">
+                    class="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700">
+
+                        <i class="fa fa-save mr-2"></i>
                         Save Skills
+
                     </a>
+
                 </div>
+
+            </div>
                 <div class="rounded-2xl bg-white shadow-sm border border-gray-100 p-4">
 
-                    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
-                        Applicant Notes
-                    </h3>
+                <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+                    Applicant Notes
+                </h3>
 
-                    <div id="applicant-notes">
+                <div id="applicant-notes">
 
-                        @foreach($application->notes as $notes)
+                    @forelse($application->notes as $notes)
 
                         <div class="border-l-4 border-blue-500 bg-blue-50 rounded-r-xl p-3 mb-3">
 
-                            <div class="flex justify-between">
+                            <div class="flex justify-between items-center">
 
-                                <span class="font-semibold text-sm">
+                                <span class="font-semibold text-sm text-gray-900">
                                     {{ $notes->user->name }}
                                 </span>
 
@@ -296,11 +350,45 @@
 
                         </div>
 
-                        @endforeach
+                    @empty
+
+                        <div class="text-center py-6 text-gray-400">
+                            No notes added yet.
+                        </div>
+
+                    @endforelse
+
+                </div>
+
+                @if($user->cans('edit_job_applications'))
+
+                    <div class="mt-4 border-t pt-4">
+
+                        <label class="text-sm font-medium text-gray-700 mb-2 block">
+                            Add Note
+                        </label>
+
+                        <textarea
+                            id="note_text"
+                            rows="3"
+                            class="form-control rounded-xl"
+                            placeholder="Write a note about this applicant..."></textarea>
+
+                        <button
+                            type="button"
+                            id="add-note"
+                            class="mt-3 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+
+                            <i class="fa fa-plus"></i>
+                            Add Note
+
+                        </button>
 
                     </div>
 
-                </div>
+                @endif
+
+            </div>
             </div>
         </div>
 
