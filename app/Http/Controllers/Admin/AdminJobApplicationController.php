@@ -44,6 +44,7 @@ use Maatwebsite\Excel\Excel as ExcelExcel;
 use Maatwebsite\Excel\Facades\Excel;
 use Yajra\DataTables\Facades\DataTables;
 use App\Models\Currency;
+use App\ApplicantNote;
 
 class AdminJobApplicationController extends AdminBaseController
 {
@@ -656,10 +657,11 @@ class AdminJobApplicationController extends AdminBaseController
         if ($request->filled('notes') && is_array($request->notes)) {
             foreach ($request->notes as $noteText) {
                 if (trim($noteText)) {
-                    $jobApplication->notes()->create([
-                        'note_text' => trim($noteText),
-                        'user_id'   => auth()->id(),
-                    ]);
+                    $note = new \App\ApplicantNote();
+                    $note->note_text = trim($noteText);
+                    $note->user_id   = auth()->id();
+                    $note->job_application_id = $jobApplication->id;
+                    $note->save();
                 }
             }
         }
