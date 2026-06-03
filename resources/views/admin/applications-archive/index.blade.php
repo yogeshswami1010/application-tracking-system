@@ -376,7 +376,8 @@
             var endDate   = $('#end-date').val()   || 0;
 
             var url = '{{ route('admin.applications-archive.export', ':skill') }}';
-            url = url.replace(':skill', skill ?? 'all');
+            url = url.replace(':skill', skill || 'all');
+
             url += '?company=' + company + '&jobs=' + jobs + '&location=' + location
                  + '&start_date=' + startDate + '&end_date=' + endDate;
 
