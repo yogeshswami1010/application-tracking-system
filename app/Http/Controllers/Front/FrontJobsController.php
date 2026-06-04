@@ -563,5 +563,31 @@ class FrontJobsController extends FrontBaseController
         JobAlert::where('id', request()->id)->update(['status' => 'inactive']);
         return Reply::redirect(route('jobs.jobOpenings'), __('messages.disableJobAlert'));
     }
+    public function assistMyDay()
+    {
+        $this->pageTitle = 'AssistMyDay - Job Openings';
+        $this->locations = \App\JobLocation::all();
+        $this->categories = \App\JobCategory::all();
+        $this->skills = \App\Skill::all();
+        $this->companies = \App\Company::all();
 
+        $this->jobLocations = \App\JobJobLocation::with(['job' => function($q) {
+            $q->where('status', 'active')
+            ->where('end_date', '>=', now()->format('Y-m-d'));
+        }, 'job.category', 'job.company', 'job.jobType', 'job.jobCompany', 'location'])
+            ->whereHas('job', function($q) {
+                $q->where('status', 'active')
+                ->where('end_date', '>=', now()->format('Y-m-d'));
+            })
+            ->take($this->perPage ?? 12)
+            ->get();
+
+        $this->jobCount = \App\JobJobLocation::whereHas('job', function($q) {
+            $q->where('status', 'active')->where('end_date', '>=', now()->format('Y-m-d'));
+        })->count();
+
+        $this->perPage = $this->perPage ?? 12;
+
+        return view('front.assistmyday', $this->data);
+    }
 }
