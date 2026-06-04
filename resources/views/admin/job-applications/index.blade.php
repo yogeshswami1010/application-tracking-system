@@ -2,7 +2,14 @@
 
 @php
     $jaDefaultStart = now()->subDays(30)->format('Y-m-d');
-    $jaDefaultEnd = now()->format('Y-m-d');
+    $jaDefaultEnd   = now()->format('Y-m-d');
+    $jaStagesJson   = $boardColumns->map(fn($c) => [
+        'id'    => $c->id,
+        'slug'  => $c->status,
+        'color' => $c->color ?? '#2563eb',
+        'label' => ucfirst($c->status),
+    ])->values()->toJson();
+
 @endphp
 
 @push('head-script')
@@ -417,12 +424,7 @@
     <script src="{{ asset('assets/node_modules_files/bootstrap-datepicker/bootstrap-datepicker.min.js') }}" type="text/javascript"></script>
 
     <script>
-    var jaStages = @json($boardColumns->map(fn($c) => [
-        'id'    => $c->id,
-        'slug'  => $c->status,
-        'color' => $c->color ?? '#2563eb',
-        'label' => ucfirst($c->status),
-    ])->values());
+var jaStages = {!! $jaStagesJson !!};
 
     // ── State ────────────────────────────────────────────────────
     var jaActiveStageId = 'all';  // 'all' | stage id
