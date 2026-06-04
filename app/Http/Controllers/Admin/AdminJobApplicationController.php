@@ -363,7 +363,10 @@ class AdminJobApplicationController extends AdminBaseController
                 'status:id,status,color',
             ]);
             $jobApplications = $jobApplications->where('job_applications.is_candidate', 0);
-
+        // Knockout filter
+        if ($request->knockout == 1) {
+            $jobApplications = $jobApplications->onlyTrashed();
+        }
         // Filter by status
         if ($request->status != 'all' && $request->status != '') {
             $jobApplications = $jobApplications->where('status_id', $request->status);
@@ -421,29 +424,62 @@ class AdminJobApplicationController extends AdminBaseController
 
         return DataTables::of($jobApplications)
             ->addColumn('action', function ($row) {
-                $parts = [];
-                if ($this->user->cans('view_job_applications')) {
-                    $parts[] = RaDataTableHtml::js(
-                        RaDataTableHtml::SVG_EYE,
-                        'jc-btn-emerald show-document',
-                        [
-                            'data-row-id' => (string) $row->id,
-                            'data-modal-name' => '\\'.get_class($row),
-                        ],
-                        __('modules.jobApplication.viewDocuments')
-                    );
+            $parts = [];
+
+            // ── Move to next stage button ──
+            if ($this->user->cans('edit_job_applications')) {
+                $statusSlug = strtolower($row->status?->status ?? '');
+                $nextMap = [
+                    'applied'   => ['label' => 'Phone Screen', 'slug' => 'phone'],
+                    'phone'     => ['label' => 'Interview',    'slug' => 'interview'],
+                    'interview' => ['label' => 'Hired',        'slug' => 'hired'],
+                ];
+
+                if (isset($nextMap[$statusSlug])) {
+                    $nextLabel = $nextMap[$statusSlug]['label'];
+                    $parts[] = '<button type="button"
+                        onclick="jaMoveOneBySlug(' . $row->id . ', \'' . $nextMap[$statusSlug]['slug'] . '\')"
+                        class="ja-act-btn move mr-1"
+                        style="font-size:11.5px;padding:4px 9px;">
+                        ' . $nextLabel . ' <i class="fa fa-arrow-right" style="font-size:10px"></i>
+                    </button>';
                 }
 
-                if ($this->user->cans('edit_job_applications')) {
-                    $parts[] = RaDataTableHtml::edit(route('admin.job-applications.edit', [$row->id]));
+                // Reject button (not shown if already rejected or hired)
+                if (!in_array($statusSlug, ['rejected', 'hired'])) {
+                    $parts[] = '<button type="button"
+                        onclick="jaMoveOneBySlug(' . $row->id . ', \'rejected\')"
+                        class="ja-act-btn reject mr-1"
+                        title="Reject"
+                        style="font-size:11.5px;padding:4px 8px;">
+                        <i class="fa fa-times"></i>
+                    </button>';
                 }
+            }
 
-                if ($this->user->cans('delete_job_applications')) {
-                    $parts[] = RaDataTableHtml::deleteSaParams($row->id);
-                }
+            // ── Existing buttons ──
+            if ($this->user->cans('view_job_applications')) {
+                $parts[] = RaDataTableHtml::js(
+                    RaDataTableHtml::SVG_EYE,
+                    'jc-btn-emerald show-document',
+                    [
+                        'data-row-id'    => (string) $row->id,
+                        'data-modal-name' => '\\' . get_class($row),
+                    ],
+                    __('modules.jobApplication.viewDocuments')
+                );
+            }
 
-                return RaDataTableHtml::wrap(implode('', $parts));
-            })
+            if ($this->user->cans('edit_job_applications')) {
+                $parts[] = RaDataTableHtml::edit(route('admin.job-applications.edit', [$row->id]));
+            }
+
+            if ($this->user->cans('delete_job_applications')) {
+                $parts[] = RaDataTableHtml::deleteSaParams($row->id);
+            }
+
+            return RaDataTableHtml::wrap(implode('', $parts));
+        })
             ->editColumn('full_name', function ($row) {
                 return '<a href="javascript:;" class="show-detail" data-row-id="'.$row->id.'">'.ucwords($row->full_name).'</a>';
             })
@@ -461,7 +497,31 @@ class AdminJobApplicationController extends AdminBaseController
             ->addIndexColumn()
             ->make(true);
     }
+    public function stageCounts()
+    {
+        $counts = ApplicationStatus::withCount(['applications as cnt' => function ($q) {
+            $q->where('is_candidate', 0)->whereNull('deleted_at');
+        }])->get()->pluck('cnt', 'id');
 
+        $koCount = JobApplication::where('is_candidate', 0)
+            ->whereNotNull('deleted_at')->count();
+
+        return Reply::dataOnly(['counts' => $counts, 'ko_count' => $koCount]);
+    }
+
+    public function bulkStatusUpdate(Request $request)
+    {
+        abort_if(!$this->user->cans('edit_job_applications'), 403);
+        JobApplication::whereIn('id', $request->ids)->update(['status_id' => $request->status_id]);
+        return Reply::success(__('messages.updatedSuccessfully'));
+    }
+
+    public function bulkRestoreKnockout(Request $request)
+    {
+        abort_if(!$this->user->cans('edit_job_applications'), 403);
+        JobApplication::withTrashed()->whereIn('id', $request->ids)->restore();
+        return Reply::success(__('messages.updatedSuccessfully'));
+    }
     public function createSchedule(Request $request, $id)
     {
         abort_if(! $this->user->cans('add_schedule'), 403);

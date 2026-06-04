@@ -308,3 +308,6 @@ Route::name('jobs.')
     ->group(function () {
         Route::get('{slug}', [FrontJobsController::class, 'customPage'])->name('custom-page');
     });
+Route::post('job-applications/bulk-status-update', [AdminJobApplicationController::class, 'bulkStatusUpdate'])->name('admin.job-applications.bulk-status-update');
+Route::post('job-applications/bulk-restore-knockout', [AdminJobApplicationController::class, 'bulkRestoreKnockout'])->name('admin.job-applications.bulk-restore-knockout');
+Route::get('job-applications/stage-counts', [AdminJobApplicationController::class, 'stageCounts'])->name('admin.job-applications.stage-counts');
