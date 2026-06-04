@@ -1,4 +1,4 @@
-@extends('layouts.front')
+@extends('layouts.app-blank')
 
 @php
     $companyShort = 'AssistMyDay';
