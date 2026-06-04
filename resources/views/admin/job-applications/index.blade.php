@@ -194,6 +194,8 @@
         }
         .ja-chk.on { background: #2563eb; border-color: #2563eb; }
         .ja-chk input { display: none; }
+        .ja-move-wrap { display: inline-flex; }
+        .ja-move-drop button:hover { background: #F1F3F7 !important; }
     </style>
 @endpush
 
@@ -632,7 +634,28 @@ var jaStages = {!! $jaStagesJson !!};
         });
     }
 
+    function jaToggleDrop(id) {
+        // Close all other open dropdowns first
+        document.querySelectorAll('.ja-move-drop').forEach(function(el) {
+            if (el.id !== id) el.style.display = 'none';
+        });
+        var el = document.getElementById(id);
+        if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    }
 
+    function jaCloseDrop(id) {
+        var el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    }
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.ja-move-wrap')) {
+            document.querySelectorAll('.ja-move-drop').forEach(function(el) {
+                el.style.display = 'none';
+            });
+        }
+    });
     function jaMoveOneBySlug(appId, toSlug) {
         var stage = jaStages.find(function(s){ return s.slug === toSlug; });
         if (!stage) {

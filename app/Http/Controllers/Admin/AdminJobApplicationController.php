@@ -443,22 +443,42 @@ class AdminJobApplicationController extends AdminBaseController
                 $statusSlug = strtolower($row->status?->status ?? '');
 
                 if ($canEdit) {
-                    // Move to next stage button
-                    if (isset($nextMap[$statusSlug]) && $statusSlug !== 'rejected') {
-                        $nextLabel = $nextMap[$statusSlug]['label'];
-                        $nextSlug  = $nextMap[$statusSlug]['slug'];
-                        $parts[] = '<button type="button" onclick="jaMoveOneBySlug(' . $row->id . ',\'' . $nextSlug . '\')" class="ja-act-btn move" title="Move to ' . $nextLabel . '">' . $nextLabel . ' <i class="fa fa-arrow-right" style="font-size:10px;margin-left:2px;"></i></button>';
+             
+                if (isset($nextMap[$statusSlug]) && $statusSlug !== 'rejected') {
+                    $nextLabel = $nextMap[$statusSlug]['label'];
+                    $nextSlug  = $nextMap[$statusSlug]['slug'];
+                    $parts[] = '<button type="button" onclick="jaMoveOneBySlug(' . $row->id . ',\'' . $nextSlug . '\')" class="ja-act-btn move" title="Move to ' . $nextLabel . '">' . $nextLabel . ' <i class="fa fa-arrow-right" style="font-size:10px;margin-left:2px;"></i></button>';
+                }
+
+                // Move to ANY stage dropdown
+                if (!in_array($statusSlug, ['rejected', 'hired'])) {
+                    $dropdownId = 'ja-move-drop-' . $row->id;
+                    $dropdownHtml = '<div class="ja-move-wrap" style="position:relative;display:inline-flex;">';
+                    $dropdownHtml .= '<button type="button" class="ja-act-btn" onclick="jaToggleDrop(\'' . $dropdownId . '\')" title="Move to stage" style="padding:5px 8px;border-radius:8px;"><i class="fa fa-chevron-down" style="font-size:10px;"></i></button>';
+                    $dropdownHtml .= '<div id="' . $dropdownId . '" class="ja-move-drop" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:#fff;border:1.5px solid #E2DED8;border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.13);z-index:999;min-width:150px;overflow:hidden;">';
+
+                    foreach ($allStatuses as $s) {
+                        if ($s->status === $statusSlug) continue;
+                        $stageLabel = ucwords(str_replace('_', ' ', $s->status));
+                        $stageDot   = $s->color ?? '#6B7280';
+                        $dropdownHtml .= '<button type="button" onclick="jaMoveOneBySlug(' . $row->id . ',\'' . $s->status . '\');jaCloseDrop(\'' . $dropdownId . '\')" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;border:none;background:none;font-size:13px;font-weight:500;color:#1A1E2E;cursor:pointer;font-family:inherit;text-align:left;" onmouseover="this.style.background=\'#F1F3F7\'" onmouseout="this.style.background=\'none\'">';
+                        $dropdownHtml .= '<span style="width:8px;height:8px;border-radius:50%;background:' . $stageDot . ';flex-shrink:0;display:inline-block;"></span>' . $stageLabel;
+                        $dropdownHtml .= '</button>';
                     }
 
-                    // Reject button — not for already rejected or hired
-                    if (!in_array($statusSlug, ['rejected', 'hired'])) {
-                        $parts[] = '<button type="button" onclick="jaMoveOneBySlug(' . $row->id . ',\'rejected\')" class="ja-act-btn reject" title="Reject"><i class="fa fa-times"></i></button>';
-                    }
+                    $dropdownHtml .= '</div></div>';
+                    $parts[] = $dropdownHtml;
+                }
 
-                    // Restore button — only for rejected
-                    if ($statusSlug === 'rejected' && $appliedStatus) {
-                        $parts[] = '<button type="button" onclick="jaMoveOne(' . $row->id . ',' . $appliedStatus->id . ')" class="ja-act-btn restore" title="Restore to Applied"><i class="fa fa-undo"></i></button>';
-                    }
+                // Reject button
+                if (!in_array($statusSlug, ['rejected', 'hired'])) {
+                    $parts[] = '<button type="button" onclick="jaMoveOneBySlug(' . $row->id . ',\'rejected\')" class="ja-act-btn reject" title="Reject"><i class="fa fa-times"></i></button>';
+                }
+
+                // Restore button for rejected
+                if ($statusSlug === 'rejected' && $appliedStatus) {
+                    $parts[] = '<button type="button" onclick="jaMoveOne(' . $row->id . ',' . $appliedStatus->id . ')" class="ja-act-btn restore" title="Restore to Applied"><i class="fa fa-undo"></i></button>';
+                }
                 }
 
                 // View detail (sidebar) — always shown
