@@ -4,6 +4,8 @@
     $companyShort = 'AssistMyDay';
 @endphp 
 
+
+@section('body-class', 'assistmyday-front')
 @section('content')
 
 {{-- ── HERO ── --}}
