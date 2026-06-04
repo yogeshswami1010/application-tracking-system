@@ -54,7 +54,7 @@
     @stack('style')
 </head>
 
-<body class="front-site min-h-screen bg-[#F8F7F4] text-[#1A1A2A]">
+<body class="front-site min-h-screen bg-[#F8F7F4] text-[#1A1A2A]"> 
 
 <nav class="fr-navbar">
     <!-- <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-4">

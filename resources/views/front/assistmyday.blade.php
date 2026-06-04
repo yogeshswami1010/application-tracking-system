@@ -2,7 +2,7 @@
 
 @php
     $companyShort = 'AssistMyDay';
-@endphp
+@endphp 
 
 @section('content')
 
