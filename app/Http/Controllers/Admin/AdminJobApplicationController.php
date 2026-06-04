@@ -438,8 +438,7 @@ class AdminJobApplicationController extends AdminBaseController
         $canDelete = $this->user->cans('delete_job_applications');
 
         return DataTables::of($jobApplications)
-            ->addColumn('action', function ($row) use ($nextMap, $rejectedStatus, $appliedStatus, $canEdit, $canView, $canDelete) {
-                $parts = [];
+->addColumn('action', function ($row) use ($nextMap, $rejectedStatus, $appliedStatus, $allStatuses, $canEdit, $canView, $canDelete) {                $parts = [];
                 $statusSlug = strtolower($row->status?->status ?? '');
 
                 if ($canEdit) {
