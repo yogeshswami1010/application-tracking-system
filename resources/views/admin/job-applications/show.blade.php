@@ -132,7 +132,7 @@
                 </a>
             @endif
         </div>
-        @if ($user->cans('delete_job_applications'))
+        <!-- @if ($user->cans('delete_job_applications'))
             <div class="flex gap-2.5">
                 <a href="javascript:archiveApplication({{ $application->id }})"
                    class="inline-flex flex-1 items-center justify-center rounded-[10px] bg-[#ECFEFF] px-3 py-2.5 text-[12.5px] font-semibold text-[#0891B2] transition hover:bg-[#CFFAFE]">
@@ -145,7 +145,7 @@
                     @lang('modules.jobApplication.deleteApplication')
                 </a>
             </div>
-        @endif
+        @endif -->
     </div>
 
     <div class="space-y-4 p-4 pb-8">
