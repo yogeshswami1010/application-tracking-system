@@ -13,6 +13,26 @@
 
                         <form class="ajax-form 747474" method="POST" id="createForm">
                             @csrf
+                            <div class="form-group mb-4">
+                            <label class="control-label font-semibold">Entry Type</label>
+                                <div class="flex gap-4 mt-2">
+                                    <label class="inline-flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="entry_type" value="applicant" checked
+                                            class="text-blue-600" id="entry-type-applicant">
+                                        <span class="text-sm font-medium text-gray-700">Job Applicant</span>
+                                        <span class="text-xs text-gray-400">(shown on board)</span>
+                                    </label>
+                                    <label class="inline-flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="entry_type" value="candidate"
+                                            class="text-blue-600" id="entry-type-candidate">
+                                        <span class="text-sm font-medium text-gray-700">Candidate Database</span>
+                                        <span class="text-xs text-gray-400">(not a job applicant)</span>
+                                    </label>
+                                </div>
+                        </div>
+
+                        {{-- Job field wrapper — hide when candidate --}}
+                        <div id="job-field-wrapper">
                             <input type="hidden" id="resume_text_for_ai" value="" autocomplete="off">
 
                             <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
@@ -31,6 +51,7 @@
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-12 gap-6 border-t border-gray-200 pt-6">
                                 <div class="md:col-span-4">
@@ -151,7 +172,22 @@
         $('.select2').select2({
             width: '100%'
         });
-
+        // Entry type toggle
+        $('input[name="entry_type"]').on('change', function () {
+            if ($(this).val() === 'candidate') {
+                $('#job-field-wrapper').hide();
+                $('#job_job_location_id').val('').trigger('change');
+                // clear job/location hidden fields
+                $('#job_id').val('');
+                $('#location_id').val('');
+                $('#questionBox').addClass('hidden').html('');
+                $('#questionBoxTitle').addClass('hidden');
+                $('#show-columns').html('');
+                $('#show-sections').html('');
+            } else {
+                $('#job-field-wrapper').show();
+            }
+        });
         $('#save-form').click(function() {
             submitApplicantForm();
         });

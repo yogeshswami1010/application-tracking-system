@@ -77,7 +77,7 @@ class AdminJobApplicationController extends AdminBaseController
         $this->skills = Skill::all();
         $this->questions = Question::all();
         $boardColumns = ApplicationStatus::withCount(['applications as application_count' => function ($q) use ($request) {
-
+         $q->where('job_applications.is_candidate', 0); // ADD THIS
             if ($request->startDate !== null && $request->startDate != 'null' && $request->startDate != '') {
                 $q = $q->where(DB::raw('DATE(job_applications.`created_at`)'), '>=', $request->startDate);
             } else {
@@ -137,6 +137,7 @@ class AdminJobApplicationController extends AdminBaseController
         }])
             ->with(['applications' => function ($r) use ($request) {
                 $r = $r->select('job_applications.*');
+                 $r->where('job_applications.is_candidate', 0); // ADD THIS
                 if ($request->startDate !== null && $request->startDate != 'null' && $request->startDate != '') {
                     $r = $r->where(DB::raw('DATE(job_applications.`created_at`)'), '>=', $request->startDate);
                 } else {
@@ -361,6 +362,7 @@ class AdminJobApplicationController extends AdminBaseController
                 'job.skills',
                 'status:id,status,color',
             ]);
+            $jobApplications = $jobApplications->where('job_applications.is_candidate', 0);
 
         // Filter by status
         if ($request->status != 'all' && $request->status != '') {
@@ -594,6 +596,10 @@ class AdminJobApplicationController extends AdminBaseController
         $jobApplication->address = $request->address;
         $jobApplication->cover_letter = $request->cover_letter;
         $jobApplication->column_priority = 0;
+
+        if ($request->entry_type === 'candidate') {
+            $jobApplication->is_candidate = 1;  // add this column via migration
+        }
 
         if ($request->has('gender')) {
             $jobApplication->gender = $request->gender;
@@ -1713,7 +1719,7 @@ class AdminJobApplicationController extends AdminBaseController
 
         $applications = JobApplication::with(['status', 'job.category', 'schedule'])->select('job_applications.*')
             ->where('status_id', $request->columnId);
-
+        $applications = $applications->where('job_applications.is_candidate', 0);
         if ($startDate !== null && $request->startDate != 'null' && $request->startDate != '') {
             $applications = $applications->where(DB::raw('DATE(job_applications.`created_at`)'), '>=', $startDate);
         } else {
