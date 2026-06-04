@@ -29,7 +29,7 @@
         </button>
         <img src="{{ $application->photo_url }}" alt="" class="h-12 w-12 rounded-full border-2 border-white object-cover shadow-lg" width="48" height="48">
         <h2 class="mt-3 text-[17px] font-extrabold tracking-[-0.02em] text-white">{{ ucwords($application->full_name) }}</h2>
-        <p class="mt-0.5 text-[12.5px] text-white/50">{{ ucwords($application->job->title) }}</p>
+        <p class="mt-0.5 text-[12.5px] text-white/50">{{ ucwords($application->job?->title ?? '—') }}</p>
         <div class="mt-3 flex flex-wrap gap-2">
             <span class="rounded-full px-2.5 py-1 text-[11px] font-bold text-white" style="background: {{ $stagePillBg }};">{{ ucwords($application->status->status) }}</span>
             <span class="rounded-full px-2.5 py-1 text-[11px] font-bold {{ $detailCatClass }}">{{ ucfirst($detailCatName) }}</span>
@@ -69,14 +69,16 @@
                     @lang('app.view') @lang('modules.jobApplication.resume')
                 </a>
             @endif
-            @if($user->cans('add_schedule') && $application->status->status == 'interview' && is_null($application->schedule))
+            @if($user->cans('add_schedule') && $application->status?->status == 'interview' && is_null($application->schedule))
+
                 <a onclick="createSchedule('{{$application->id}}')" href="javascript:;"
                    class="inline-flex flex-[2] min-w-[10rem] items-center justify-center gap-2 rounded-[10px] bg-[#2563EB] px-4 py-2.5 text-center text-[12.5px] font-bold text-white transition hover:bg-[#1d4ed8]">
                     <i class="fa fa-calendar-plus-o"></i>
                     @lang('modules.interviewSchedule.scheduleInterview')
                 </a>
             @endif
-            @if($application->status->status == 'hired' && is_null($application->onboard))
+            @if($application->status?->status == 'hired' && is_null($application->onboard))
+
                 <a href="{{ route('admin.job-onboard.create') }}?id={{$application->id}}"
                    class="inline-flex flex-1 min-w-[8rem] items-center justify-center gap-2 rounded-[10px] bg-[#059669] px-4 py-2.5 text-center text-[12.5px] font-bold text-white transition hover:bg-[#047857]">
                     <i class="fa fa-rocket"></i>
@@ -115,7 +117,8 @@
 
                 <div class="bg-gray-50 rounded-lg p-4">
                     <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">@lang('modules.jobApplication.appliedFor')</label>
-                    <p class="text-sm font-medium text-gray-900">{{ ucwords($application->job->title).' ('.ucwords(optional($application->location)->location ?? 'N/A').')' }}</p>
+                   <p class="text-sm font-medium text-gray-900">{{ ucwords($application->job?->title ?? '—').' ('.ucwords(optional($application->location)->location ?? 'N/A').')' }}</p>
+
                 </div>
 
                 <div class="bg-gray-50 rounded-lg p-4">
