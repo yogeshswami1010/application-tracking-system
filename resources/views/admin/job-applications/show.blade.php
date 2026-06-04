@@ -62,6 +62,37 @@
 
     <div class="flex flex-col gap-2.5 border-b border-[#F0EEE9] bg-white px-5 py-4">
         <div class="flex flex-wrap gap-2" id="resume-{{ $application->id }}">
+            {{-- Stage mover --}}
+            @if($user->cans('edit_job_applications'))
+            <div class="mt-3 pt-3 border-t border-[#F0EEE9]">
+                <p class="text-[10.5px] font-bold uppercase tracking-[0.09em] text-[#B0B8C4] mb-2">Move to Stage</p>
+                <div class="flex flex-wrap gap-2" id="stage-mover-{{ $application->id }}">
+                    @php
+                        $allStatuses = \App\ApplicationStatus::orderBy('position')->get();
+                        $currentStatusId = $application->status_id;
+                    @endphp
+                    @foreach($allStatuses as $stageOption)
+                        @if($stageOption->id !== $currentStatusId)
+                            <button
+                                type="button"
+                                onclick="jaMoveFromDetail({{ $application->id }}, {{ $stageOption->id }}, '{{ addslashes(ucwords(str_replace('_', ' ', $stageOption->status))) }}')"
+                                class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-semibold text-white transition hover:opacity-80"
+                                style="background: {{ $stageOption->color ?? '#6B7280' }};">
+                                {{ ucwords(str_replace('_', ' ', $stageOption->status)) }}
+                                <i class="fa fa-arrow-right" style="font-size:9px;"></i>
+                            </button>
+                        @else
+                            <span
+                                class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-semibold text-white ring-2 ring-white ring-offset-1 cursor-default"
+                                style="background: {{ $stageOption->color ?? '#6B7280' }}; opacity:1;">
+                                <i class="fa fa-check" style="font-size:9px;"></i>
+                                {{ ucwords(str_replace('_', ' ', $stageOption->status)) }}
+                            </span>
+                        @endif
+                    @endforeach
+                </div>
+            </div>
+            @endif
             @if ($application->resume_url)
                 <a target="_blank" href="{{ $application->resume_url }}"
                    class="inline-flex flex-1 min-w-[8rem] items-center justify-center gap-2 rounded-[10px] bg-[#2563EB] px-4 py-2.5 text-center text-[12.5px] font-bold text-white transition hover:bg-[#1d4ed8]">
@@ -403,6 +434,52 @@
     <script src="{{ asset('assets/plugins/jquery-bar-rating-master/dist/jquery.barrating.min.js') }}"
             type="text/javascript"></script>
     <script>
+        function jaMoveFromDetail(appId, toStatusId, toStatusLabel) {
+        var token = '{{ csrf_token() }}';
+        var url = '{{ route("admin.job-applications.bulk-status-update") }}';
+
+        swal({
+            title: 'Move to ' + toStatusLabel + '?',
+            text: 'This applicant will be moved to the ' + toStatusLabel + ' stage.',
+            type: 'info',
+            showCancelButton: true,
+            confirmButtonColor: '#2563EB',
+            confirmButtonText: 'Yes, move',
+            cancelButtonText: 'Cancel',
+            closeOnConfirm: true,
+            closeOnCancel: true
+        }, function(isConfirm) {
+            if (isConfirm) {
+                $.easyAjax({
+                    type: 'POST',
+                    url: url,
+                    data: { _token: token, ids: [appId], status_id: toStatusId },
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            // Reload the sidebar with updated data
+                            var showUrl = "{{ route('admin.job-applications.show', ':id') }}".replace(':id', appId);
+                            $.easyAjax({
+                                type: 'GET',
+                                url: showUrl,
+                                success: function(res) {
+                                    if (res.status === 'success') {
+                                        $('#right-sidebar-content').html(res.view);
+                                    }
+                                }
+                            });
+                            // Refresh table if it exists
+                            if (typeof table !== 'undefined') {
+                                table.draw(false);
+                            }
+                            if (typeof jaLoadTabCounts === 'function') {
+                                jaLoadTabCounts();
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    }
         $('#example-fontawesome').barrating({
             theme: 'fontawesome-stars',
             showSelectedRating: false,
