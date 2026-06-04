@@ -31,26 +31,28 @@
                                 </div>
                         </div>
 
-                        {{-- Job field wrapper — hide when candidate --}}
-                        <div id="job-field-wrapper">
-                            <input type="hidden" id="resume_text_for_ai" value="" autocomplete="off">
+                       <input type="hidden" id="resume_text_for_ai" value="" autocomplete="off">
 
-                            <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
-                                <div class="md:col-span-4">
-                                    <h5 class="text-lg font-semibold text-gray-900">Upload CV</h5>
-                                </div>
-
-                                <div class="md:col-span-8">
-                                    <div class="form-group">
-                                        <label class="control-label required">CV / Resume</label>
-                                        <input class="form-control" type="file" name="resume" id="resume"
-                                            accept=".pdf,.doc,.docx,.txt">
-                                        <button type="button" id="parse-resume" class="mt-3 px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 inline-flex items-center">
-                                            <i class="fa fa-magic mr-2"></i> Parse CV
-                                        </button>
-                                    </div>
+                        {{-- CV Upload — shown for both types --}}
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-6 mb-4">
+                            <div class="md:col-span-4">
+                                <h5 class="text-lg font-semibold text-gray-900">Upload CV</h5>
+                            </div>
+                            <div class="md:col-span-8">
+                                <div class="form-group">
+                                    <label class="control-label">CV / Resume</label>
+                                    <input class="form-control" type="file" name="resume" id="resume"
+                                        accept=".pdf,.doc,.docx,.txt">
+                                    <button type="button" id="parse-resume"
+                                        class="mt-3 px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 inline-flex items-center">
+                                        <i class="fa fa-magic mr-2"></i> Parse CV
+                                    </button>
                                 </div>
                             </div>
+                        </div>
+
+                        {{-- Job field wrapper — hide when candidate --}}
+                        <div id="job-field-wrapper">
                         </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-12 gap-6 border-t border-gray-200 pt-6">
@@ -524,24 +526,98 @@
         }
 
         function pickResumeName(text) {
-            var badHeadings = /^(resume|curriculum vitae|cv|profile|summary|objective|contact|email|phone|mobile|address|skills|technical skills|education|experience|work experience|projects|certifications)$/i;
-            var lines = String(text || '').split(/\n+/).map(function(line) {
-                return line.replace(/\s+/g, ' ').trim();
-            }).filter(Boolean).slice(0, 25);
+            var lines = String(text || '').split(/\n+/).map(function(l) {
+                return l.replace(/\s+/g, ' ').trim();
+            }).filter(Boolean);
 
-            for (var i = 0; i < lines.length; i++) {
+            var badHeadings = /^(resume|curriculum vitae|cv|profile|summary|objective|contact|email|phone|mobile|address|skills|technical skills|education|experience|work experience|projects|certifications|references|declaration|languages|hobbies|interests|achievements)$/i;
+
+            // Try first 15 lines for a name-like line
+            for (var i = 0; i < Math.min(lines.length, 15); i++) {
                 var line = lines[i];
-                if (badHeadings.test(line) || line.indexOf('@') >= 0 || /\d/.test(line) || line.length > 80) {
-                    continue;
-                }
-                if (/^[a-zA-Z][a-zA-Z .'-]{1,79}$/.test(line) && line.split(/\s+/).length <= 5) {
+                // Skip headings, lines with @, digits, too long, or too short
+                if (badHeadings.test(line.trim())) continue;
+                if (line.indexOf('@') >= 0) continue;
+                if (/\d/.test(line)) continue;
+                if (line.length > 60 || line.length < 3) continue;
+                // Must look like a name: 2-4 words, only letters/spaces/dots/hyphens
+                if (/^[A-Za-z][A-Za-z .'\-]{2,59}$/.test(line) && line.split(/\s+/).length >= 2 && line.split(/\s+/).length <= 5) {
                     return line;
                 }
             }
+            return '';
+        }
+        function parseResumeAddress(text) {
+            // Try to find address section
+            var addressMatch = text.match(
+                /(?:address|location|residence|residing at)[:\s]+([^\n]{5,120}(?:\n[^\n]{0,80}){0,2})/i
+            );
+            if (addressMatch && addressMatch[1]) {
+                return addressMatch[1].replace(/\n/g, ', ').replace(/,\s*,/g, ',').trim();
+            }
+
+            // Fallback: look for a line that looks like a street address
+            var lines = text.split(/\n/);
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i].trim();
+                // Street address pattern: starts with number + street name
+                if (/^\d+[\s,]+[A-Za-z]/.test(line) && line.length > 8 && line.length < 120) {
+                    // Grab up to 2 more lines as part of address
+                    var addr = line;
+                    if (lines[i+1] && lines[i+1].trim().length > 2 && lines[i+1].trim().length < 80) {
+                        addr += ', ' + lines[i+1].trim();
+                    }
+                    return addr;
+                }
+            }
+            return '';
+        }
+
+        function parseResumeCity(text) {
+            var cityMatch = text.match(/(?:city|location)[:\s]+([A-Za-z\s]{2,40})/i);
+            if (cityMatch) return cityMatch[1].trim();
+
+            // Look for "City, State" or "City - State" pattern
+            var csMatch = text.match(/\b([A-Z][a-z]{2,})[,\s-]+([A-Z]{2})\b/);
+            if (csMatch) return csMatch[1];
 
             return '';
         }
 
+        function parseResumeText(text) {
+            var cleanText = String(text || '').replace(/\r/g, '\n').replace(/\t/g, ' ');
+
+            var emailMatch = cleanText.match(/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/i);
+
+            // Improved phone: international formats
+            var phoneMatch = cleanText.match(
+                /(?:\+?\d{1,3}[\s\-]?)?\(?\d{3,5}\)?[\s\-]?\d{3,5}[\s\-]?\d{3,5}/
+            );
+
+            var name = pickResumeName(cleanText);
+            var address = parseResumeAddress(cleanText);
+            var city = parseResumeCity(cleanText);
+
+            // Extract country
+            var countryMatch = cleanText.match(/(?:country|nationality)[:\s]+([A-Za-z\s]{2,40})/i);
+            var country = countryMatch ? countryMatch[1].trim() : '';
+
+            // Extract state
+            var stateMatch = cleanText.match(/(?:state|province)[:\s]+([A-Za-z\s]{2,40})/i);
+            var state = stateMatch ? stateMatch[1].trim() : '';
+
+            return {
+                full_name:   name,
+                email:       emailMatch  ? emailMatch[0]  : '',
+                phone:       phoneMatch  ? phoneMatch[0].replace(/\s+/g, ' ').trim() : '',
+                address:     address,
+                city:        city,
+                state:       state,
+                country:     country,
+                skills:      parseResumeSkills(cleanText),
+                resume_text: cleanText
+            };
+        }
         function parseResumeSkills(text) {
             var knownSkills = [
                 'PHP', 'Laravel', 'JavaScript', 'TypeScript', 'Vue', 'React', 'Angular', 'Node.js', 'Express',
