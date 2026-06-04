@@ -311,4 +311,4 @@ Route::name('jobs.')
 Route::post('job-applications/bulk-status-update', [AdminJobApplicationController::class, 'bulkStatusUpdate'])->name('admin.job-applications.bulk-status-update');
 Route::post('job-applications/bulk-restore-knockout', [AdminJobApplicationController::class, 'bulkRestoreKnockout'])->name('admin.job-applications.bulk-restore-knockout');
 Route::get('job-applications/stage-counts', [AdminJobApplicationController::class, 'stageCounts'])->name('admin.job-applications.stage-counts');
-Route::get('assistmyday', [App\Http\Controllers\Front\FrontJobController::class, 'assistMyDay'])->name('assistmyday');
+Route::get('assistmyday', [App\Http\Controllers\Front\FrontJobsController::class, 'assistMyDay'])->name('assistmyday');
