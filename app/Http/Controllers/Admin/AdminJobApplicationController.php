@@ -358,8 +358,15 @@ class AdminJobApplicationController extends AdminBaseController
         $jobApplications = $jobApplications->where('job_applications.is_candidate', 0);
 
         // Knockout filter
+        // Knockout filter — show applicants who answered a knockout question with knockout answer
         if ($request->knockout == 1) {
-            $jobApplications = $jobApplications->onlyTrashed();
+            $jobApplications = $jobApplications->whereHas('answers', function ($q) {
+                $q->whereHas('question', function ($qq) {
+                    $qq->where('type', 'radio')
+                    ->where('is_knockout', 1)
+                    ->whereNotNull('knockout_answer');
+                })->whereRaw('LOWER(TRIM(job_application_answers.answer)) = LOWER(TRIM((SELECT knockout_answer FROM questions WHERE questions.id = job_application_answers.question_id LIMIT 1)))');
+            });
         }
 
         // Filter by status
@@ -515,14 +522,24 @@ class AdminJobApplicationController extends AdminBaseController
             ->addIndexColumn()
             ->make(true);
     }
-    public function stageCounts()
+   public function stageCounts()
     {
         $counts = ApplicationStatus::withCount(['applications as cnt' => function ($q) {
             $q->where('is_candidate', 0)->whereNull('deleted_at');
         }])->get()->pluck('cnt', 'id');
 
-        $koCount = JobApplication::onlyTrashed()
-            ->where('is_candidate', 0)
+        // KO count = applicants who answered a knockout question with the knockout answer
+        $koCount = JobApplication::where('is_candidate', 0)
+            ->whereHas('answers', function ($q) {
+                $q->whereHas('question', function ($qq) {
+                    $qq->where('type', 'radio')
+                    ->where('is_knockout', 1)
+                    ->whereNotNull('knockout_answer');
+                })->whereColumn(
+                    DB::raw('LOWER(TRIM(job_application_answers.answer))'),
+                    DB::raw('LOWER(TRIM((SELECT knockout_answer FROM questions WHERE questions.id = job_application_answers.question_id LIMIT 1)))')
+                );
+            })
             ->count();
 
         return Reply::dataOnly(['counts' => $counts, 'ko_count' => $koCount]);
@@ -535,19 +552,17 @@ class AdminJobApplicationController extends AdminBaseController
         return Reply::success(__('messages.updatedSuccessfully'));
     }
 
-    public function bulkRestoreKnockout(Request $request)
+   public function bulkRestoreKnockout(Request $request)
     {
         abort_if(!$this->user->cans('edit_job_applications'), 403);
 
         $appliedStatus = ApplicationStatus::where('status', 'applied')->first();
 
-        JobApplication::withTrashed()->whereIn('id', $request->ids)->each(function($app) use ($appliedStatus) {
-            $app->restore();
-            if ($appliedStatus) {
-                $app->status_id = $appliedStatus->id;
-                $app->save();
-            }
-        });
+        if ($appliedStatus) {
+            JobApplication::whereIn('id', $request->ids)->update([
+                'status_id' => $appliedStatus->id
+            ]);
+        }
 
         return Reply::success(__('messages.updatedSuccessfully'));
     }
@@ -762,8 +777,7 @@ class AdminJobApplicationController extends AdminBaseController
                 $jobApplication->status_id = $rejectedStatus->id;
                 $jobApplication->save();
             }
-            // Soft-delete so it appears in Knockouts tab
-            $jobApplication->delete();
+            // DO NOT soft-delete — knockout is tracked by the answer, not deletion
         }
         if ($request->filled('notes') && is_array($request->notes)) {
             foreach ($request->notes as $noteText) {
@@ -888,7 +902,7 @@ class AdminJobApplicationController extends AdminBaseController
                 $jobApplication->status_id = $rejectedStatus->id;
                 $jobApplication->save();
             }
-            $jobApplication->delete();
+            // DO NOT soft-delete — knockout is tracked by the answer, not deletion
         }
         return Reply::redirect(route('admin.job-applications.table'), __('menu.jobApplications').' '.__('messages.updatedSuccessfully'));
     }
