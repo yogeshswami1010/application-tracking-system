@@ -437,12 +437,12 @@ class AdminJobApplicationController extends AdminBaseController
 
                 if (isset($nextMap[$statusSlug])) {
                     $nextLabel = $nextMap[$statusSlug]['label'];
-                    $parts[] = '<button type="button"
-                        onclick="jaMoveOneBySlug(' . $row->id . ', \'' . $nextMap[$statusSlug]['slug'] . '\')"
-                        class="ja-act-btn move mr-1"
-                        style="font-size:11.5px;padding:4px 9px;">
-                        ' . $nextLabel . ' <i class="fa fa-arrow-right" style="font-size:10px"></i>
-                    </button>';
+                    $nextSlug  = $nextMap[$statusSlug]['slug'];
+                    $parts[] = '<button type="button" onclick="jaMoveOneBySlug(' . $row->id . ', \'' . $nextSlug . '\')" class="ja-act-btn move mr-1" style="font-size:11.5px;padding:4px 9px;">' . $nextLabel . ' <i class="fa fa-arrow-right" style="font-size:10px"></i></button>';
+                }
+
+                if (!in_array($statusSlug, ['rejected', 'hired'])) {
+                    $parts[] = '<button type="button" onclick="jaMoveOneBySlug(' . $row->id . ', \'rejected\')" class="ja-act-btn reject mr-1" title="Reject" style="font-size:11.5px;padding:4px 8px;"><i class="fa fa-times"></i></button>';
                 }
 
                 // Reject button (not shown if already rejected or hired)
