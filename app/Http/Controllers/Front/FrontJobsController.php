@@ -571,10 +571,10 @@ class FrontJobsController extends FrontBaseController
         $this->skills = \App\Skill::all();
         $this->companies = \App\Company::all();
 
-        $this->jobLocations = \App\JobJobLocation::with(['job' => function($q) {
+       $this->jobLocations = \App\JobJobLocation::with(['job' => function($q) {
             $q->where('status', 'active')
             ->where('end_date', '>=', now()->format('Y-m-d'));
-        }, 'job.category', 'job.company', 'job.jobType', 'job.jobCompany', 'location'])
+        }, 'job.category', 'job.company', 'job.jobType', 'location'])
             ->whereHas('job', function($q) {
                 $q->where('status', 'active')
                 ->where('end_date', '>=', now()->format('Y-m-d'));
