@@ -57,13 +57,13 @@
 <body class="front-site min-h-screen bg-[#F8F7F4] text-[#1A1A2A]">
 
 <nav class="fr-navbar">
-    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
+    <!-- <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
         <a class="flex items-center gap-2.5 shrink-0" href="{{ url('/') }}">
             <img src="{{ $global->logo_url }}" alt="" class="h-8">
             
         </a>
 
-        <div class="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
+        <div class="flex items-center gap-2 sm:gap-3 flex-wrap justify-end"> -->
             @if($global->front_language == 1)
                 <!-- <div class="relative language-drop" x-data="{ open: false }">
                     <button type="button" @click="open = !open" class="flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg text-white/60 hover:text-white/90">
@@ -84,7 +84,7 @@
                         @endforelse
                     </div>
                 </div> -->
-            @endif
+            <!-- @endif
 
             @if($global->job_alert_status == 1)
                 @if( isset($alertId) && !is_null($alertId))
@@ -94,7 +94,7 @@
                 @endif
             @endif
         </div>
-    </div>
+    </div> -->
 </nav>
 
 <main class="main-content">
