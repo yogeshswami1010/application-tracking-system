@@ -521,8 +521,9 @@ class AdminJobApplicationController extends AdminBaseController
             $q->where('is_candidate', 0)->whereNull('deleted_at');
         }])->get()->pluck('cnt', 'id');
 
-        $koCount = JobApplication::where('is_candidate', 0)
-            ->whereNotNull('deleted_at')->count();
+        $koCount = JobApplication::onlyTrashed()
+            ->where('is_candidate', 0)
+            ->count();
 
         return Reply::dataOnly(['counts' => $counts, 'ko_count' => $koCount]);
     }
@@ -723,12 +724,19 @@ class AdminJobApplicationController extends AdminBaseController
                 $answer->save();
             }
         }
-        // Auto-move to rejected column if any radio question answered 'no'
+        
+        // Auto-move to rejected if applicant answered the knockout answer
         $hasRejectionAnswer = JobApplicationAnswer::where('job_application_id', $jobApplication->id)
             ->whereHas('question', function ($q) {
-                $q->where('type', 'radio');
+                $q->where('type', 'radio')
+                ->where('is_knockout', 1)
+                ->whereNotNull('knockout_answer')
+                ->whereColumn(
+                    DB::raw('LOWER(TRIM(job_application_answers.answer))'),
+                    '=',
+                    DB::raw('LOWER(TRIM(questions.knockout_answer))')
+                );
             })
-            ->where(DB::raw('LOWER(TRIM(answer))'), 'no')
             ->exists();
 
         if ($hasRejectionAnswer) {
@@ -872,7 +880,14 @@ class AdminJobApplicationController extends AdminBaseController
 
     public function show($id)
     {
-        $this->application = JobApplication::with(['schedule', 'notes', 'onboard', 'status', 'schedule.employee', 'schedule.comments.user', 'location'])->find($id);
+        $this->application = JobApplication::withTrashed()
+            ->with(['schedule', 'notes', 'onboard', 'status', 'schedule.employee', 'schedule.comments.user', 'location'])
+            ->find($id);
+
+        if (!$this->application) {
+            return Reply::error('Application not found.');
+        }
+
         $this->skills = Skill::select('id', 'name')->get();
 
         $this->answers = JobApplicationAnswer::with(['question'])
