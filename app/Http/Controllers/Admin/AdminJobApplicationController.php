@@ -538,7 +538,17 @@ class AdminJobApplicationController extends AdminBaseController
     public function bulkRestoreKnockout(Request $request)
     {
         abort_if(!$this->user->cans('edit_job_applications'), 403);
-        JobApplication::withTrashed()->whereIn('id', $request->ids)->restore();
+
+        $appliedStatus = ApplicationStatus::where('status', 'applied')->first();
+
+        JobApplication::withTrashed()->whereIn('id', $request->ids)->each(function($app) use ($appliedStatus) {
+            $app->restore();
+            if ($appliedStatus) {
+                $app->status_id = $appliedStatus->id;
+                $app->save();
+            }
+        });
+
         return Reply::success(__('messages.updatedSuccessfully'));
     }
     public function createSchedule(Request $request, $id)
@@ -726,25 +736,34 @@ class AdminJobApplicationController extends AdminBaseController
         }
         
         // Auto-move to rejected if applicant answered the knockout answer
-        $hasRejectionAnswer = JobApplicationAnswer::where('job_application_id', $jobApplication->id)
-            ->whereHas('question', function ($q) {
-                $q->where('type', 'radio')
-                ->where('is_knockout', 1)
-                ->whereNotNull('knockout_answer')
-                ->whereColumn(
-                    DB::raw('LOWER(TRIM(job_application_answers.answer))'),
-                    '=',
-                    DB::raw('LOWER(TRIM(questions.knockout_answer))')
-                );
-            })
-            ->exists();
+        // Check knockout by loading answers and comparing in PHP
+        $knockoutTriggered = false;
 
-        if ($hasRejectionAnswer) {
+        $answers = JobApplicationAnswer::where('job_application_id', $jobApplication->id)
+            ->with(['question'])
+            ->get();
+
+        foreach ($answers as $ans) {
+            $q = $ans->question;
+            if (!$q) continue;
+            if ($q->type !== 'radio') continue;
+            if (!$q->is_knockout) continue;
+            if (!$q->knockout_answer) continue;
+
+            if (strtolower(trim($ans->answer)) === strtolower(trim($q->knockout_answer))) {
+                $knockoutTriggered = true;
+                break;
+            }
+        }
+
+        if ($knockoutTriggered) {
             $rejectedStatus = ApplicationStatus::where('status', 'rejected')->first();
             if ($rejectedStatus) {
                 $jobApplication->status_id = $rejectedStatus->id;
                 $jobApplication->save();
             }
+            // Soft-delete so it appears in Knockouts tab
+            $jobApplication->delete();
         }
         if ($request->filled('notes') && is_array($request->notes)) {
             foreach ($request->notes as $noteText) {
@@ -846,19 +865,30 @@ class AdminJobApplicationController extends AdminBaseController
             Notification::send($jobApplication, new CandidateStatusChange($jobApplication));
         }
         // Auto-move to rejected column if any radio question answered 'no'
-        $hasRejectionAnswer = JobApplicationAnswer::where('job_application_id', $jobApplication->id)
-            ->whereHas('question', function ($q) {
-                $q->where('type', 'radio');
-            })
-            ->where(DB::raw('LOWER(TRIM(answer))'), 'no')
-            ->exists();
+        $knockoutTriggered = false;
+        $answers = JobApplicationAnswer::where('job_application_id', $jobApplication->id)
+            ->with(['question'])
+            ->get();
 
-        if ($hasRejectionAnswer) {
+        foreach ($answers as $ans) {
+            $q = $ans->question;
+            if (!$q) continue;
+            if ($q->type !== 'radio') continue;
+            if (!$q->is_knockout) continue;
+            if (!$q->knockout_answer) continue;
+            if (strtolower(trim($ans->answer)) === strtolower(trim($q->knockout_answer))) {
+                $knockoutTriggered = true;
+                break;
+            }
+        }
+
+        if ($knockoutTriggered) {
             $rejectedStatus = ApplicationStatus::where('status', 'rejected')->first();
             if ($rejectedStatus) {
                 $jobApplication->status_id = $rejectedStatus->id;
                 $jobApplication->save();
             }
+            $jobApplication->delete();
         }
         return Reply::redirect(route('admin.job-applications.table'), __('menu.jobApplications').' '.__('messages.updatedSuccessfully'));
     }
