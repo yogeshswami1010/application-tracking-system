@@ -66,30 +66,47 @@
             @if($user->cans('edit_job_applications'))
             <div class="mt-3 pt-3 border-t border-[#F0EEE9]">
                 <p class="text-[10.5px] font-bold uppercase tracking-[0.09em] text-[#B0B8C4] mb-2">Move to Stage</p>
-                <div class="flex flex-wrap gap-2" id="stage-mover-{{ $application->id }}">
+                <div class="flex items-center gap-2">
                     @php
                         $allStatuses = \App\ApplicationStatus::orderBy('position')->get();
                         $currentStatusId = $application->status_id;
+                        $currentStatus = $allStatuses->firstWhere('id', $currentStatusId);
                     @endphp
-                    @foreach($allStatuses as $stageOption)
-                        @if($stageOption->id !== $currentStatusId)
-                            <button
-                                type="button"
-                                onclick="jaMoveFromDetail({{ $application->id }}, {{ $stageOption->id }}, '{{ addslashes(ucwords(str_replace('_', ' ', $stageOption->status))) }}')"
-                                class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-semibold text-white transition hover:opacity-80"
-                                style="background: {{ $stageOption->color ?? '#6B7280' }};">
-                                {{ ucwords(str_replace('_', ' ', $stageOption->status)) }}
-                                <i class="fa fa-arrow-right" style="font-size:9px;"></i>
-                            </button>
-                        @else
-                            <span
-                                class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-semibold text-white ring-2 ring-white ring-offset-1 cursor-default"
-                                style="background: {{ $stageOption->color ?? '#6B7280' }}; opacity:1;">
-                                <i class="fa fa-check" style="font-size:9px;"></i>
-                                {{ ucwords(str_replace('_', ' ', $stageOption->status)) }}
-                            </span>
-                        @endif
-                    @endforeach
+
+                    {{-- Current stage indicator --}}
+                    <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-semibold text-white flex-shrink-0"
+                        style="background: {{ $currentStatus?->color ?? '#6B7280' }};">
+                        <i class="fa fa-check" style="font-size:9px;"></i>
+                        {{ ucwords(str_replace('_', ' ', $currentStatus?->status ?? '')) }}
+                    </span>
+
+                    <i class="fa fa-long-arrow-right text-[#B0B8C4]" style="font-size:13px;flex-shrink:0;"></i>
+
+                    {{-- Move dropdown --}}
+                    <div class="relative flex-1" id="stage-mover-wrap-{{ $application->id }}">
+                        <button type="button"
+                            onclick="jaToggleStageDrop({{ $application->id }})"
+                            class="w-full inline-flex items-center justify-between gap-2 rounded-[9px] border-[1.5px] border-[#E2DED8] bg-white px-3 py-2 text-[12.5px] font-semibold text-[#5A6478] transition hover:border-[#2563EB] hover:text-[#2563EB]">
+                            <span>Select stage</span>
+                            <i class="fa fa-chevron-down" style="font-size:10px;"></i>
+                        </button>
+
+                        <div id="stage-drop-{{ $application->id }}"
+                            style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1.5px solid #E2DED8;border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.13);z-index:999;overflow:hidden;">
+                            @foreach($allStatuses as $stageOption)
+                                @if($stageOption->id !== $currentStatusId)
+                                <button type="button"
+                                    onclick="jaMoveFromDetail({{ $application->id }}, {{ $stageOption->id }}, '{{ addslashes(ucwords(str_replace('_', ' ', $stageOption->status))) }}', {{ $currentStatusId }})"
+                                    style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 14px;border:none;background:none;font-size:13px;font-weight:500;color:#1A1E2E;cursor:pointer;font-family:inherit;text-align:left;"
+                                    onmouseover="this.style.background='#F8F7F4'"
+                                    onmouseout="this.style.background='none'">
+                                    <span style="width:10px;height:10px;border-radius:50%;background:{{ $stageOption->color ?? '#6B7280' }};flex-shrink:0;display:inline-block;"></span>
+                                    {{ ucwords(str_replace('_', ' ', $stageOption->status)) }}
+                                </button>
+                                @endif
+                            @endforeach
+                        </div>
+                    </div>
                 </div>
             </div>
             @endif
@@ -434,7 +451,29 @@
     <script src="{{ asset('assets/plugins/jquery-bar-rating-master/dist/jquery.barrating.min.js') }}"
             type="text/javascript"></script>
     <script>
-        function jaMoveFromDetail(appId, toStatusId, toStatusLabel) {
+     function jaToggleStageDrop(appId) {
+  
+        document.querySelectorAll('[id^="stage-drop-"]').forEach(function(el) {
+            if (el.id !== 'stage-drop-' + appId) el.style.display = 'none';
+        });
+        var drop = document.getElementById('stage-drop-' + appId);
+        if (drop) drop.style.display = drop.style.display === 'none' ? 'block' : 'none';
+    }
+
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('[id^="stage-mover-wrap-"]')) {
+            document.querySelectorAll('[id^="stage-drop-"]').forEach(function(el) {
+                el.style.display = 'none';
+            });
+        }
+    });
+
+    function jaMoveFromDetail(appId, toStatusId, toStatusLabel, currentStatusId) {
+        // Close dropdown
+        var drop = document.getElementById('stage-drop-' + appId);
+        if (drop) drop.style.display = 'none';
+
         var token = '{{ csrf_token() }}';
         var url = '{{ route("admin.job-applications.bulk-status-update") }}';
 
@@ -449,35 +488,29 @@
             closeOnConfirm: true,
             closeOnCancel: true
         }, function(isConfirm) {
-            if (isConfirm) {
-                $.easyAjax({
-                    type: 'POST',
-                    url: url,
-                    data: { _token: token, ids: [appId], status_id: toStatusId },
-                    success: function(response) {
-                        if (response.status === 'success') {
-                            // Reload the sidebar with updated data
-                            var showUrl = "{{ route('admin.job-applications.show', ':id') }}".replace(':id', appId);
-                            $.easyAjax({
-                                type: 'GET',
-                                url: showUrl,
-                                success: function(res) {
-                                    if (res.status === 'success') {
-                                        $('#right-sidebar-content').html(res.view);
-                                    }
+            if (!isConfirm) return;
+
+            $.easyAjax({
+                type: 'POST',
+                url: url,
+                data: { _token: token, ids: [appId], status_id: toStatusId },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        var showUrl = "{{ route('admin.job-applications.show', ':id') }}".replace(':id', appId);
+                        $.easyAjax({
+                            type: 'GET',
+                            url: showUrl,
+                            success: function(res) {
+                                if (res.status === 'success') {
+                                    $('#right-sidebar-content').html(res.view);
                                 }
-                            });
-                            // Refresh table if it exists
-                            if (typeof table !== 'undefined') {
-                                table.draw(false);
                             }
-                            if (typeof jaLoadTabCounts === 'function') {
-                                jaLoadTabCounts();
-                            }
-                        }
+                        });
+                        if (typeof table !== 'undefined') table.draw(false);
+                        if (typeof jaLoadTabCounts === 'function') jaLoadTabCounts();
                     }
-                });
-            }
+                }
+            });
         });
     }
         $('#example-fontawesome').barrating({
