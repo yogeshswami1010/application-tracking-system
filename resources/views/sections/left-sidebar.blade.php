@@ -29,7 +29,7 @@
         @endif
 
         @if(in_array("view_job_applications", $userPermissions))
-            <a href="{{ route('admin.job-applications.index') }}" class="ra-nav-link {{ request()->is('admin/job-applications*') ? 'on' : '' }}">
+            <a href="{{ route('admin.job-applications.table') }}" class="ra-nav-link {{ request()->is('admin/job-applications*') ? 'on' : '' }}">
                 <span class="ra-ni" aria-hidden="true"><x-ra-sidebar-icon name="job-applications" /></span>
                 <span class="ra-nl">@lang('menu.jobApplications')</span>
             </a>
