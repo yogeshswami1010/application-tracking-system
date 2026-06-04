@@ -350,23 +350,18 @@ class AdminJobApplicationController extends AdminBaseController
 
         $jobApplications = JobApplication::select('job_applications.id', 'job_applications.job_id', 'status_id', 'full_name', 'skills', 'location_id')
             ->with([
-                'job:id,location_id,title',
-                'job.skills',
-                'job.location:id,location_id',
-                'status:id,status,color',
-            ]);
-
-        $jobApplications = JobApplication::select('job_applications.id', 'job_applications.job_id', 'status_id', 'full_name', 'skills', 'location_id')
-            ->with([
                 'location',
                 'job.skills',
                 'status:id,status,color',
             ]);
-            $jobApplications = $jobApplications->where('job_applications.is_candidate', 0);
+
+        $jobApplications = $jobApplications->where('job_applications.is_candidate', 0);
+
         // Knockout filter
         if ($request->knockout == 1) {
             $jobApplications = $jobApplications->onlyTrashed();
         }
+
         // Filter by status
         if ($request->status != 'all' && $request->status != '') {
             $jobApplications = $jobApplications->where('status_id', $request->status);
@@ -408,7 +403,7 @@ class AdminJobApplicationController extends AdminBaseController
         if ($request->question_value != '' && $request->questions != 'all' && $request->questions != '') {
             $jobApplications = $jobApplications->join('job_application_answers', 'job_application_answers.job_application_id', 'job_applications.id')
                 ->where('job_application_answers.question_id', $request->questions)
-                ->where('job_application_answers.answer', 'LIKE', '%'.$request->question_value.'%');
+                ->where('job_application_answers.answer', 'LIKE', '%' . $request->question_value . '%');
         }
 
         // Filter by StartDate
@@ -420,57 +415,71 @@ class AdminJobApplicationController extends AdminBaseController
         if ($request->endDate != null && $request->endDate != '') {
             $jobApplications = $jobApplications->whereDate('job_applications.created_at', '<=', $request->endDate);
         }
-        $jobApplications = $jobApplications;
+
+        // Build next-stage map once from DB ordered by position
+        $allStatuses = ApplicationStatus::orderBy('position')->get();
+        $nextMap = [];
+        foreach ($allStatuses as $i => $s) {
+            $nextStatus = $allStatuses->get($i + 1);
+            if ($nextStatus) {
+                $nextMap[$s->status] = [
+                    'label' => ucwords(str_replace('_', ' ', $nextStatus->status)),
+                    'slug'  => $nextStatus->status,
+                ];
+            }
+        }
+
+        // Find rejected & applied status ids for restore button
+        $rejectedStatus = $allStatuses->firstWhere('status', 'rejected');
+        $appliedStatus  = $allStatuses->firstWhere('status', 'applied');
+
+        $canEdit   = $this->user->cans('edit_job_applications');
+        $canView   = $this->user->cans('view_job_applications');
+        $canDelete = $this->user->cans('delete_job_applications');
 
         return DataTables::of($jobApplications)
-            ->addColumn('action', function ($row) {
-            $parts = [];
-
-            // ── Move to next stage button ──
-            if ($this->user->cans('edit_job_applications')) {
+            ->addColumn('action', function ($row) use ($nextMap, $rejectedStatus, $appliedStatus, $canEdit, $canView, $canDelete) {
+                $parts = [];
                 $statusSlug = strtolower($row->status?->status ?? '');
-                $nextMap = [
-                    'applied'   => ['label' => 'Phone Screen', 'slug' => 'phone'],
-                    'phone'     => ['label' => 'Interview',    'slug' => 'interview'],
-                    'interview' => ['label' => 'Hired',        'slug' => 'hired'],
-                ];
 
-                if (isset($nextMap[$statusSlug])) {
-                    $nextLabel = $nextMap[$statusSlug]['label'];
-                    $nextSlug  = $nextMap[$statusSlug]['slug'];
-                    $parts[] = '<button type="button" onclick="jaMoveOneBySlug(' . $row->id . ', \'' . $nextSlug . '\')" class="ja-act-btn move mr-1" style="font-size:11.5px;padding:4px 9px;">' . $nextLabel . ' <i class="fa fa-arrow-right" style="font-size:10px"></i></button>';
+                if ($canEdit) {
+                    // Move to next stage button
+                    if (isset($nextMap[$statusSlug]) && $statusSlug !== 'rejected') {
+                        $nextLabel = $nextMap[$statusSlug]['label'];
+                        $nextSlug  = $nextMap[$statusSlug]['slug'];
+                        $parts[] = '<button type="button" onclick="jaMoveOneBySlug(' . $row->id . ',\'' . $nextSlug . '\')" class="ja-act-btn move" title="Move to ' . $nextLabel . '">' . $nextLabel . ' <i class="fa fa-arrow-right" style="font-size:10px;margin-left:2px;"></i></button>';
+                    }
+
+                    // Reject button — not for already rejected or hired
+                    if (!in_array($statusSlug, ['rejected', 'hired'])) {
+                        $parts[] = '<button type="button" onclick="jaMoveOneBySlug(' . $row->id . ',\'rejected\')" class="ja-act-btn reject" title="Reject"><i class="fa fa-times"></i></button>';
+                    }
+
+                    // Restore button — only for rejected
+                    if ($statusSlug === 'rejected' && $appliedStatus) {
+                        $parts[] = '<button type="button" onclick="jaMoveOne(' . $row->id . ',' . $appliedStatus->id . ')" class="ja-act-btn restore" title="Restore to Applied"><i class="fa fa-undo"></i></button>';
+                    }
                 }
 
-               if (!in_array($statusSlug, ['rejected', 'hired'])) {
-                    $parts[] = '<button type="button" onclick="jaMoveOneBySlug(' . $row->id . ', \'rejected\')" class="ja-act-btn reject mr-1" title="Reject" style="font-size:11.5px;padding:4px 8px;"><i class="fa fa-times"></i></button>';
-                }
-            }
+                // View detail (sidebar) — always shown
+                $parts[] = '<a href="javascript:;" class="show-detail ja-act-btn" data-row-id="' . $row->id . '" title="View profile"><i class="fa fa-eye"></i></a>';
 
-            // ── Existing buttons ──
-            if ($this->user->cans('view_job_applications')) {
-                $parts[] = RaDataTableHtml::js(
-                    RaDataTableHtml::SVG_EYE,
-                    'jc-btn-emerald show-document',
-                    [
-                        'data-row-id'    => (string) $row->id,
-                        'data-modal-name' => '\\' . get_class($row),
-                    ],
-                    __('modules.jobApplication.viewDocuments')
-                );
-            }
-
-            if ($this->user->cans('edit_job_applications')) {
-                $parts[] = RaDataTableHtml::edit(route('admin.job-applications.edit', [$row->id]));
-            }
-
-            if ($this->user->cans('delete_job_applications')) {
-                $parts[] = RaDataTableHtml::deleteSaParams($row->id);
-            }
-
-            return RaDataTableHtml::wrap(implode('', $parts));
-        })
+                return '<div class="ja-row-actions">' . implode('', $parts) . '</div>';
+            })
             ->editColumn('full_name', function ($row) {
-                return '<a href="javascript:;" class="show-detail" data-row-id="'.$row->id.'">'.ucwords($row->full_name).'</a>';
+                $name = ucwords($row->full_name);
+                $job  = ucfirst($row->job?->title ?? '—');
+                $loc  = ucwords($row->location?->location ?? '—');
+                return '
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-[13px] flex-shrink-0">'
+                            . strtoupper(substr($row->full_name, 0, 1)) .
+                        '</div>
+                        <div>
+                            <a href="javascript:;" class="show-detail block text-[13.5px] font-semibold text-[#1A1E2E] hover:text-blue-600" data-row-id="' . $row->id . '">' . $name . '</a>
+                            <span class="text-[11.5px] text-[#8892A0]">' . $job . ' &middot; ' . $loc . '</span>
+                        </div>
+                    </div>';
             })
             ->editColumn('title', function ($row) {
                 return ucfirst($row->job?->title ?? '—');
@@ -479,8 +488,9 @@ class AdminJobApplicationController extends AdminBaseController
                 return ucwords($row->location?->location ?? '—');
             })
             ->editColumn('status', function ($row) {
-                return '<span>'.ucwords($row->status->status).'</span>
-                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white" style= "margin-bottom: -3px; height: 15px; background:'.$row->status->color.'"> </span>';
+                $color = $row->status?->color ?? '#6B7280';
+                $label = ucwords(str_replace('_', ' ', $row->status?->status ?? ''));
+                return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold text-white" style="background:' . $color . '">' . $label . '</span>';
             })
             ->rawColumns(['action', 'full_name', 'status'])
             ->addIndexColumn()

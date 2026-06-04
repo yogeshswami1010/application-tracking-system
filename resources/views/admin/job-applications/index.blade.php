@@ -433,8 +433,8 @@ var jaStages = {!! $jaStagesJson !!};
     var table;
 
     // ── Helpers ──────────────────────────────────────────────────
-    function jaNextStage(currentSlug) {
-        var order = ['applied','phone','interview','hired'];
+   function jaNextStage(currentSlug) {
+        var order = jaStages.map(function(s){ return s.slug; });
         var idx = order.indexOf(currentSlug);
         if (idx === -1 || idx >= order.length - 1) return null;
         var nextSlug = order[idx + 1];
