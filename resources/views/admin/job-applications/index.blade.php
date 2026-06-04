@@ -417,7 +417,6 @@
     <script src="{{ asset('assets/node_modules_files/bootstrap-datepicker/bootstrap-datepicker.min.js') }}" type="text/javascript"></script>
 
     <script>
-    // ── Stage data from PHP ──────────────────────────────────────
     var jaStages = @json($boardColumns->map(fn($c) => [
         'id'    => $c->id,
         'slug'  => $c->status,
@@ -614,22 +613,7 @@
         });
     }
 
-    // ── Single row actions ───────────────────────────────────────
-    function jaMoveOne(appId, toStatusId) {
-        $.easyAjax({
-            url: '{{ route("admin.job-applications.bulk-status-update") }}',
-            type: 'POST',
-            data: { _token: '{{ csrf_token() }}', ids: [appId], status_id: toStatusId },
-            success: function(res) {
-                if (res.status === 'success') {
-                    jaSelectedIds.delete(appId);
-                    table.draw(false);
-                    jaLoadTabCounts();
-                    jaRenderBulkBar();
-                }
-            }
-        });
-    }
+
     function jaMoveOne(appId, toStatusId) {
         $.easyAjax({
             url: '{{ route("admin.job-applications.bulk-status-update") }}',
@@ -646,7 +630,7 @@
         });
     }
 
-    // ADD THIS RIGHT HERE ↓
+
     function jaMoveOneBySlug(appId, toSlug) {
         var stage = jaStages.find(function(s){ return s.slug === toSlug; });
         if (!stage) {
