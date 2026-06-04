@@ -706,8 +706,8 @@ var jaStages = {!! $jaStagesJson !!};
         var knockout       = jaShowKO ? 1 : 0;
 
         table = $('#myTable').DataTable({
-            responsive: false,
-            processing: true,
+             responsive: false,
+            processing: false,
             serverSide: true,
             destroy: true,
             ajax: '{!! route('admin.job-applications.data') !!}?status=' + status
