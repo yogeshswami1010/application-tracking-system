@@ -302,13 +302,13 @@ Route::middleware('auth')->group(function () {
     Route::post('verify-otp-phone/account', [VerifyMobileController::class, 'verifyOtpCode'])->name('verifyOtpCode.account');
     Route::get('remove-session', [VerifyMobileController::class, 'removeSession'])->name('removeSession');
 });
-
+Route::get('assistmyday', [App\Http\Controllers\Front\FrontJobsController::class, 'assistMyDay'])->name('assistmyday');
 // Catch-all custom CMS page (register last)
+
+Route::post('job-applications/bulk-status-update', [AdminJobApplicationController::class, 'bulkStatusUpdate'])->name('admin.job-applications.bulk-status-update');
+Route::post('job-applications/bulk-restore-knockout', [AdminJobApplicationController::class, 'bulkRestoreKnockout'])->name('admin.job-applications.bulk-restore-knockout');
+Route::get('job-applications/stage-counts', [AdminJobApplicationController::class, 'stageCounts'])->name('admin.job-applications.stage-counts');
 Route::name('jobs.')
     ->group(function () {
         Route::get('{slug}', [FrontJobsController::class, 'customPage'])->name('custom-page');
     });
-Route::post('job-applications/bulk-status-update', [AdminJobApplicationController::class, 'bulkStatusUpdate'])->name('admin.job-applications.bulk-status-update');
-Route::post('job-applications/bulk-restore-knockout', [AdminJobApplicationController::class, 'bulkRestoreKnockout'])->name('admin.job-applications.bulk-restore-knockout');
-Route::get('job-applications/stage-counts', [AdminJobApplicationController::class, 'stageCounts'])->name('admin.job-applications.stage-counts');
-Route::get('assistmyday', [App\Http\Controllers\Front\FrontJobsController::class, 'assistMyDay'])->name('assistmyday');
