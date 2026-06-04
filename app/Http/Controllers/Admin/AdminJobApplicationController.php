@@ -448,10 +448,10 @@ class AdminJobApplicationController extends AdminBaseController
                 return '<a href="javascript:;" class="show-detail" data-row-id="'.$row->id.'">'.ucwords($row->full_name).'</a>';
             })
             ->editColumn('title', function ($row) {
-                return ucfirst($row->job->title);
+                return ucfirst($row->job?->title ?? '—');
             })
             ->addColumn('location_id', function ($row) {
-                return ucwords($row->location->location);
+                return ucwords($row->location?->location ?? '—');
             })
             ->editColumn('status', function ($row) {
                 return '<span>'.ucwords($row->status->status).'</span>
