@@ -333,28 +333,42 @@
 
         {{-- ── Stage tabs ── --}}
         <div class="flex bg-white border-b border-[#E8E6E1] overflow-x-auto mt-3 rounded-t-[12px]" id="ja-stage-tabs-row">
-            @forelse($boardColumns as $col)
-            <button
-                class="ja-stage-tab"
-                data-stage-id="{{ $col->id }}"
-                data-stage-color="{{ $col->color ?? '#2563eb' }}"
-                data-stage-slug="{{ $col->status }}"
-                onclick="jaStageTab({{ $col->id }}, '{{ addslashes($col->color ?? '#2563eb') }}', '{{ addslashes($col->status) }}')"
-                style="--tab-color: {{ $col->color ?? '#2563eb' }}">
-                {{ ucfirst($col->status) }}
-                <span class="ja-stage-badge" id="ja-tab-count-{{ $col->id }}">0</span>
+
+        {{-- All Applicants tab — first and active by default --}}
+        <button
+            class="ja-stage-tab active"
+            id="ja-tab-all"
+            data-stage-id="all"
+            onclick="jaStageTabAll()"
+            style="--tab-color:#2563eb;">
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/></svg>
+            All Applicants
+            <span class="ja-stage-badge" id="ja-tab-count-all">0</span>
+        </button>
+
+        @forelse($boardColumns as $col)
+        <button
+            class="ja-stage-tab"
+            data-stage-id="{{ $col->id }}"
+            data-stage-color="{{ $col->color ?? '#2563eb' }}"
+            data-stage-slug="{{ $col->status }}"
+            onclick="jaStageTab({{ $col->id }}, '{{ addslashes($col->color ?? '#2563eb') }}', '{{ addslashes($col->status) }}')"
+            style="--tab-color: {{ $col->color ?? '#2563eb' }}">
+            {{ ucfirst($col->status) }}
+            <span class="ja-stage-badge" id="ja-tab-count-{{ $col->id }}">0</span>
+        </button>
+        @empty
+        @endforelse
+
+        {{-- Knockouts tab --}}
+        <div class="ja-ko-tab flex items-center">
+            <button class="ja-stage-tab" id="ja-ko-tab-btn" onclick="jaKOTab()">
+                <i class="fa fa-user-times"></i>
+                Knockouts
+                <span class="ja-stage-badge" id="ja-ko-tab-count">0</span>
             </button>
-            @empty
-            @endforelse
-            {{-- Knockouts tab --}}
-            <div class="ja-ko-tab flex items-center">
-                <button class="ja-stage-tab" id="ja-ko-tab-btn" onclick="jaKOTab()">
-                    <i class="fa fa-user-times"></i>
-                    Knockouts
-                    <span class="ja-stage-badge" id="ja-ko-tab-count">0</span>
-                </button>
-            </div>
         </div>
+    </div>
 
         {{-- KO banner --}}
         <div id="ja-ko-banner">
@@ -465,7 +479,25 @@ var jaStages = {!! $jaStagesJson !!};
         jaRenderBulkBar();
         jaTableSyncFilterBadge();
     }
+    function jaStageTabAll() {
+        jaShowKO = false;
+        jaActiveStageId = 'all';
+        jaSelectedIds = new Set();
 
+        document.querySelectorAll('.ja-stage-tab').forEach(function(el) {
+            el.classList.remove('active');
+        });
+        var btn = document.getElementById('ja-tab-all');
+        if (btn) { btn.classList.add('active'); btn.style.setProperty('--tab-color', '#2563eb'); }
+
+        document.getElementById('ja-ko-tab-btn').classList.remove('active');
+        document.getElementById('ja-ko-banner').classList.remove('show');
+
+        $('#status').val('all').trigger('change.select2');
+        tableLoad('filter');
+        jaRenderBulkBar();
+        jaTableSyncFilterBadge();
+    }
     function jaKOTab() {
         jaShowKO = true;
         jaActiveStageId = 'all';
@@ -687,9 +719,15 @@ var jaStages = {!! $jaStagesJson !!};
             type: 'GET',
             success: function(res) {
                 if (!res.counts) return;
+
+                var total = 0;
                 $.each(res.counts, function(stageId, cnt) {
                     $('#ja-tab-count-' + stageId).text(cnt);
+                    total += parseInt(cnt) || 0;
                 });
+
+                // Update all-tab count with sum of all stages
+                $('#ja-tab-count-all').text(total);
                 $('#ja-ko-tab-count').text(res.ko_count || 0);
             }
         });
@@ -905,9 +943,12 @@ var jaStages = {!! $jaStagesJson !!};
     // ── Select2 init ─────────────────────────────────────────────
     $('#filter-form select.select2').not('#skill').select2({ width: '100%' });
 
-    // ── Init ─────────────────────────────────────────────────────
-    tableLoad('load');
+   // ── Init ─────────────────────────────────────────────
+    tableLoad('load');   // loads with status=all by default
     jaLoadTabCounts();
     jaTableSyncFilterBadge();
+
+    // Set All tab as active on load
+    document.getElementById('ja-tab-all').classList.add('active');
     </script>
 @endpush
