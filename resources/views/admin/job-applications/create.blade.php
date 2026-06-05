@@ -22,7 +22,7 @@
                 </div>
 
                 {{-- Batch approve bar (shown once CVs are parsed) --}}
-                <div id="bulk-batch-bar" class="hidden flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2.5 mb-5 text-sm text-blue-800">
+                <div id="bulk-batch-bar" style="display:none;" class="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2.5 mb-5 text-sm text-blue-800">
                     <i class="fa fa-bolt"></i>
                     <span id="bulk-batch-msg" class="flex-1"></span>
                     <button type="button" id="bulk-approve-all"
@@ -680,6 +680,7 @@
 
             document.getElementById('bulk-empty-state').style.display  = 'none';
             document.getElementById('bulk-review-pane').style.display  = 'flex';
+            bulkUpdateCounter();
 
             // Restore filing mode for this item
             bulkSetFiling(item.filing || 'db', false);
@@ -779,7 +780,6 @@
                 '<div class="flex flex-col items-center justify-center h-full gap-2 text-gray-400">' +
                 '<i class="fa fa-spinner fa-spin fa-2x"></i>' +
                 '<p class="text-xs">Parsing ' + bulkEsc(name) + '...</p></div>';
-            document.getElementById('bulk-form-fields-wrap') && (document.getElementById('bulk-form-fields-wrap').style.display = 'none');
         }
 
         /* ─────────────────────────────────────────────
@@ -865,17 +865,29 @@
         /* Snapshot form values back into the queue item so switching away doesn't lose edits */
         function bulkSnapshotForm(i) {
             var item = bulkQueue[i];
-            if (!item || !item.parsed) return;
-            item.parsed.full_name = document.getElementById('bf-name').value;
-            item.parsed.email     = document.getElementById('bf-email').value;
-            item.parsed.phone     = document.getElementById('bf-phone').value;
-            item.parsed.skills    = document.getElementById('bf-skills').value;
-            item.parsed.address   = document.getElementById('bf-address').value;
-            item.notes            = bulkNotes.slice();
-            item.filing           = bulkFiling;
-            item.jobLocId         = document.getElementById('bulk-job-select').value;
-            item.jobId            = document.getElementById('bulk-job-id').value;
-            item.locId            = document.getElementById('bulk-location-id').value;
+            if (!item) return;
+            // Always snapshot notes and filing regardless of parse status
+            item.notes   = bulkNotes.slice();
+            item.filing  = bulkFiling;
+            var jobSelEl = document.getElementById('bulk-job-select');
+            if (jobSelEl) item.jobLocId = jobSelEl.value;
+            var jobIdEl = document.getElementById('bulk-job-id');
+            if (jobIdEl) item.jobId = jobIdEl.value;
+            var locIdEl = document.getElementById('bulk-location-id');
+            if (locIdEl) item.locId = locIdEl.value;
+            // Only snapshot parsed text fields if we have a parsed object
+            if (item.parsed) {
+                var nameEl    = document.getElementById('bf-name');
+                var emailEl   = document.getElementById('bf-email');
+                var phoneEl   = document.getElementById('bf-phone');
+                var skillsEl  = document.getElementById('bf-skills');
+                var addressEl = document.getElementById('bf-address');
+                if (nameEl)    item.parsed.full_name = nameEl.value;
+                if (emailEl)   item.parsed.email     = emailEl.value;
+                if (phoneEl)   item.parsed.phone     = phoneEl.value;
+                if (skillsEl)  item.parsed.skills    = skillsEl.value;
+                if (addressEl) item.parsed.address   = addressEl.value;
+            }
         }
 
         /* ─────────────────────────────────────────────
@@ -1162,14 +1174,13 @@
 
         function bulkUpdateBatchBar() {
             var done    = bulkQueue.filter(function (q) { return q.status === 'done' && !q.saved; }).length;
-            var pending = bulkQueue.filter(function (q) { return q.status === 'pending'; }).length;
             var bar     = document.getElementById('bulk-batch-bar');
             if (done > 1) {
-                bar.classList.remove('hidden');
+                bar.style.display = 'flex';
                 document.getElementById('bulk-batch-msg').textContent =
                     done + ' CVs parsed — approve all directly to the candidate database, or review individually.';
             } else {
-                bar.classList.add('hidden');
+                bar.style.display = 'none';
             }
         }
 
