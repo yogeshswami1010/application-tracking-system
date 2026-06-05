@@ -58,13 +58,14 @@
                             <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium" id="bulk-q-count">0 files</span>
                         </div>
 
-                        {{-- Queue list --}}
-                        <div class="bulk-queue-list" id="bulk-q-list">
-                            <div id="bulk-q-empty" class="flex flex-col items-center justify-center h-full gap-1 text-gray-400">
-                                <i class="fa fa-files-o fa-2x"></i>
-                                <span class="text-xs">No CVs uploaded yet</span>
-                            </div>
+                        {{-- Queue empty state (lives outside the list so innerHTML never wipes it) --}}
+                        <div id="bulk-q-empty" class="flex flex-col items-center justify-center gap-1 text-gray-400 py-6">
+                            <i class="fa fa-files-o fa-2x"></i>
+                            <span class="text-xs">No CVs uploaded yet</span>
                         </div>
+
+                        {{-- Queue list --}}
+                        <div class="bulk-queue-list" id="bulk-q-list" style="display:none;"></div>
 
                         {{-- Progress bar --}}
                         <div>
@@ -625,26 +626,29 @@
         function bulkRenderQueue() {
             var list  = document.getElementById('bulk-q-list');
             var empty = document.getElementById('bulk-q-empty');
+
             document.getElementById('bulk-q-count').textContent =
                 bulkQueue.length + ' file' + (bulkQueue.length !== 1 ? 's' : '');
-
             document.getElementById('bulk-progress-pill').style.display = bulkQueue.length ? '' : 'none';
             document.getElementById('bulk-total-count').textContent = bulkQueue.length;
 
             if (!bulkQueue.length) {
-                list.innerHTML = '';
-                list.appendChild(empty);
+                empty.style.display = '';
+                list.style.display  = 'none';
+                list.innerHTML      = '';
                 bulkUpdateProgress();
                 return;
             }
+
             empty.style.display = 'none';
+            list.style.display  = 'flex';
 
             list.innerHTML = bulkQueue.map(function (item, i) {
                 var dotCls = 'bulk-dot-pending', iconCls = 'fa-clock-o';
-                if (item.status === 'parsing') { dotCls = 'bulk-dot-parsing'; iconCls = 'fa-spinner bulk-spin'; }
-                else if (item.saved)           { dotCls = 'bulk-dot-saved';   iconCls = 'fa-check'; }
-                else if (item.status === 'done'){ dotCls = 'bulk-dot-done';   iconCls = 'fa-check'; }
-                else if (item.status === 'error'){ dotCls = 'bulk-dot-error'; iconCls = 'fa-exclamation-triangle'; }
+                if (item.status === 'parsing')  { dotCls = 'bulk-dot-parsing'; iconCls = 'fa-spinner bulk-spin'; }
+                else if (item.saved)            { dotCls = 'bulk-dot-saved';   iconCls = 'fa-check'; }
+                else if (item.status === 'done'){ dotCls = 'bulk-dot-done';    iconCls = 'fa-check'; }
+                else if (item.status === 'error'){ dotCls = 'bulk-dot-error';  iconCls = 'fa-exclamation-triangle'; }
 
                 return '<div class="bulk-q-item' + (i === bulkActive ? ' active' : '') + '" onclick="bulkSelectItem(' + i + ')">' +
                     '<span class="bulk-q-dot ' + dotCls + '"><i class="fa ' + iconCls + '"></i></span>' +
