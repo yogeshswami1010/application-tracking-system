@@ -901,38 +901,65 @@
                         return page.render({ canvasContext: ctx, viewport: viewport }).promise
                             .then(function () { return page.getTextContent(); })
                             .then(function (textContent) {
-                                textContent.items.forEach(function (item) {
-                                    if (!item.str) return;
+                                var spans = [];
 
-                                    // pdf.js gives us a transform matrix [a,b,c,d,e,f]
-                                    // e = x, f = y (in canvas coordinate space, origin bottom-left)
-                                    var tx = item.transform;
-                                    var fontHeight = Math.sqrt(tx[2]*tx[2] + tx[3]*tx[3]);
-                                    var angle      = Math.atan2(tx[1], tx[0]) * (180 / Math.PI);
+                                textContent.items.forEach(function (ti) {
+                                    if (!ti.str || !ti.str.trim()) return;
 
-                                    // Convert canvas coords to CSS display coords
-                                    var x   = tx[4] * scaleX;
-                                    var y   = (viewport.height - tx[5]) * scaleY;
-                                    var fs  = fontHeight * scaleY;
-                                    var w   = item.width ? (item.width * scaleX) : null;
+                                    // viewport.transform converts PDF user-space → canvas pixel space.
+                                    // Format: [sx, 0, 0, sy, tx, ty]  where sy is negative (y-flip).
+                                    var vt = viewport.transform;
+                                    var m  = ti.transform;
+
+                                    // Apply viewport transform to the item's origin (e, f)
+                                    var canvasX = vt[0]*m[4] + vt[2]*m[5] + vt[4];
+                                    var canvasY = vt[1]*m[4] + vt[3]*m[5] + vt[5];
+
+                                    // Font height in canvas pixels
+                                    var canvasFs = Math.abs(vt[3] * m[0]) || Math.abs(vt[0] * m[3]);
+                                    if (!canvasFs) canvasFs = Math.abs(vt[3]) * Math.abs(m[0] || m[3] || 12);
+
+                                    // PDF width of this text item in canvas pixels
+                                    var canvasW  = ti.width  ? ti.width  * Math.abs(vt[0]) : 0;
+
+                                    // Scale to CSS display pixels
+                                    var cssX  = canvasX * scaleX;
+                                    var cssY  = canvasY * scaleY;
+                                    var cssFs = canvasFs * scaleY;
+                                    var cssWi = canvasW  * scaleX;
 
                                     var span = document.createElement('span');
-                                    span.textContent = item.str;
-                                    var css = [
+                                    span.textContent = ti.str;
+                                    span.style.cssText = [
                                         'position:absolute',
-                                        'left:'      + x + 'px',
-                                        'top:'       + (y - fs) + 'px',
-                                        'font-size:' + fs + 'px',
+                                        'left:'         + cssX + 'px',
+                                        'top:'          + (cssY - cssFs) + 'px',
+                                        'font-size:'    + cssFs + 'px',
                                         'font-family:sans-serif',
                                         'white-space:pre',
                                         'color:transparent',
                                         'cursor:text',
-                                        'transform-origin:0% 0%',
-                                    ];
-                                    if (angle) css.push('transform:rotate(' + angle + 'deg)');
-                                    if (w)     css.push('width:' + w + 'px', 'display:inline-block', 'overflow:hidden');
-                                    span.style.cssText = css.join(';');
+                                        'transform-origin:left bottom',
+                                        'display:inline-block',
+                                    ].join(';');
+
+                                    if (cssWi > 0) span.dataset.targetW = cssWi;
                                     textDiv.appendChild(span);
+                                    spans.push(span);
+                                });
+
+                                // After all spans are in the DOM, stretch each one to match
+                                // the PDF's reported glyph width using scaleX transform.
+                                // We do this in a rAF so the browser has computed naturalWidth.
+                                requestAnimationFrame(function () {
+                                    spans.forEach(function (span) {
+                                        var tw = parseFloat(span.dataset.targetW);
+                                        if (!tw) return;
+                                        var nw = span.getBoundingClientRect().width;
+                                        if (nw > 0) {
+                                            span.style.transform = 'scaleX(' + (tw / nw) + ')';
+                                        }
+                                    });
                                 });
                             });
                     });
