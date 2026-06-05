@@ -5,143 +5,259 @@
 @endpush
 
 @section('content')
-    <div class="flex flex-col">
-        <div class="w-full">
-            <div class="bg-white rounded-lg shadow-md">
-                <div class="p-6">
-                    <h4 class="text-xl font-semibold text-gray-900 mb-6">@lang('app.createNew')</h4>
+<div class="flex flex-col">
+    <div class="w-full">
+        <div class="bg-white rounded-lg shadow-md">
+            <div class="p-6">
 
-                        <form class="ajax-form 747474" method="POST" id="createForm">
-                            @csrf
-                            <div class="form-group mb-4">
-                            <label class="control-label font-semibold">Entry Type</label>
-                                <div class="flex gap-4 mt-2">
-                                    <label class="inline-flex items-center gap-2 cursor-pointer">
-                                        <input type="radio" name="entry_type" value="applicant" checked
-                                            class="text-blue-600" id="entry-type-applicant">
-                                        <span class="text-sm font-medium text-gray-700">Job Applicant</span>
-                                        <span class="text-xs text-gray-400">(shown on board)</span>
-                                    </label>
-                                    <label class="inline-flex items-center gap-2 cursor-pointer">
-                                        <input type="radio" name="entry_type" value="candidate"
-                                            class="text-blue-600" id="entry-type-candidate">
-                                        <span class="text-sm font-medium text-gray-700">Candidate Database</span>
-                                        <span class="text-xs text-gray-400">(not a job applicant)</span>
-                                    </label>
-                                </div>
+                {{-- Page header --}}
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h4 class="text-xl font-semibold text-gray-900">@lang('app.createNew')</h4>
+                        <p class="text-sm text-gray-500 mt-0.5">Upload one or multiple CVs — select each to review and save</p>
+                    </div>
+                    <span class="text-sm text-gray-400 bg-gray-100 px-3 py-1 rounded-full" id="bulk-progress-pill" style="display:none;">
+                        <span id="bulk-done-count">0</span> of <span id="bulk-total-count">0</span> saved
+                    </span>
+                </div>
+
+                {{-- Batch approve bar (shown once CVs are parsed) --}}
+                <div id="bulk-batch-bar" class="hidden flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2.5 mb-5 text-sm text-blue-800">
+                    <i class="fa fa-bolt"></i>
+                    <span id="bulk-batch-msg" class="flex-1"></span>
+                    <button type="button" id="bulk-approve-all"
+                        class="px-3 py-1 bg-blue-600 text-white rounded text-xs font-medium hover:bg-blue-700">
+                        Approve all to database
+                    </button>
+                </div>
+
+                <div class="bulk-layout" id="bulk-layout">
+
+                    {{-- ===== LEFT: CV queue ===== --}}
+                    <div class="bulk-col-left" id="bulk-col-left">
+
+                        {{-- Drop zone --}}
+                        <div id="bulk-dropzone"
+                            class="bulk-dropzone"
+                            onclick="document.getElementById('bulk-file-input').click()"
+                            ondragover="bulkOnDragOver(event)"
+                            ondragleave="bulkOnDragLeave(event)"
+                            ondrop="bulkOnDrop(event)">
+                            <i class="fa fa-cloud-upload fa-lg mb-1 text-gray-400 block"></i>
+                            <p class="text-xs text-gray-500 leading-relaxed">
+                                <strong class="text-blue-600">Click or drop CVs here</strong><br>
+                                PDF, DOCX, TXT — multiple at once
+                            </p>
+                        </div>
+                        <input type="file" id="bulk-file-input" multiple
+                            accept=".pdf,.doc,.docx,.txt" style="display:none;">
+
+                        {{-- Queue header --}}
+                        <div class="flex items-center justify-between px-1">
+                            <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Queue</span>
+                            <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium" id="bulk-q-count">0 files</span>
                         </div>
 
-                       <input type="hidden" id="resume_text_for_ai" value="" autocomplete="off">
-
-                        {{-- CV Upload — shown for both types --}}
-                        <div class="grid grid-cols-1 md:grid-cols-12 gap-6 mb-4">
-                            <div class="md:col-span-4">
-                                <h5 class="text-lg font-semibold text-gray-900">Upload CV</h5>
+                        {{-- Queue list --}}
+                        <div class="bulk-queue-list" id="bulk-q-list">
+                            <div id="bulk-q-empty" class="flex flex-col items-center justify-center h-full gap-1 text-gray-400">
+                                <i class="fa fa-files-o fa-2x"></i>
+                                <span class="text-xs">No CVs uploaded yet</span>
                             </div>
-                            <div class="md:col-span-8">
-                                <div class="form-group">
-                                    <label class="control-label">CV / Resume</label>
-                                    <input class="form-control" type="file" name="resume" id="resume"
-                                        accept=".pdf,.doc,.docx,.txt">
-                                    <button type="button" id="parse-resume"
-                                        class="mt-3 px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 inline-flex items-center">
-                                        <i class="fa fa-magic mr-2"></i> Parse CV
+                        </div>
+
+                        {{-- Progress bar --}}
+                        <div>
+                            <div class="flex justify-between text-xs text-gray-400 mb-1">
+                                <span id="bulk-prog-label">0 of 0 reviewed</span>
+                                <span id="bulk-prog-pct">0%</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1">
+                                <div id="bulk-prog-fill" class="bg-blue-500 h-1 rounded-full transition-all" style="width:0%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- ===== RIGHT: Review pane ===== --}}
+                    <div class="bulk-col-right" id="bulk-col-right">
+
+                        {{-- Empty state --}}
+                        <div id="bulk-empty-state" class="bulk-empty-state">
+                            <i class="fa fa-arrow-left fa-2x text-gray-300 mb-2"></i>
+                            <p class="text-gray-400 text-sm">Upload CVs and select one from the queue to begin reviewing</p>
+                        </div>
+
+                        {{-- Review pane (hidden until a CV is selected) --}}
+                        <div id="bulk-review-pane" style="display:none;" class="bulk-review-pane">
+
+                            {{-- Pane header --}}
+                            <div class="flex items-center justify-between mb-3 pb-3 border-b border-gray-100">
+                                <div class="flex items-center gap-2">
+                                    <div id="bulk-rev-avatar" class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-sm flex-shrink-0">?</div>
+                                    <div>
+                                        <p class="font-medium text-sm text-gray-900" id="bulk-rev-name">—</p>
+                                        <p class="text-xs text-gray-400" id="bulk-rev-file">—</p>
+                                    </div>
+                                </div>
+                                <span id="bulk-rev-flag" class="text-xs px-2 py-0.5 rounded-full font-medium"></span>
+                            </div>
+
+                            {{-- Split: CV viewer + form --}}
+                            <div class="bulk-split">
+
+                                {{-- CV Viewer --}}
+                                <div class="bulk-cv-viewer" id="bulk-cv-viewer">
+                                    <div class="flex flex-col items-center justify-center h-full gap-2 text-gray-400" id="bulk-cv-parsing">
+                                        <i class="fa fa-spinner fa-spin fa-2x"></i>
+                                        <p class="text-xs">Parsing CV...</p>
+                                    </div>
+                                </div>
+
+                                {{-- Form --}}
+                                <div class="bulk-form-scroll">
+                                    <form id="bulk-candidate-form" autocomplete="off">
+                                        @csrf
+                                        <input type="hidden" name="job_id"      id="bulk-job-id">
+                                        <input type="hidden" name="location_id" id="bulk-location-id">
+                                        <input type="hidden" id="bulk-resume-text-for-ai" value="">
+
+                                        {{-- Name --}}
+                                        <div class="bulk-fg">
+                                            <label class="bulk-label">
+                                                @lang('app.name') <span class="text-red-400">*</span>
+                                                <span class="bulk-conf bulk-conf-hi" id="bconf-name">high</span>
+                                            </label>
+                                            <input type="text" name="full_name" id="bf-name" class="bulk-input bulk-parsed"
+                                                placeholder="@lang('app.name')" onmouseover="bulkHl('name')" required>
+                                        </div>
+
+                                        {{-- Email --}}
+                                        <div class="bulk-fg">
+                                            <label class="bulk-label">
+                                                @lang('app.email') <span class="text-red-400">*</span>
+                                                <span class="bulk-conf" id="bconf-email">—</span>
+                                            </label>
+                                            <input type="email" name="email" id="bf-email" class="bulk-input bulk-parsed"
+                                                placeholder="@lang('app.email')" onmouseover="bulkHl('email')" required>
+                                        </div>
+
+                                        {{-- Phone --}}
+                                        <div class="bulk-fg">
+                                            <label class="bulk-label">
+                                                @lang('app.phone') <span class="text-red-400">*</span>
+                                                <span class="bulk-conf" id="bconf-phone">—</span>
+                                            </label>
+                                            <input type="tel" name="phone" id="bf-phone" class="bulk-input bulk-parsed"
+                                                placeholder="@lang('app.phone')" onmouseover="bulkHl('phone')" required>
+                                        </div>
+
+                                        {{-- Skills --}}
+                                        <div class="bulk-fg">
+                                            <label class="bulk-label">
+                                                Skills
+                                                <span class="bulk-conf bulk-conf-hi" id="bconf-skills">high</span>
+                                            </label>
+                                            <input type="text" name="skills" id="bf-skills" class="bulk-input bulk-parsed"
+                                                placeholder="Skills from CV" onmouseover="bulkHl('skills')">
+                                        </div>
+
+                                        {{-- Address --}}
+                                        <div class="bulk-fg">
+                                            <label class="bulk-label">@lang('app.address')</label>
+                                            <textarea name="address" id="bf-address" rows="2"
+                                                class="bulk-input bulk-parsed resize-none"
+                                                placeholder="@lang('app.address')"></textarea>
+                                        </div>
+
+                                        {{-- Notes --}}
+                                        <div class="bulk-fg">
+                                            <label class="bulk-label">@lang('modules.jobApplication.applicantNotes')</label>
+                                            <div id="bulk-notes-list" class="space-y-1 mb-2"></div>
+                                            <div class="flex gap-2">
+                                                <textarea id="bulk-notes-input" rows="2"
+                                                    class="bulk-input flex-1 resize-none text-xs"
+                                                    placeholder="@lang('modules.jobApplication.addNote')"></textarea>
+                                                <button type="button" id="bulk-add-note"
+                                                    class="px-2 py-1 bg-blue-600 text-white rounded text-xs font-medium self-end whitespace-nowrap hover:bg-blue-700">
+                                                    <i class="fa fa-plus mr-1"></i>Add
+                                                </button>
+                                            </div>
+                                            <div id="bulk-notes-hidden"></div>
+                                        </div>
+
+                                        {{-- Questions section (loaded dynamically) --}}
+                                        <div id="bulk-question-section" style="display:none;">
+                                            <div class="border-t border-gray-100 pt-3 mt-2">
+                                                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">@lang('modules.front.additionalDetails')</p>
+                                                <div id="bulk-question-box"></div>
+                                            </div>
+                                        </div>
+
+                                        {{-- Required columns (country/state/city injected here) --}}
+                                        <div id="bulk-show-columns"></div>
+                                        <div id="bulk-show-sections"></div>
+
+                                    </form>
+                                </div>
+                            </div>
+
+                            {{-- Filing + actions bar --}}
+                            <div class="bulk-filing-bar">
+
+                                {{-- Entry type --}}
+                                <div class="flex flex-col gap-1.5 flex-shrink-0">
+                                    <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">File to</span>
+                                    <div class="flex gap-1.5">
+                                        <button type="button" class="bulk-tog bulk-tog-on" id="bulk-tog-db"
+                                            onclick="bulkSetFiling('db')">
+                                            Database only
+                                        </button>
+                                        <button type="button" class="bulk-tog" id="bulk-tog-job"
+                                            onclick="bulkSetFiling('job')">
+                                            + Assign job
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {{-- Job selector (visible when "assign job" is active) --}}
+                                <div id="bulk-job-selector" class="flex-1 min-w-0" style="display:none;">
+                                    <label class="text-xs text-gray-400 mb-1 block">@lang('menu.jobs')</label>
+                                    <select id="bulk-job-select" class="bulk-input text-xs w-full"
+                                        onchange="bulkGetQuestions(this.value)">
+                                        <option value="">— choose a job —</option>
+                                        @foreach ($locations as $location)
+                                            <option value="{{ $location->id }}"
+                                                data-job-id="{{ $location->job_id }}"
+                                                data-loc-id="{{ $location->location_id }}">
+                                                {{ ucwords($location->job->title) }} ({{ ucwords($location->location->location) }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                {{-- Navigation & save --}}
+                                <div class="flex items-center gap-2 ml-auto flex-shrink-0">
+                                    <button type="button" class="bulk-nav-btn" onclick="bulkStep(-1)">
+                                        <i class="fa fa-arrow-left"></i> Prev
+                                    </button>
+                                    <span class="text-xs text-gray-400 whitespace-nowrap" id="bulk-counter">0 of 0</span>
+                                    <button type="button" class="bulk-nav-btn" onclick="bulkStep(1)">
+                                        Next <i class="fa fa-arrow-right"></i>
+                                    </button>
+                                    <button type="button" id="bulk-save-btn" onclick="bulkSaveCurrent()"
+                                        class="bulk-save-btn">
+                                        <i class="fa fa-check mr-1"></i> Save &amp; next
                                     </button>
                                 </div>
                             </div>
-                        </div>
+                        </div>{{-- /bulk-review-pane --}}
+                    </div>{{-- /bulk-col-right --}}
+                </div>{{-- /bulk-layout --}}
 
-                        {{-- Job field wrapper — hide when candidate --}}
-                        <div id="job-field-wrapper">
-                        </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-12 gap-6 border-t border-gray-200 pt-6">
-                                <div class="md:col-span-4">
-                                    <h5 class="text-lg font-semibold text-gray-900">@lang('modules.front.personalInformation')</h5>
-                                </div>
-
-                                <div class="md:col-span-8">
-                                    <div class="form-group">
-                                        <input type="hidden" value="" name="job_id" id="job_id">
-                                        <input type="hidden" value="" name="location_id" id="location_id">
-                                        <label class="control-label">@lang('menu.jobs') <span class="text-gray-500 text-sm">(optional)</span></label>
-                                        <select name="job_job_location_id" id="job_job_location_id" onchange="getQuestions(this.value)"
-                                            class="select2 form-control">
-                                            <option value="">Create applicant without job</option>
-                                            @foreach ($locations as $location)
-                                                <option value="{{ $location->id }}">
-                                                    {{ ucwords($location->job->title) . '(' . ucwords($location->location->location) . ')' }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label class="control-label required">@lang('app.name')</label>
-                                        <input class="form-control" type="text" name="full_name"
-                                            placeholder="@lang('app.name')">
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label class="control-label required">@lang('app.email')</label>
-                                        <input class="form-control" type="email" name="email"
-                                            placeholder="@lang('app.email')">
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label class="control-label required">@lang('app.phone')</label>
-                                        <input class="form-control" type="tel" name="phone"
-                                            placeholder="@lang('app.phone')">
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="control-label">Skills</label>
-                                        <input class="form-control" type="text" name="skills" id="skills"
-                                            placeholder="Skills from CV">
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="control-label">@lang('app.address')</label>
-                                        <textarea class="form-control" name="address" rows="4" cols="50" placeholder="@lang('app.address')"></textarea>
-                                    </div>
-                                    <div class="form-group mt-4">
-                                        <label class="control-label">@lang('modules.jobApplication.applicantNotes')</label>
-                                        <div id="create-notes-list" class="space-y-2 mb-3"></div>
-                                        <div class="flex gap-2">
-                                            <textarea name="notes_input" id="notes_input" rows="2"
-                                                class="form-control flex-1 resize-none"
-                                                placeholder="@lang('modules.jobApplication.addNote')"></textarea>
-                                            <button type="button" id="add-create-note"
-                                                class="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium self-end whitespace-nowrap">
-                                                <i class="fa fa-plus mr-1"></i> Add
-                                            </button>
-                                        </div>
-                                        <div id="create-notes-hidden"></div>
-                                    </div>
-                                    <div id="show-columns">
-                                    </div>
-                                </div>
-                            </div>
-                            <div id="show-sections">
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-12 gap-6 border-t border-gray-200 pt-6">
-                                <div class="md:col-span-4 hidden" id="questionBoxTitle">
-                                    <h5 class="text-lg font-semibold text-gray-900">@lang('modules.front.additionalDetails')</h5>
-                                </div>
-
-                                <div class="md:col-span-8 hidden" id="questionBox">
-
-                                </div>
-                            </div>
-                            <div class="mt-6">
-                                <button type="button" id="save-form" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 inline-flex items-center"><i class="fa fa-check mr-2"></i>
-                                    @lang('app.save')</button>
-                            </div>
-
-                        </form>
-                </div>
             </div>
         </div>
     </div>
+</div>
 @endsection
 
 @push('footer-script')
@@ -149,659 +265,1093 @@
     <script src="{{ asset('assets/node_modules_files/select2/dist/js/select2.full.min.js') }}"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
-    <script>
-        const fetchCountryState = "{{ route('jobs.fetchCountryState') }}";
-        const csrfToken = "{{ csrf_token() }}";
-        const selectCountry = "@lang('modules.front.selectCountry')";
-        const selectState = "@lang('modules.front.selectState')";
-        const selectCity = "@lang('modules.front.selectCity')";
-        const pleaseWait = "@lang('app.aiGenerating')";
-        const resumeParsingText = "Parsing CV...";
-        const aiGenerateCoverLetterUrl = "{{ route('admin.job-applications.ai-generate-cover-letter') }}";
-        const jobApplicationsIndexUrl = "{{ route('admin.job-applications.index') }}";
 
-        let country = "";
-        let state = "";
-    </script>
-    <script src="{{ asset('front/assets/js/location.js') }}"></script>
-    <script>
-        var datepicker = $('.dob').datepicker({
-            autoclose: true,
-            format: 'yyyy-mm-dd',
-            endDate: (new Date()).toDateString(),
-        });
-
-        $('.select2').select2({
-            width: '100%'
-        });
-        // Entry type toggle
-        $('input[name="entry_type"]').on('change', function () {
-            if ($(this).val() === 'candidate') {
-                $('#job-field-wrapper').hide();
-                $('#job_job_location_id').val('').trigger('change');
-                // clear job/location hidden fields
-                $('#job_id').val('');
-                $('#location_id').val('');
-                $('#questionBox').addClass('hidden').html('');
-                $('#questionBoxTitle').addClass('hidden');
-                $('#show-columns').html('');
-                $('#show-sections').html('');
-            } else {
-                $('#job-field-wrapper').show();
-            }
-        });
-        $('#save-form').click(function() {
-            submitApplicantForm();
-        });
-
-        var val = $('#job_job_location_id').val(); // get Current Selected Job
-        if (val != '' && typeof val !== 'undefined') {
-            getQuestions(val); // get Questions by question on page load
+    <style>
+        /* ── Layout ── */
+        .bulk-layout {
+            display: grid;
+            grid-template-columns: 230px 1fr;
+            gap: 16px;
+            min-height: 600px;
+        }
+        @media (max-width: 768px) {
+            .bulk-layout { grid-template-columns: 1fr; }
         }
 
-        // get Questions on change Job
-        function getQuestions(id) {
-            if (typeof id === 'undefined' || id === '') {
-                $('#job_id').val('');
-                $('#location_id').val('');
-                $('#questionBox').addClass('hidden').html('');
-                $('#questionBoxTitle').addClass('hidden');
-                $('#show-columns').html('');
-                $('#show-sections').html('');
-                return;
-            }
+        /* ── Left column ── */
+        .bulk-col-left {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .bulk-dropzone {
+            border: 1.5px dashed #d1d5db;
+            border-radius: 10px;
+            padding: 16px 12px;
+            text-align: center;
+            cursor: pointer;
+            background: #f9fafb;
+            transition: border-color .15s, background .15s;
+            flex-shrink: 0;
+        }
+        .bulk-dropzone:hover,
+        .bulk-dropzone.over {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+        .bulk-queue-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            min-height: 200px;
+            max-height: 420px;
+            padding-right: 2px;
+        }
+        .bulk-q-item {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 7px 9px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 0.5px solid transparent;
+            transition: background .12s;
+        }
+        .bulk-q-item:hover  { background: #f3f4f6; }
+        .bulk-q-item.active { background: #eff6ff; border-color: #bfdbfe; }
+        .bulk-q-item.active .bulk-q-name { color: #1d4ed8; font-weight: 500; }
+        .bulk-q-dot {
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            flex-shrink: 0;
+        }
+        .bulk-dot-pending { background: #f3f4f6; color: #9ca3af; border: 0.5px solid #e5e7eb; }
+        .bulk-dot-parsing  { background: #fef3c7; color: #92400e; }
+        .bulk-dot-done     { background: #d1fae5; color: #065f46; }
+        .bulk-dot-saved    { background: #dbeafe; color: #1e40af; }
+        .bulk-dot-error    { background: #fee2e2; color: #991b1b; }
+        .bulk-q-name {
+            flex: 1;
+            font-size: 12px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #374151;
+        }
+        .bulk-q-del {
+            font-size: 11px;
+            color: #d1d5db;
+            opacity: 0;
+            cursor: pointer;
+            padding: 2px 3px;
+            border-radius: 4px;
+            border: none;
+            background: transparent;
+        }
+        .bulk-q-item:hover .bulk-q-del { opacity: 1; }
+        .bulk-q-del:hover { color: #dc2626; background: #fee2e2; }
 
-            var url = "{{ route('admin.job-applications.question', ':id') }}";
-            url = url.replace(':id', id);
-
-            $.easyAjax({
-                type: 'GET',
-                url: url,
-                container: '#createForm',
-                success: function(response) {
-                    $('#job_id').val(response.jobJobLocation.job_id)
-                    $('#location_id').val(response.jobJobLocation.location_id)
-                    if (response.status == "success") {
-                        if (response.count > 0) { // Question Found for selected job
-                            $('#questionBox').removeClass('hidden');
-                            $('#questionBoxTitle').removeClass('hidden');
-                            $('#questionBox').html(response.view);
-                        } else { // Question Not Found for selected job
-                            $('#questionBox').addClass('hidden');
-                            $('#questionBoxTitle').addClass('hidden');
-                        }
-                        $('#show-columns').html(response.requiredColumnsView);
-                        $('#show-sections').html(response.requiredSectionsView);
-                        if (response.requiredColumnsView !== '') {
-                            var datepicker = $('.dob').datepicker({
-                                autoclose: true,
-                                format: 'yyyy-mm-dd',
-                                endDate: (new Date()).toDateString(),
-                            });
-
-                            $('.select2').select2({
-                                width: '100%'
-                            });
-
-                            var loc = new locationInfo()
-                            loc.getCountries()
-                        }
-                    }
-                }
-            });
+        /* ── Right column ── */
+        .bulk-col-right {
+            display: flex;
+            flex-direction: column;
+        }
+        .bulk-empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-align: center;
+            border: 1.5px dashed #e5e7eb;
+            border-radius: 12px;
+            padding: 40px;
+        }
+        .bulk-review-pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            border: 0.5px solid #e5e7eb;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #fff;
+        }
+        .bulk-split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            flex: 1;
+            min-height: 0;
+        }
+        @media (max-width: 900px) {
+            .bulk-split { grid-template-columns: 1fr; }
         }
 
-        $('#parse-resume').click(function() {
-            var $btn = $(this);
-            var $form = $('#createForm');
-            var input = $form.find('input[name="resume"]')[0];
+        /* ── CV Viewer ── */
+        .bulk-cv-viewer {
+            height: 400px;
+            overflow-y: auto;
+            padding: 14px;
+            background: #f9fafb;
+            border-right: 0.5px solid #e5e7eb;
+        }
+        .bulk-cv-page {
+            background: #fff;
+            border: 0.5px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 18px 20px;
+            min-height: 100%;
+        }
+        .bulk-cv-page * { color: #1f2937 !important; }
+        .bulk-cv-name    { font-size: 16px; font-weight: 700; margin: 0 0 2px; }
+        .bulk-cv-contact { font-size: 10.5px; color: #6b7280 !important; margin: 0 0 10px; }
+        .bulk-cv-sec {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 2px;
+            margin: 10px 0 5px;
+        }
+        .bulk-cv-li {
+            font-size: 10.5px;
+            margin: 0 0 3px;
+            padding-left: 10px;
+            position: relative;
+            line-height: 1.5;
+        }
+        .bulk-cv-li:before { content: "•"; position: absolute; left: 0; }
+        .bulk-cv-skills    { font-size: 10.5px; line-height: 1.6; }
+        .bulk-hl           { background: #fef9c3; padding: 0 2px; border-radius: 2px; }
+        .bulk-raw-text {
+            font-size: 11px;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: #374151;
+        }
 
-            if (!input || !input.files || !input.files.length) {
-                alert('Please upload a CV first.');
-                return;
-            }
+        /* ── Form scroll area ── */
+        .bulk-form-scroll {
+            height: 400px;
+            overflow-y: auto;
+            padding: 14px 16px;
+        }
+        .bulk-fg           { margin-bottom: 10px; }
+        .bulk-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11.5px;
+            color: #6b7280;
+            font-weight: 500;
+            margin-bottom: 3px;
+        }
+        .bulk-input {
+            width: 100%;
+            font-size: 12.5px;
+            padding: 5px 8px;
+            border: 0.5px solid #d1d5db;
+            border-radius: 8px;
+            background: #fff;
+            color: #111827;
+            outline: none;
+            box-sizing: border-box;
+        }
+        .bulk-input:focus   { border-color: #2563eb; }
+        .bulk-input.bulk-parsed { border-color: #059669; background: #f0fdf4; }
+        .bulk-conf {
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        .bulk-conf-hi  { background: #d1fae5; color: #065f46; }
+        .bulk-conf-lo  { background: #fef3c7; color: #92400e; }
 
-            var prevHtml = $btn.html();
-            $btn.prop('disabled', true).html(resumeParsingText);
+        /* ── Note pills ── */
+        .bulk-note-pill {
+            display: flex;
+            align-items: start;
+            justify-content: space-between;
+            background: #f9fafb;
+            border-left: 3px solid #60a5fa;
+            border-radius: 6px;
+            padding: 6px 8px;
+            font-size: 11.5px;
+            gap: 6px;
+        }
 
-            parseResumeIfSelected($form, function() {
-                $btn.prop('disabled', false).html(prevHtml);
-                if (typeof $.toast === 'function') {
-                    $.toast({
-                        text: 'CV parsed successfully.',
-                        position: 'top-right',
-                        loaderBg: '#00c292',
-                        icon: 'success',
-                        hideAfter: 3000,
+        /* ── Filing bar ── */
+        .bulk-filing-bar {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 10px 14px;
+            border-top: 0.5px solid #e5e7eb;
+            background: #f9fafb;
+            flex-wrap: wrap;
+        }
+        .bulk-tog {
+            font-size: 11.5px;
+            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 8px;
+            border: 0.5px solid #d1d5db;
+            cursor: pointer;
+            background: transparent;
+            color: #6b7280;
+            transition: background .12s, border-color .12s, color .12s;
+            white-space: nowrap;
+        }
+        .bulk-tog.bulk-tog-on {
+            background: #2563eb;
+            color: #fff;
+            border-color: #2563eb;
+        }
+        .bulk-nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 0.5px solid #d1d5db;
+            background: transparent;
+            color: #6b7280;
+            cursor: pointer;
+        }
+        .bulk-nav-btn:hover { background: #f3f4f6; }
+        .bulk-save-btn {
+            font-size: 12.5px;
+            font-weight: 500;
+            padding: 7px 16px;
+            border-radius: 8px;
+            border: none;
+            background: #059669;
+            color: #fff;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+        }
+        .bulk-save-btn:hover  { background: #047857; }
+        .bulk-save-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+        /* spinner */
+        @keyframes bulk-spin { to { transform: rotate(360deg); } }
+        .bulk-spin { display: inline-block; animation: bulk-spin .7s linear infinite; }
+    </style>
+
+    <script>
+        /* ─────────────────────────────────────────────
+           Laravel route & config variables
+        ───────────────────────────────────────────── */
+        const bulkCsrfToken          = "{{ csrf_token() }}";
+        const bulkStoreUrl           = "{{ route('admin.job-applications.store') }}";
+        const bulkIndexUrl           = "{{ route('admin.job-applications.index') }}";
+        const bulkQuestionRouteBase  = "{{ route('admin.job-applications.question', ':id') }}";
+        const bulkFetchCountryState  = "{{ route('jobs.fetchCountryState') }}";
+        const bulkSelectCountry      = "@lang('modules.front.selectCountry')";
+        const bulkSelectState        = "@lang('modules.front.selectState')";
+        const bulkSelectCity         = "@lang('modules.front.selectCity')";
+
+        /* ─────────────────────────────────────────────
+           State
+        ───────────────────────────────────────────── */
+        var bulkQueue    = [];   // array of item objects
+        var bulkActive   = -1;
+        var bulkFiling   = 'db';
+        var bulkNotes    = [];
+
+        /* ─────────────────────────────────────────────
+           File input / drop zone
+        ───────────────────────────────────────────── */
+        document.getElementById('bulk-file-input').addEventListener('change', function () {
+            bulkAddFiles(this.files);
+            this.value = '';
+        });
+
+        function bulkOnDragOver(e) {
+            e.preventDefault();
+            document.getElementById('bulk-dropzone').classList.add('over');
+        }
+        function bulkOnDragLeave(e) {
+            document.getElementById('bulk-dropzone').classList.remove('over');
+        }
+        function bulkOnDrop(e) {
+            e.preventDefault();
+            document.getElementById('bulk-dropzone').classList.remove('over');
+            if (e.dataTransfer && e.dataTransfer.files) bulkAddFiles(e.dataTransfer.files);
+        }
+
+        function bulkAddFiles(files) {
+            if (!files || !files.length) return;
+            Array.from(files).forEach(function (f) {
+                var alreadyAdded = bulkQueue.some(function (q) {
+                    return q.file && q.file.name === f.name;
+                });
+                if (!alreadyAdded) {
+                    bulkQueue.push({
+                        file:    f,
+                        name:    f.name.replace(/\.[^.]+$/, ''),
+                        status:  'pending',   // pending | parsing | done | error
+                        parsed:  null,
+                        saved:   false,
+                        notes:   [],
+                        filing:  'db',
+                        jobLocId: '',
+                        jobId:   '',
+                        locId:   '',
                     });
                 }
-            }, function() {
-                $btn.prop('disabled', false).html(prevHtml);
             });
-        });
-
-        function submitApplicantForm() {
-            var $form = $('#createForm');
-            var fd = new FormData($form[0]);
-            var selectedJobLocation = $('#job_job_location_id').val();
-
-            if (!selectedJobLocation) {
-                fd.delete('job_job_location_id');
-                fd.delete('job_id');
-                fd.delete('location_id');
-            }
-
-            $.ajax({
-                url: '{{ route('admin.job-applications.store') }}',
-                type: 'POST',
-                data: fd,
-                processData: false,
-                contentType: false,
-                dataType: 'json',
-                beforeSend: function() {
-                    if (typeof $.easyBlockUI === 'function') {
-                        $.easyBlockUI('#createForm');
-                    }
-                },
-                complete: function() {
-                    if (typeof $.easyUnblockUI === 'function') {
-                        $.easyUnblockUI('#createForm');
-                    }
-                },
-                success: function(response) {
-                    if (response && response.status === 'success') {
-                        window.location.href = jobApplicationsIndexUrl;
-                    }
-                },
-                error: function(response) {
-                    handleFails(response);
-                }
-            });
+            bulkRenderQueue();
+            bulkUpdateBatchBar();
+            if (bulkActive === -1 && bulkQueue.length > 0) bulkSelectItem(0);
         }
 
-        // AI generate cover letter + (optionally) fill other personal details.
-        $(document).on('click', '.ai-generate-cover-letter', function() {
-            var $btn = $(this);
-            var jobId = $('#job_id').val();
-            var locationId = $('#location_id').val();
+        /* ─────────────────────────────────────────────
+           Queue render
+        ───────────────────────────────────────────── */
+        function bulkRenderQueue() {
+            var list  = document.getElementById('bulk-q-list');
+            var empty = document.getElementById('bulk-q-empty');
+            document.getElementById('bulk-q-count').textContent =
+                bulkQueue.length + ' file' + (bulkQueue.length !== 1 ? 's' : '');
 
-            if (typeof jobId === 'undefined' || jobId === '') {
-                alert('Please select job and location first.');
+            document.getElementById('bulk-progress-pill').style.display = bulkQueue.length ? '' : 'none';
+            document.getElementById('bulk-total-count').textContent = bulkQueue.length;
+
+            if (!bulkQueue.length) {
+                list.innerHTML = '';
+                list.appendChild(empty);
+                bulkUpdateProgress();
+                return;
+            }
+            empty.style.display = 'none';
+
+            list.innerHTML = bulkQueue.map(function (item, i) {
+                var dotCls = 'bulk-dot-pending', iconCls = 'fa-clock-o';
+                if (item.status === 'parsing') { dotCls = 'bulk-dot-parsing'; iconCls = 'fa-spinner bulk-spin'; }
+                else if (item.saved)           { dotCls = 'bulk-dot-saved';   iconCls = 'fa-check'; }
+                else if (item.status === 'done'){ dotCls = 'bulk-dot-done';   iconCls = 'fa-check'; }
+                else if (item.status === 'error'){ dotCls = 'bulk-dot-error'; iconCls = 'fa-exclamation-triangle'; }
+
+                return '<div class="bulk-q-item' + (i === bulkActive ? ' active' : '') + '" onclick="bulkSelectItem(' + i + ')">' +
+                    '<span class="bulk-q-dot ' + dotCls + '"><i class="fa ' + iconCls + '"></i></span>' +
+                    '<span class="bulk-q-name" title="' + bulkEsc(item.name) + '">' + bulkEsc(item.name) + '</span>' +
+                    '<button class="bulk-q-del" type="button" onclick="event.stopPropagation();bulkRemoveItem(' + i + ')" title="Remove"><i class="fa fa-times"></i></button>' +
+                '</div>';
+            }).join('');
+
+            bulkUpdateProgress();
+        }
+
+        function bulkRemoveItem(i) {
+            bulkQueue.splice(i, 1);
+            if (bulkActive >= bulkQueue.length) bulkActive = bulkQueue.length - 1;
+            if (bulkActive === i) bulkActive = -1;
+            bulkRenderQueue();
+            bulkUpdateBatchBar();
+            if (bulkActive >= 0) bulkSelectItem(bulkActive);
+            else bulkShowEmptyState();
+        }
+
+        /* ─────────────────────────────────────────────
+           Select item → parse if needed
+        ───────────────────────────────────────────── */
+        function bulkSelectItem(i) {
+            // Save current form edits back to queue before switching
+            if (bulkActive >= 0 && bulkActive !== i) bulkSnapshotForm(bulkActive);
+
+            bulkActive = i;
+            bulkRenderQueue();
+            var item = bulkQueue[i];
+            if (!item) return;
+
+            document.getElementById('bulk-empty-state').style.display  = 'none';
+            document.getElementById('bulk-review-pane').style.display  = 'flex';
+
+            // Restore filing mode for this item
+            bulkSetFiling(item.filing || 'db', false);
+
+            if (item.status === 'done' || item.saved) {
+                bulkRenderCV(item);
+                bulkFillForm(item);
+            } else if (item.status === 'parsing') {
+                bulkShowParsingState(item.name);
+            } else {
+                bulkParseItem(i);
+            }
+        }
+
+        /* ─────────────────────────────────────────────
+           Parse a single CV using existing helpers
+        ───────────────────────────────────────────── */
+        function bulkParseItem(i) {
+            var item = bulkQueue[i];
+            item.status = 'parsing';
+            bulkRenderQueue();
+            bulkShowParsingState(item.name);
+
+            bulkExtractResumeText(item.file)
+                .then(function (text) {
+                    if (!String(text || '').trim()) throw 'No readable text found in this CV.';
+
+                    var data      = bulkParseResumeText(text);
+                    item.parsed   = data;
+                    item.status   = 'done';
+
+                    // Store raw text for AI cover-letter generation
+                    item.resumeText = text;
+
+                    bulkRenderQueue();
+                    bulkUpdateBatchBar();
+
+                    if (bulkActive === i) {
+                        bulkRenderCV(item);
+                        bulkFillForm(item);
+                    }
+                })
+                .catch(function (err) {
+                    item.status = 'error';
+                    item.parsed = null;
+                    bulkRenderQueue();
+                    if (bulkActive === i) {
+                        document.getElementById('bulk-cv-viewer').innerHTML =
+                            '<div class="flex flex-col items-center justify-center h-full gap-2 text-red-400">' +
+                            '<i class="fa fa-exclamation-triangle fa-2x"></i>' +
+                            '<p class="text-xs text-center">' + bulkEsc(String(err)) + '</p></div>';
+                    }
+                });
+        }
+
+        /* ─────────────────────────────────────────────
+           CV renderer (shows raw extracted text with
+           name/email/phone/skills highlighted)
+        ───────────────────────────────────────────── */
+        function bulkRenderCV(item) {
+            var d   = item.parsed || {};
+            var raw = item.resumeText || '';
+
+            // Build a minimal structured preview if we have parsed fields,
+            // otherwise fall back to raw text
+            var html = '<div class="bulk-cv-page">';
+
+            if (d.full_name) {
+                html += '<p class="bulk-cv-name"><span class="bulk-hl-name">' + bulkEsc(d.full_name) + '</span></p>';
+                var contact = [d.email, d.phone, d.address].filter(Boolean);
+                if (contact.length) {
+                    html += '<p class="bulk-cv-contact">';
+                    if (d.email)   html += '<span class="bulk-hl-email">' + bulkEsc(d.email) + '</span>';
+                    if (d.phone)   html += (d.email ? ' · ' : '') + '<span class="bulk-hl-phone">' + bulkEsc(d.phone) + '</span>';
+                    if (d.address) html += (d.email || d.phone ? ' · ' : '') + '<span class="bulk-hl-addr">' + bulkEsc(d.address) + '</span>';
+                    html += '</p>';
+                }
+            }
+
+            if (d.skills) {
+                html += '<div class="bulk-cv-sec">Skills</div>';
+                html += '<p class="bulk-cv-skills"><span class="bulk-hl-skills">' + bulkEsc(d.skills) + '</span></p>';
+            }
+
+            if (raw) {
+                // Show the raw text (truncated) below parsed fields
+                html += '<div class="bulk-cv-sec">Full text</div>';
+                html += '<pre class="bulk-raw-text">' + bulkEsc(raw.substring(0, 3000)) + (raw.length > 3000 ? '\n…' : '') + '</pre>';
+            }
+
+            html += '</div>';
+            document.getElementById('bulk-cv-viewer').innerHTML = html;
+        }
+
+        function bulkShowParsingState(name) {
+            document.getElementById('bulk-cv-viewer').innerHTML =
+                '<div class="flex flex-col items-center justify-center h-full gap-2 text-gray-400">' +
+                '<i class="fa fa-spinner fa-spin fa-2x"></i>' +
+                '<p class="text-xs">Parsing ' + bulkEsc(name) + '...</p></div>';
+            document.getElementById('bulk-form-fields-wrap') && (document.getElementById('bulk-form-fields-wrap').style.display = 'none');
+        }
+
+        /* ─────────────────────────────────────────────
+           Fill form from parsed data
+        ───────────────────────────────────────────── */
+        function bulkFillForm(item) {
+            var d = item.parsed || {};
+
+            // Header
+            var initial = (d.full_name || '?').charAt(0).toUpperCase();
+            document.getElementById('bulk-rev-avatar').textContent   = initial;
+            document.getElementById('bulk-rev-name').textContent     = d.full_name || item.name;
+            document.getElementById('bulk-rev-file').textContent     = item.file ? item.file.name : '';
+
+            var flag = document.getElementById('bulk-rev-flag');
+            if (item.saved) {
+                flag.className   = 'text-xs px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700';
+                flag.textContent = '✓ saved';
+            } else if (item.status === 'done') {
+                flag.className   = 'text-xs px-2 py-0.5 rounded-full font-medium bg-green-100 text-green-700';
+                flag.textContent = 'parsed';
+            } else {
+                flag.className   = 'text-xs px-2 py-0.5 rounded-full font-medium bg-yellow-100 text-yellow-700';
+                flag.textContent = 'needs review';
+            }
+
+            // Fields
+            bulkSetInput('bf-name',    d.full_name,  !!d.full_name);
+            bulkSetInput('bf-email',   d.email,      !!d.email);
+            bulkSetInput('bf-phone',   d.phone,      !!d.phone);
+            bulkSetInput('bf-skills',  d.skills,     !!d.skills);
+            bulkSetTextarea('bf-address', d.address, !!d.address);
+
+            // Confidence badges
+            bulkSetConf('bconf-email',  d.email);
+            bulkSetConf('bconf-phone',  d.phone);
+
+            // Resume text for AI
+            document.getElementById('bulk-resume-text-for-ai').value = item.resumeText || '';
+
+            // Notes
+            bulkNotes = item.notes ? item.notes.slice() : [];
+            bulkRenderNotes();
+
+            // Job/location hidden fields
+            document.getElementById('bulk-job-id').value  = item.jobId  || '';
+            document.getElementById('bulk-location-id').value = item.locId || '';
+            if (item.jobLocId) {
+                document.getElementById('bulk-job-select').value = item.jobLocId;
+            } else {
+                document.getElementById('bulk-job-select').value = '';
+                document.getElementById('bulk-question-section').style.display = 'none';
+                document.getElementById('bulk-question-box').innerHTML = '';
+                document.getElementById('bulk-show-columns').innerHTML = '';
+                document.getElementById('bulk-show-sections').innerHTML = '';
+            }
+        }
+
+        function bulkSetInput(id, val, parsed) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.value = val || '';
+            el.classList.toggle('bulk-parsed', !!parsed);
+        }
+        function bulkSetTextarea(id, val, parsed) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.value = val || '';
+            el.classList.toggle('bulk-parsed', !!parsed);
+        }
+        function bulkSetConf(id, val) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            if (val) {
+                el.className   = 'bulk-conf bulk-conf-hi';
+                el.textContent = 'high';
+            } else {
+                el.className   = 'bulk-conf bulk-conf-lo';
+                el.textContent = 'check';
+            }
+        }
+
+        /* Snapshot form values back into the queue item so switching away doesn't lose edits */
+        function bulkSnapshotForm(i) {
+            var item = bulkQueue[i];
+            if (!item || !item.parsed) return;
+            item.parsed.full_name = document.getElementById('bf-name').value;
+            item.parsed.email     = document.getElementById('bf-email').value;
+            item.parsed.phone     = document.getElementById('bf-phone').value;
+            item.parsed.skills    = document.getElementById('bf-skills').value;
+            item.parsed.address   = document.getElementById('bf-address').value;
+            item.notes            = bulkNotes.slice();
+            item.filing           = bulkFiling;
+            item.jobLocId         = document.getElementById('bulk-job-select').value;
+            item.jobId            = document.getElementById('bulk-job-id').value;
+            item.locId            = document.getElementById('bulk-location-id').value;
+        }
+
+        /* ─────────────────────────────────────────────
+           Highlight CV text on form field hover
+        ───────────────────────────────────────────── */
+        var bulkHlMap = {
+            name:   '.bulk-hl-name',
+            email:  '.bulk-hl-email',
+            phone:  '.bulk-hl-phone',
+            skills: '.bulk-hl-skills',
+        };
+        function bulkHl(key) {
+            document.querySelectorAll('#bulk-cv-viewer .bulk-hl').forEach(function (el) {
+                el.classList.remove('bulk-hl');
+            });
+            var sel = bulkHlMap[key];
+            if (sel) {
+                var el = document.querySelector('#bulk-cv-viewer ' + sel);
+                if (el) { el.classList.add('bulk-hl'); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+            }
+        }
+
+        /* ─────────────────────────────────────────────
+           Filing mode toggle
+        ───────────────────────────────────────────── */
+        function bulkSetFiling(mode, persist) {
+            bulkFiling = mode;
+            if (persist !== false && bulkActive >= 0) bulkQueue[bulkActive].filing = mode;
+            document.getElementById('bulk-tog-db').classList.toggle('bulk-tog-on', mode === 'db');
+            document.getElementById('bulk-tog-job').classList.toggle('bulk-tog-on', mode === 'job');
+            document.getElementById('bulk-job-selector').style.display = mode === 'job' ? '' : 'none';
+        }
+
+        /* ─────────────────────────────────────────────
+           Job questions (same logic as original create)
+        ───────────────────────────────────────────── */
+        function bulkGetQuestions(jobLocId) {
+            // Store job/location ids
+            var sel  = document.getElementById('bulk-job-select');
+            var opt  = sel.options[sel.selectedIndex];
+            var jobId = opt ? (opt.getAttribute('data-job-id') || '') : '';
+            var locId = opt ? (opt.getAttribute('data-loc-id') || '') : '';
+
+            document.getElementById('bulk-job-id').value      = jobId;
+            document.getElementById('bulk-location-id').value = locId;
+
+            if (bulkActive >= 0) {
+                bulkQueue[bulkActive].jobLocId = jobLocId;
+                bulkQueue[bulkActive].jobId    = jobId;
+                bulkQueue[bulkActive].locId    = locId;
+            }
+
+            if (!jobLocId) {
+                document.getElementById('bulk-question-section').style.display = 'none';
+                document.getElementById('bulk-question-box').innerHTML = '';
+                document.getElementById('bulk-show-columns').innerHTML = '';
+                document.getElementById('bulk-show-sections').innerHTML = '';
                 return;
             }
 
-            var $form = $('#createForm');
-            var prevHtml = $btn.html();
-            $btn.prop('disabled', true).html(pleaseWait);
-            var afterResumePrepared = function() {
-                var payload = {
-                    _token: csrfToken,
-                    job_id: jobId,
-                    location_id: (locationId && locationId !== '') ? locationId : null,
-                    full_name: $form.find('input[name="full_name"]').val(),
-                    email: $form.find('input[name="email"]').val(),
-                    phone: $form.find('input[name="phone"]').val(),
-                    address: $form.find('textarea[name="address"]').val(),
-                    cover_letter: $form.find('textarea[name="cover_letter"]').val(),
-                    resume_text: $('#resume_text_for_ai').val() || ''
-                };
+            var url = bulkQuestionRouteBase.replace(':id', jobLocId);
+            $.easyAjax({
+                type: 'GET',
+                url:  url,
+                container: '#bulk-candidate-form',
+                success: function (response) {
+                    document.getElementById('bulk-job-id').value      = response.jobJobLocation.job_id;
+                    document.getElementById('bulk-location-id').value = response.jobJobLocation.location_id;
 
-                $.easyAjax({
-                    url: aiGenerateCoverLetterUrl,
-                    container: '#createForm',
-                    type: "POST",
-                    redirect: false,
-                    data: payload,
-                    success: function(res) {
-                        try {
-                            var data = res || {};
-                            // Fill only if empty to avoid overwriting manually entered values.
-                            var $fullName = $form.find('input[name="full_name"]');
-                            if ($fullName.val().trim() === '' && data.full_name) $fullName.val(data.full_name);
-
-                            var $email = $form.find('input[name="email"]');
-                            if ($email.val().trim() === '' && data.email) $email.val(data.email);
-
-                            var $phone = $form.find('input[name="phone"]');
-                            if ($phone.val().trim() === '' && data.phone) $phone.val(data.phone);
-
-                            var $address = $form.find('textarea[name="address"]');
-                            if ($address.val().trim() === '' && data.address) $address.val(data.address);
-
-                            var $coverLetter = $form.find('textarea[name="cover_letter"]');
-                            if ($coverLetter.val().trim() === '' && data.cover_letter) {
-                                $coverLetter.val(data.cover_letter);
-                            } else if (data.cover_letter && data.cover_letter.trim() !== '') {
-                                // If cover letter already has content, still update it when it's empty-only.
-                                // (This keeps the "auto fill" behavior predictable.)
-                            }
-                        } catch (e) {
-                            console.error(e);
-                        } finally {
-                            $btn.prop('disabled', false).html(prevHtml);
-                        }
-                    },
-                    error: function(response) {
-                        $btn.prop('disabled', false).html(prevHtml);
-                        handleFails(response);
+                    if (bulkActive >= 0) {
+                        bulkQueue[bulkActive].jobId = response.jobJobLocation.job_id;
+                        bulkQueue[bulkActive].locId = response.jobJobLocation.location_id;
                     }
-                });
-            };
 
-            parseResumeIfSelected($form, afterResumePrepared, function() {
-                $btn.prop('disabled', false).html(prevHtml);
+                    if (response.count > 0) {
+                        document.getElementById('bulk-question-section').style.display = '';
+                        document.getElementById('bulk-question-box').innerHTML = response.view;
+                    } else {
+                        document.getElementById('bulk-question-section').style.display = 'none';
+                        document.getElementById('bulk-question-box').innerHTML = '';
+                    }
+                    document.getElementById('bulk-show-columns').innerHTML  = response.requiredColumnsView || '';
+                    document.getElementById('bulk-show-sections').innerHTML = response.requiredSectionsView || '';
+
+                    if (response.requiredColumnsView) {
+                        $('.dob').datepicker({ autoclose: true, format: 'yyyy-mm-dd', endDate: (new Date()).toDateString() });
+                        $('.select2').select2({ width: '100%' });
+                        var loc = new locationInfo();
+                        loc.getCountries();
+                    }
+                }
             });
+        }
+
+        /* ─────────────────────────────────────────────
+           Notes
+        ───────────────────────────────────────────── */
+        document.getElementById('bulk-add-note').addEventListener('click', function () {
+            var text = document.getElementById('bulk-notes-input').value.trim();
+            if (!text) return;
+            bulkNotes.push(text);
+            document.getElementById('bulk-notes-input').value = '';
+            bulkRenderNotes();
         });
 
-        function normalizeAiSkills(data) {
-            var skills = data.skills || data.skill || data.skills_text || '';
-            if ($.isArray(skills)) {
-                return skills.filter(Boolean).join(', ');
-            }
-            return skills ? String(skills) : '';
+        function bulkRenderNotes() {
+            var list   = document.getElementById('bulk-notes-list');
+            var hidden = document.getElementById('bulk-notes-hidden');
+            list.innerHTML = bulkNotes.map(function (n, i) {
+                if (n === null) return '';
+                return '<div class="bulk-note-pill" id="bni-' + i + '">' +
+                    '<span class="text-gray-700 flex-1 text-xs">' + bulkEsc(n) + '</span>' +
+                    '<button type="button" class="text-red-400 hover:text-red-600 text-xs" onclick="bulkRemoveNote(' + i + ')"><i class="fa fa-times"></i></button>' +
+                '</div>';
+            }).join('');
+            hidden.innerHTML = bulkNotes.filter(Boolean).map(function (n) {
+                return '<input type="hidden" name="notes[]" value="' + bulkEsc(n) + '">';
+            }).join('');
         }
 
-        function applyParsedResumeFields(data, $form) {
-            if (!data || typeof data !== 'object') return;
-            var $fullName = $form.find('input[name="full_name"]');
-            if ($fullName.length && String($fullName.val()).trim() === '' && data.full_name) {
-                $fullName.val(data.full_name);
-            }
-            var $email = $form.find('input[name="email"]');
-            if ($email.length && String($email.val()).trim() === '' && data.email) {
-                $email.val(data.email);
-            }
-            var $phone = $form.find('input[name="phone"]');
-            if ($phone.length && String($phone.val()).trim() === '' && data.phone) {
-                $phone.val(data.phone);
-            }
-            var $skills = $form.find('input[name="skills"]');
-            var parsedSkills = normalizeAiSkills(data);
-            if ($skills.length && String($skills.val()).trim() === '' && parsedSkills) {
-                $skills.val(parsedSkills);
-            }
-            var $address = $form.find('textarea[name="address"]');
-            if ($address.length && String($address.val()).trim() === '' && data.address) {
-                $address.val(data.address);
-            }
-            var $city = $form.find('input[name="city"]');
-            if ($city.length && String($city.val()).trim() === '' && data.city) {
-                $city.val(data.city);
-            }
-            var $zipCode = $form.find('input[name="zip_code"]');
-            if ($zipCode.length && String($zipCode.val()).trim() === '' && data.zip_code) {
-                $zipCode.val(data.zip_code);
-            }
-            var $coverLetter = $form.find('textarea[name="cover_letter"]');
-            if ($coverLetter.length && String($coverLetter.val()).trim() === '' && data.cover_letter) {
-                $coverLetter.val(data.cover_letter);
-            }
-            if ($('#countryId').length && data.country) {
-                country = data.country;
-                state = data.state || '';
-                var loc = new locationInfo();
-                loc.getCountries();
-            }
-            if (data.resume_text) {
-                $('#resume_text_for_ai').val(data.resume_text);
-            }
+        function bulkRemoveNote(i) {
+            bulkNotes[i] = null;
+            bulkRenderNotes();
         }
 
-        function readFileAsText(file) {
-            return new Promise(function(resolve, reject) {
-                var reader = new FileReader();
-                reader.onload = function(e) { resolve(e.target.result || ''); };
-                reader.onerror = function() { reject('Unable to read this CV file.'); };
-                reader.readAsText(file);
-            });
-        }
+        /* ─────────────────────────────────────────────
+           Save current candidate
+        ───────────────────────────────────────────── */
+        function bulkSaveCurrent() {
+            if (bulkActive < 0) return;
+            bulkSnapshotForm(bulkActive);
+            var item = bulkQueue[bulkActive];
+            if (!item) return;
 
-        function readFileAsArrayBuffer(file) {
-            return new Promise(function(resolve, reject) {
-                var reader = new FileReader();
-                reader.onload = function(e) { resolve(e.target.result); };
-                reader.onerror = function() { reject('Unable to read this CV file.'); };
-                reader.readAsArrayBuffer(file);
-            });
-        }
+            var saveBtn = document.getElementById('bulk-save-btn');
+            var prevHtml = saveBtn.innerHTML;
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fa fa-spinner fa-spin mr-1"></i> Saving…';
 
-        function extractPdfText(file) {
-            if (typeof pdfjsLib === 'undefined') {
-                return Promise.reject('PDF parser is not loaded. Please check the pdf.js script.');
+            var fd = new FormData();
+            fd.append('_token',     bulkCsrfToken);
+            fd.append('full_name',  document.getElementById('bf-name').value);
+            fd.append('email',      document.getElementById('bf-email').value);
+            fd.append('phone',      document.getElementById('bf-phone').value);
+            fd.append('skills',     document.getElementById('bf-skills').value);
+            fd.append('address',    document.getElementById('bf-address').value);
+
+            // Filing
+            if (bulkFiling === 'db') {
+                fd.append('entry_type', 'candidate');
+            } else {
+                fd.append('entry_type',  'applicant');
+                fd.append('job_id',      document.getElementById('bulk-job-id').value);
+                fd.append('location_id', document.getElementById('bulk-location-id').value);
             }
-            if (pdfjsLib.GlobalWorkerOptions) {
-                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-            }
 
-            return readFileAsArrayBuffer(file).then(function(buffer) {
-                return pdfjsLib.getDocument({ data: buffer }).promise;
-            }).then(function(pdf) {
-                var pages = [];
-                for (var i = 1; i <= pdf.numPages; i++) {
-                    pages.push(pdf.getPage(i).then(function(page) {
-                        return page.getTextContent();
-                    }).then(function(content) {
-                        return content.items.map(function(item) {
-                            return item.str;
-                        }).join(' ');
-                    }));
+            // Notes
+            bulkNotes.filter(Boolean).forEach(function (n) { fd.append('notes[]', n); });
+
+            // Resume file
+            if (item.file) fd.append('resume', item.file);
+
+            // Answers (from question boxes)
+            var form = document.getElementById('bulk-candidate-form');
+            var answerFields = form.querySelectorAll('[name^="answer"]');
+            answerFields.forEach(function (el) { fd.append(el.name, el.value); });
+
+            // Required columns
+            var colFields = form.querySelectorAll('#bulk-show-columns input, #bulk-show-columns select, #bulk-show-sections input, #bulk-show-sections select');
+            colFields.forEach(function (el) { if (el.name) fd.append(el.name, el.value); });
+
+            $.ajax({
+                url:         bulkStoreUrl,
+                type:        'POST',
+                data:        fd,
+                processData: false,
+                contentType: false,
+                dataType:    'json',
+                success: function (response) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = prevHtml;
+                    if (response && response.status === 'success') {
+                        item.saved  = true;
+                        item.status = 'done';
+                        bulkRenderQueue();
+                        bulkUpdateProgress();
+                        bulkUpdateBatchBar();
+
+                        var next = bulkFindNext();
+                        if (next !== -1) {
+                            bulkSelectItem(next);
+                        } else {
+                            bulkShowAllDoneState();
+                        }
+                    }
+                },
+                error: function (response) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = prevHtml;
+                    bulkHandleFails(response);
                 }
-                return Promise.all(pages).then(function(textPages) {
-                    return textPages.join('\n');
+            });
+        }
+
+        /* ─────────────────────────────────────────────
+           Batch approve all parsed → database
+        ───────────────────────────────────────────── */
+        document.getElementById('bulk-approve-all').addEventListener('click', function () {
+            var toApprove = bulkQueue.filter(function (q) { return q.status === 'done' && !q.saved; });
+            if (!toApprove.length) return;
+
+            var btn = this;
+            btn.disabled  = true;
+            btn.textContent = 'Saving…';
+
+            var index = 0;
+            function saveNext() {
+                if (index >= toApprove.length) {
+                    btn.disabled = false;
+                    btn.textContent = 'Done ✓';
+                    bulkRenderQueue();
+                    bulkUpdateProgress();
+                    bulkUpdateBatchBar();
+                    bulkShowAllDoneState();
+                    return;
+                }
+                var item = toApprove[index];
+                index++;
+
+                var fd = new FormData();
+                fd.append('_token',     bulkCsrfToken);
+                fd.append('entry_type', 'candidate');
+                fd.append('full_name',  (item.parsed && item.parsed.full_name) || item.name);
+                fd.append('email',      (item.parsed && item.parsed.email)     || '');
+                fd.append('phone',      (item.parsed && item.parsed.phone)     || '');
+                fd.append('skills',     (item.parsed && item.parsed.skills)    || '');
+                fd.append('address',    (item.parsed && item.parsed.address)   || '');
+                if (item.file) fd.append('resume', item.file);
+
+                $.ajax({
+                    url: bulkStoreUrl, type: 'POST',
+                    data: fd, processData: false, contentType: false, dataType: 'json',
+                    success: function (r) {
+                        if (r && r.status === 'success') { item.saved = true; item.status = 'done'; }
+                        saveNext();
+                    },
+                    error: function () { saveNext(); }
                 });
-            });
-        }
-
-        function extractDocxText(file) {
-            if (typeof mammoth === 'undefined') {
-                return Promise.reject('DOCX parser is not loaded. Please check the mammoth script.');
             }
+            saveNext();
+        });
 
-            return readFileAsArrayBuffer(file).then(function(buffer) {
-                return mammoth.extractRawText({ arrayBuffer: buffer });
-            }).then(function(result) {
-                return result.value || '';
+        /* ─────────────────────────────────────────────
+           Navigation (Prev / Next)
+        ───────────────────────────────────────────── */
+        function bulkStep(dir) {
+            if (bulkActive >= 0) bulkSnapshotForm(bulkActive);
+            var next = Math.max(0, Math.min(bulkQueue.length - 1, bulkActive + dir));
+            if (next !== bulkActive) bulkSelectItem(next);
+        }
+
+        function bulkFindNext() {
+            for (var i = bulkActive + 1; i < bulkQueue.length; i++) {
+                if (!bulkQueue[i].saved) return i;
+            }
+            for (var j = 0; j < bulkActive; j++) {
+                if (!bulkQueue[j].saved) return j;
+            }
+            return -1;
+        }
+
+        /* ─────────────────────────────────────────────
+           UI helpers
+        ───────────────────────────────────────────── */
+        function bulkUpdateProgress() {
+            var done  = bulkQueue.filter(function (q) { return q.saved; }).length;
+            var total = bulkQueue.length;
+            var pct   = total ? Math.round(done / total * 100) : 0;
+            document.getElementById('bulk-done-count').textContent  = done;
+            document.getElementById('bulk-prog-label').textContent  = done + ' of ' + total + ' reviewed';
+            document.getElementById('bulk-prog-pct').textContent    = pct + '%';
+            document.getElementById('bulk-prog-fill').style.width   = pct + '%';
+        }
+
+        function bulkUpdateBatchBar() {
+            var done    = bulkQueue.filter(function (q) { return q.status === 'done' && !q.saved; }).length;
+            var pending = bulkQueue.filter(function (q) { return q.status === 'pending'; }).length;
+            var bar     = document.getElementById('bulk-batch-bar');
+            if (done > 1) {
+                bar.classList.remove('hidden');
+                document.getElementById('bulk-batch-msg').textContent =
+                    done + ' CVs parsed — approve all directly to the candidate database, or review individually.';
+            } else {
+                bar.classList.add('hidden');
+            }
+        }
+
+        function bulkUpdateCounter() {
+            document.getElementById('bulk-counter').textContent =
+                (bulkActive + 1) + ' of ' + bulkQueue.length;
+        }
+
+        function bulkShowEmptyState() {
+            document.getElementById('bulk-empty-state').style.display  = '';
+            document.getElementById('bulk-review-pane').style.display  = 'none';
+        }
+
+        function bulkShowAllDoneState() {
+            document.getElementById('bulk-cv-viewer').innerHTML =
+                '<div class="flex flex-col items-center justify-center h-full gap-2 text-green-600">' +
+                '<i class="fa fa-check-circle fa-3x"></i>' +
+                '<p class="text-sm font-medium">All CVs reviewed!</p>' +
+                '<a href="' + bulkIndexUrl + '" class="text-xs text-blue-600 underline mt-1">Go to applicants board →</a>' +
+                '</div>';
+        }
+
+        /* ─────────────────────────────────────────────
+           Error handler (mirrors original handleFails)
+        ───────────────────────────────────────────── */
+        function bulkHandleFails(response) {
+            if (!response.responseJSON || !response.responseJSON.errors) return;
+            var errors = response.responseJSON.errors;
+            var form   = document.getElementById('bulk-candidate-form');
+            Object.keys(errors).forEach(function (key) {
+                var el  = form.querySelector('[name="' + key + '"]');
+                var grp = el ? el.closest('.bulk-fg') : null;
+                if (grp) {
+                    grp.querySelector('.bulk-err') && grp.querySelector('.bulk-err').remove();
+                    var msg = document.createElement('p');
+                    msg.className   = 'bulk-err text-red-500 text-xs mt-1';
+                    msg.textContent = errors[key][0] || errors[key];
+                    grp.appendChild(msg);
+                }
             });
         }
 
-        function extractResumeText(file) {
+        /* ─────────────────────────────────────────────
+           ── CV text extraction (pdf.js / mammoth / txt)
+        ───────────────────────────────────────────── */
+        function bulkExtractResumeText(file) {
             var name = (file.name || '').toLowerCase();
             var type = (file.type || '').toLowerCase();
-
-            if (type.indexOf('pdf') >= 0 || name.endsWith('.pdf')) {
-                return extractPdfText(file);
-            }
-            if (name.endsWith('.docx')) {
-                return extractDocxText(file);
-            }
-            if (type.indexOf('text') >= 0 || name.endsWith('.txt')) {
-                return readFileAsText(file);
-            }
-
-            return Promise.reject('Please upload a PDF, DOCX, or TXT CV for browser parsing.');
+            if (type.indexOf('pdf') >= 0 || name.endsWith('.pdf'))    return bulkExtractPdf(file);
+            if (name.endsWith('.docx'))                               return bulkExtractDocx(file);
+            if (type.indexOf('text') >= 0 || name.endsWith('.txt'))   return bulkReadText(file);
+            return Promise.reject('Please upload a PDF, DOCX, or TXT file.');
         }
 
-        function escapeRegExp(value) {
-            return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        function bulkReadArrayBuffer(file) {
+            return new Promise(function (resolve, reject) {
+                var r = new FileReader();
+                r.onload  = function (e) { resolve(e.target.result); };
+                r.onerror = function ()  { reject('Unable to read file.'); };
+                r.readAsArrayBuffer(file);
+            });
         }
-
-        function pickResumeName(text) {
-            var lines = String(text || '').split(/\n+/).map(function(l) {
-                return l.replace(/\s+/g, ' ').trim();
-            }).filter(Boolean);
-
-            var badHeadings = /^(resume|curriculum vitae|cv|profile|summary|objective|contact|email|phone|mobile|address|skills|technical skills|education|experience|work experience|projects|certifications|references|declaration|languages|hobbies|interests|achievements)$/i;
-
-            // Try first 15 lines for a name-like line
-            for (var i = 0; i < Math.min(lines.length, 15); i++) {
-                var line = lines[i];
-                // Skip headings, lines with @, digits, too long, or too short
-                if (badHeadings.test(line.trim())) continue;
-                if (line.indexOf('@') >= 0) continue;
-                if (/\d/.test(line)) continue;
-                if (line.length > 60 || line.length < 3) continue;
-                // Must look like a name: 2-4 words, only letters/spaces/dots/hyphens
-                if (/^[A-Za-z][A-Za-z .'\-]{2,59}$/.test(line) && line.split(/\s+/).length >= 2 && line.split(/\s+/).length <= 5) {
-                    return line;
+        function bulkReadText(file) {
+            return new Promise(function (resolve, reject) {
+                var r = new FileReader();
+                r.onload  = function (e) { resolve(e.target.result || ''); };
+                r.onerror = function ()  { reject('Unable to read file.'); };
+                r.readAsText(file);
+            });
+        }
+        function bulkExtractPdf(file) {
+            if (typeof pdfjsLib === 'undefined') return Promise.reject('PDF parser not loaded.');
+            if (pdfjsLib.GlobalWorkerOptions) {
+                pdfjsLib.GlobalWorkerOptions.workerSrc =
+                    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            }
+            return bulkReadArrayBuffer(file).then(function (buf) {
+                return pdfjsLib.getDocument({ data: buf }).promise;
+            }).then(function (pdf) {
+                var pages = [];
+                for (var i = 1; i <= pdf.numPages; i++) {
+                    pages.push(pdf.getPage(i).then(function (p) {
+                        return p.getTextContent();
+                    }).then(function (c) {
+                        return c.items.map(function (it) { return it.str; }).join(' ');
+                    }));
                 }
+                return Promise.all(pages).then(function (ps) { return ps.join('\n'); });
+            });
+        }
+        function bulkExtractDocx(file) {
+            if (typeof mammoth === 'undefined') return Promise.reject('DOCX parser not loaded.');
+            return bulkReadArrayBuffer(file).then(function (buf) {
+                return mammoth.extractRawText({ arrayBuffer: buf });
+            }).then(function (r) { return r.value || ''; });
+        }
+
+        /* ─────────────────────────────────────────────
+           ── CV parsing helpers (mirrors original)
+        ───────────────────────────────────────────── */
+        function bulkParseResumeText(text) {
+            var clean  = String(text || '').replace(/\r/g, '\n').replace(/\t/g, ' ');
+            var emailM = clean.match(/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/i);
+            var phoneM = clean.match(/(?:\+?\d[\d\s().\-]{7,}\d)/);
+            return {
+                full_name: bulkPickName(clean),
+                email:     emailM ? emailM[0] : '',
+                phone:     phoneM ? phoneM[0].replace(/\s+/g, ' ').trim() : '',
+                skills:    bulkParseSkills(clean),
+                address:   bulkParseAddress(clean),
+                resume_text: clean
+            };
+        }
+
+        function bulkPickName(text) {
+            var lines = text.split(/\n+/).map(function (l) { return l.replace(/\s+/g, ' ').trim(); }).filter(Boolean);
+            var bad = /^(resume|curriculum vitae|cv|profile|summary|objective|contact|email|phone|mobile|address|skills|education|experience|work experience|certifications|references|declaration|languages|hobbies|interests|achievements)$/i;
+            for (var i = 0; i < Math.min(lines.length, 15); i++) {
+                var l = lines[i];
+                if (bad.test(l.trim()) || l.indexOf('@') >= 0 || /\d/.test(l)) continue;
+                if (l.length > 60 || l.length < 3) continue;
+                if (/^[A-Za-z][A-Za-z .'\\-]{2,59}$/.test(l) && l.split(/\s+/).length >= 2 && l.split(/\s+/).length <= 5) return l;
             }
             return '';
         }
-        function parseResumeAddress(text) {
-            // Try to find address section
-            var addressMatch = text.match(
-                /(?:address|location|residence|residing at)[:\s]+([^\n]{5,120}(?:\n[^\n]{0,80}){0,2})/i
-            );
-            if (addressMatch && addressMatch[1]) {
-                return addressMatch[1].replace(/\n/g, ', ').replace(/,\s*,/g, ',').trim();
-            }
 
-            // Fallback: look for a line that looks like a street address
+        function bulkParseAddress(text) {
+            var m = text.match(/(?:address|location|residence|residing at)[:\s]+([^\n]{5,120}(?:\n[^\n]{0,80}){0,2})/i);
+            if (m && m[1]) return m[1].replace(/\n/g, ', ').replace(/,\s*,/g, ',').trim();
             var lines = text.split(/\n/);
             for (var i = 0; i < lines.length; i++) {
-                var line = lines[i].trim();
-                // Street address pattern: starts with number + street name
-                if (/^\d+[\s,]+[A-Za-z]/.test(line) && line.length > 8 && line.length < 120) {
-                    // Grab up to 2 more lines as part of address
-                    var addr = line;
-                    if (lines[i+1] && lines[i+1].trim().length > 2 && lines[i+1].trim().length < 80) {
-                        addr += ', ' + lines[i+1].trim();
-                    }
+                var l = lines[i].trim();
+                if (/^\d+[\s,]+[A-Za-z]/.test(l) && l.length > 8 && l.length < 120) {
+                    var addr = l;
+                    if (lines[i+1] && lines[i+1].trim().length > 2 && lines[i+1].trim().length < 80) addr += ', ' + lines[i+1].trim();
                     return addr;
                 }
             }
             return '';
         }
 
-        function parseResumeCity(text) {
-            var cityMatch = text.match(/(?:city|location)[:\s]+([A-Za-z\s]{2,40})/i);
-            if (cityMatch) return cityMatch[1].trim();
-
-            // Look for "City, State" or "City - State" pattern
-            var csMatch = text.match(/\b([A-Z][a-z]{2,})[,\s-]+([A-Z]{2})\b/);
-            if (csMatch) return csMatch[1];
-
-            return '';
-        }
-
-        function parseResumeText(text) {
-            var cleanText = String(text || '').replace(/\r/g, '\n').replace(/\t/g, ' ');
-
-            var emailMatch = cleanText.match(/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/i);
-
-            // Improved phone: international formats
-            var phoneMatch = cleanText.match(
-                /(?:\+?\d{1,3}[\s\-]?)?\(?\d{3,5}\)?[\s\-]?\d{3,5}[\s\-]?\d{3,5}/
-            );
-
-            var name = pickResumeName(cleanText);
-            var address = parseResumeAddress(cleanText);
-            var city = parseResumeCity(cleanText);
-
-            // Extract country
-            var countryMatch = cleanText.match(/(?:country|nationality)[:\s]+([A-Za-z\s]{2,40})/i);
-            var country = countryMatch ? countryMatch[1].trim() : '';
-
-            // Extract state
-            var stateMatch = cleanText.match(/(?:state|province)[:\s]+([A-Za-z\s]{2,40})/i);
-            var state = stateMatch ? stateMatch[1].trim() : '';
-
-            return {
-                full_name:   name,
-                email:       emailMatch  ? emailMatch[0]  : '',
-                phone:       phoneMatch  ? phoneMatch[0].replace(/\s+/g, ' ').trim() : '',
-                address:     address,
-                city:        city,
-                state:       state,
-                country:     country,
-                skills:      parseResumeSkills(cleanText),
-                resume_text: cleanText
-            };
-        }
-        function parseResumeSkills(text) {
-            var knownSkills = [
-                'PHP', 'Laravel', 'JavaScript', 'TypeScript', 'Vue', 'React', 'Angular', 'Node.js', 'Express',
-                'HTML', 'CSS', 'Tailwind', 'Bootstrap', 'jQuery', 'MySQL', 'PostgreSQL', 'MongoDB', 'Redis',
-                'Git', 'Docker', 'Kubernetes', 'AWS', 'Azure', 'GCP', 'Python', 'Django', 'Flask', 'Java',
-                'Spring', 'C#', '.NET', 'SQL', 'REST API', 'GraphQL', 'Excel', 'Power BI', 'Tableau',
-                'Communication', 'Leadership', 'Project Management', 'Sales', 'Marketing', 'Recruitment'
-            ];
+        function bulkParseSkills(text) {
+            var known = ['PHP','Laravel','JavaScript','TypeScript','Vue','React','Angular','Node.js','Express',
+                'HTML','CSS','Tailwind','Bootstrap','jQuery','MySQL','PostgreSQL','MongoDB','Redis',
+                'Git','Docker','Kubernetes','AWS','Azure','GCP','Python','Django','Flask','Java',
+                'Spring','C#','.NET','SQL','REST API','GraphQL','Excel','Power BI','Tableau',
+                'Communication','Leadership','Project Management','Sales','Marketing','Recruitment'];
             var found = [];
-            var fullText = String(text || '');
-
-            knownSkills.forEach(function(skill) {
-                var pattern = new RegExp('(^|[^a-zA-Z0-9+#.])' + escapeRegExp(skill) + '([^a-zA-Z0-9+#.]|$)', 'i');
-                if (pattern.test(fullText)) {
-                    found.push(skill);
-                }
+            known.forEach(function (sk) {
+                var pat = new RegExp('(^|[^a-zA-Z0-9+#.])' + sk.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '([^a-zA-Z0-9+#.]|$)', 'i');
+                if (pat.test(text)) found.push(sk);
             });
-
-            var section = fullText.match(/(?:^|\n)\s*(?:technical skills|key skills|skills)\s*[:\n]+([\s\S]{0,900}?)(?=\n\s*(?:experience|work experience|employment|education|projects|certifications|summary|profile|objective|languages)\b|$)/i);
-            if (section && section[1]) {
-                section[1].split(/[,|;\n-]+/).forEach(function(item) {
-                    var skill = item.replace(/\s+/g, ' ').trim();
-                    if (skill && skill.length <= 40) {
-                        found.push(skill);
-                    }
+            var sec = text.match(/(?:^|\n)\s*(?:technical skills|key skills|skills)\s*[:\n]+([\s\S]{0,900}?)(?=\n\s*(?:experience|work experience|employment|education|projects|certifications|summary|profile|objective|languages)\b|$)/i);
+            if (sec && sec[1]) {
+                sec[1].split(/[,|;\n\-]+/).forEach(function (s) {
+                    var sk = s.replace(/\s+/g, ' ').trim();
+                    if (sk && sk.length <= 40) found.push(sk);
                 });
             }
-
             var unique = [];
-            found.forEach(function(skill) {
-                if (unique.map(function(s) { return s.toLowerCase(); }).indexOf(skill.toLowerCase()) === -1) {
-                    unique.push(skill);
-                }
+            found.forEach(function (s) {
+                if (unique.map(function (u) { return u.toLowerCase(); }).indexOf(s.toLowerCase()) === -1) unique.push(s);
             });
-
             return unique.slice(0, 30).join(', ');
         }
 
-        function parseResumeText(text) {
-            var cleanText = String(text || '').replace(/\r/g, '\n').replace(/\t/g, ' ');
-            var emailMatch = cleanText.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
-            var phoneMatch = cleanText.match(/(?:\+?\d[\d\s().-]{7,}\d)/);
-
-            return {
-                full_name: pickResumeName(cleanText),
-                email: emailMatch ? emailMatch[0] : '',
-                phone: phoneMatch ? phoneMatch[0].replace(/\s+/g, ' ').trim() : '',
-                skills: parseResumeSkills(cleanText),
-                resume_text: cleanText
-            };
+        /* ─────────────────────────────────────────────
+           Utility
+        ───────────────────────────────────────────── */
+        function bulkEsc(s) {
+            return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         }
-
-        function parseResumeIfSelected($form, onSuccess, onError) {
-            var input = $form.find('input[name="resume"]')[0];
-            if (!input || !input.files || !input.files.length) {
-                onSuccess();
-                return;
-            }
-
-            if (typeof $.easyBlockUI === 'function') {
-                $.easyBlockUI('#createForm');
-            }
-
-            extractResumeText(input.files[0]).then(function(text) {
-                if (!String(text || '').trim()) {
-                    throw 'No readable text found in this CV.';
-                }
-
-                applyParsedResumeFields(parseResumeText(text), $('#createForm'));
-                onSuccess();
-            }).catch(function(error) {
-                var msg = error || 'CV parsing failed.';
-                if (typeof $.toast === 'function') {
-                    $.toast({
-                        text: msg,
-                        position: 'top-right',
-                        loaderBg: '#ff6849',
-                        icon: 'error',
-                        hideAfter: 5000,
-                    });
-                } else {
-                    alert(msg);
-                }
-                if (typeof onError === 'function') onError();
-            }).finally(function() {
-                if (typeof $.easyUnblockUI === 'function') {
-                    $.easyUnblockUI('#createForm');
-                }
-            });
-        }
-
-        // Do not auto-run parsing on resume upload; only clear stale extracted text.
-        $(document).on('change', '#createForm input[name="resume"]', function() {
-            $('#resume_text_for_ai').val('');
-        });
-
-        function handleFails(response) {
-
-            if (typeof response.responseJSON.errors != "undefined") {
-                var keys = Object.keys(response.responseJSON.errors);
-                $('#createForm').find(".has-error").find(".help-block").remove();
-                $('#createForm').find(".has-error").removeClass("has-error");
-
-                for (var i = 0; i < keys.length; i++) {
-                    // Escape dot that comes with error in array fields
-                    var key = keys[i].replace(".", '\\.');
-                    var formarray = keys[i];
-
-                    // If the response has form array
-                    if (formarray.indexOf('.') > 0) {
-                        var array = formarray.split('.');
-                        response.responseJSON.errors[keys[i]] = response.responseJSON.errors[keys[i]];
-                        key = array[0] + '[' + array[1] + ']';
-                    }
-
-                    var ele = $('#createForm').find("[name='" + key + "']");
-
-                    var grp = ele.closest(".form-group");
-                    $(grp).find(".help-block").remove();
-
-                    //check if wysihtml5 editor exist
-                    var wys = $(grp).find(".wysihtml5-toolbar").length;
-
-                    if (wys > 0) {
-                        var helpBlockContainer = $(grp);
-                    } else {
-                        var helpBlockContainer = $(grp).find("div:first");
-                    }
-                    if ($(ele).is(':radio')) {
-                        helpBlockContainer = $(grp);
-                    }
-
-                    if (helpBlockContainer.length == 0) {
-                        helpBlockContainer = $(grp);
-                    }
-
-                    helpBlockContainer.append('<div class="help-block">' + response.responseJSON.errors[keys[i]] +
-                        '</div>');
-                    $(grp).addClass("has-error");
-                }
-
-                if (keys.length > 0) {
-                    var element = $("[name='" + keys[0] + "']");
-                    if (element.length > 0) {
-                        $("html, body").animate({
-                            scrollTop: element.offset().top - 150
-                        }, 200);
-                    }
-                }
-            }
-        }
-        // Notes on create
-var createNotes = [];
-
-$('#add-create-note').on('click', function () {
-    var text = $('#notes_input').val().trim();
-    if (!text) return;
-
-    var index = createNotes.length;
-    createNotes.push(text);
-
-    // Render note pill
-    $('#create-notes-list').append(
-        '<div class="flex items-start justify-between bg-gray-50 rounded-lg p-3 border-l-4 border-blue-400" id="cn-' + index + '">' +
-            '<p class="text-sm text-gray-700 flex-1">' + $('<div>').text(text).html() + '</p>' +
-            '<button type="button" class="remove-create-note ml-3 text-red-400 hover:text-red-600 text-xs" data-index="' + index + '">' +
-                '<i class="fa fa-times"></i>' +
-            '</button>' +
-        '</div>'
-    );
-
-    // Add hidden input so it submits with the form
-    $('#create-notes-hidden').append(
-        '<input type="hidden" name="notes[]" id="cn-hidden-' + index + '" value="' + $('<div>').text(text).html() + '">'
-    );
-
-    $('#notes_input').val('');
-});
-
-$(document).on('click', '.remove-create-note', function () {
-    var index = $(this).data('index');
-    createNotes[index] = null;
-    $('#cn-' + index).remove();
-    $('#cn-hidden-' + index).remove();
-});
     </script>
+
+    {{-- Location script (used for required-columns country/state/city) --}}
+    <script>
+        const fetchCountryState = bulkFetchCountryState;
+        const csrfToken  = bulkCsrfToken;
+        const selectCountry = bulkSelectCountry;
+        const selectState   = bulkSelectState;
+        const selectCity    = bulkSelectCity;
+        let country = '', state = '';
+    </script>
+    <script src="{{ asset('front/assets/js/location.js') }}"></script>
 @endpush
