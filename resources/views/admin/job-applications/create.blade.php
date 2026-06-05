@@ -175,15 +175,13 @@
                                         <div class="bulk-fg">
                                             <label class="bulk-label">@lang('modules.jobApplication.applicantNotes')</label>
                                             <div id="bulk-notes-list" class="space-y-1 mb-2"></div>
-                                            <div class="flex gap-2">
-                                                <textarea id="bulk-notes-input" rows="2"
-                                                    class="bulk-input flex-1 resize-none text-xs"
-                                                    placeholder="@lang('modules.jobApplication.addNote')"></textarea>
-                                                <button type="button" id="bulk-add-note"
-                                                    class="px-2 py-1 bg-blue-600 text-white rounded text-xs font-medium self-end whitespace-nowrap hover:bg-blue-700">
-                                                    <i class="fa fa-plus mr-1"></i>Add
-                                                </button>
-                                            </div>
+                                            <textarea id="bulk-notes-input" rows="4"
+                                                class="bulk-input resize-none text-xs w-full"
+                                                placeholder="@lang('modules.jobApplication.addNote')"></textarea>
+                                            <button type="button" id="bulk-add-note"
+                                                class="mt-1.5 w-full px-2 py-1.5 bg-blue-600 text-white rounded text-xs font-medium hover:bg-blue-700 flex items-center justify-center gap-1">
+                                                <i class="fa fa-plus"></i> Add Note
+                                            </button>
                                             <div id="bulk-notes-hidden"></div>
                                         </div>
 
