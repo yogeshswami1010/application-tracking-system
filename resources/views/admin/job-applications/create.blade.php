@@ -2,6 +2,7 @@
 
 @push('head-script')
     <link rel="stylesheet" href="{{ asset('assets/plugins/datepicker/datepicker3.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css">
 @endpush
 
 @section('content')
@@ -408,8 +409,36 @@
         #bulk-pdf-wrap {
             display: flex;
             flex-direction: column;
-            gap: 10px;
         }
+        /* pdf.js text layer — transparent text sits over the canvas */
+        .bulk-cv-viewer .textLayer {
+            position: absolute;
+            top: 0; left: 0;
+            overflow: hidden;
+            opacity: 1;
+            line-height: 1;
+        }
+        .bulk-cv-viewer .textLayer span,
+        .bulk-cv-viewer .textLayer br {
+            color: transparent;
+            position: absolute;
+            white-space: pre;
+            cursor: text;
+            transform-origin: 0% 0%;
+        }
+        /* Highlight marks in the text layer — coloured background shows over the canvas */
+        .bulk-cv-viewer .textLayer mark.bulk-hl-mark {
+            color: transparent !important;
+            border-radius: 2px;
+            padding: 0;
+            position: relative;
+            mix-blend-mode: multiply;
+        }
+        .bulk-cv-viewer .textLayer mark.bhl-name   { background: rgba(253,230,138,.75); outline: 1.5px solid #f59e0b; }
+        .bulk-cv-viewer .textLayer mark.bhl-email  { background: rgba(187,247,208,.75); outline: 1.5px solid #22c55e; }
+        .bulk-cv-viewer .textLayer mark.bhl-phone  { background: rgba(191,219,254,.75); outline: 1.5px solid #3b82f6; }
+        .bulk-cv-viewer .textLayer mark.bhl-addr   { background: rgba(233,213,255,.75); outline: 1.5px solid #a855f7; }
+        .bulk-cv-viewer .textLayer mark.bhl-skills { background: rgba(254,215,170,.75); outline: 1px  solid #f97316; }
         .bulk-cv-page {
             background: #fff;
             border: 0.5px solid #e5e7eb;
@@ -865,74 +894,143 @@
             var d      = item.parsed || {};
 
             if (item._fileType === 'pdf' && item._pdfDoc) {
-                // ── PDF: render each page as a canvas ──
-                viewer.innerHTML = '<div id="bulk-pdf-wrap" style="display:flex;flex-direction:column;gap:8px;"></div>';
+                // ── PDF: canvas + selectable text layer with highlights ──
+                viewer.innerHTML = '<div id="bulk-pdf-wrap"></div>';
                 var wrap = document.getElementById('bulk-pdf-wrap');
                 var pdf  = item._pdfDoc;
 
                 var renderPage = function (pageNum) {
                     return pdf.getPage(pageNum).then(function (page) {
-                        // Calculate scale so the page fills the viewer width at device pixel ratio
-                        var viewer      = document.getElementById('bulk-cv-viewer');
-                        var viewerWidth = viewer ? (viewer.clientWidth - 20) : 600; // subtract padding
-                        var dpr         = window.devicePixelRatio || 1;
-                        var baseViewport = page.getViewport({ scale: 1 });
-                        var scale       = (viewerWidth / baseViewport.width) * Math.min(dpr, 2);
+                        var viewerEl    = document.getElementById('bulk-cv-viewer');
+                        var viewerWidth = viewerEl ? Math.max(viewerEl.clientWidth - 24, 400) : 600;
+                        var dpr         = Math.min(window.devicePixelRatio || 1, 2);
+                        var baseVp      = page.getViewport({ scale: 1 });
+                        var scale       = (viewerWidth / baseVp.width) * dpr;
                         var viewport    = page.getViewport({ scale: scale });
+                        var cssW        = viewerWidth;
+                        var cssH        = Math.round(viewerWidth * (baseVp.height / baseVp.width));
 
-                        var canvas      = document.createElement('canvas');
-                        var ctx         = canvas.getContext('2d');
-                        canvas.width    = viewport.width;
-                        canvas.height   = viewport.height;
-                        // CSS display size = viewer width × aspect ratio (independent of dpr)
-                        var cssHeight   = Math.round(viewerWidth * (baseViewport.height / baseViewport.width));
-                        canvas.style.width   = viewerWidth + 'px';
-                        canvas.style.height  = cssHeight + 'px';
-                        canvas.style.display = 'block';
-                        canvas.style.borderRadius = '3px';
-                        canvas.style.boxShadow    = '0 2px 8px rgba(0,0,0,.18)';
-                        canvas.style.background   = '#fff';
-                        wrap.appendChild(canvas);
-                        return page.render({ canvasContext: ctx, viewport: viewport }).promise;
+                        // Page container — positions canvas and text layer on top of each other
+                        var pageDiv = document.createElement('div');
+                        pageDiv.style.cssText = [
+                            'position:relative',
+                            'width:' + cssW + 'px',
+                            'height:' + cssH + 'px',
+                            'margin:0 auto 10px',
+                            'border-radius:3px',
+                            'overflow:hidden',
+                            'box-shadow:0 2px 10px rgba(0,0,0,.2)',
+                            'background:#fff',
+                        ].join(';');
+
+                        // Canvas
+                        var canvas  = document.createElement('canvas');
+                        var ctx     = canvas.getContext('2d');
+                        canvas.width  = viewport.width;
+                        canvas.height = viewport.height;
+                        canvas.style.cssText = 'position:absolute;top:0;left:0;width:' + cssW + 'px;height:' + cssH + 'px;';
+                        pageDiv.appendChild(canvas);
+
+                        // Text layer div — overlaid on canvas, same CSS size
+                        var textLayerDiv = document.createElement('div');
+                        textLayerDiv.className = 'textLayer';
+                        textLayerDiv.style.cssText = [
+                            'position:absolute',
+                            'top:0','left:0',
+                            'width:' + cssW + 'px',
+                            'height:' + cssH + 'px',
+                            'overflow:hidden',
+                            'opacity:1',
+                            'line-height:1',
+                            'pointer-events:auto',
+                        ].join(';');
+                        pageDiv.appendChild(textLayerDiv);
+                        wrap.appendChild(pageDiv);
+
+                        // Render canvas
+                        return page.render({ canvasContext: ctx, viewport: viewport }).promise
+                            .then(function () { return page.getTextContent(); })
+                            .then(function (textContent) {
+                                // Render text layer using pdf.js
+                                if (typeof pdfjsLib.renderTextLayer === 'function') {
+                                    return pdfjsLib.renderTextLayer({
+                                        textContentSource: textContent,
+                                        container: textLayerDiv,
+                                        viewport:  viewport,
+                                        textDivs:  [],
+                                    }).promise;
+                                }
+                                // Fallback for older pdf.js builds
+                                return bulkManualTextLayer(textContent, textLayerDiv, viewport, cssW, cssH);
+                            })
+                            .then(function () {
+                                // Scale text layer spans to match CSS display size
+                                var scaleX = cssW / viewport.width;
+                                var scaleY = cssH / viewport.height;
+                                Array.from(textLayerDiv.querySelectorAll('span')).forEach(function (s) {
+                                    if (s.style.left)   s.style.left   = (parseFloat(s.style.left)   * scaleX) + 'px';
+                                    if (s.style.top)    s.style.top    = (parseFloat(s.style.top)    * scaleY) + 'px';
+                                    if (s.style.width && s.style.width !== 'auto')
+                                        s.style.width  = (parseFloat(s.style.width)  * scaleX) + 'px';
+                                    if (s.style.fontSize)
+                                        s.style.fontSize = (parseFloat(s.style.fontSize) * Math.min(scaleX, scaleY)) + 'px';
+                                });
+                                // Now highlight parsed values inside the text layer
+                                bulkHighlightInDom(textLayerDiv, d);
+                            });
                     });
                 };
 
-                // Render all pages sequentially
                 var chain = Promise.resolve();
                 for (var p = 1; p <= pdf.numPages; p++) {
                     (function (pn) {
                         chain = chain.then(function () { return renderPage(pn); });
                     })(p);
                 }
-                // After all pages rendered, overlay highlight legend
                 chain.then(function () { bulkAppendHighlightLegend(viewer, d); });
 
             } else if (item._fileType === 'docx' && item._visual && item._visual !== '__TXT__') {
-                // ── DOCX: use mammoth HTML, then highlight parsed values inside it ──
+                // ── DOCX: mammoth HTML with highlights ──
                 var wrapper = document.createElement('div');
                 wrapper.className = 'bulk-docx-render';
                 wrapper.innerHTML = item._visual;
-
-                // Sanitise: remove any script tags mammoth might have output
                 wrapper.querySelectorAll('script').forEach(function (s) { s.remove(); });
-
                 viewer.innerHTML = '';
                 viewer.appendChild(wrapper);
-
-                // Walk text nodes and wrap matched values in highlight spans
                 bulkHighlightInDom(wrapper, d);
                 bulkAppendHighlightLegend(viewer, d);
 
             } else {
-                // ── TXT / fallback: <pre> with highlighted spans ──
-                var raw = item.resumeText || '';
+                // ── TXT / fallback ──
+                var raw     = item.resumeText || '';
                 var escaped = bulkHighlightInText(bulkEsc(raw), d);
                 viewer.innerHTML =
-                    '<div style="background:#fff;border-radius:6px;padding:16px 18px;">' +
-                    '<pre class="bulk-raw-text" style="white-space:pre-wrap;word-break:break-word;font-size:11px;line-height:1.7;color:#1f2937;">' +
-                    escaped + '</pre></div>';
+                    '<div style="background:#fff;border-radius:6px;padding:20px 24px;">' +
+                    '<pre class="bulk-raw-text">' + escaped + '</pre></div>';
                 bulkAppendHighlightLegend(viewer, d);
             }
+        }
+
+        /* Manual text layer fallback (pdf.js < 3.x builds that lack renderTextLayer) */
+        function bulkManualTextLayer(textContent, container, viewport, cssW, cssH) {
+            textContent.items.forEach(function (item) {
+                if (!item.str || !item.str.trim()) return;
+                var tx  = pdfjsLib.Util.transform(viewport.transform, item.transform);
+                var span = document.createElement('span');
+                span.textContent = item.str;
+                span.style.cssText = [
+                    'position:absolute',
+                    'left:'     + tx[4] + 'px',
+                    'top:'      + (viewport.height - tx[5]) + 'px',
+                    'font-size:' + Math.abs(tx[0]) + 'px',
+                    'font-family:sans-serif',
+                    'white-space:pre',
+                    'color:transparent',
+                    'transform-origin:0% 0%',
+                ].join(';');
+                container.appendChild(span);
+            });
+            return Promise.resolve();
         }
 
         /* Walk DOM text nodes, wrap any occurrence of a parsed value in a <mark> span */
@@ -1147,17 +1245,17 @@
             skills: '.bhl-skills',
         };
         function bulkHl(key) {
-            // Remove pulse from all marks
+            // Reset all mark pulses
             document.querySelectorAll('#bulk-cv-viewer .bulk-hl-mark').forEach(function (el) {
-                el.style.outline = '';
                 el.style.boxShadow = '';
+                el.style.zIndex    = '';
             });
             var sel = bulkHlMap[key];
             if (!sel) return;
-            // Pulse all matching marks and scroll the first one into view
             var marks = document.querySelectorAll('#bulk-cv-viewer ' + sel);
             marks.forEach(function (el, idx) {
-                el.style.boxShadow = '0 0 0 3px rgba(251,191,36,.7)';
+                el.style.boxShadow = '0 0 0 3px rgba(251,191,36,.85)';
+                el.style.zIndex    = '10';
                 if (idx === 0) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
             });
         }
