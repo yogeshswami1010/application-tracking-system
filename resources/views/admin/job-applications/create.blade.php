@@ -408,6 +408,27 @@
             display: flex;
             flex-direction: column;
         }
+        /* Transparent text layer — sits over canvas, invisible but selectable */
+        .bulk-text-layer {
+            user-select: text;
+            -webkit-user-select: text;
+        }
+        .bulk-text-layer span {
+            color: transparent;
+            position: absolute;
+            white-space: pre;
+            cursor: text;
+            transform-origin: 0% 0%;
+        }
+        /* Make selection visible — browser paints a highlight over the transparent text */
+        .bulk-text-layer span::selection {
+            background: rgba(37, 99, 235, 0.3);
+            color: transparent;
+        }
+        .bulk-text-layer span::-moz-selection {
+            background: rgba(37, 99, 235, 0.3);
+            color: transparent;
+        }
         .bulk-cv-page {
             background: #fff;
             border: 0.5px solid #e5e7eb;
@@ -835,6 +856,10 @@
                         var cssW        = viewerWidth;
                         var cssH        = Math.round(viewerWidth * (baseVp.height / baseVp.width));
 
+                        // Scale factors to map canvas coords → CSS display coords
+                        var scaleX = cssW / viewport.width;
+                        var scaleY = cssH / viewport.height;
+
                         var pageDiv = document.createElement('div');
                         pageDiv.style.cssText = [
                             'position:relative',
@@ -847,15 +872,69 @@
                             'background:#fff',
                         ].join(';');
 
+                        // Canvas layer
                         var canvas = document.createElement('canvas');
                         var ctx    = canvas.getContext('2d');
                         canvas.width  = viewport.width;
                         canvas.height = viewport.height;
-                        canvas.style.cssText = 'position:absolute;top:0;left:0;width:' + cssW + 'px;height:' + cssH + 'px;';
+                        canvas.style.cssText = 'position:absolute;top:0;left:0;width:' + cssW + 'px;height:' + cssH + 'px;pointer-events:none;';
                         pageDiv.appendChild(canvas);
+
+                        // Text layer — transparent selectable text over the canvas
+                        var textDiv = document.createElement('div');
+                        textDiv.className = 'bulk-text-layer';
+                        textDiv.style.cssText = [
+                            'position:absolute',
+                            'top:0', 'left:0',
+                            'width:' + cssW + 'px',
+                            'height:' + cssH + 'px',
+                            'overflow:hidden',
+                            'line-height:1',
+                            'pointer-events:auto',
+                            'user-select:text',
+                            '-webkit-user-select:text',
+                        ].join(';');
+                        pageDiv.appendChild(textDiv);
                         wrap.appendChild(pageDiv);
 
-                        return page.render({ canvasContext: ctx, viewport: viewport }).promise;
+                        // Render canvas first, then build text layer
+                        return page.render({ canvasContext: ctx, viewport: viewport }).promise
+                            .then(function () { return page.getTextContent(); })
+                            .then(function (textContent) {
+                                textContent.items.forEach(function (item) {
+                                    if (!item.str) return;
+
+                                    // pdf.js gives us a transform matrix [a,b,c,d,e,f]
+                                    // e = x, f = y (in canvas coordinate space, origin bottom-left)
+                                    var tx = item.transform;
+                                    var fontHeight = Math.sqrt(tx[2]*tx[2] + tx[3]*tx[3]);
+                                    var angle      = Math.atan2(tx[1], tx[0]) * (180 / Math.PI);
+
+                                    // Convert canvas coords to CSS display coords
+                                    var x   = tx[4] * scaleX;
+                                    var y   = (viewport.height - tx[5]) * scaleY;
+                                    var fs  = fontHeight * scaleY;
+                                    var w   = item.width ? (item.width * scaleX) : null;
+
+                                    var span = document.createElement('span');
+                                    span.textContent = item.str;
+                                    var css = [
+                                        'position:absolute',
+                                        'left:'      + x + 'px',
+                                        'top:'       + (y - fs) + 'px',
+                                        'font-size:' + fs + 'px',
+                                        'font-family:sans-serif',
+                                        'white-space:pre',
+                                        'color:transparent',
+                                        'cursor:text',
+                                        'transform-origin:0% 0%',
+                                    ];
+                                    if (angle) css.push('transform:rotate(' + angle + 'deg)');
+                                    if (w)     css.push('width:' + w + 'px', 'display:inline-block', 'overflow:hidden');
+                                    span.style.cssText = css.join(';');
+                                    textDiv.appendChild(span);
+                                });
+                            });
                     });
                 };
 
