@@ -560,10 +560,6 @@
         const bulkStoreUrl           = "{{ route('admin.job-applications.store') }}";
         const bulkIndexUrl           = "{{ route('admin.job-applications.index') }}";
         const bulkQuestionRouteBase  = "{{ route('admin.job-applications.question', ':id') }}";
-        const bulkFetchCountryState  = "{{ route('jobs.fetchCountryState') }}";
-        const bulkSelectCountry      = "@lang('modules.front.selectCountry')";
-        const bulkSelectState        = "@lang('modules.front.selectState')";
-        const bulkSelectCity         = "@lang('modules.front.selectCity')";
 
         /* ─────────────────────────────────────────────
            State
@@ -1359,13 +1355,17 @@
         }
     </script>
 
-    {{-- Location script (used for required-columns country/state/city) --}}
+    {{-- Globals required by location.js and other shared scripts --}}
     <script>
-        const fetchCountryState = bulkFetchCountryState;
-        const csrfToken  = bulkCsrfToken;
-        const selectCountry = bulkSelectCountry;
-        const selectState   = bulkSelectState;
-        const selectCity    = bulkSelectCity;
+        const fetchCountryState       = "{{ route('jobs.fetchCountryState') }}";
+        const csrfToken               = "{{ csrf_token() }}";
+        const selectCountry           = "@lang('modules.front.selectCountry')";
+        const selectState             = "@lang('modules.front.selectState')";
+        const selectCity              = "@lang('modules.front.selectCity')";
+        const pleaseWait              = "@lang('app.aiGenerating')";
+        const resumeParsingText       = "Parsing CV...";
+        const aiGenerateCoverLetterUrl = "{{ route('admin.job-applications.ai-generate-cover-letter') }}";
+        const jobApplicationsIndexUrl  = "{{ route('admin.job-applications.index') }}";
         let country = '', state = '';
     </script>
     <script src="{{ asset('front/assets/js/location.js') }}"></script>
