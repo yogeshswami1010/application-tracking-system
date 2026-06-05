@@ -696,7 +696,7 @@
         }
 
         /* ─────────────────────────────────────────────
-           Parse a single CV using existing helpers
+           Parse a single CV — text extraction + visual render
         ───────────────────────────────────────────── */
         function bulkParseItem(i) {
             var item = bulkQueue[i];
@@ -704,16 +704,69 @@
             bulkRenderQueue();
             bulkShowParsingState(item.name);
 
-            bulkExtractResumeText(item.file)
-                .then(function (text) {
-                    if (!String(text || '').trim()) throw 'No readable text found in this CV.';
+            var fname = (item.file.name || '').toLowerCase();
+            var ftype = (item.file.type || '').toLowerCase();
+            var isPdf  = ftype.indexOf('pdf') >= 0 || fname.endsWith('.pdf');
+            var isDocx = fname.endsWith('.docx');
+            var isTxt  = !isPdf && !isDocx;
 
-                    var data      = bulkParseResumeText(text);
-                    item.parsed   = data;
-                    item.status   = 'done';
+            // Read file buffer once, then use for both text extraction and visual render
+            var bufPromise = (isPdf || isDocx) ? bulkReadArrayBuffer(item.file) : bulkReadText(item.file);
 
-                    // Store raw text for AI cover-letter generation
-                    item.resumeText = text;
+            bufPromise.then(function (bufOrText) {
+                var textP, visualP;
+
+                if (isPdf) {
+                    if (typeof pdfjsLib === 'undefined') throw 'PDF parser not loaded.';
+                    if (pdfjsLib.GlobalWorkerOptions) {
+                        pdfjsLib.GlobalWorkerOptions.workerSrc =
+                            'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                    }
+                    // Two separate getDocument calls so each has its own internal state
+                    var buf1 = bufOrText.slice(0);
+                    var buf2 = bufOrText.slice(0);
+
+                    textP = pdfjsLib.getDocument({ data: buf1 }).promise.then(function (pdf) {
+                        var pages = [];
+                        for (var p = 1; p <= pdf.numPages; p++) {
+                            pages.push(pdf.getPage(p).then(function (page) {
+                                return page.getTextContent();
+                            }).then(function (c) {
+                                return c.items.map(function (it) { return it.str; }).join(' ');
+                            }));
+                        }
+                        return Promise.all(pages).then(function (ps) { return ps.join('\n'); });
+                    });
+
+                    visualP = pdfjsLib.getDocument({ data: buf2 }).promise.then(function (pdf) {
+                        item._pdfDoc = pdf;
+                        return '__PDF__'; // sentinel; canvas drawn after DOM mount
+                    });
+
+                } else if (isDocx) {
+                    if (typeof mammoth === 'undefined') throw 'DOCX parser not loaded.';
+                    var buf1d = bufOrText.slice(0);
+                    var buf2d = bufOrText.slice(0);
+                    textP   = mammoth.extractRawText({ arrayBuffer: buf1d }).then(function (r) { return r.value || ''; });
+                    visualP = mammoth.convertToHtml({ arrayBuffer: buf2d }).then(function (r) { return r.value || ''; });
+
+                } else {
+                    // TXT — bufOrText is already the string
+                    textP   = Promise.resolve(bufOrText);
+                    visualP = Promise.resolve('__TXT__');
+                }
+
+                return Promise.all([textP, visualP]).then(function (res) {
+                    var text     = res[0] || '';
+                    var visual   = res[1];
+
+                    if (!text.trim()) throw 'No readable text found in this CV.';
+
+                    item.parsed      = bulkParseResumeText(text);
+                    item.status      = 'done';
+                    item.resumeText  = text;
+                    item._visual     = visual;   // '__PDF__' | '__TXT__' | docx html string
+                    item._fileType   = isPdf ? 'pdf' : (isDocx ? 'docx' : 'txt');
 
                     bulkRenderQueue();
                     bulkUpdateBatchBar();
@@ -722,57 +775,172 @@
                         bulkRenderCV(item);
                         bulkFillForm(item);
                     }
-                })
-                .catch(function (err) {
-                    item.status = 'error';
-                    item.parsed = null;
-                    bulkRenderQueue();
-                    if (bulkActive === i) {
-                        document.getElementById('bulk-cv-viewer').innerHTML =
-                            '<div class="flex flex-col items-center justify-center h-full gap-2 text-red-400">' +
-                            '<i class="fa fa-exclamation-triangle fa-2x"></i>' +
-                            '<p class="text-xs text-center">' + bulkEsc(String(err)) + '</p></div>';
-                    }
                 });
+
+            }).catch(function (err) {
+                item.status = 'error';
+                item.parsed = null;
+                bulkRenderQueue();
+                if (bulkActive === i) {
+                    document.getElementById('bulk-cv-viewer').innerHTML =
+                        '<div class="flex flex-col items-center justify-center h-full gap-2 text-red-400">' +
+                        '<i class="fa fa-exclamation-triangle fa-2x"></i>' +
+                        '<p class="text-xs text-center">' + bulkEsc(String(err)) + '</p></div>';
+                }
+            });
         }
 
         /* ─────────────────────────────────────────────
-           CV renderer (shows raw extracted text with
-           name/email/phone/skills highlighted)
+           CV visual renderer — shows the ACTUAL uploaded
+           file content with parsed fields highlighted
         ───────────────────────────────────────────── */
         function bulkRenderCV(item) {
-            var d   = item.parsed || {};
-            var raw = item.resumeText || '';
+            var viewer = document.getElementById('bulk-cv-viewer');
+            var d      = item.parsed || {};
 
-            // Build a minimal structured preview if we have parsed fields,
-            // otherwise fall back to raw text
-            var html = '<div class="bulk-cv-page">';
+            if (item._fileType === 'pdf' && item._pdfDoc) {
+                // ── PDF: render each page as a canvas ──
+                viewer.innerHTML = '<div id="bulk-pdf-wrap" style="display:flex;flex-direction:column;gap:8px;"></div>';
+                var wrap = document.getElementById('bulk-pdf-wrap');
+                var pdf  = item._pdfDoc;
 
-            if (d.full_name) {
-                html += '<p class="bulk-cv-name"><span class="bulk-hl-name">' + bulkEsc(d.full_name) + '</span></p>';
-                var contact = [d.email, d.phone, d.address].filter(Boolean);
-                if (contact.length) {
-                    html += '<p class="bulk-cv-contact">';
-                    if (d.email)   html += '<span class="bulk-hl-email">' + bulkEsc(d.email) + '</span>';
-                    if (d.phone)   html += (d.email ? ' · ' : '') + '<span class="bulk-hl-phone">' + bulkEsc(d.phone) + '</span>';
-                    if (d.address) html += (d.email || d.phone ? ' · ' : '') + '<span class="bulk-hl-addr">' + bulkEsc(d.address) + '</span>';
-                    html += '</p>';
+                var renderPage = function (pageNum) {
+                    return pdf.getPage(pageNum).then(function (page) {
+                        var viewport = page.getViewport({ scale: 1.4 });
+                        var canvas   = document.createElement('canvas');
+                        canvas.width  = viewport.width;
+                        canvas.height = viewport.height;
+                        canvas.style.width  = '100%';
+                        canvas.style.display = 'block';
+                        canvas.style.borderRadius = '4px';
+                        canvas.style.boxShadow = '0 1px 4px rgba(0,0,0,.12)';
+                        wrap.appendChild(canvas);
+                        return page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise;
+                    });
+                };
+
+                // Render all pages sequentially
+                var chain = Promise.resolve();
+                for (var p = 1; p <= pdf.numPages; p++) {
+                    (function (pn) {
+                        chain = chain.then(function () { return renderPage(pn); });
+                    })(p);
                 }
-            }
+                // After all pages rendered, overlay highlight legend
+                chain.then(function () { bulkAppendHighlightLegend(viewer, d); });
 
+            } else if (item._fileType === 'docx' && item._visual && item._visual !== '__TXT__') {
+                // ── DOCX: use mammoth HTML, then highlight parsed values inside it ──
+                var wrapper = document.createElement('div');
+                wrapper.className = 'bulk-docx-render';
+                wrapper.innerHTML = item._visual;
+
+                // Sanitise: remove any script tags mammoth might have output
+                wrapper.querySelectorAll('script').forEach(function (s) { s.remove(); });
+
+                viewer.innerHTML = '';
+                viewer.appendChild(wrapper);
+
+                // Walk text nodes and wrap matched values in highlight spans
+                bulkHighlightInDom(wrapper, d);
+                bulkAppendHighlightLegend(viewer, d);
+
+            } else {
+                // ── TXT / fallback: <pre> with highlighted spans ──
+                var raw = item.resumeText || '';
+                var escaped = bulkHighlightInText(bulkEsc(raw), d);
+                viewer.innerHTML =
+                    '<div style="background:#fff;border-radius:6px;padding:16px 18px;">' +
+                    '<pre class="bulk-raw-text" style="white-space:pre-wrap;word-break:break-word;font-size:11px;line-height:1.7;color:#1f2937;">' +
+                    escaped + '</pre></div>';
+                bulkAppendHighlightLegend(viewer, d);
+            }
+        }
+
+        /* Walk DOM text nodes, wrap any occurrence of a parsed value in a <mark> span */
+        function bulkHighlightInDom(root, d) {
+            var entries = bulkHighlightEntries(d);
+            entries.forEach(function (entry) {
+                if (!entry.value) return;
+                bulkWalkTextNodes(root, entry.value, entry.cls, entry.label);
+            });
+        }
+
+        /* For plain-text mode: do regex replacement on the escaped HTML string */
+        function bulkHighlightInText(escapedHtml, d) {
+            var entries = bulkHighlightEntries(d);
+            entries.forEach(function (entry) {
+                if (!entry.value) return;
+                var escaped = bulkEsc(entry.value);
+                var pat = new RegExp('(' + escaped.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+                escapedHtml = escapedHtml.replace(pat,
+                    '<mark class="bulk-hl-mark ' + entry.cls + '" title="' + entry.label + '">$1</mark>');
+            });
+            return escapedHtml;
+        }
+
+        /* Build the list of {value, cls, label} to highlight */
+        function bulkHighlightEntries(d) {
+            var entries = [];
+            if (d.full_name) entries.push({ value: d.full_name, cls: 'bhl-name',   label: 'Name' });
+            if (d.email)     entries.push({ value: d.email,     cls: 'bhl-email',  label: 'Email' });
+            if (d.phone)     entries.push({ value: d.phone,     cls: 'bhl-phone',  label: 'Phone' });
+            if (d.address)   entries.push({ value: d.address,   cls: 'bhl-addr',   label: 'Address' });
+            // Highlight each individual skill
             if (d.skills) {
-                html += '<div class="bulk-cv-sec">Skills</div>';
-                html += '<p class="bulk-cv-skills"><span class="bulk-hl-skills">' + bulkEsc(d.skills) + '</span></p>';
+                d.skills.split(',').forEach(function (sk) {
+                    var s = sk.trim();
+                    if (s.length >= 2) entries.push({ value: s, cls: 'bhl-skills', label: 'Skill' });
+                });
             }
+            return entries;
+        }
 
-            if (raw) {
-                // Show the raw text (truncated) below parsed fields
-                html += '<div class="bulk-cv-sec">Full text</div>';
-                html += '<pre class="bulk-raw-text">' + bulkEsc(raw.substring(0, 3000)) + (raw.length > 3000 ? '\n…' : '') + '</pre>';
+        /* Walk text nodes in a DOM subtree and wrap matched text in <mark> elements */
+        function bulkWalkTextNodes(node, value, cls, label) {
+            if (node.nodeType === 3) { // Text node
+                var idx = node.nodeValue.toLowerCase().indexOf(value.toLowerCase());
+                if (idx === -1) return;
+                var before  = node.nodeValue.substring(0, idx);
+                var matched = node.nodeValue.substring(idx, idx + value.length);
+                var after   = node.nodeValue.substring(idx + value.length);
+
+                var mark = document.createElement('mark');
+                mark.className   = 'bulk-hl-mark ' + cls;
+                mark.title       = label;
+                mark.textContent = matched;
+
+                var frag = document.createDocumentFragment();
+                if (before)  frag.appendChild(document.createTextNode(before));
+                frag.appendChild(mark);
+                if (after)   frag.appendChild(document.createTextNode(after));
+
+                node.parentNode.replaceChild(frag, node);
+            } else if (node.nodeType === 1 && node.nodeName !== 'MARK' && node.nodeName !== 'SCRIPT' && node.nodeName !== 'STYLE') {
+                // Clone childNodes since we'll be modifying them
+                Array.from(node.childNodes).forEach(function (child) {
+                    bulkWalkTextNodes(child, value, cls, label);
+                });
             }
+        }
 
-            html += '</div>';
-            document.getElementById('bulk-cv-viewer').innerHTML = html;
+        /* Colour legend showing what each highlight colour means */
+        function bulkAppendHighlightLegend(viewer, d) {
+            var items = [];
+            if (d.full_name) items.push({ cls: 'bhl-name',   label: 'Name' });
+            if (d.email)     items.push({ cls: 'bhl-email',  label: 'Email' });
+            if (d.phone)     items.push({ cls: 'bhl-phone',  label: 'Phone' });
+            if (d.address)   items.push({ cls: 'bhl-addr',   label: 'Address' });
+            if (d.skills)    items.push({ cls: 'bhl-skills', label: 'Skills' });
+            if (!items.length) return;
+
+            var legend = document.createElement('div');
+            legend.className = 'bulk-hl-legend';
+            legend.innerHTML = '<span style="font-size:10px;font-weight:600;color:#6b7280;margin-right:6px;">Highlights:</span>' +
+                items.map(function (it) {
+                    return '<span class="bulk-hl-pill ' + it.cls + '">' + it.label + '</span>';
+                }).join('');
+            viewer.appendChild(legend);
         }
 
         function bulkShowParsingState(name) {
