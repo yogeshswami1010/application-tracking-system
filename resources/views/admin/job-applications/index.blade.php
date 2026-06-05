@@ -778,7 +778,18 @@ var jaStages = {!! $jaStagesJson !!};
                 { data: 'full_name',    name: 'full_name',  width: '17%' },
                 { data: 'title',        name: 'job_id',     width: '15%' },
                 { data: 'location_id',  name: 'location_id' },
-                { data: 'status',       name: 'status_id' },
+                {
+                    data: 'status',
+                    name: 'status_id',
+                    render: function(data, type, row) {
+                        if (jaShowKO) {
+                            return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold text-white" style="background:#dc2626;">'
+                                + '<i class="fa fa-user-times" style="font-size:10px;margin-right:3px;"></i>Knockout'
+                                + '</span>';
+                        }
+                        return data;
+                    }
+                },
                 { data: 'action',       name: 'action', width: '18%', searchable: false, className: 'jc-td-right' }
             ]
         });
