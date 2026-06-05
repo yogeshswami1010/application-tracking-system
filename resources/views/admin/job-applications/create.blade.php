@@ -388,7 +388,7 @@
         }
         .bulk-split {
             display: grid;
-            grid-template-columns: 3fr 2fr;
+            grid-template-columns: 5fr 2fr;
             gap: 0;
             flex: 1;
             min-height: 0;
@@ -399,64 +399,74 @@
 
         /* ── CV Viewer ── */
         .bulk-cv-viewer {
-            height: 520px;
+            height: 620px;
             overflow-y: auto;
-            padding: 12px;
-            background: #f3f4f6;
-            border-right: 0.5px solid #e5e7eb;
+            overflow-x: hidden;
+            padding: 10px;
+            background: #e5e7eb;
+            border-right: 0.5px solid #d1d5db;
+        }
+        /* PDF canvas wrapper */
+        #bulk-pdf-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
         .bulk-cv-page {
             background: #fff;
             border: 0.5px solid #e5e7eb;
             border-radius: 6px;
-            padding: 18px 20px;
+            padding: 24px 28px;
             min-height: 100%;
         }
         .bulk-cv-page * { color: #1f2937 !important; }
-        .bulk-cv-name    { font-size: 16px; font-weight: 700; margin: 0 0 2px; }
-        .bulk-cv-contact { font-size: 10.5px; color: #6b7280 !important; margin: 0 0 10px; }
+        .bulk-cv-name    { font-size: 18px; font-weight: 700; margin: 0 0 4px; }
+        .bulk-cv-contact { font-size: 12px; color: #6b7280 !important; margin: 0 0 12px; }
         .bulk-cv-sec {
-            font-size: 10px;
+            font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: .05em;
             border-bottom: 1px solid #e5e7eb;
-            padding-bottom: 2px;
-            margin: 10px 0 5px;
+            padding-bottom: 3px;
+            margin: 12px 0 6px;
         }
         .bulk-cv-li {
-            font-size: 10.5px;
-            margin: 0 0 3px;
-            padding-left: 10px;
+            font-size: 12px;
+            margin: 0 0 4px;
+            padding-left: 12px;
             position: relative;
-            line-height: 1.5;
+            line-height: 1.6;
         }
         .bulk-cv-li:before { content: "•"; position: absolute; left: 0; }
-        .bulk-cv-skills    { font-size: 10.5px; line-height: 1.6; }
+        .bulk-cv-skills    { font-size: 12px; line-height: 1.7; }
         .bulk-hl           { background: #fef9c3; padding: 0 2px; border-radius: 2px; }
         .bulk-raw-text {
-            font-size: 11px;
-            line-height: 1.7;
+            font-size: 12.5px;
+            line-height: 1.8;
             white-space: pre-wrap;
             word-break: break-word;
-            color: #374151;
+            color: #1f2937;
+            font-family: ui-sans-serif, system-ui, sans-serif;
         }
         /* DOCX rendered HTML styles */
         .bulk-docx-render {
             background: #fff;
             border-radius: 6px;
-            padding: 18px 20px;
-            font-size: 11.5px;
-            line-height: 1.7;
+            padding: 24px 28px;
+            font-size: 13px;
+            line-height: 1.8;
             color: #1f2937;
         }
-        .bulk-docx-render h1 { font-size: 17px; font-weight: 700; margin: 0 0 4px; }
-        .bulk-docx-render h2 { font-size: 13px; font-weight: 600; margin: 10px 0 4px; border-bottom: 1px solid #e5e7eb; padding-bottom: 2px; }
-        .bulk-docx-render h3 { font-size: 12px; font-weight: 600; margin: 8px 0 2px; }
-        .bulk-docx-render p  { margin: 0 0 4px; }
-        .bulk-docx-render ul, .bulk-docx-render ol { padding-left: 16px; margin: 4px 0; }
-        .bulk-docx-render table { width: 100%; border-collapse: collapse; font-size: 11px; }
-        .bulk-docx-render td, .bulk-docx-render th { border: 0.5px solid #e5e7eb; padding: 3px 6px; }
+        .bulk-docx-render h1 { font-size: 20px; font-weight: 700; margin: 0 0 6px; }
+        .bulk-docx-render h2 { font-size: 14px; font-weight: 700; margin: 14px 0 4px; border-bottom: 1px solid #e5e7eb; padding-bottom: 3px; }
+        .bulk-docx-render h3 { font-size: 13px; font-weight: 600; margin: 10px 0 3px; }
+        .bulk-docx-render p  { margin: 0 0 5px; }
+        .bulk-docx-render ul, .bulk-docx-render ol { padding-left: 18px; margin: 5px 0; }
+        .bulk-docx-render li { margin-bottom: 3px; }
+        .bulk-docx-render table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .bulk-docx-render td, .bulk-docx-render th { border: 0.5px solid #e5e7eb; padding: 4px 8px; }
+        .bulk-docx-render strong, .bulk-docx-render b { font-weight: 600; }
 
         /* Highlight marks on CV */
         .bulk-hl-mark {
@@ -464,6 +474,7 @@
             padding: 0 2px;
             font-style: normal;
             cursor: default;
+            transition: box-shadow .15s;
         }
         .bhl-name   { background: #fde68a; color: #78350f !important; outline: 1.5px solid #f59e0b; }
         .bhl-email  { background: #bbf7d0; color: #14532d !important; outline: 1.5px solid #22c55e; }
@@ -471,13 +482,13 @@
         .bhl-addr   { background: #e9d5ff; color: #581c87 !important; outline: 1.5px solid #a855f7; }
         .bhl-skills { background: #fed7aa; color: #7c2d12 !important; outline: 1px solid #f97316; }
 
-        /* Highlight legend at bottom of viewer */
+        /* Highlight legend pinned at bottom of viewer */
         .bulk-hl-legend {
             display: flex;
             align-items: center;
             flex-wrap: wrap;
             gap: 5px;
-            padding: 8px 10px;
+            padding: 7px 10px;
             margin-top: 8px;
             background: #fff;
             border: 0.5px solid #e5e7eb;
@@ -486,9 +497,9 @@
             bottom: 0;
         }
         .bulk-hl-pill {
-            font-size: 10px;
+            font-size: 10.5px;
             font-weight: 600;
-            padding: 2px 8px;
+            padding: 2px 9px;
             border-radius: 10px;
             cursor: default;
         }
@@ -500,7 +511,7 @@
 
         /* ── Form scroll area — compact ── */
         .bulk-form-scroll {
-            height: 520px;
+            height: 620px;
             overflow-y: auto;
             padding: 10px 12px;
         }
@@ -863,16 +874,28 @@
 
                 var renderPage = function (pageNum) {
                     return pdf.getPage(pageNum).then(function (page) {
-                        var viewport = page.getViewport({ scale: 1.4 });
-                        var canvas   = document.createElement('canvas');
-                        canvas.width  = viewport.width;
-                        canvas.height = viewport.height;
-                        canvas.style.width  = '100%';
+                        // Calculate scale so the page fills the viewer width at device pixel ratio
+                        var viewer      = document.getElementById('bulk-cv-viewer');
+                        var viewerWidth = viewer ? (viewer.clientWidth - 20) : 600; // subtract padding
+                        var dpr         = window.devicePixelRatio || 1;
+                        var baseViewport = page.getViewport({ scale: 1 });
+                        var scale       = (viewerWidth / baseViewport.width) * Math.min(dpr, 2);
+                        var viewport    = page.getViewport({ scale: scale });
+
+                        var canvas      = document.createElement('canvas');
+                        var ctx         = canvas.getContext('2d');
+                        canvas.width    = viewport.width;
+                        canvas.height   = viewport.height;
+                        // CSS display size = viewer width × aspect ratio (independent of dpr)
+                        var cssHeight   = Math.round(viewerWidth * (baseViewport.height / baseViewport.width));
+                        canvas.style.width   = viewerWidth + 'px';
+                        canvas.style.height  = cssHeight + 'px';
                         canvas.style.display = 'block';
-                        canvas.style.borderRadius = '4px';
-                        canvas.style.boxShadow = '0 1px 4px rgba(0,0,0,.12)';
+                        canvas.style.borderRadius = '3px';
+                        canvas.style.boxShadow    = '0 2px 8px rgba(0,0,0,.18)';
+                        canvas.style.background   = '#fff';
                         wrap.appendChild(canvas);
-                        return page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise;
+                        return page.render({ canvasContext: ctx, viewport: viewport }).promise;
                     });
                 };
 
