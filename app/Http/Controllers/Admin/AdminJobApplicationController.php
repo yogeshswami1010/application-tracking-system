@@ -348,7 +348,14 @@ class AdminJobApplicationController extends AdminBaseController
     {
         abort_if(! $this->user->cans('view_job_applications'), 403);
 
-        $jobApplications = JobApplication::select('job_applications.id', 'job_applications.job_id', 'status_id', 'full_name', 'skills', 'location_id')
+        $jobApplications = JobApplication::select(
+            'job_applications.id',
+            'job_applications.job_id',
+            'job_applications.status_id',
+            'job_applications.full_name',
+            'job_applications.skills',
+            'job_applications.location_id'   // ← this was the ambiguous one
+        )
             ->with([
                 'location',
                 'job.skills',
