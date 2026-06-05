@@ -129,7 +129,7 @@
                                                 <span class="bulk-conf bulk-conf-hi" id="bconf-name">high</span>
                                             </label>
                                             <input type="text" name="full_name" id="bf-name" class="bulk-input bulk-parsed"
-                                                placeholder="@lang('app.name')" onmouseover="bulkHl('name')" required>
+                                                placeholder="@lang('app.name')" onmouseover="bulkHl('name')" onfocus="bulkHl('name')" required>
                                         </div>
 
                                         {{-- Email --}}
@@ -139,7 +139,7 @@
                                                 <span class="bulk-conf" id="bconf-email">—</span>
                                             </label>
                                             <input type="email" name="email" id="bf-email" class="bulk-input bulk-parsed"
-                                                placeholder="@lang('app.email')" onmouseover="bulkHl('email')" required>
+                                                placeholder="@lang('app.email')" onmouseover="bulkHl('email')" onfocus="bulkHl('email')" required>
                                         </div>
 
                                         {{-- Phone --}}
@@ -149,7 +149,7 @@
                                                 <span class="bulk-conf" id="bconf-phone">—</span>
                                             </label>
                                             <input type="tel" name="phone" id="bf-phone" class="bulk-input bulk-parsed"
-                                                placeholder="@lang('app.phone')" onmouseover="bulkHl('phone')" required>
+                                                placeholder="@lang('app.phone')" onmouseover="bulkHl('phone')" onfocus="bulkHl('phone')" required>
                                         </div>
 
                                         {{-- Skills --}}
@@ -159,7 +159,7 @@
                                                 <span class="bulk-conf bulk-conf-hi" id="bconf-skills">high</span>
                                             </label>
                                             <input type="text" name="skills" id="bf-skills" class="bulk-input bulk-parsed"
-                                                placeholder="Skills from CV" onmouseover="bulkHl('skills')">
+                                                placeholder="Skills from CV" onmouseover="bulkHl('skills')" onfocus="bulkHl('skills')">
                                         </div>
 
                                         {{-- Address --}}
@@ -167,6 +167,7 @@
                                             <label class="bulk-label">@lang('app.address')</label>
                                             <textarea name="address" id="bf-address" rows="2"
                                                 class="bulk-input bulk-parsed resize-none"
+                                                onmouseover="bulkHl('addr')" onfocus="bulkHl('addr')"
                                                 placeholder="@lang('app.address')"></textarea>
                                         </div>
 
@@ -387,7 +388,7 @@
         }
         .bulk-split {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 3fr 2fr;
             gap: 0;
             flex: 1;
             min-height: 0;
@@ -398,10 +399,10 @@
 
         /* ── CV Viewer ── */
         .bulk-cv-viewer {
-            height: 400px;
+            height: 520px;
             overflow-y: auto;
-            padding: 14px;
-            background: #f9fafb;
+            padding: 12px;
+            background: #f3f4f6;
             border-right: 0.5px solid #e5e7eb;
         }
         .bulk-cv-page {
@@ -440,29 +441,85 @@
             word-break: break-word;
             color: #374151;
         }
-
-        /* ── Form scroll area ── */
-        .bulk-form-scroll {
-            height: 400px;
-            overflow-y: auto;
-            padding: 14px 16px;
+        /* DOCX rendered HTML styles */
+        .bulk-docx-render {
+            background: #fff;
+            border-radius: 6px;
+            padding: 18px 20px;
+            font-size: 11.5px;
+            line-height: 1.7;
+            color: #1f2937;
         }
-        .bulk-fg           { margin-bottom: 10px; }
+        .bulk-docx-render h1 { font-size: 17px; font-weight: 700; margin: 0 0 4px; }
+        .bulk-docx-render h2 { font-size: 13px; font-weight: 600; margin: 10px 0 4px; border-bottom: 1px solid #e5e7eb; padding-bottom: 2px; }
+        .bulk-docx-render h3 { font-size: 12px; font-weight: 600; margin: 8px 0 2px; }
+        .bulk-docx-render p  { margin: 0 0 4px; }
+        .bulk-docx-render ul, .bulk-docx-render ol { padding-left: 16px; margin: 4px 0; }
+        .bulk-docx-render table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        .bulk-docx-render td, .bulk-docx-render th { border: 0.5px solid #e5e7eb; padding: 3px 6px; }
+
+        /* Highlight marks on CV */
+        .bulk-hl-mark {
+            border-radius: 3px;
+            padding: 0 2px;
+            font-style: normal;
+            cursor: default;
+        }
+        .bhl-name   { background: #fde68a; color: #78350f !important; outline: 1.5px solid #f59e0b; }
+        .bhl-email  { background: #bbf7d0; color: #14532d !important; outline: 1.5px solid #22c55e; }
+        .bhl-phone  { background: #bfdbfe; color: #1e3a5f !important; outline: 1.5px solid #3b82f6; }
+        .bhl-addr   { background: #e9d5ff; color: #581c87 !important; outline: 1.5px solid #a855f7; }
+        .bhl-skills { background: #fed7aa; color: #7c2d12 !important; outline: 1px solid #f97316; }
+
+        /* Highlight legend at bottom of viewer */
+        .bulk-hl-legend {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 5px;
+            padding: 8px 10px;
+            margin-top: 8px;
+            background: #fff;
+            border: 0.5px solid #e5e7eb;
+            border-radius: 6px;
+            position: sticky;
+            bottom: 0;
+        }
+        .bulk-hl-pill {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 10px;
+            cursor: default;
+        }
+        .bulk-hl-pill.bhl-name   { background: #fde68a; color: #78350f; }
+        .bulk-hl-pill.bhl-email  { background: #bbf7d0; color: #14532d; }
+        .bulk-hl-pill.bhl-phone  { background: #bfdbfe; color: #1e3a5f; }
+        .bulk-hl-pill.bhl-addr   { background: #e9d5ff; color: #581c87; }
+        .bulk-hl-pill.bhl-skills { background: #fed7aa; color: #7c2d12; }
+
+        /* ── Form scroll area — compact ── */
+        .bulk-form-scroll {
+            height: 520px;
+            overflow-y: auto;
+            padding: 10px 12px;
+        }
+        .bulk-fg           { margin-bottom: 7px; }
         .bulk-label {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            font-size: 11.5px;
+            font-size: 10.5px;
             color: #6b7280;
             font-weight: 500;
-            margin-bottom: 3px;
+            margin-bottom: 2px;
         }
         .bulk-input {
             width: 100%;
-            font-size: 12.5px;
-            padding: 5px 8px;
+            font-size: 11.5px;
+            padding: 4px 7px;
             border: 0.5px solid #d1d5db;
-            border-radius: 8px;
+            border-radius: 6px;
             background: #fff;
             color: #111827;
             outline: none;
@@ -471,8 +528,8 @@
         .bulk-input:focus   { border-color: #2563eb; }
         .bulk-input.bulk-parsed { border-color: #059669; background: #f0fdf4; }
         .bulk-conf {
-            font-size: 10px;
-            padding: 1px 6px;
+            font-size: 9.5px;
+            padding: 1px 5px;
             border-radius: 8px;
             font-weight: 500;
         }
@@ -487,8 +544,8 @@
             background: #f9fafb;
             border-left: 3px solid #60a5fa;
             border-radius: 6px;
-            padding: 6px 8px;
-            font-size: 11.5px;
+            padding: 4px 7px;
+            font-size: 10.5px;
             gap: 6px;
         }
 
@@ -934,12 +991,12 @@
             if (d.skills)    items.push({ cls: 'bhl-skills', label: 'Skills' });
             if (!items.length) return;
 
-            // var legend = document.createElement('div');
-            // legend.className = 'bulk-hl-legend';
-            // legend.innerHTML = '<span style="font-size:10px;font-weight:600;color:#6b7280;margin-right:6px;">Highlights:</span>' +
-            //     items.map(function (it) {
-            //         return '<span class="bulk-hl-pill ' + it.cls + '">' + it.label + '</span>';
-            //     }).join('');
+            var legend = document.createElement('div');
+            legend.className = 'bulk-hl-legend';
+            legend.innerHTML = '<span style="font-size:10px;font-weight:600;color:#6b7280;margin-right:6px;">Highlights:</span>' +
+                items.map(function (it) {
+                    return '<span class="bulk-hl-pill ' + it.cls + '">' + it.label + '</span>';
+                }).join('');
             viewer.appendChild(legend);
         }
 
@@ -1059,23 +1116,29 @@
         }
 
         /* ─────────────────────────────────────────────
-           Highlight CV text on form field hover
+           Highlight CV text on form field hover/focus
         ───────────────────────────────────────────── */
         var bulkHlMap = {
-            name:   '.bulk-hl-name',
-            email:  '.bulk-hl-email',
-            phone:  '.bulk-hl-phone',
-            skills: '.bulk-hl-skills',
+            name:   '.bhl-name',
+            email:  '.bhl-email',
+            phone:  '.bhl-phone',
+            addr:   '.bhl-addr',
+            skills: '.bhl-skills',
         };
         function bulkHl(key) {
-            document.querySelectorAll('#bulk-cv-viewer .bulk-hl').forEach(function (el) {
-                el.classList.remove('bulk-hl');
+            // Remove pulse from all marks
+            document.querySelectorAll('#bulk-cv-viewer .bulk-hl-mark').forEach(function (el) {
+                el.style.outline = '';
+                el.style.boxShadow = '';
             });
             var sel = bulkHlMap[key];
-            if (sel) {
-                var el = document.querySelector('#bulk-cv-viewer ' + sel);
-                if (el) { el.classList.add('bulk-hl'); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
-            }
+            if (!sel) return;
+            // Pulse all matching marks and scroll the first one into view
+            var marks = document.querySelectorAll('#bulk-cv-viewer ' + sel);
+            marks.forEach(function (el, idx) {
+                el.style.boxShadow = '0 0 0 3px rgba(251,191,36,.7)';
+                if (idx === 0) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            });
         }
 
         /* ─────────────────────────────────────────────
@@ -1524,12 +1587,31 @@
 
         function bulkPickName(text) {
             var lines = text.split(/\n+/).map(function (l) { return l.replace(/\s+/g, ' ').trim(); }).filter(Boolean);
-            var bad = /^(resume|curriculum vitae|cv|profile|summary|objective|contact|email|phone|mobile|address|skills|education|experience|work experience|certifications|references|declaration|languages|hobbies|interests|achievements)$/i;
-            for (var i = 0; i < Math.min(lines.length, 15); i++) {
+            var bad = /^(resume|curriculum vitae|cv|profile|summary|objective|contact|email|phone|mobile|address|skills|technical skills|education|experience|work experience|employment|certifications|references|declaration|languages|hobbies|interests|achievements|projects|awards)$/i;
+
+            for (var i = 0; i < Math.min(lines.length, 20); i++) {
                 var l = lines[i];
-                if (bad.test(l.trim()) || l.indexOf('@') >= 0 || /\d/.test(l)) continue;
-                if (l.length > 60 || l.length < 3) continue;
-                if (/^[A-Za-z][A-Za-z .'\\-]{2,59}$/.test(l) && l.split(/\s+/).length >= 2 && l.split(/\s+/).length <= 5) return l;
+                // Skip headings, lines with @ (email), lines with digits, too long/short
+                if (bad.test(l.trim())) continue;
+                if (l.indexOf('@') >= 0) continue;
+                if (/\d/.test(l)) continue;
+                if (l.length > 70 || l.length < 3) continue;
+
+                // Accept both mixed-case AND all-caps names (e.g. "MOHAMMED ALARIQI")
+                // Must be 2–5 words of only letters, spaces, dots, hyphens, apostrophes
+                if (/^[A-Za-z][A-Za-z .''\-]{2,69}$/.test(l)) {
+                    var words = l.split(/\s+/);
+                    if (words.length >= 2 && words.length <= 5) {
+                        // Title-case all-caps names for display
+                        var isAllCaps = l === l.toUpperCase() && /[A-Z]{2}/.test(l);
+                        if (isAllCaps) {
+                            return words.map(function (w) {
+                                return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+                            }).join(' ');
+                        }
+                        return l;
+                    }
+                }
             }
             return '';
         }
