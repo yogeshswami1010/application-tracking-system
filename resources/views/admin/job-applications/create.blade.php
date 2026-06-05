@@ -2,7 +2,6 @@
 
 @push('head-script')
     <link rel="stylesheet" href="{{ asset('assets/plugins/datepicker/datepicker3.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css">
 @endpush
 
 @section('content')
@@ -130,7 +129,7 @@
                                                 <span class="bulk-conf bulk-conf-hi" id="bconf-name">high</span>
                                             </label>
                                             <input type="text" name="full_name" id="bf-name" class="bulk-input bulk-parsed"
-                                                placeholder="@lang('app.name')" onmouseover="bulkHl('name')" onfocus="bulkHl('name')" required>
+                                                placeholder="@lang('app.name')" required>
                                         </div>
 
                                         {{-- Email --}}
@@ -140,7 +139,7 @@
                                                 <span class="bulk-conf" id="bconf-email">—</span>
                                             </label>
                                             <input type="email" name="email" id="bf-email" class="bulk-input bulk-parsed"
-                                                placeholder="@lang('app.email')" onmouseover="bulkHl('email')" onfocus="bulkHl('email')" required>
+                                                placeholder="@lang('app.email')" required>
                                         </div>
 
                                         {{-- Phone --}}
@@ -150,7 +149,7 @@
                                                 <span class="bulk-conf" id="bconf-phone">—</span>
                                             </label>
                                             <input type="tel" name="phone" id="bf-phone" class="bulk-input bulk-parsed"
-                                                placeholder="@lang('app.phone')" onmouseover="bulkHl('phone')" onfocus="bulkHl('phone')" required>
+                                                placeholder="@lang('app.phone')" required>
                                         </div>
 
                                         {{-- Skills --}}
@@ -160,7 +159,7 @@
                                                 <span class="bulk-conf bulk-conf-hi" id="bconf-skills">high</span>
                                             </label>
                                             <input type="text" name="skills" id="bf-skills" class="bulk-input bulk-parsed"
-                                                placeholder="Skills from CV" onmouseover="bulkHl('skills')" onfocus="bulkHl('skills')">
+                                                placeholder="Skills from CV">
                                         </div>
 
                                         {{-- Address --}}
@@ -168,7 +167,6 @@
                                             <label class="bulk-label">@lang('app.address')</label>
                                             <textarea name="address" id="bf-address" rows="2"
                                                 class="bulk-input bulk-parsed resize-none"
-                                                onmouseover="bulkHl('addr')" onfocus="bulkHl('addr')"
                                                 placeholder="@lang('app.address')"></textarea>
                                         </div>
 
@@ -410,35 +408,6 @@
             display: flex;
             flex-direction: column;
         }
-        /* pdf.js text layer — transparent text sits over the canvas */
-        .bulk-cv-viewer .textLayer {
-            position: absolute;
-            top: 0; left: 0;
-            overflow: hidden;
-            opacity: 1;
-            line-height: 1;
-        }
-        .bulk-cv-viewer .textLayer span,
-        .bulk-cv-viewer .textLayer br {
-            color: transparent;
-            position: absolute;
-            white-space: pre;
-            cursor: text;
-            transform-origin: 0% 0%;
-        }
-        /* Highlight marks in the text layer — coloured background shows over the canvas */
-        .bulk-cv-viewer .textLayer mark.bulk-hl-mark {
-            color: transparent !important;
-            border-radius: 2px;
-            padding: 0;
-            position: relative;
-            mix-blend-mode: multiply;
-        }
-        .bulk-cv-viewer .textLayer mark.bhl-name   { background: rgba(253,230,138,.75); outline: 1.5px solid #f59e0b; }
-        .bulk-cv-viewer .textLayer mark.bhl-email  { background: rgba(187,247,208,.75); outline: 1.5px solid #22c55e; }
-        .bulk-cv-viewer .textLayer mark.bhl-phone  { background: rgba(191,219,254,.75); outline: 1.5px solid #3b82f6; }
-        .bulk-cv-viewer .textLayer mark.bhl-addr   { background: rgba(233,213,255,.75); outline: 1.5px solid #a855f7; }
-        .bulk-cv-viewer .textLayer mark.bhl-skills { background: rgba(254,215,170,.75); outline: 1px  solid #f97316; }
         .bulk-cv-page {
             background: #fff;
             border: 0.5px solid #e5e7eb;
@@ -467,7 +436,6 @@
         }
         .bulk-cv-li:before { content: "•"; position: absolute; left: 0; }
         .bulk-cv-skills    { font-size: 12px; line-height: 1.7; }
-        .bulk-hl           { background: #fef9c3; padding: 0 2px; border-radius: 2px; }
         .bulk-raw-text {
             font-size: 12.5px;
             line-height: 1.8;
@@ -494,47 +462,6 @@
         .bulk-docx-render table { width: 100%; border-collapse: collapse; font-size: 12px; }
         .bulk-docx-render td, .bulk-docx-render th { border: 0.5px solid #e5e7eb; padding: 4px 8px; }
         .bulk-docx-render strong, .bulk-docx-render b { font-weight: 600; }
-
-        /* Highlight marks on CV */
-        .bulk-hl-mark {
-            border-radius: 3px;
-            padding: 0 2px;
-            font-style: normal;
-            cursor: default;
-            transition: box-shadow .15s;
-        }
-        .bhl-name   { background: #fde68a; color: #78350f !important; outline: 1.5px solid #f59e0b; }
-        .bhl-email  { background: #bbf7d0; color: #14532d !important; outline: 1.5px solid #22c55e; }
-        .bhl-phone  { background: #bfdbfe; color: #1e3a5f !important; outline: 1.5px solid #3b82f6; }
-        .bhl-addr   { background: #e9d5ff; color: #581c87 !important; outline: 1.5px solid #a855f7; }
-        .bhl-skills { background: #fed7aa; color: #7c2d12 !important; outline: 1px solid #f97316; }
-
-        /* Highlight legend pinned at bottom of viewer */
-        .bulk-hl-legend {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 5px;
-            padding: 7px 10px;
-            margin-top: 8px;
-            background: #fff;
-            border: 0.5px solid #e5e7eb;
-            border-radius: 6px;
-            position: sticky;
-            bottom: 0;
-        }
-        .bulk-hl-pill {
-            font-size: 10.5px;
-            font-weight: 600;
-            padding: 2px 9px;
-            border-radius: 10px;
-            cursor: default;
-        }
-        .bulk-hl-pill.bhl-name   { background: #fde68a; color: #78350f; }
-        .bulk-hl-pill.bhl-email  { background: #bbf7d0; color: #14532d; }
-        .bulk-hl-pill.bhl-phone  { background: #bfdbfe; color: #1e3a5f; }
-        .bulk-hl-pill.bhl-addr   { background: #e9d5ff; color: #581c87; }
-        .bulk-hl-pill.bhl-skills { background: #fed7aa; color: #7c2d12; }
 
         /* ── Form scroll area — compact ── */
         .bulk-form-scroll {
@@ -886,15 +813,13 @@
         }
 
         /* ─────────────────────────────────────────────
-           CV visual renderer — shows the ACTUAL uploaded
-           file content with parsed fields highlighted
+           CV visual renderer — shows the actual uploaded file
         ───────────────────────────────────────────── */
         function bulkRenderCV(item) {
             var viewer = document.getElementById('bulk-cv-viewer');
-            var d      = item.parsed || {};
 
             if (item._fileType === 'pdf' && item._pdfDoc) {
-                // ── PDF: canvas + selectable text layer with highlights ──
+                // ── PDF: canvas render only ──
                 viewer.innerHTML = '<div id="bulk-pdf-wrap"></div>';
                 var wrap = document.getElementById('bulk-pdf-wrap');
                 var pdf  = item._pdfDoc;
@@ -910,7 +835,6 @@
                         var cssW        = viewerWidth;
                         var cssH        = Math.round(viewerWidth * (baseVp.height / baseVp.width));
 
-                        // Page container — positions canvas and text layer on top of each other
                         var pageDiv = document.createElement('div');
                         pageDiv.style.cssText = [
                             'position:relative',
@@ -923,61 +847,15 @@
                             'background:#fff',
                         ].join(';');
 
-                        // Canvas
-                        var canvas  = document.createElement('canvas');
-                        var ctx     = canvas.getContext('2d');
+                        var canvas = document.createElement('canvas');
+                        var ctx    = canvas.getContext('2d');
                         canvas.width  = viewport.width;
                         canvas.height = viewport.height;
                         canvas.style.cssText = 'position:absolute;top:0;left:0;width:' + cssW + 'px;height:' + cssH + 'px;';
                         pageDiv.appendChild(canvas);
-
-                        // Text layer div — overlaid on canvas, same CSS size
-                        var textLayerDiv = document.createElement('div');
-                        textLayerDiv.className = 'textLayer';
-                        textLayerDiv.style.cssText = [
-                            'position:absolute',
-                            'top:0','left:0',
-                            'width:' + cssW + 'px',
-                            'height:' + cssH + 'px',
-                            'overflow:hidden',
-                            'opacity:1',
-                            'line-height:1',
-                            'pointer-events:auto',
-                        ].join(';');
-                        pageDiv.appendChild(textLayerDiv);
                         wrap.appendChild(pageDiv);
 
-                        // Render canvas
-                        return page.render({ canvasContext: ctx, viewport: viewport }).promise
-                            .then(function () { return page.getTextContent(); })
-                            .then(function (textContent) {
-                                // Render text layer using pdf.js
-                                if (typeof pdfjsLib.renderTextLayer === 'function') {
-                                    return pdfjsLib.renderTextLayer({
-                                        textContentSource: textContent,
-                                        container: textLayerDiv,
-                                        viewport:  viewport,
-                                        textDivs:  [],
-                                    }).promise;
-                                }
-                                // Fallback for older pdf.js builds
-                                return bulkManualTextLayer(textContent, textLayerDiv, viewport, cssW, cssH);
-                            })
-                            .then(function () {
-                                // Scale text layer spans to match CSS display size
-                                var scaleX = cssW / viewport.width;
-                                var scaleY = cssH / viewport.height;
-                                Array.from(textLayerDiv.querySelectorAll('span')).forEach(function (s) {
-                                    if (s.style.left)   s.style.left   = (parseFloat(s.style.left)   * scaleX) + 'px';
-                                    if (s.style.top)    s.style.top    = (parseFloat(s.style.top)    * scaleY) + 'px';
-                                    if (s.style.width && s.style.width !== 'auto')
-                                        s.style.width  = (parseFloat(s.style.width)  * scaleX) + 'px';
-                                    if (s.style.fontSize)
-                                        s.style.fontSize = (parseFloat(s.style.fontSize) * Math.min(scaleX, scaleY)) + 'px';
-                                });
-                                // Now highlight parsed values inside the text layer
-                                bulkHighlightInDom(textLayerDiv, d);
-                            });
+                        return page.render({ canvasContext: ctx, viewport: viewport }).promise;
                     });
                 };
 
@@ -987,136 +865,23 @@
                         chain = chain.then(function () { return renderPage(pn); });
                     })(p);
                 }
-                chain.then(function () { bulkAppendHighlightLegend(viewer, d); });
 
             } else if (item._fileType === 'docx' && item._visual && item._visual !== '__TXT__') {
-                // ── DOCX: mammoth HTML with highlights ──
+                // ── DOCX: mammoth HTML ──
                 var wrapper = document.createElement('div');
                 wrapper.className = 'bulk-docx-render';
                 wrapper.innerHTML = item._visual;
                 wrapper.querySelectorAll('script').forEach(function (s) { s.remove(); });
                 viewer.innerHTML = '';
                 viewer.appendChild(wrapper);
-                bulkHighlightInDom(wrapper, d);
-                bulkAppendHighlightLegend(viewer, d);
 
             } else {
                 // ── TXT / fallback ──
-                var raw     = item.resumeText || '';
-                var escaped = bulkHighlightInText(bulkEsc(raw), d);
+                var raw = item.resumeText || '';
                 viewer.innerHTML =
                     '<div style="background:#fff;border-radius:6px;padding:20px 24px;">' +
-                    '<pre class="bulk-raw-text">' + escaped + '</pre></div>';
-                bulkAppendHighlightLegend(viewer, d);
+                    '<pre class="bulk-raw-text">' + bulkEsc(raw) + '</pre></div>';
             }
-        }
-
-        /* Manual text layer fallback (pdf.js < 3.x builds that lack renderTextLayer) */
-        function bulkManualTextLayer(textContent, container, viewport, cssW, cssH) {
-            textContent.items.forEach(function (item) {
-                if (!item.str || !item.str.trim()) return;
-                var tx  = pdfjsLib.Util.transform(viewport.transform, item.transform);
-                var span = document.createElement('span');
-                span.textContent = item.str;
-                span.style.cssText = [
-                    'position:absolute',
-                    'left:'     + tx[4] + 'px',
-                    'top:'      + (viewport.height - tx[5]) + 'px',
-                    'font-size:' + Math.abs(tx[0]) + 'px',
-                    'font-family:sans-serif',
-                    'white-space:pre',
-                    'color:transparent',
-                    'transform-origin:0% 0%',
-                ].join(';');
-                container.appendChild(span);
-            });
-            return Promise.resolve();
-        }
-
-        /* Walk DOM text nodes, wrap any occurrence of a parsed value in a <mark> span */
-        function bulkHighlightInDom(root, d) {
-            var entries = bulkHighlightEntries(d);
-            entries.forEach(function (entry) {
-                if (!entry.value) return;
-                bulkWalkTextNodes(root, entry.value, entry.cls, entry.label);
-            });
-        }
-
-        /* For plain-text mode: do regex replacement on the escaped HTML string */
-        function bulkHighlightInText(escapedHtml, d) {
-            var entries = bulkHighlightEntries(d);
-            entries.forEach(function (entry) {
-                if (!entry.value) return;
-                var escaped = bulkEsc(entry.value);
-                var pat = new RegExp('(' + escaped.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
-                escapedHtml = escapedHtml.replace(pat,
-                    '<mark class="bulk-hl-mark ' + entry.cls + '" title="' + entry.label + '">$1</mark>');
-            });
-            return escapedHtml;
-        }
-
-        /* Build the list of {value, cls, label} to highlight */
-        function bulkHighlightEntries(d) {
-            var entries = [];
-            if (d.full_name) entries.push({ value: d.full_name, cls: 'bhl-name',   label: 'Name' });
-            if (d.email)     entries.push({ value: d.email,     cls: 'bhl-email',  label: 'Email' });
-            if (d.phone)     entries.push({ value: d.phone,     cls: 'bhl-phone',  label: 'Phone' });
-            if (d.address)   entries.push({ value: d.address,   cls: 'bhl-addr',   label: 'Address' });
-            // Highlight each individual skill
-            if (d.skills) {
-                d.skills.split(',').forEach(function (sk) {
-                    var s = sk.trim();
-                    if (s.length >= 2) entries.push({ value: s, cls: 'bhl-skills', label: 'Skill' });
-                });
-            }
-            return entries;
-        }
-
-        /* Walk text nodes in a DOM subtree and wrap matched text in <mark> elements */
-        function bulkWalkTextNodes(node, value, cls, label) {
-            if (node.nodeType === 3) { // Text node
-                var idx = node.nodeValue.toLowerCase().indexOf(value.toLowerCase());
-                if (idx === -1) return;
-                var before  = node.nodeValue.substring(0, idx);
-                var matched = node.nodeValue.substring(idx, idx + value.length);
-                var after   = node.nodeValue.substring(idx + value.length);
-
-                var mark = document.createElement('mark');
-                mark.className   = 'bulk-hl-mark ' + cls;
-                mark.title       = label;
-                mark.textContent = matched;
-
-                var frag = document.createDocumentFragment();
-                if (before)  frag.appendChild(document.createTextNode(before));
-                frag.appendChild(mark);
-                if (after)   frag.appendChild(document.createTextNode(after));
-
-                node.parentNode.replaceChild(frag, node);
-            } else if (node.nodeType === 1 && node.nodeName !== 'MARK' && node.nodeName !== 'SCRIPT' && node.nodeName !== 'STYLE') {
-                // Clone childNodes since we'll be modifying them
-                Array.from(node.childNodes).forEach(function (child) {
-                    bulkWalkTextNodes(child, value, cls, label);
-                });
-            }
-        }
-
-        /* Colour legend showing what each highlight colour means */
-        function bulkAppendHighlightLegend(viewer, d) {
-            var items = [];
-            if (d.full_name) items.push({ cls: 'bhl-name',   label: 'Name' });
-            if (d.email)     items.push({ cls: 'bhl-email',  label: 'Email' });
-            if (d.phone)     items.push({ cls: 'bhl-phone',  label: 'Phone' });
-            if (d.address)   items.push({ cls: 'bhl-addr',   label: 'Address' });
-            if (d.skills)    items.push({ cls: 'bhl-skills', label: 'Skills' });
-            if (!items.length) return;
-
-            var legend = document.createElement('div');
-            legend.className = 'bulk-hl-legend';
-            legend.innerHTML = '<span style="font-size:10px;font-weight:600;color:#6b7280;margin-right:6px;">Highlights:</span>' +
-                items.map(function (it) {
-                    return '<span class="bulk-hl-pill ' + it.cls + '">' + it.label + '</span>';
-                }).join('');
-            viewer.appendChild(legend);
         }
 
         function bulkShowParsingState(name) {
@@ -1237,29 +1002,6 @@
         /* ─────────────────────────────────────────────
            Highlight CV text on form field hover/focus
         ───────────────────────────────────────────── */
-        var bulkHlMap = {
-            name:   '.bhl-name',
-            email:  '.bhl-email',
-            phone:  '.bhl-phone',
-            addr:   '.bhl-addr',
-            skills: '.bhl-skills',
-        };
-        function bulkHl(key) {
-            // Reset all mark pulses
-            document.querySelectorAll('#bulk-cv-viewer .bulk-hl-mark').forEach(function (el) {
-                el.style.boxShadow = '';
-                el.style.zIndex    = '';
-            });
-            var sel = bulkHlMap[key];
-            if (!sel) return;
-            var marks = document.querySelectorAll('#bulk-cv-viewer ' + sel);
-            marks.forEach(function (el, idx) {
-                el.style.boxShadow = '0 0 0 3px rgba(251,191,36,.85)';
-                el.style.zIndex    = '10';
-                if (idx === 0) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
-            });
-        }
-
         /* ─────────────────────────────────────────────
            Filing mode toggle
         ───────────────────────────────────────────── */
