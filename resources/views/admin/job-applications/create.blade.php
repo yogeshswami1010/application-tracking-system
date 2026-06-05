@@ -934,12 +934,12 @@
             if (d.skills)    items.push({ cls: 'bhl-skills', label: 'Skills' });
             if (!items.length) return;
 
-            var legend = document.createElement('div');
-            legend.className = 'bulk-hl-legend';
-            legend.innerHTML = '<span style="font-size:10px;font-weight:600;color:#6b7280;margin-right:6px;">Highlights:</span>' +
-                items.map(function (it) {
-                    return '<span class="bulk-hl-pill ' + it.cls + '">' + it.label + '</span>';
-                }).join('');
+            // var legend = document.createElement('div');
+            // legend.className = 'bulk-hl-legend';
+            // legend.innerHTML = '<span style="font-size:10px;font-weight:600;color:#6b7280;margin-right:6px;">Highlights:</span>' +
+            //     items.map(function (it) {
+            //         return '<span class="bulk-hl-pill ' + it.cls + '">' + it.label + '</span>';
+            //     }).join('');
             viewer.appendChild(legend);
         }
 
