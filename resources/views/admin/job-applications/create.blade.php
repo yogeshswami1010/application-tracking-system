@@ -1022,26 +1022,47 @@
             var item = bulkQueue[bulkActive];
             if (!item) return;
 
-            var saveBtn = document.getElementById('bulk-save-btn');
+            // Clear previous inline errors
+            document.querySelectorAll('.bulk-err').forEach(function (el) { el.remove(); });
+
+            var saveBtn  = document.getElementById('bulk-save-btn');
             var prevHtml = saveBtn.innerHTML;
-            saveBtn.disabled = true;
+            saveBtn.disabled  = true;
             saveBtn.innerHTML = '<i class="fa fa-spinner fa-spin mr-1"></i> Saving…';
 
-            var fd = new FormData();
-            fd.append('_token',     bulkCsrfToken);
-            fd.append('full_name',  document.getElementById('bf-name').value);
-            fd.append('email',      document.getElementById('bf-email').value);
-            fd.append('phone',      document.getElementById('bf-phone').value);
-            fd.append('skills',     document.getElementById('bf-skills').value);
-            fd.append('address',    document.getElementById('bf-address').value);
+            // Read values fresh from DOM at submit time
+            var jobId    = document.getElementById('bulk-job-id').value.trim();
+            var locId    = document.getElementById('bulk-location-id').value.trim();
+            var jobLocId = document.getElementById('bulk-job-select').value.trim();
 
-            // Filing
+            var fd = new FormData();
+            fd.append('_token',    bulkCsrfToken);
+            fd.append('full_name', document.getElementById('bf-name').value.trim());
+            fd.append('email',     document.getElementById('bf-email').value.trim());
+            fd.append('phone',     document.getElementById('bf-phone').value.trim());
+            fd.append('skills',    document.getElementById('bf-skills').value.trim());
+            fd.append('address',   document.getElementById('bf-address').value.trim());
+
+            // Filing mode
             if (bulkFiling === 'db') {
                 fd.append('entry_type', 'candidate');
+                // Do NOT append job_id / location_id — omitting them lets nullable validation pass
             } else {
-                fd.append('entry_type',  'applicant');
-                fd.append('job_id',      document.getElementById('bulk-job-id').value);
-                fd.append('location_id', document.getElementById('bulk-location-id').value);
+                // Job applicant — must have job_id + location_id resolved from AJAX
+                if (!jobId || !locId) {
+                    saveBtn.disabled  = false;
+                    saveBtn.innerHTML = prevHtml;
+                    var sel = document.getElementById('bulk-job-selector');
+                    var msg = document.createElement('p');
+                    msg.className   = 'bulk-err text-red-500 text-xs mt-1';
+                    msg.textContent = 'Please select a job and wait for it to load before saving.';
+                    sel.appendChild(msg);
+                    return;
+                }
+                fd.append('entry_type',          'applicant');
+                fd.append('job_id',              jobId);
+                fd.append('location_id',         locId);
+                fd.append('job_job_location_id', jobLocId);
             }
 
             // Notes
@@ -1050,13 +1071,16 @@
             // Resume file
             if (item.file) fd.append('resume', item.file);
 
-            // Answers (from question boxes)
-            var form = document.getElementById('bulk-candidate-form');
+            // Question answers
+            var form         = document.getElementById('bulk-candidate-form');
             var answerFields = form.querySelectorAll('[name^="answer"]');
             answerFields.forEach(function (el) { fd.append(el.name, el.value); });
 
-            // Required columns
-            var colFields = form.querySelectorAll('#bulk-show-columns input, #bulk-show-columns select, #bulk-show-sections input, #bulk-show-sections select');
+            // Required columns (gender, dob, country, state, city, zip_code etc.)
+            var colFields = form.querySelectorAll(
+                '#bulk-show-columns input, #bulk-show-columns select, #bulk-show-columns textarea,' +
+                '#bulk-show-sections input, #bulk-show-sections select, #bulk-show-sections textarea'
+            );
             colFields.forEach(function (el) { if (el.name) fd.append(el.name, el.value); });
 
             $.ajax({
@@ -1067,7 +1091,7 @@
                 contentType: false,
                 dataType:    'json',
                 success: function (response) {
-                    saveBtn.disabled = false;
+                    saveBtn.disabled  = false;
                     saveBtn.innerHTML = prevHtml;
                     if (response && response.status === 'success') {
                         item.saved  = true;
@@ -1084,10 +1108,10 @@
                         }
                     }
                 },
-                error: function (response) {
-                    saveBtn.disabled = false;
+                error: function (xhr) {
+                    saveBtn.disabled  = false;
                     saveBtn.innerHTML = prevHtml;
-                    bulkHandleFails(response);
+                    bulkHandleFails(xhr);
                 }
             });
         }
@@ -1204,23 +1228,58 @@
         }
 
         /* ─────────────────────────────────────────────
-           Error handler (mirrors original handleFails)
+           Error handler
         ───────────────────────────────────────────── */
-        function bulkHandleFails(response) {
-            if (!response.responseJSON || !response.responseJSON.errors) return;
-            var errors = response.responseJSON.errors;
-            var form   = document.getElementById('bulk-candidate-form');
-            Object.keys(errors).forEach(function (key) {
-                var el  = form.querySelector('[name="' + key + '"]');
-                var grp = el ? el.closest('.bulk-fg') : null;
-                if (grp) {
-                    grp.querySelector('.bulk-err') && grp.querySelector('.bulk-err').remove();
-                    var msg = document.createElement('p');
-                    msg.className   = 'bulk-err text-red-500 text-xs mt-1';
-                    msg.textContent = errors[key][0] || errors[key];
-                    grp.appendChild(msg);
-                }
-            });
+        function bulkHandleFails(xhr) {
+            document.querySelectorAll('.bulk-err').forEach(function (el) { el.remove(); });
+
+            var json   = xhr.responseJSON || {};
+            var errors = json.errors || {};
+            var keys   = Object.keys(errors);
+
+            // Map Laravel field names → our input element IDs
+            var fieldMap = {
+                full_name:   'bf-name',
+                email:       'bf-email',
+                phone:       'bf-phone',
+                skills:      'bf-skills',
+                address:     'bf-address',
+                job_id:      'bulk-job-selector',
+                location_id: 'bulk-job-selector',
+            };
+
+            if (keys.length) {
+                var first = true;
+                keys.forEach(function (key) {
+                    var msg      = Array.isArray(errors[key]) ? errors[key][0] : errors[key];
+                    var targetId = fieldMap[key];
+                    var anchor   = targetId ? document.getElementById(targetId) : null;
+
+                    if (anchor) {
+                        var errEl         = document.createElement('p');
+                        errEl.className   = 'bulk-err text-red-500 text-xs mt-1';
+                        errEl.textContent = msg;
+                        anchor.parentNode.insertBefore(errEl, anchor.nextSibling);
+                        if (anchor.style !== undefined) anchor.style.borderColor = '#ef4444';
+                        if (first) { anchor.scrollIntoView({ block: 'center', behavior: 'smooth' }); first = false; }
+                    } else {
+                        bulkToast(key.replace(/_/g, ' ') + ': ' + msg, 'error');
+                    }
+                });
+            } else {
+                var rawMsg = json.message || ('Server error ' + xhr.status);
+                bulkToast(rawMsg, 'error');
+            }
+        }
+
+        function bulkToast(msg, type) {
+            if (typeof $.toast === 'function') {
+                $.toast({ text: msg, position: 'top-right',
+                    loaderBg: type === 'error' ? '#ef4444' : '#059669',
+                    icon: type === 'error' ? 'error' : 'success', hideAfter: 6000 });
+            } else {
+                alert(msg);
+            }
         }
 
         /* ─────────────────────────────────────────────
