@@ -922,7 +922,7 @@ function deleteApplication(applicationId) {
    ══════════════════════════════════════════════
    jaApplicantIds must be set on the parent page.
 
-   Option A – static list (server-side rendered):
+   Option A – static list (server-side rendered): */
      <script>var jaApplicantIds = @json($applications->pluck('id')->values());</script>
 
    Option B – DataTable (client-side):
