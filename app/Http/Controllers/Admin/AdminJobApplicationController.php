@@ -1850,7 +1850,7 @@ class AdminJobApplicationController extends AdminBaseController
         foreach ((array) $request->skills as $val) {
             if (str_starts_with((string) $val, 'new:')) {
                 $name  = trim(substr($val, 4));
-                $skill = \App\Models\Skill::firstOrCreate(['name' => $name]);
+                $skill = Skill::firstOrCreate(['name' => $name]);
                 $skillIds[] = $skill->id;
             } else {
                 $skillIds[] = $val;
