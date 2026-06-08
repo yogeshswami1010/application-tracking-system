@@ -25,22 +25,19 @@
 
     // Resume uploaded through custom questions
     if (!$resumeUrl && !empty($answers)) {
-
         foreach ($answers as $answer) {
-
             if (!empty($answer->file)) {
-
                 if (!empty($answer->file_url)) {
                     $resumeUrl = $answer->file_url;
                 } else {
                     $resumeUrl = url('user-uploads/documents/' . basename($answer->file));
                 }
-
                 break;
             }
         }
     }
 @endphp
+
 {{-- 
   ============================================================
   TWO-COLUMN APPLICANT DETAIL PANEL
@@ -104,6 +101,28 @@
     transition: background .15s;
 }
 .ja-close-btn:hover { background: rgba(255,255,255,.15); }
+
+/* ── Prev / Next navigation ── */
+.ja-nav-arrows {
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12);
+    border-radius: 10px; padding: 3px 6px;
+    flex-shrink: 0;
+}
+.ja-nav-btn {
+    width: 26px; height: 26px; border-radius: 7px;
+    border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.08);
+    color: rgba(255,255,255,.75); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s, color .15s, opacity .15s;
+    flex-shrink: 0;
+}
+.ja-nav-btn:hover:not(:disabled) { background: rgba(255,255,255,.18); color: #fff; }
+.ja-nav-btn:disabled { opacity: .25; cursor: not-allowed; }
+.ja-nav-counter {
+    font-size: 11px; font-weight: 600; color: rgba(255,255,255,.5);
+    min-width: 36px; text-align: center; white-space: nowrap;
+}
 
 /* ── Body: two columns ── */
 .ja-body {
@@ -326,6 +345,13 @@
 .ja-small-badge {
     font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px;
 }
+
+/* ── Nav loading shimmer ── */
+.ja-nav-loading {
+    opacity: .5;
+    pointer-events: none;
+    transition: opacity .2s;
+}
 </style>
 
 <div class="ja-two-col-wrap">
@@ -347,6 +373,31 @@
                 {{ ucwords($application->status->status) }}
             </span>
             <span class="ja-pill ja-pill-cat {{ $detailCatClass }}">{{ ucfirst($detailCatName) }}</span>
+        </div>
+
+        {{-- ── PREV / NEXT NAVIGATION ── --}}
+        <div class="ja-nav-arrows" id="ja-nav-arrows">
+            <button type="button"
+                    class="ja-nav-btn"
+                    id="ja-prev-btn"
+                    onclick="jaNavigate('prev', {{ $application->id }})"
+                    title="Previous applicant"
+                    disabled>
+                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
+                </svg>
+            </button>
+            <span class="ja-nav-counter" id="ja-nav-counter">—</span>
+            <button type="button"
+                    class="ja-nav-btn"
+                    id="ja-next-btn"
+                    onclick="jaNavigate('next', {{ $application->id }})"
+                    title="Next applicant"
+                    disabled>
+                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+                </svg>
+            </button>
         </div>
 
         <button type="button" class="right-side-toggle ja-close-btn" title="@lang('app.close')" aria-label="@lang('app.close')">
@@ -374,7 +425,6 @@
                             <i class="fa fa-external-link"></i>
                             View
                         </a>
-
                         <a href="{{ $resumeUrl }}" download class="ja-pdf-btn ja-pdf-btn-primary">
                             <i class="fa fa-download"></i>
                             Download
@@ -384,19 +434,15 @@
             </div>
 
             @if($resumeUrl)
-
                 <embed
                     src="{{ $resumeUrl }}"
                     type="application/pdf"
                     class="ja-pdf-frame">
-
             @else
-
                 <div class="ja-pdf-no-resume">
                     <i class="fa fa-file-pdf-o"></i>
                     <p>No resume uploaded.</p>
                 </div>
-
             @endif
 
         </div>
@@ -870,6 +916,136 @@ function deleteApplication(applicationId) {
         }
     });
 }
+
+/* ══════════════════════════════════════════════
+   PREV / NEXT APPLICANT NAVIGATION
+   ══════════════════════════════════════════════
+   jaApplicantIds must be set on the parent page.
+
+   Option A – static list (server-side rendered):
+     <script>var jaApplicantIds = @json($applications->pluck('id')->values());</script>
+
+   Option B – DataTable (client-side):
+     table.on('draw', function () {
+         jaApplicantIds = [];
+         $('#applicants-table tbody tr').each(function () {
+             var id = parseInt($(this).data('id'));
+             if (id) jaApplicantIds.push(id);
+         });
+     });
+   ══════════════════════════════════════════════ */
+(function () {
+
+    var CURRENT_ID = {{ $application->id }};
+    var showUrlTpl = "{{ route('admin.job-applications.show', ':id') }}";
+
+    /* ── Helpers ── */
+    function getIds() {
+        return (typeof jaApplicantIds !== 'undefined' && Array.isArray(jaApplicantIds) && jaApplicantIds.length)
+            ? jaApplicantIds
+            : [];
+    }
+
+    function currentIndex() {
+        return getIds().indexOf(CURRENT_ID);
+    }
+
+    function updateNavUI() {
+        var ids  = getIds();
+        var idx  = currentIndex();
+        var prev = document.getElementById('ja-prev-btn');
+        var next = document.getElementById('ja-next-btn');
+        var ctr  = document.getElementById('ja-nav-counter');
+
+        if (!ids.length || idx === -1) {
+            if (ctr) ctr.textContent = '—';
+            if (prev) prev.disabled = true;
+            if (next) next.disabled = true;
+            return;
+        }
+
+        if (ctr)  ctr.textContent  = (idx + 1) + ' / ' + ids.length;
+        if (prev) prev.disabled    = (idx === 0);
+        if (next) next.disabled    = (idx === ids.length - 1);
+    }
+
+    /* ── Public navigate function ── */
+    window.jaNavigate = function (direction, fromId) {
+        var ids = getIds();
+        var idx = ids.indexOf(fromId);
+
+        if (idx === -1 || !ids.length) return;
+
+        var targetId = (direction === 'prev') ? ids[idx - 1] : ids[idx + 1];
+        if (targetId === undefined) return;
+
+        /* Disable both buttons while loading */
+        var prevBtn = document.getElementById('ja-prev-btn');
+        var nextBtn = document.getElementById('ja-next-btn');
+        if (prevBtn) prevBtn.disabled = true;
+        if (nextBtn) nextBtn.disabled = true;
+
+        /* Optional: dim the panel while loading */
+        var wrap = document.querySelector('.ja-two-col-wrap');
+        if (wrap) wrap.classList.add('ja-nav-loading');
+
+        var url = showUrlTpl.replace(':id', targetId);
+
+        $.easyAjax({
+            type: 'GET',
+            url: url,
+            success: function (res) {
+                if (res.status === 'success') {
+                    /* Replace sidebar content – the new panel's own script
+                       will call updateNavUI() with its own CURRENT_ID */
+                    $('#right-sidebar-content').html(res.view);
+
+                    /* Scroll the target row into view in the list table */
+                    var $row = $('[data-id="' + targetId + '"]');
+                    if ($row.length) {
+                        $row[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        /* Highlight briefly */
+                        $row.addClass('table-active');
+                        setTimeout(function () { $row.removeClass('table-active'); }, 1200);
+                    }
+                } else {
+                    /* Re-enable on failure */
+                    if (wrap) wrap.classList.remove('ja-nav-loading');
+                    updateNavUI();
+                }
+            },
+            error: function () {
+                if (wrap) wrap.classList.remove('ja-nav-loading');
+                updateNavUI();
+            }
+        });
+    };
+
+    /* ── Keyboard shortcut: ← → arrows ── */
+    function onKeyDown(e) {
+        /* Only fire when the sidebar is open and focus is not in a text input */
+        var tag = document.activeElement ? document.activeElement.tagName : '';
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+        if (e.key === 'ArrowLeft'  || e.keyCode === 37) {
+            var prevBtn = document.getElementById('ja-prev-btn');
+            if (prevBtn && !prevBtn.disabled) jaNavigate('prev', CURRENT_ID);
+        }
+        if (e.key === 'ArrowRight' || e.keyCode === 39) {
+            var nextBtn = document.getElementById('ja-next-btn');
+            if (nextBtn && !nextBtn.disabled) jaNavigate('next', CURRENT_ID);
+        }
+    }
+
+    /* Remove any previously bound listener to avoid duplicates across reloads */
+    document.removeEventListener('keydown', window._jaKeyNav);
+    window._jaKeyNav = onKeyDown;
+    document.addEventListener('keydown', window._jaKeyNav);
+
+    /* ── Init ── */
+    updateNavUI();
+
+})();
 </script>
 
 @if(!is_null($application->skype_id))
