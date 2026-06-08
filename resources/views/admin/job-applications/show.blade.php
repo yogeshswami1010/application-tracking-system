@@ -15,29 +15,26 @@
     $currentStatusId = $application->status_id;
     $currentStatus = $allStatuses->firstWhere('id', $currentStatusId);
 
-    // $resumeUrl is resolved below in Blade context (after @endphp)
-    // so that Eloquent accessors like file_url work correctly.
+    // Resolve resume URL — done entirely in @php so variable stays in scope.
+    // Priority: 1) application->resume_url  2) answer labelled "resume" with file  3) any answer with file
     $resumeUrl = $application->resume_url ?? null;
+    if (is_null($resumeUrl) && isset($answers)) {
+        foreach ($answers as $_ans) {
+            if (!is_null($_ans->file) && str_contains(strtolower($_ans->question->question ?? ''), 'resume')) {
+                $resumeUrl = $_ans->file_url;
+                break;
+            }
+        }
+    }
+    if (is_null($resumeUrl) && isset($answers)) {
+        foreach ($answers as $_ans) {
+            if (!is_null($_ans->file)) {
+                $resumeUrl = $_ans->file_url;
+                break;
+            }
+        }
+    }
 @endphp
-
-{{--
-  Resolve $resumeUrl in Blade context so Eloquent accessors (file_url) work correctly.
-  Priority: 1) $application->resume_url  2) answer whose question contains "resume"  3) any file answer
---}}
-@if(is_null($resumeUrl) && isset($answers) && count($answers) > 0)
-    @foreach($answers as $_ans)
-        @if(is_null($resumeUrl) && !is_null($_ans->file) && str_contains(strtolower($_ans->question->question ?? ''), 'resume'))
-            @php $resumeUrl = $_ans->file_url; @endphp
-        @endif
-    @endforeach
-    @if(is_null($resumeUrl))
-        @foreach($answers as $_ans)
-            @if(is_null($resumeUrl) && !is_null($_ans->file))
-                @php $resumeUrl = $_ans->file_url; @endphp
-            @endif
-        @endforeach
-    @endif
-@endif
 
 {{-- 
   ============================================================
