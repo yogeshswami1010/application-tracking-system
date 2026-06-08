@@ -41,13 +41,21 @@
         }
     }
 
-    $previousId = \App\Models\JobApplication::where('id', '<', $application->id)
-        ->orderBy('id', 'desc')
+    $previousId = JobApplication::where('id', '<', $application->id)
+        ->orderByDesc('id')
         ->value('id');
 
-    $nextId = \App\Models\JobApplication::where('id', '>', $application->id)
-        ->orderBy('id', 'asc')
+    $nextId = JobApplication::where('id', '>', $application->id)
+        ->orderBy('id')
         ->value('id');
+
+    return Reply::dataOnly([
+        'view' => view('admin.job-applications.show', compact(
+            'application',
+            'previousId',
+            'nextId'
+        ))->render()
+    ]);
 
 @endphp
 {{-- 
