@@ -379,7 +379,7 @@
         {{-- ── Table ── --}}
         <div class="jc-table-card table-wrapper ra-dt-wrap w-full overflow-hidden rounded-b-[12px] border border-t-0 border-[#E8E6E1] bg-white shadow-sm">
             <table id="myTable" class="jc-cat-table display w-full" style="width:100%">
-                <thead>
+             <thead>
                 <tr>
                     <th style="width:40px;"><div class="ja-chk" id="ja-chk-all" onclick="jaToggleAll()" title="Select all"></div></th>
                     <th>@lang('modules.jobApplication.applicantName')</th>
@@ -387,6 +387,7 @@
                     <th>@lang('menu.locations')</th>
                     <th>@lang('app.status')</th>
                     <th class="jc-th-right" style="padding-right:16px;">@lang('app.action')</th>
+                    <th style="display:none;"></th>  {{-- hidden created_at column --}}
                 </tr>
                 </thead>
             </table>
@@ -742,8 +743,7 @@
         });
     }
 
-    // ── DataTable load ───────────────────────────────────────────
-    function tableLoad(type) {
+  function tableLoad(type) {
         var status         = $('#status').val();
         var jobs           = $('#jobs').val();
         var questions      = $('#questions').val();
@@ -754,6 +754,7 @@
 
         table = $('#myTable').DataTable({
             responsive: false,
+            autoWidth: false,
             processing: false,
             serverSide: true,
             destroy: true,
@@ -772,10 +773,6 @@
                     $('[data-toggle="tooltip"]').tooltip();
                 }
                 jaUpdateAllChk();
-
-                // ── Rebuild the ID list for Prev/Next navigation ──
-                // Must run after every draw so the order always matches
-                // what the user currently sees (filtered, sorted, paginated).
                 jaRebuildIds();
             },
             order: [[6, 'desc']],
@@ -789,9 +786,9 @@
                         return '<div class="ja-chk ja-row-chk" data-id="' + row.id + '" onclick="jaToggleRow(' + row.id + ', this)"></div>';
                     }
                 },
-                { data: 'full_name',    name: 'full_name',  width: '17%' },
-                { data: 'title',        name: 'job_id',     width: '15%' },
-                { data: 'location_id',  name: 'location_id' },
+                { data: 'full_name',   name: 'full_name',  width: '17%' },
+                { data: 'title',       name: 'job_id',     width: '15%' },
+                { data: 'location_id', name: 'location_id' },
                 {
                     data: 'status',
                     name: 'status_id',
@@ -805,7 +802,7 @@
                     }
                 },
                 { data: 'action', name: 'action', width: '18%', searchable: false, className: 'jc-td-right' },
-                { data: 'created_at', name: 'created_at', visible: false, searchable: false } 
+                { data: 'created_at', name: 'created_at', visible: false, searchable: false, orderable: true, defaultContent: '' }
             ]
         });
     }
