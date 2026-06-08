@@ -10,729 +10,843 @@
         default => 'bg-[#F1F3F7] text-[#5A6478]',
     };
     $stagePillBg = $application->status->color ?? '#0F1F3D';
+    $initials = collect(explode(' ', $application->full_name))->map(fn($w) => strtoupper(substr($w,0,1)))->take(2)->join('');
+    $allStatuses = \App\ApplicationStatus::orderBy('position')->get();
+    $currentStatusId = $application->status_id;
+    $currentStatus = $allStatuses->firstWhere('id', $currentStatusId);
 @endphp
+
+{{-- 
+  ============================================================
+  TWO-COLUMN APPLICANT DETAIL PANEL
+  Left:  PDF resume viewer (pdf.js iframe or embed)
+  Right: Tabbed detail panel (Details / Notes / Q&A / Schedule)
+  Width: Controlled by the parent drawer (set to 75vw in JS)
+  ============================================================
+--}}
+
 <style>
-    .right-panel-box {
-        overflow-x: scroll;
-        max-height: 34rem;
-    }
-    .resume-button {
-        text-align: center;
-        margin-top: 1rem;
-    }
+.ja-two-col-wrap {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: #F8F7F4;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    overflow: hidden;
+}
+
+/* ── Header ── */
+.ja-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    background: #0F1F3D;
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.ja-header-avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    border: 1.5px solid rgba(255,255,255,.25);
+    object-fit: cover; flex-shrink: 0;
+}
+.ja-header-avatar-initials {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: rgba(255,255,255,.12);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.ja-header-meta { flex: 1; min-width: 0; }
+.ja-header-meta h2 {
+    font-size: 15px; font-weight: 700; color: #fff;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0;
+}
+.ja-header-meta p {
+    font-size: 11.5px; color: rgba(255,255,255,.5); margin: 2px 0 0;
+}
+.ja-header-pills { display: flex; align-items: center; gap: 6px; }
+.ja-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+}
+.ja-pill-stage { color: #fff; }
+.ja-pill-cat { background: rgba(255,255,255,.1); color: rgba(255,255,255,.75); }
+.ja-close-btn {
+    width: 30px; height: 30px; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,.15); background: rgba(255,255,255,.07);
+    color: rgba(255,255,255,.7); cursor: pointer; display: flex;
+    align-items: center; justify-content: center; flex-shrink: 0;
+    transition: background .15s;
+}
+.ja-close-btn:hover { background: rgba(255,255,255,.15); }
+
+/* ── Body: two columns ── */
+.ja-body {
+    flex: 1; display: grid;
+    grid-template-columns: 1fr 380px;
+    overflow: hidden; min-height: 0;
+}
+
+/* ── LEFT: PDF viewer ── */
+.ja-pdf-panel {
+    display: flex; flex-direction: column;
+    border-right: 1px solid #E8E6E1; overflow: hidden; background: #525659;
+}
+.ja-pdf-toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 14px; background: #fff; border-bottom: 1px solid #E8E6E1;
+    flex-shrink: 0;
+}
+.ja-pdf-toolbar-label {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 12px; font-weight: 600; color: #5A6478;
+}
+.ja-pdf-toolbar-actions { display: flex; align-items: center; gap: 6px; }
+.ja-pdf-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 11px; border-radius: 8px;
+    border: 1px solid #E2DED8; background: #fff; cursor: pointer;
+    font-size: 12px; color: #5A6478; font-family: 'Plus Jakarta Sans', sans-serif;
+    transition: background .15s, color .15s;
+}
+.ja-pdf-btn:hover { background: #F8F7F4; color: #1A1E2E; }
+.ja-pdf-btn-primary {
+    background: #2563EB; color: #fff; border-color: transparent;
+}
+.ja-pdf-btn-primary:hover { background: #1d4ed8; color: #fff; }
+.ja-pdf-no-resume {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; color: #aaa; text-align: center;
+    padding: 40px;
+}
+.ja-pdf-no-resume i { font-size: 48px; opacity: .35; display: block; margin-bottom: 14px; }
+.ja-pdf-no-resume p { font-size: 13px; opacity: .6; }
+.ja-pdf-frame {
+    flex: 1; border: none; width: 100%; height: 100%;
+    display: block;
+}
+
+/* ── RIGHT: Tab panel ── */
+.ja-right-panel {
+    display: flex; flex-direction: column;
+    overflow: hidden; background: #F8F7F4;
+}
+.ja-tabs {
+    display: flex; background: #fff; border-bottom: 1px solid #E8E6E1;
+    flex-shrink: 0; padding: 0 16px; overflow-x: auto;
+}
+.ja-tab {
+    padding: 11px 13px; font-size: 12.5px; font-weight: 600; color: #8A94A6;
+    cursor: pointer; border-bottom: 2.5px solid transparent; white-space: nowrap;
+    display: flex; align-items: center; gap: 5px; transition: color .15s;
+    flex-shrink: 0;
+}
+.ja-tab.active { color: #2563EB; border-bottom-color: #2563EB; }
+.ja-tab:hover:not(.active) { color: #1A1E2E; }
+.ja-tab-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 18px; height: 18px; padding: 0 5px; border-radius: 20px;
+    background: #F0EEE9; font-size: 10px; font-weight: 600; color: #8A94A6;
+}
+.ja-right-scroll {
+    flex: 1; overflow-y: auto; padding: 12px;
+}
+
+/* ── Section cards ── */
+.ja-card {
+    background: #fff; border: 1px solid #E8E6E1; border-radius: 14px;
+    padding: 14px 16px; margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(15,31,61,.04);
+}
+.ja-card-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .08em; color: #B0B8C4; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 6px;
+}
+.ja-info-row {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    padding: 7px 0; border-bottom: 1px solid #F0EEE9;
+}
+.ja-info-row:last-child { border-bottom: none; padding-bottom: 0; }
+.ja-info-label {
+    font-size: 11.5px; color: #8A94A6; display: flex; align-items: center;
+    gap: 5px; flex-shrink: 0; width: 105px;
+}
+.ja-info-val {
+    font-size: 12.5px; font-weight: 600; color: #1A1E2E;
+    text-align: right; word-break: break-all;
+}
+.ja-info-val a { color: #2563EB; text-decoration: none; }
+.ja-info-val a:hover { text-decoration: underline; }
+
+/* ── Stage mover ── */
+.ja-stage-row { display: flex; align-items: center; gap: 8px; }
+.ja-current-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 11px; border-radius: 20px;
+    font-size: 11.5px; font-weight: 600; color: #fff; flex-shrink: 0;
+}
+.ja-stage-select {
+    flex: 1; padding: 7px 10px; border-radius: 9px;
+    border: 1.5px solid #E2DED8; background: #fff;
+    font-size: 12.5px; font-weight: 500; color: #5A6478;
+    cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif;
+    transition: border-color .15s;
+}
+.ja-stage-select:hover, .ja-stage-select:focus { border-color: #2563EB; outline: none; }
+
+/* ── Stars ── */
+.ja-stars { display: flex; align-items: center; gap: 3px; }
+.ja-star {
+    font-size: 20px; cursor: pointer; color: #D1D5DB; transition: color .1s;
+}
+.ja-star.on { color: #F59E0B; }
+
+/* ── Notes ── */
+.ja-note {
+    background: #fff; border-radius: 0 10px 10px 0;
+    border: 1px solid #E8E6E1; border-left: 3px solid #2563EB;
+    padding: 10px 13px; margin-bottom: 8px;
+}
+.ja-note-meta {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px;
+}
+.ja-note-author {
+    font-size: 11.5px; font-weight: 600; color: #1A1E2E;
+    display: flex; align-items: center; gap: 5px;
+}
+.ja-note-time { font-size: 10.5px; color: #B0B8C4; }
+.ja-note-body { font-size: 12.5px; color: #5A6478; line-height: 1.6; }
+.ja-note-actions { display: flex; gap: 5px; margin-top: 7px; }
+.ja-note-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 9px; border-radius: 7px; border: 1px solid #E8E6E1;
+    background: transparent; cursor: pointer; font-size: 11px; color: #8A94A6;
+    font-family: 'Plus Jakarta Sans', sans-serif; transition: background .12s;
+}
+.ja-note-btn:hover { background: #F8F7F4; color: #1A1E2E; }
+.ja-add-note {
+    background: #fff; border: 1px solid #E8E6E1; border-radius: 14px; padding: 14px;
+}
+.ja-note-textarea {
+    width: 100%; border: 1px solid #E2DED8; border-radius: 9px;
+    padding: 9px 12px; font-size: 12.5px; font-family: 'Plus Jakarta Sans', sans-serif;
+    color: #1A1E2E; background: #F8F7F4; resize: none; outline: none;
+    transition: border-color .15s; line-height: 1.6;
+}
+.ja-note-textarea:focus { border-color: #2563EB; background: #fff; }
+.ja-save-note-btn {
+    margin-top: 8px; display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: 9px; border: none;
+    background: #2563EB; color: #fff; cursor: pointer;
+    font-size: 12.5px; font-weight: 600; font-family: 'Plus Jakarta Sans', sans-serif;
+    transition: background .15s;
+}
+.ja-save-note-btn:hover { background: #1d4ed8; }
+
+/* ── Q&A ── */
+.ja-qa-item {
+    background: #fff; border: 1px solid #E8E6E1; border-radius: 10px;
+    padding: 11px 13px; margin-bottom: 8px;
+    border-left: 3px solid #E8E6E1;
+}
+.ja-qa-q { font-size: 12px; font-weight: 600; color: #1A1E2E; margin-bottom: 7px; }
+.ja-qa-badge {
+    display: inline-flex; align-items: center; padding: 3px 10px;
+    border-radius: 20px; font-size: 11px; font-weight: 700;
+}
+.ja-qa-yes { background: #ECFDF5; color: #065F46; }
+.ja-qa-no  { background: #FEF2F2; color: #991B1B; }
+
+/* ── Skills ── */
+.ja-skills-wrap { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+.ja-skill-tag {
+    display: inline-flex; align-items: center; padding: 5px 12px;
+    border-radius: 20px; font-size: 12px; font-weight: 500;
+    background: #F1F3F7; color: #5A6478; border: 1px solid #E2DED8;
+}
+
+/* ── Action buttons ── */
+.ja-action-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.ja-btn {
+    flex: 1; min-width: 110px; display: inline-flex; align-items: center;
+    justify-content: center; gap: 6px; padding: 8px 12px; border-radius: 10px;
+    border: none; cursor: pointer; font-size: 12.5px; font-weight: 600;
+    font-family: 'Plus Jakarta Sans', sans-serif; transition: opacity .15s;
+}
+.ja-btn:hover { opacity: .85; }
+.ja-btn-blue  { background: #EFF6FF; color: #1D4ED8; }
+.ja-btn-green { background: #ECFDF5; color: #065F46; }
+.ja-btn-red   { background: #FFF1F2; color: #EF4444; }
+
+/* ── Interview card ── */
+.ja-schedule-card {
+    background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 10px; padding: 12px 14px;
+}
+.ja-schedule-date { font-size: 14px; font-weight: 700; color: #065F46; margin-bottom: 3px; }
+.ja-schedule-type { font-size: 12px; color: #059669; }
+.ja-interviewer-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 10px; background: #F8F7F4; border-radius: 9px;
+    border: 1px solid #E8E6E1; margin-bottom: 6px;
+}
+.ja-interviewer-avatar {
+    width: 28px; height: 28px; border-radius: 50%; background: #EFF6FF;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: #1D4ED8; flex-shrink: 0;
+}
+.ja-badge-accept { background: #ECFDF5; color: #065F46; }
+.ja-badge-refuse { background: #FEF2F2; color: #991B1B; }
+.ja-badge-pending { background: #FFF7ED; color: #92400E; }
+.ja-small-badge {
+    font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px;
+}
 </style>
 
-<div class="ja-applicant-detail  profile-view max-h-[calc(100vh-0px)] overflow-y-auto bg-[#F8F7F4] font-[family-name:Plus_Jakarta_Sans]">
-    <div class="relative bg-gradient-to-br from-[#0F1F3D] to-[#162849] px-5 pb-5 pt-6">
-        <button type="button" class="right-side-toggle absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-lg border border-white/15 bg-white/[0.07] text-white/80 transition hover:bg-white/10" title="@lang('app.close')" aria-label="@lang('app.close')">
-            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+<div class="ja-two-col-wrap">
+
+    {{-- ── HEADER ── --}}
+    <div class="ja-header">
+        <img src="{{ $application->photo_url }}" alt=""
+             class="ja-header-avatar"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+        <div class="ja-header-avatar-initials" style="display:none">{{ $initials }}</div>
+
+        <div class="ja-header-meta">
+            <h2>{{ ucwords($application->full_name) }}</h2>
+            <p>{{ ucwords($application->job?->title ?? '—') }} · Applied {{ $application->created_at->timezone($global->timezone)->format('d M, Y') }}</p>
+        </div>
+
+        <div class="ja-header-pills">
+            <span class="ja-pill ja-pill-stage" style="background: {{ $stagePillBg }};">
+                {{ ucwords($application->status->status) }}
+            </span>
+            <span class="ja-pill ja-pill-cat {{ $detailCatClass }}">{{ ucfirst($detailCatName) }}</span>
+        </div>
+
+        <button type="button" class="right-side-toggle ja-close-btn" title="@lang('app.close')" aria-label="@lang('app.close')">
+            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
         </button>
-        <img src="{{ $application->photo_url }}" alt="" class="h-12 w-12 rounded-full border-2 border-white object-cover shadow-lg" width="48" height="48">
-        <h2 class="mt-3 text-[17px] font-extrabold tracking-[-0.02em] text-white">{{ ucwords($application->full_name) }}</h2>
-        <p class="mt-0.5 text-[12.5px] text-white/50">{{ ucwords($application->job?->title ?? '—') }}</p>
-        <div class="mt-3 flex flex-wrap gap-2">
-            <span class="rounded-full px-2.5 py-1 text-[11px] font-bold text-white" style="background: {{ $stagePillBg }};">{{ ucwords($application->status->status) }}</span>
-            <span class="rounded-full px-2.5 py-1 text-[11px] font-bold {{ $detailCatClass }}">{{ ucfirst($detailCatName) }}</span>
-        </div>
     </div>
 
-    <div class="border-b border-[#F0EEE9] bg-white px-5">
-        <div class="flex items-center justify-between border-b border-[#F0EEE9] py-3.5">
-            <span class="text-[10.5px] font-bold uppercase tracking-[0.09em] text-[#B0B8C4]">@lang('modules.jobApplication.ratingLabel')</span>
-            @if($user->cans('edit_job_applications'))
-                <div class="stars stars-example-fontawesome [&_.br-theme-fontawesome-stars]:leading-none">
-                    <select id="example-fontawesome" name="rating" autocomplete="off">
-                        <option value=""></option>
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                    </select>
-                </div>
-            @else
-                <span class="text-[13px] font-semibold text-[#1A1E2E]">{{ $application->rating ?? '—' }}</span>
-            @endif
-        </div>
-        <div class="flex items-center justify-between py-3.5">
-            <span class="text-[10.5px] font-bold uppercase tracking-[0.09em] text-[#B0B8C4]">@lang('modules.jobApplication.appliedAt')</span>
-            <span class="text-[13px] font-semibold text-[#1A1E2E]">{{ $application->created_at->timezone($global->timezone)->format('d M, Y') }}</span>
-        </div>
-    </div>
+    {{-- ── BODY: two columns ── --}}
+    <div class="ja-body">
 
-    <div class="flex flex-col gap-2.5 border-b border-[#F0EEE9] bg-white px-5 py-4">
-        <div class="flex flex-wrap gap-2" id="resume-{{ $application->id }}">
-            {{-- Stage mover --}}
-            @if($user->cans('edit_job_applications'))
-            <div class="mt-3 pt-3 border-t border-[#F0EEE9]">
-                <p class="text-[10.5px] font-bold uppercase tracking-[0.09em] text-[#B0B8C4] mb-2">Move to Stage</p>
-                <div class="flex items-center gap-2">
-                    @php
-                        $allStatuses = \App\ApplicationStatus::orderBy('position')->get();
-                        $currentStatusId = $application->status_id;
-                        $currentStatus = $allStatuses->firstWhere('id', $currentStatusId);
-                    @endphp
-
-                    {{-- Current stage indicator --}}
-                    <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-semibold text-white flex-shrink-0"
-                        style="background: {{ $currentStatus?->color ?? '#6B7280' }};">
-                        <i class="fa fa-check" style="font-size:9px;"></i>
-                        {{ ucwords(str_replace('_', ' ', $currentStatus?->status ?? '')) }}
-                    </span>
-
-                    <i class="fa fa-long-arrow-right text-[#B0B8C4]" style="font-size:13px;flex-shrink:0;"></i>
-
-                    {{-- Move dropdown --}}
-                    <div class="relative flex-1" id="stage-mover-wrap-{{ $application->id }}">
-                        <button type="button"
-                            onclick="jaToggleStageDrop({{ $application->id }})"
-                            class="w-full inline-flex items-center justify-between gap-2 rounded-[9px] border-[1.5px] border-[#E2DED8] bg-white px-3 py-2 text-[12.5px] font-semibold text-[#5A6478] transition hover:border-[#2563EB] hover:text-[#2563EB]">
-                            <span>Select stage</span>
-                            <i class="fa fa-chevron-down" style="font-size:10px;"></i>
-                        </button>
-
-                        <div id="stage-drop-{{ $application->id }}"
-                            style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1.5px solid #E2DED8;border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.13);z-index:999;overflow:hidden;">
-                            @foreach($allStatuses as $stageOption)
-                                @if($stageOption->id !== $currentStatusId)
-                                <button type="button"
-                                    onclick="jaMoveFromDetail({{ $application->id }}, {{ $stageOption->id }}, '{{ addslashes(ucwords(str_replace('_', ' ', $stageOption->status))) }}', {{ $currentStatusId }})"
-                                    style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 14px;border:none;background:none;font-size:13px;font-weight:500;color:#1A1E2E;cursor:pointer;font-family:inherit;text-align:left;"
-                                    onmouseover="this.style.background='#F8F7F4'"
-                                    onmouseout="this.style.background='none'">
-                                    <span style="width:10px;height:10px;border-radius:50%;background:{{ $stageOption->color ?? '#6B7280' }};flex-shrink:0;display:inline-block;"></span>
-                                    {{ ucwords(str_replace('_', ' ', $stageOption->status)) }}
-                                </button>
-                                @endif
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-            </div>
-            @endif
-            @if ($application->resume_url)
-                <a target="_blank" href="{{ $application->resume_url }}"
-                   class="inline-flex flex-1 min-w-[8rem] items-center justify-center gap-2 rounded-[10px] bg-[#2563EB] px-4 py-2.5 text-center text-[12.5px] font-bold text-white transition hover:bg-[#1d4ed8]">
+        {{-- ──────── LEFT: RESUME VIEWER ──────── --}}
+        <div class="ja-pdf-panel">
+            <div class="ja-pdf-toolbar">
+                <div class="ja-pdf-toolbar-label">
                     <i class="fa fa-file-pdf-o"></i>
-                    @lang('app.view') @lang('modules.jobApplication.resume')
-                </a>
-            @endif
-            @if($user->cans('add_schedule') && $application->status->status == 'interview' && is_null($application->schedule))
-                <a onclick="createSchedule('{{$application->id}}')" href="javascript:;"
-                   class="inline-flex flex-[2] min-w-[10rem] items-center justify-center gap-2 rounded-[10px] bg-[#2563EB] px-4 py-2.5 text-center text-[12.5px] font-bold text-white transition hover:bg-[#1d4ed8]">
-                    <i class="fa fa-calendar-plus-o"></i>
-                    @lang('modules.interviewSchedule.scheduleInterview')
-                </a>
-            @endif
-            @if($application->status->status == 'hired' && is_null($application->onboard))
-                <a href="{{ route('admin.job-onboard.create') }}?id={{$application->id}}"
-                   class="inline-flex flex-1 min-w-[8rem] items-center justify-center gap-2 rounded-[10px] bg-[#059669] px-4 py-2.5 text-center text-[12.5px] font-bold text-white transition hover:bg-[#047857]">
-                    <i class="fa fa-rocket"></i>
-                    @lang('app.startOnboard')
-                </a>
-            @endif
-        </div>
-        <!-- @if ($user->cans('delete_job_applications'))
-            <div class="flex gap-2.5">
-                <a href="javascript:archiveApplication({{ $application->id }})"
-                   class="inline-flex flex-1 items-center justify-center rounded-[10px] bg-[#ECFEFF] px-3 py-2.5 text-[12.5px] font-semibold text-[#0891B2] transition hover:bg-[#CFFAFE]">
-                    <i class="fa fa-archive mr-1.5"></i>
-                    @lang('modules.jobApplication.archiveApplication')
-                </a>
-                <a href="javascript:deleteApplication({{ $application->id }})"
-                   class="inline-flex flex-1 items-center justify-center rounded-[10px] bg-[#FFF1F2] px-3 py-2.5 text-[12.5px] font-semibold text-[#EF4444] transition hover:bg-[#FFE4E6]">
-                    <i class="fa fa-trash mr-1.5"></i>
-                    @lang('modules.jobApplication.deleteApplication')
-                </a>
-            </div>
-        @endif -->
-    </div>
-
-    <div class="space-y-4 p-4 pb-8">
-        <!-- Personal Information Section -->
-        <div class="bg-white rounded-2xl border border-[#F0EEE9] p-5 mb-4 shadow-[0_1px_3px_rgba(15,31,61,0.04)]">
-            <h3 class="text-lg font-bold text-gray-900 mb-4 pb-3 border-b border-[#F0EEE9]">
-                <i class="fa fa-user mr-2 text-blue-600"></i>
-                @lang('Personal Information')
-            </h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="bg-gray-50 rounded-lg p-4">
-                    <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">@lang('app.name')</label>
-                    <p class="text-sm font-medium text-gray-900">{{ ucwords($application->full_name) }}</p>
+                    <span>@lang('modules.jobApplication.resume')</span>
                 </div>
-
-                <div class="bg-gray-50 rounded-lg p-4">
-                    <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">@lang('modules.jobApplication.appliedFor')</label>
-                    <p class="text-sm font-medium text-gray-900">
-                        {{ ucwords($application->job?->title ?? 'N/A') . ' (' . ucwords(optional($application->location)->location ?? 'N/A') . ')' }}
-                    </p>
-                </div>
-
-                <div class="bg-gray-50 rounded-lg p-4">
-                    <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">@lang('app.email')</label>
-                    <a href="mailto:{{ $application->email }}" class="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline">{{ $application->email }}</a>
-                </div>
-
-                <div class="bg-gray-50 rounded-lg p-4">
-                    <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">@lang('app.phone')</label>
-                    <a href="tel:{{ $application->phone }}" class="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline">{{ $application->phone }}</a>
-                </div>
-
-                @if (!is_null($application->gender))
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">@lang('app.gender')</label>
-                        <p class="text-sm font-medium text-gray-900" id="gender-{{ $application->id }}">{{ ucfirst($application->gender) }}</p>
-                    </div>
-                @endif
-                @if (!is_null($application->dob))
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">@lang('app.dob')</label>
-                        <p class="text-sm font-medium text-gray-900" id="dob-{{ $application->id }}">{{ $application->dob->format('jS F, Y') }}</p>
-                    </div>
-                @endif
-            </div>
-
-            @if (!is_null($application->address))
-                <div class="mt-4 bg-gray-50 rounded-lg p-4">
-                    <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">@lang('app.address')</label>
-                    <p class="text-sm font-medium text-gray-900" id="address-{{ $application->id }}">{{ $application->address}}</p>
-                </div>
-            @endif
-
-            @if (!is_null($application->country))
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">@lang('app.country')</label>
-                        <p class="text-sm font-medium text-gray-900" id="country-{{ $application->id }}">{{ $application->country }}</p>
-                    </div>
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">@lang('app.state')</label>
-                        <p class="text-sm font-medium text-gray-900" id="state-{{ $application->id }}">{{ $application->state }}</p>
-                    </div>
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">@lang('app.city')</label>
-                        <p class="text-sm font-medium text-gray-900" id="city-{{ $application->id }}">{{ $application->city }}</p>
-                    </div>
-                </div>
-            @endif
-
-            <div class="mt-4 bg-gray-50 rounded-lg p-4">
-                <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">@lang('modules.jobApplication.appliedAt')</label>
-                <p class="text-sm font-medium text-gray-900">
-                    <i class="fa fa-calendar mr-2 text-gray-400"></i>
-                    {{ $application->created_at->timezone($global->timezone)->format('d M, Y H:i') }}
-                </p>
-            </div>
-        </div>
-
-        @if (!is_null($application->cover_letter))
-        <div class="bg-white rounded-2xl border border-[#F0EEE9] p-5 mb-4 shadow-[0_1px_3px_rgba(15,31,61,0.04)]">
-            <h3 class="text-lg font-bold text-gray-900 mb-4 pb-3 border-b border-[#F0EEE9]">
-                <i class="fa fa-file-text-o mr-2 text-blue-600"></i>
-                @lang('modules.jobs.coverLetter')
-            </h3>
-            <div class="prose max-w-none">
-                <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{{ $application->cover_letter }}</p>
-            </div>
-        </div>
-        @endif
-        @if(count($answers) > 0)
-        <div class="bg-white rounded-2xl border border-[#F0EEE9] p-5 mb-4 shadow-[0_1px_3px_rgba(15,31,61,0.04)]">
-            <h3 class="text-lg font-bold text-gray-900 mb-4 pb-3 border-b border-[#F0EEE9]">
-                <i class="fa fa-question-circle mr-2 text-blue-600"></i>
-                @lang('modules.front.additionalDetails')
-            </h3>
-            <div class="space-y-4">
-                @forelse($answers as $answer)
-                    <div class="bg-gray-50 rounded-lg p-4 border-l-4 border-blue-500">
-                        <h4 class="text-sm font-semibold text-gray-900 mb-2">{{$answer->question->question}}</h4>
-                     @if($answer->question->type == 'text')
-                        <p class="text-sm text-gray-700">{{ ucfirst($answer->answer)}}</p>
-                    @elseif($answer->question->type == 'radio')
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold
-                            {{ strtolower($answer->answer) == 'yes' ? 'bg-green-100 text-green-800' : 
-                               (strtolower($answer->answer) == 'no' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800') }}">
-                            <i class="fa fa-dot-circle-o mr-1.5"></i>
-                            {{ ucfirst($answer->answer) }}
-                        </span>
-                    @else
-                        @if(!is_null($answer->file))
-                        <a target="_blank" href="{{ $answer->file_url }}" 
-                           class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 text-sm font-medium transition-colors">
-                            <i class="fa fa-file-o mr-2"></i>
-                            @lang('app.view') @lang('app.file')
-                        </a>
-                        @endif
-                    @endif
-                    </div>
-                @empty
-                @endforelse
-            </div>
-        </div>
-        @endif
-        @if(!is_null($application->schedule))
-        <div class="bg-white rounded-2xl border border-[#F0EEE9] p-5 mb-4 shadow-[0_1px_3px_rgba(15,31,61,0.04)]">
-            <h3 class="text-lg font-bold text-gray-900 mb-4 pb-3 border-b border-[#F0EEE9]">
-                <i class="fa fa-calendar-check-o mr-2 text-blue-600"></i>
-                @lang('modules.interviewSchedule.scheduleDetail')
-            </h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div class="bg-gray-50 rounded-lg p-4">
-                    <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">@lang('modules.interviewSchedule.scheduleDate')</label>
-                    <p class="text-sm font-medium text-gray-900">
-                        <i class="fa fa-clock-o mr-2 text-gray-400"></i>
-                        {{ $application->schedule->schedule_date->format('d M, Y H:i') }}
-                    </p>
-                </div>
-                @if($zoom_setting->enable_zoom == 1)
-                <div class="bg-gray-50 rounded-lg p-4">
-                    <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">@lang('modules.interviewSchedule.interviewType')</label>
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium {{ $application->schedule->interview_type == 'online' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800' }}">
-                        <i class="fa {{ $application->schedule->interview_type == 'online' ? 'fa-video-camera' : 'fa-building' }} mr-2"></i>
-                        {{ $application->schedule->interview_type == 'online' ? 'Online' : 'Offline' }}
-                    </span>
-                </div>
-                @endif
-            </div>
-            
-            @if(count($application->schedule->employee) > 0)
-            <div class="border-t border-gray-200 pt-4">
-                <h4 class="text-sm font-semibold text-gray-900 mb-3">@lang('modules.interviewSchedule.assignedEmployee')</h4>
-                <div class="space-y-3">
-                    @forelse($application->schedule->employee as $key => $emp )
-                        <div class="flex items-center justify-between bg-gray-50 rounded-lg p-3">
-                            <div class="flex items-center">
-                                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                                    <i class="fa fa-user text-blue-600"></i>
-                                </div>
-                                <p class="text-sm font-medium text-gray-900">{{ ucwords($emp->user->name) }}</p>
-                            </div>
-                            <div>
-                                @if($emp->user_accept_status == 'accept')
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                        <i class="fa fa-check-circle mr-1"></i>
-                                        {{ ucwords($emp->user_accept_status) }}
-                                    </span>
-                                @elseif($emp->user_accept_status == 'refuse')
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                        <i class="fa fa-times-circle mr-1"></i>
-                                        {{ ucwords($emp->user_accept_status) }}
-                                    </span>
-                                @else
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                        <i class="fa fa-clock-o mr-1"></i>
-                                        {{ ucwords($emp->user_accept_status) }}
-                                    </span>
-                                @endif
-                            </div>
-                        </div>
-                    @empty
-                    @endforelse
-                </div>
-            </div>
-            @endif
-        </div>
-        @endif
-
-        @if(isset($application->schedule->comments) == 'interview' && count($application->schedule->comments) > 0)
-        <div class="bg-white rounded-2xl border border-[#F0EEE9] p-5 mb-4 shadow-[0_1px_3px_rgba(15,31,61,0.04)]">
-            <h3 class="text-lg font-bold text-gray-900 mb-4 pb-3 border-b border-[#F0EEE9]">
-                <i class="fa fa-comments mr-2 text-blue-600"></i>
-                @lang('modules.interviewSchedule.comments')
-            </h3>
-            <div class="space-y-3">
-                @forelse($application->schedule->comments as $key => $comment )
-                    <div class="bg-gray-50 rounded-lg p-4 border-l-4 border-blue-500">
-                        <div class="flex items-center mb-2">
-                            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-2">
-                                <i class="fa fa-user text-blue-600 text-xs"></i>
-                            </div>
-                            <span class="text-sm font-semibold text-gray-900">{{$comment->user->name }}</span>
-                        </div>
-                        <p class="text-sm text-gray-700 ml-10">{{ $comment->comment }}</p>
-                    </div>
-                @empty
-                @endforelse
-            </div>
-        </div>
-        @endif
-
-        @if(!is_null($application->skype_id))
-        <div class="bg-white rounded-2xl border border-[#F0EEE9] p-5 mb-4 shadow-[0_1px_3px_rgba(15,31,61,0.04)]">
-            <div class="flex flex-wrap gap-3">
-                <span class="skype-button rounded" data-contact-id="live:{{$application->skype_id}}"
-                      data-text="Call"></span>
-            </div>
-        </div>
-        @endif
-        @if ($user->cans('edit_job_applications'))
-        <div class="bg-white rounded-2xl border border-[#F0EEE9] p-5 mb-4 shadow-[0_1px_3px_rgba(15,31,61,0.04)]" id="skills-container">
-            <h3 class="text-lg font-bold text-gray-900 mb-4 pb-3 border-b border-[#F0EEE9]">
-                <i class="fa fa-star mr-2 text-blue-600"></i>
-                @lang('modules.jobApplication.skills')
-            </h3>
-            <div class="mb-4">
-                <select name="skills[]" id="skills" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 select2" multiple>
-                    @forelse ($skills as $skill)
-                        <option @if (!is_null($application->skills) && in_array($skill->id, $application->skills)) selected @endif value="{{ $skill->id }}">{{ $skill->name }}</option>
-                    @empty
-                    @endforelse
-                </select>
-            </div>
-            <a href="javascript:addSkills({{ $application->id}});" id="add-skills" 
-               class="px-4 py-2.5 border-2 border-green-600 text-green-600 rounded-lg hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 text-sm font-medium inline-flex items-center transition-colors">
-                <i class="fa fa-plus mr-2"></i>
-                @if (!is_null($application->skills) && sizeof($application->skills) > 0)
-                    @lang('modules.jobApplication.updateSkills')
-                @else
-                    @lang('modules.jobApplication.addSkills')
-                @endif
-            </a>
-        </div>
-        @endif
-
-        <div class="bg-white rounded-2xl border border-[#F0EEE9] p-5 mb-4 shadow-[0_1px_3px_rgba(15,31,61,0.04)]">
-            <h3 class="text-lg font-bold text-gray-900 mb-4 pb-3 border-b border-[#F0EEE9]">
-                <i class="fa fa-sticky-note mr-2 text-blue-600"></i>
-                @lang('modules.jobApplication.applicantNotes')
-            </h3>
-
-            <div id="applicant-notes" class="space-y-4 mb-6">
-                @foreach($application->notes as $key => $notes )
-                    <div class="bg-gray-50 rounded-lg p-4 border-l-4 border-blue-500" id="note-{{ $notes->id }}">
-                        <div class="flex items-start justify-between">
-                            <div class="flex-1">
-                                <div class="flex items-center mb-2">
-                                    <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-2">
-                                        <i class="fa fa-user text-blue-600 text-xs"></i>
-                                    </div>
-                                    <div>
-                                        <h6 class="text-sm font-semibold text-gray-900">{{ ucwords($notes->user->name) }}</h6>
-                                        <span class="text-xs text-gray-500">{{ $notes->created_at->diffForHumans() }}</span>
-                                    </div>
-                                </div>
-                                <p class="text-sm text-gray-700 note-text ml-10 mt-2">{{ ucfirst($notes->note_text) }}</p>
-                                <div class="note-textarea"></div>
-                            </div>
-                            @if($user->cans('edit_job_applications'))
-                                <div class="flex items-center gap-2 ml-4">
-                                    <a href="javascript:;" class="edit-note p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" data-note-id="{{ $notes->id }}" title="Edit">
-                                        <i class="fa fa-edit"></i>
-                                    </a>
-                                    <a href="javascript:;" class="delete-note p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" data-note-id="{{ $notes->id }}" title="Delete">
-                                        <i class="fa fa-trash"></i>
-                                    </a>
-                                </div>
-                            @endif
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-
-            @if($user->cans('edit_job_applications'))
-                <div class="border-t border-gray-200 pt-4">
-                    <div class="mb-3">
-                        <textarea name="note" id="note_text" rows="3" 
-                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                                  placeholder="@lang('modules.jobApplication.addNote')"></textarea>
-                    </div>
-                    <a href="javascript:;" id="add-note" 
-                       class="px-4 py-2.5 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 text-sm font-medium inline-flex items-center transition-colors">
-                        <i class="fa fa-plus mr-2"></i>
-                        @lang('modules.jobApplication.addNote')
+                @if($application->resume_url)
+                <div class="ja-pdf-toolbar-actions">
+                    <a href="{{ $application->resume_url }}" download
+                       class="ja-pdf-btn" title="Download">
+                        <i class="fa fa-download"></i> @lang('app.download')
+                    </a>
+                    <a href="{{ $application->resume_url }}" target="_blank"
+                       class="ja-pdf-btn ja-pdf-btn-primary" title="Open in new tab">
+                        <i class="fa fa-external-link"></i> @lang('app.view')
                     </a>
                 </div>
+                @endif
+            </div>
+
+            @if($application->resume_url)
+                {{-- PDF.js viewer embed --}}
+                <iframe
+                    class="ja-pdf-frame"
+                    src="{{ asset('assets/plugins/pdfjs/web/viewer.html') }}?file={{ urlencode($application->resume_url) }}"
+                    title="Resume PDF viewer">
+                </iframe>
+            @else
+                <div class="ja-pdf-no-resume">
+                    <i class="fa fa-file-pdf-o"></i>
+                    <p>@lang('modules.jobApplication.noResume')</p>
+                </div>
             @endif
         </div>
-    </div>
 
+        {{-- ──────── RIGHT: DETAIL TABS ──────── --}}
+        <div class="ja-right-panel">
+
+            {{-- Tabs --}}
+            <div class="ja-tabs">
+                <div class="ja-tab active" data-tab="details">
+                    <i class="fa fa-user" style="font-size:11px"></i>
+                    @lang('app.details')
+                </div>
+                <div class="ja-tab" data-tab="notes">
+                    <i class="fa fa-sticky-note-o" style="font-size:11px"></i>
+                    @lang('modules.jobApplication.applicantNotes')
+                    @if($application->notes->count() > 0)
+                        <span class="ja-tab-badge">{{ $application->notes->count() }}</span>
+                    @endif
+                </div>
+                @if(count($answers) > 0)
+                <div class="ja-tab" data-tab="qa">
+                    <i class="fa fa-question-circle-o" style="font-size:11px"></i>
+                    @lang('modules.front.additionalDetails')
+                </div>
+                @endif
+                @if(!is_null($application->schedule))
+                <div class="ja-tab" data-tab="schedule">
+                    <i class="fa fa-calendar" style="font-size:11px"></i>
+                    @lang('modules.interviewSchedule.scheduleDetail')
+                </div>
+                @endif
+            </div>
+
+            <div class="ja-right-scroll">
+
+                {{-- ── DETAILS TAB ── --}}
+                <div id="ja-tab-details" class="ja-tab-pane">
+
+                    {{-- Quick actions --}}
+                    <div class="ja-card">
+                        <div class="ja-action-btns">
+                            @if ($application->resume_url)
+                            {{-- handled by left panel, show smaller hint --}}
+                            @endif
+                            @if($user->cans('add_schedule') && $application->status->status == 'interview' && is_null($application->schedule))
+                            <a onclick="createSchedule('{{ $application->id }}')" href="javascript:;" class="ja-btn ja-btn-blue">
+                                <i class="fa fa-calendar-plus-o"></i>
+                                @lang('modules.interviewSchedule.scheduleInterview')
+                            </a>
+                            @endif
+                            @if($application->status->status == 'hired' && is_null($application->onboard))
+                            <a href="{{ route('admin.job-onboard.create') }}?id={{ $application->id }}" class="ja-btn ja-btn-green">
+                                <i class="fa fa-rocket"></i>
+                                @lang('app.startOnboard')
+                            </a>
+                            @endif
+                        </div>
+
+                        {{-- Stage mover --}}
+                        @if($user->cans('edit_job_applications'))
+                        <div style="margin-bottom:14px">
+                            <div class="ja-card-title" style="margin-bottom:8px">
+                                <i class="fa fa-exchange" style="font-size:11px"></i> Move to Stage
+                            </div>
+                            <div class="ja-stage-row">
+                                <span class="ja-current-badge" style="background: {{ $currentStatus?->color ?? '#6B7280' }};">
+                                    <i class="fa fa-check" style="font-size:9px"></i>
+                                    {{ ucwords(str_replace('_', ' ', $currentStatus?->status ?? '')) }}
+                                </span>
+                                <i class="fa fa-long-arrow-right" style="color:#B0B8C4;font-size:14px;flex-shrink:0"></i>
+                                <select class="ja-stage-select" id="stage-mover-select-{{ $application->id }}"
+                                    onchange="jaMoveFromDetail({{ $application->id }}, this.value, this.options[this.selectedIndex].text, {{ $currentStatusId }})">
+                                    <option value="">Select stage…</option>
+                                    @foreach($allStatuses as $stageOption)
+                                        @if($stageOption->id !== $currentStatusId)
+                                        <option value="{{ $stageOption->id }}">{{ ucwords(str_replace('_', ' ', $stageOption->status)) }}</option>
+                                        @endif
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+
+                        {{-- Rating --}}
+                        <div style="border-top:1px solid #F0EEE9;padding-top:12px">
+                            <div class="ja-card-title" style="margin-bottom:8px">
+                                <i class="fa fa-star-o" style="font-size:11px"></i> @lang('modules.jobApplication.ratingLabel')
+                            </div>
+                            <div class="ja-stars" id="stars-wrapper-{{ $application->id }}">
+                                @for($s = 1; $s <= 5; $s++)
+                                <i class="fa {{ $s <= ($application->rating ?? 0) ? 'fa-star' : 'fa-star-o' }} ja-star {{ $s <= ($application->rating ?? 0) ? 'on' : '' }}"
+                                   data-val="{{ $s }}" onclick="jaSetRating({{ $application->id }}, {{ $s }})"
+                                   style="font-size:22px;cursor:pointer;color:{{ $s <= ($application->rating ?? 0) ? '#F59E0B' : '#D1D5DB' }}"></i>
+                                @endfor
+                            </div>
+                        </div>
+                        @endif
+                    </div>
+
+                    {{-- Personal info --}}
+                    <div class="ja-card">
+                        <div class="ja-card-title">
+                            <i class="fa fa-user" style="font-size:11px"></i> @lang('Personal Information')
+                        </div>
+                        <div class="ja-info-row">
+                            <span class="ja-info-label"><i class="fa fa-id-card-o" style="font-size:11px"></i> @lang('app.name')</span>
+                            <span class="ja-info-val">{{ ucwords($application->full_name) }}</span>
+                        </div>
+                        <div class="ja-info-row">
+                            <span class="ja-info-label"><i class="fa fa-envelope-o" style="font-size:11px"></i> @lang('app.email')</span>
+                            <span class="ja-info-val"><a href="mailto:{{ $application->email }}">{{ $application->email }}</a></span>
+                        </div>
+                        <div class="ja-info-row">
+                            <span class="ja-info-label"><i class="fa fa-phone" style="font-size:11px"></i> @lang('app.phone')</span>
+                            <span class="ja-info-val"><a href="tel:{{ $application->phone }}">{{ $application->phone }}</a></span>
+                        </div>
+                        @if (!is_null($application->gender))
+                        <div class="ja-info-row">
+                            <span class="ja-info-label"><i class="fa fa-venus-mars" style="font-size:11px"></i> @lang('app.gender')</span>
+                            <span class="ja-info-val">{{ ucfirst($application->gender) }}</span>
+                        </div>
+                        @endif
+                        @if (!is_null($application->dob))
+                        <div class="ja-info-row">
+                            <span class="ja-info-label"><i class="fa fa-birthday-cake" style="font-size:11px"></i> @lang('app.dob')</span>
+                            <span class="ja-info-val">{{ $application->dob->format('jS F, Y') }}</span>
+                        </div>
+                        @endif
+                        <div class="ja-info-row">
+                            <span class="ja-info-label"><i class="fa fa-briefcase" style="font-size:11px"></i> @lang('modules.jobApplication.appliedFor')</span>
+                            <span class="ja-info-val">{{ ucwords($application->job?->title ?? 'N/A') }} ({{ ucwords(optional($application->location)->location ?? 'N/A') }})</span>
+                        </div>
+                        @if (!is_null($application->city))
+                        <div class="ja-info-row">
+                            <span class="ja-info-label"><i class="fa fa-map-marker" style="font-size:11px"></i> @lang('app.city')</span>
+                            <span class="ja-info-val">{{ $application->city }}{{ $application->state ? ', '.$application->state : '' }}{{ $application->country ? ', '.$application->country : '' }}</span>
+                        </div>
+                        @endif
+                        @if (!is_null($application->address))
+                        <div class="ja-info-row">
+                            <span class="ja-info-label"><i class="fa fa-home" style="font-size:11px"></i> @lang('app.address')</span>
+                            <span class="ja-info-val">{{ $application->address }}</span>
+                        </div>
+                        @endif
+                    </div>
+
+                    {{-- Cover letter --}}
+                    @if (!is_null($application->cover_letter))
+                    <div class="ja-card">
+                        <div class="ja-card-title">
+                            <i class="fa fa-file-text-o" style="font-size:11px"></i> @lang('modules.jobs.coverLetter')
+                        </div>
+                        <p style="font-size:12.5px;color:#5A6478;line-height:1.7;white-space:pre-wrap;margin:0">{{ $application->cover_letter }}</p>
+                    </div>
+                    @endif
+
+                    {{-- Skills --}}
+                    @if ($user->cans('edit_job_applications'))
+                    <div class="ja-card" id="skills-container">
+                        <div class="ja-card-title">
+                            <i class="fa fa-star" style="font-size:11px"></i> @lang('modules.jobApplication.skills')
+                        </div>
+                        <div class="mb-3">
+                            <select name="skills[]" id="skills" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm select2" multiple>
+                                @forelse ($skills as $skill)
+                                    <option @if(!is_null($application->skills) && in_array($skill->id, $application->skills)) selected @endif value="{{ $skill->id }}">{{ $skill->name }}</option>
+                                @empty
+                                @endforelse
+                            </select>
+                        </div>
+                        <a href="javascript:addSkills({{ $application->id }});" id="add-skills"
+                           class="ja-btn ja-btn-blue" style="min-width:auto;flex:none;display:inline-flex">
+                            <i class="fa fa-plus"></i>
+                            @if (!is_null($application->skills) && sizeof($application->skills) > 0)
+                                @lang('modules.jobApplication.updateSkills')
+                            @else
+                                @lang('modules.jobApplication.addSkills')
+                            @endif
+                        </a>
+                    </div>
+                    @endif
+
+                </div>{{-- /details --}}
+
+                {{-- ── NOTES TAB ── --}}
+                <div id="ja-tab-notes" class="ja-tab-pane" style="display:none">
+                    <div id="applicant-notes">
+                        @foreach($application->notes as $note)
+                        <div class="ja-note" id="note-{{ $note->id }}">
+                            <div class="ja-note-meta">
+                                <span class="ja-note-author">
+                                    <i class="fa fa-user-circle" style="font-size:14px;color:#2563EB"></i>
+                                    {{ ucwords($note->user->name) }}
+                                </span>
+                                <span class="ja-note-time">{{ $note->created_at->diffForHumans() }}</span>
+                            </div>
+                            <p class="note-text ja-note-body">{{ ucfirst($note->note_text) }}</p>
+                            <div class="note-textarea"></div>
+                            @if($user->cans('edit_job_applications'))
+                            <div class="ja-note-actions">
+                                <button class="edit-note ja-note-btn" data-note-id="{{ $note->id }}">
+                                    <i class="fa fa-pencil"></i> @lang('app.edit')
+                                </button>
+                                <button class="delete-note ja-note-btn" data-note-id="{{ $note->id }}" style="color:#EF4444">
+                                    <i class="fa fa-trash"></i> @lang('app.delete')
+                                </button>
+                            </div>
+                            @endif
+                        </div>
+                        @endforeach
+                    </div>
+
+                    @if($user->cans('edit_job_applications'))
+                    <div class="ja-add-note" style="margin-top:4px">
+                        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:8px">
+                            @lang('modules.jobApplication.addNote')
+                        </div>
+                        <textarea id="note_text" rows="3" class="ja-note-textarea"
+                                  placeholder="@lang('modules.jobApplication.addNote')"></textarea>
+                        <button id="add-note" class="ja-save-note-btn">
+                            <i class="fa fa-plus"></i> @lang('modules.jobApplication.addNote')
+                        </button>
+                    </div>
+                    @endif
+                </div>{{-- /notes --}}
+
+                {{-- ── Q&A TAB ── --}}
+                @if(count($answers) > 0)
+                <div id="ja-tab-qa" class="ja-tab-pane" style="display:none">
+                    @forelse($answers as $answer)
+                    <div class="ja-qa-item">
+                        <div class="ja-qa-q">{{ $answer->question->question }}</div>
+                        @if($answer->question->type == 'text')
+                            <span style="font-size:12.5px;color:#5A6478">{{ ucfirst($answer->answer) }}</span>
+                        @elseif($answer->question->type == 'radio')
+                            <span class="ja-qa-badge {{ strtolower($answer->answer) == 'yes' ? 'ja-qa-yes' : (strtolower($answer->answer) == 'no' ? 'ja-qa-no' : 'ja-qa-yes') }}">
+                                <i class="fa fa-circle" style="font-size:8px;margin-right:4px"></i>
+                                {{ ucfirst($answer->answer) }}
+                            </span>
+                        @else
+                            @if(!is_null($answer->file))
+                            <a target="_blank" href="{{ $answer->file_url }}"
+                               class="ja-btn ja-btn-blue" style="display:inline-flex;flex:none;min-width:auto;margin-top:4px">
+                                <i class="fa fa-file-o"></i> @lang('app.view') @lang('app.file')
+                            </a>
+                            @endif
+                        @endif
+                    </div>
+                    @empty
+                    @endforelse
+                </div>
+                @endif
+
+                {{-- ── SCHEDULE TAB ── --}}
+                @if(!is_null($application->schedule))
+                <div id="ja-tab-schedule" class="ja-tab-pane" style="display:none">
+                    <div class="ja-card">
+                        <div class="ja-card-title">
+                            <i class="fa fa-calendar-check-o" style="font-size:11px"></i> @lang('modules.interviewSchedule.scheduleDetail')
+                        </div>
+                        <div class="ja-schedule-card" style="margin-bottom:14px">
+                            <div class="ja-schedule-date">
+                                <i class="fa fa-clock-o" style="font-size:13px"></i>
+                                {{ $application->schedule->schedule_date->format('d M, Y \a\t H:i') }}
+                            </div>
+                            @if($zoom_setting->enable_zoom == 1)
+                            <div class="ja-schedule-type">
+                                <i class="fa {{ $application->schedule->interview_type == 'online' ? 'fa-video-camera' : 'fa-building' }}" style="margin-right:5px"></i>
+                                {{ $application->schedule->interview_type == 'online' ? 'Online' : 'Offline' }}
+                            </div>
+                            @endif
+                        </div>
+
+                        @if(count($application->schedule->employee) > 0)
+                        <div class="ja-card-title" style="margin-bottom:10px">
+                            <i class="fa fa-users" style="font-size:11px"></i> @lang('modules.interviewSchedule.assignedEmployee')
+                        </div>
+                        @foreach($application->schedule->employee as $emp)
+                        <div class="ja-interviewer-row" style="margin-bottom:6px">
+                            <div style="display:flex;align-items:center;gap:9px">
+                                <div class="ja-interviewer-avatar">
+                                    {{ strtoupper(substr($emp->user->name, 0, 2)) }}
+                                </div>
+                                <span style="font-size:12.5px;font-weight:600;color:#1A1E2E">{{ ucwords($emp->user->name) }}</span>
+                            </div>
+                            <span class="ja-small-badge
+                                {{ $emp->user_accept_status == 'accept' ? 'ja-badge-accept' :
+                                  ($emp->user_accept_status == 'refuse' ? 'ja-badge-refuse' : 'ja-badge-pending') }}">
+                                {{ ucwords($emp->user_accept_status) }}
+                            </span>
+                        </div>
+                        @endforeach
+                        @endif
+                    </div>
+
+                    @if(isset($application->schedule->comments) && count($application->schedule->comments) > 0)
+                    <div class="ja-card">
+                        <div class="ja-card-title"><i class="fa fa-comments" style="font-size:11px"></i> @lang('modules.interviewSchedule.comments')</div>
+                        @foreach($application->schedule->comments as $comment)
+                        <div class="ja-note" style="border-left-color:#059669;margin-bottom:8px">
+                            <div class="ja-note-meta">
+                                <span class="ja-note-author">{{ $comment->user->name }}</span>
+                            </div>
+                            <p class="ja-note-body">{{ $comment->comment }}</p>
+                        </div>
+                        @endforeach
+                    </div>
+                    @endif
+                </div>
+                @endif
+
+            </div>{{-- /right-scroll --}}
+        </div>{{-- /right-panel --}}
+
+    </div>{{-- /body --}}
 </div>
+
+{{-- ── Scripts ── --}}
 @if($user->cans('edit_job_applications'))
-    <script src="{{ asset('assets/plugins/jquery-bar-rating-master/dist/jquery.barrating.min.js') }}"
-            type="text/javascript"></script>
-    <script>
-     function jaToggleStageDrop(appId) {
-  
-        document.querySelectorAll('[id^="stage-drop-"]').forEach(function(el) {
-            if (el.id !== 'stage-drop-' + appId) el.style.display = 'none';
+<script src="{{ asset('assets/plugins/jquery-bar-rating-master/dist/jquery.barrating.min.js') }}" type="text/javascript"></script>
+@endif
+
+<script>
+/* ── Tab switching ── */
+document.querySelectorAll('.ja-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+        var target = this.dataset.tab;
+        document.querySelectorAll('.ja-tab').forEach(function(t) { t.classList.remove('active'); });
+        document.querySelectorAll('.ja-tab-pane').forEach(function(p) { p.style.display = 'none'; });
+        this.classList.add('active');
+        var pane = document.getElementById('ja-tab-' + target);
+        if (pane) pane.style.display = 'block';
+    });
+});
+
+/* ── Stage mover ── */
+function jaMoveFromDetail(appId, toStatusId, toStatusLabel, currentStatusId) {
+    if (!toStatusId) return;
+    var token = '{{ csrf_token() }}';
+    var url = '{{ route("admin.job-applications.bulk-status-update") }}';
+    swal({
+        title: 'Move to ' + toStatusLabel + '?',
+        text: 'This applicant will be moved to the ' + toStatusLabel + ' stage.',
+        type: 'info', showCancelButton: true,
+        confirmButtonColor: '#2563EB', confirmButtonText: 'Yes, move',
+        cancelButtonText: 'Cancel', closeOnConfirm: true, closeOnCancel: true
+    }, function(isConfirm) {
+        if (!isConfirm) {
+            document.getElementById('stage-mover-select-' + appId).value = '';
+            return;
+        }
+        $.easyAjax({
+            type: 'POST', url: url,
+            data: { _token: token, ids: [appId], status_id: toStatusId },
+            success: function(response) {
+                if (response.status === 'success') {
+                    var showUrl = "{{ route('admin.job-applications.show', ':id') }}".replace(':id', appId);
+                    $.easyAjax({
+                        type: 'GET', url: showUrl,
+                        success: function(res) {
+                            if (res.status === 'success') $('#right-sidebar-content').html(res.view);
+                        }
+                    });
+                    if (typeof table !== 'undefined') table.draw(false);
+                    if (typeof jaLoadTabCounts === 'function') jaLoadTabCounts();
+                }
+            }
         });
-        var drop = document.getElementById('stage-drop-' + appId);
-        if (drop) drop.style.display = drop.style.display === 'none' ? 'block' : 'none';
-    }
+    });
+}
 
+/* ── Rating ── */
+function jaSetRating(appId, val) {
+    document.querySelectorAll('#stars-wrapper-' + appId + ' i').forEach(function(s, i) {
+        s.style.color = i < val ? '#F59E0B' : '#D1D5DB';
+    });
+    var url = "{{ route('admin.job-applications.rating-save',':id') }}".replace(':id', appId);
+    $.easyAjax({
+        type: 'POST', url: url,
+        data: { rating: val, '_token': '{{ csrf_token() }}' }
+    });
+}
 
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('[id^="stage-mover-wrap-"]')) {
-            document.querySelectorAll('[id^="stage-drop-"]').forEach(function(el) {
-                el.style.display = 'none';
+/* ── Skills ── */
+$('.select2#skills').select2();
+function addSkills(applicationId) {
+    var url = "{{ route('admin.job-applications.addSkills', ':id') }}".replace(':id', applicationId);
+    $.easyAjax({
+        url: url, type: 'POST', container: '#skills-container',
+        data: { _token: '{{ csrf_token() }}', skills: $('#skills').val() },
+        success: function(response) {
+            if (response.status === 'success') {
+                if (window.raCloseRightSidebar) window.raCloseRightSidebar();
+                if (typeof table !== 'undefined') table.draw(false); else loadData();
+            }
+        }
+    });
+}
+
+/* ── Notes ── */
+$('#add-note').click(function() {
+    $.easyAjax({
+        type: 'POST', url: "{{ route('admin.applicant-note.store') }}",
+        data: { '_token': '{{ csrf_token() }}', 'id': {{ $application->id }}, 'note': $('#note_text').val() },
+        success: function(response) {
+            if (response.status == 'success') {
+                $('#applicant-notes').html(response.view);
+                $('#note_text').val('');
+            }
+        }
+    });
+});
+
+$('body').on('click', '.edit-note', function() {
+    $(this).hide();
+    var noteId = $(this).data('note-id');
+    $('body').find('#note-' + noteId + ' .note-text').hide();
+    var noteText = $('body').find('#note-' + noteId + ' .note-text').html();
+    var textArea = '<textarea id="edit-note-text-' + noteId + '" class="ja-note-textarea" rows="3">' + noteText + '</textarea>' +
+        '<button class="update-note ja-save-note-btn" data-note-id="' + noteId + '" style="margin-top:6px"><i class="fa fa-check"></i> @lang("app.save")</button>';
+    $('body').find('#note-' + noteId + ' .note-textarea').html(textArea);
+});
+
+$('body').on('click', '.update-note', function() {
+    var noteId = $(this).data('note-id');
+    var url = "{{ route('admin.applicant-note.update', ':id') }}".replace(':id', noteId);
+    $.easyAjax({
+        type: 'POST', url: url,
+        data: { '_token': '{{ csrf_token() }}', 'noteId': noteId, 'note': $('#edit-note-text-' + noteId).val(), '_method': 'PUT' },
+        success: function(response) {
+            if (response.status == 'success') $('#applicant-notes').html(response.view);
+        }
+    });
+});
+
+$('body').on('click', '.delete-note', function() {
+    var noteId = $(this).data('note-id');
+    swal({
+        title: "@lang('errors.areYouSure')", text: "@lang('errors.deleteWarning')", type: "warning",
+        showCancelButton: true, confirmButtonColor: "#DD6B55", confirmButtonText: "@lang('app.delete')",
+        cancelButtonText: "@lang('app.cancel')", closeOnConfirm: true, closeOnCancel: true
+    }, function(isConfirm) {
+        if (isConfirm) {
+            var url = "{{ route('admin.applicant-note.destroy', ':id') }}".replace(':id', noteId);
+            $.easyAjax({
+                type: 'POST', url: url,
+                data: { '_token': '{{ csrf_token() }}', '_method': 'DELETE' },
+                success: function(response) {
+                    if (response.status == 'success') $('#applicant-notes').html(response.view);
+                }
             });
         }
     });
+});
 
-    function jaMoveFromDetail(appId, toStatusId, toStatusLabel, currentStatusId) {
-        // Close dropdown
-        var drop = document.getElementById('stage-drop-' + appId);
-        if (drop) drop.style.display = 'none';
-
-        var token = '{{ csrf_token() }}';
-        var url = '{{ route("admin.job-applications.bulk-status-update") }}';
-
-        swal({
-            title: 'Move to ' + toStatusLabel + '?',
-            text: 'This applicant will be moved to the ' + toStatusLabel + ' stage.',
-            type: 'info',
-            showCancelButton: true,
-            confirmButtonColor: '#2563EB',
-            confirmButtonText: 'Yes, move',
-            cancelButtonText: 'Cancel',
-            closeOnConfirm: true,
-            closeOnCancel: true
-        }, function(isConfirm) {
-            if (!isConfirm) return;
-
+function deleteApplication(applicationId) {
+    swal({
+        title: "@lang('errors.areYouSure')", text: "@lang('errors.deleteWarning')", type: "warning",
+        showCancelButton: true, confirmButtonColor: "#DD6B55", confirmButtonText: "@lang('app.delete')",
+        cancelButtonText: "@lang('app.cancel')", closeOnConfirm: true, closeOnCancel: true
+    }, function(isConfirm) {
+        if (isConfirm) {
+            var url = "{{ route('admin.job-applications.destroy', ':id') }}".replace(':id', applicationId);
             $.easyAjax({
-                type: 'POST',
-                url: url,
-                data: { _token: token, ids: [appId], status_id: toStatusId },
+                type: 'POST', url: url,
+                data: { '_token': '{{ csrf_token() }}', '_method': 'DELETE' },
                 success: function(response) {
+                    if (window.raCloseRightSidebar) window.raCloseRightSidebar();
                     if (response.status === 'success') {
-                        var showUrl = "{{ route('admin.job-applications.show', ':id') }}".replace(':id', appId);
-                        $.easyAjax({
-                            type: 'GET',
-                            url: showUrl,
-                            success: function(res) {
-                                if (res.status === 'success') {
-                                    $('#right-sidebar-content').html(res.view);
-                                }
-                            }
-                        });
-                        if (typeof table !== 'undefined') table.draw(false);
-                        if (typeof jaLoadTabCounts === 'function') jaLoadTabCounts();
+                        if (typeof table !== 'undefined') table.draw(false); else loadData();
                     }
                 }
             });
-        });
-    }
-        $('#example-fontawesome').barrating({
-            theme: 'fontawesome-stars',
-            showSelectedRating: false,
-            onSelect: function (value, text, event) {
-                if (event !== undefined && value !== '') {
-                    var url = "{{ route('admin.job-applications.rating-save',':id') }}";
-                    url = url.replace(':id', {{$application->id}});
-                    var token = '{{ csrf_token() }}';
-                    var id = {{$application->id}};
-                    $.easyAjax({
-                        type: 'Post',
-                        url: url,
-                        container: '#example-fontawesome',
-                        data: {'rating': value, '_token': token},
-                        success: function (response) {
-                            $('#example-fontawesome_' + id).barrating('set', value);
-                        }
-                    });
-                }
-
-            }
-        });
-        @if($application->rating !== null)
-        $('#example-fontawesome').barrating('set', {{$application->rating}});
-        @endif
-
-    </script>
-@endif
-<script>
-    $('.select2#skills').select2();
-
-    function addSkills(applicationId) {
-        let url = "{{ route('admin.job-applications.addSkills', ':id') }}";
-        url = url.replace(':id', applicationId);
-
-        $.easyAjax({
-            url: url,
-            type: 'POST',
-            container: '#skills-container',
-            data: {
-                _token: '{{ csrf_token() }}',
-                skills: $('#skills').val()
-            },
-            success: function (response) {
-                if (response.status === 'success') {
-                    if (window.raCloseRightSidebar) window.raCloseRightSidebar();
-                    if (typeof table !== 'undefined') {
-                        table.draw(false);
-                    }
-                    else {
-                        loadData();
-                    }
-                }
-            }
-        })
-
-    }
-
-    function deleteApplication(applicationId) {
-        swal({
-            title: "@lang('errors.areYouSure')",
-            text: "@lang('errors.deleteWarning')",
-            type: "warning",
-            showCancelButton: true,
-            confirmButtonColor: "#DD6B55",
-            confirmButtonText: "@lang('app.delete')",
-            cancelButtonText: "@lang('app.cancel')",
-            closeOnConfirm: true,
-            closeOnCancel: true
-        }, function(isConfirm){
-            if (isConfirm) {
-
-                var url = "{{ route('admin.job-applications.destroy', ':id') }}";
-                url = url.replace(':id', applicationId);
-
-                var token = '{{ csrf_token() }}';
-
-                $.easyAjax({
-                    type: 'POST',
-                    url: url,
-                    data: {'_token':token, '_method': 'DELETE'},
-                    success: function (response) {
-                        if (window.raCloseRightSidebar) window.raCloseRightSidebar();
-                        if (response.status === 'success') {
-                            if (typeof table !== 'undefined') {
-                                table.draw(false);
-                            }
-                            else {
-                                loadData();
-                            }
-                        }
-                    }
-                });
-            }
-        });
-    }
-
-    function archiveApplication(applicationId) {
-        swal({
-            title: "@lang('errors.areYouSure')",
-            text: "@lang('errors.archiveWarning')",
-            type: "info",
-            showCancelButton: true,
-            confirmButtonColor: "#28A745",
-            confirmButtonText: "@lang('app.yes')",
-            cancelButtonText: "@lang('app.no')",
-            closeOnConfirm: true,
-            closeOnCancel: true
-        }, function(isConfirm){
-            if (isConfirm) {
-
-                var url = "{{ route('admin.job-applications.archiveJobApplication', ':id') }}";
-                url = url.replace(':id', applicationId);
-
-                var token = '{{ csrf_token() }}';
-
-                $.easyAjax({
-                    type: 'POST',
-                    url: url,
-                    data: {'_token':token},
-                    success: function (response) {
-                        if (window.raCloseRightSidebar) window.raCloseRightSidebar();
-                        if (response.status === 'success') {
-                            if (typeof table !== 'undefined') {
-                                table.draw(false);
-                            }
-                            else {
-                                loadData();
-                            }
-                        }
-                    }
-                });
-            }
-        });
-    }
-
-    $('#add-note').click(function () {
-        var url = "{{ route('admin.applicant-note.store') }}";
-        var id = {{$application->id}};
-        var note = $('#note_text').val();
-        var token = '{{ csrf_token() }}';
-
-        $.easyAjax({
-            type: 'POST',
-            url: url,
-            data: {'_token':token, 'id':id, 'note': note},
-            success: function (response) {
-                if(response.status == 'success') {
-                    $('#applicant-notes').html(response.view);
-                    $('#note_text').val('');
-                }
-            }
-        });
+        }
     });
-
-    $('body').on('click', '.edit-note', function() {
-        $(this).hide();
-        let noteId = $(this).data('note-id');
-        $('body').find('#note-'+noteId+' .note-text').hide();
-
-        let noteText = $('body').find('#note-'+noteId+' .note-text').html();
-        let textArea = '<textarea id="edit-note-text-'+noteId+'" class="form-control" row="4">'+noteText+'</textarea><a class="update-note" data-note-id="'+noteId+'" href="javascript:;"><i class="fa fa-check"></i> @lang("app.save")</a>';
-        $('body').find('#note-'+noteId+' .note-textarea').html(textArea);
-    });
-
-    $('body').on('click', '.update-note', function () {
-        let noteId = $(this).data('note-id');
-
-        var url = "{{ route('admin.applicant-note.update', ':id') }}";
-        url = url.replace(':id', noteId);
-
-        var note = $('#edit-note-text-'+noteId).val();
-        var token = '{{ csrf_token() }}';
-
-        $.easyAjax({
-            type: 'POST',
-            url: url,
-            data: {'_token':token, 'noteId':noteId, 'note': note, '_method': 'PUT'},
-            success: function (response) {
-                if(response.status == 'success') {
-                    $('#applicant-notes').html(response.view);
-                }
-            }
-        });
-    });
-
-    $('body').on('click', '.delete-note', function(){
-        let noteId = $(this).data('note-id');
-        swal({
-            title: "@lang('errors.areYouSure')",
-            text: "@lang('errors.deleteWarning')",
-            type: "warning",
-            showCancelButton: true,
-            confirmButtonColor: "#DD6B55",
-            confirmButtonText: "@lang('app.delete')",
-            cancelButtonText: "@lang('app.cancel')",
-            closeOnConfirm: true,
-            closeOnCancel: true
-        }, function(isConfirm){
-            if (isConfirm) {
-
-                var url = "{{ route('admin.applicant-note.destroy', ':id') }}";
-                url = url.replace(':id', noteId);
-
-                var token = '{{ csrf_token() }}';
-
-                $.easyAjax({
-                    type: 'POST',
-                    url: url,
-                    data: {'_token':token, '_method': 'DELETE'},
-                    success: function (response) {
-                        if(response.status == 'success') {
-                            $('#applicant-notes').html(response.view);
-                        }
-                    }
-                });
-            }
-        });
-    });
+}
 </script>
+
 @if(!is_null($application->skype_id))
-    <script src="https://swc.cdn.skype.com/sdk/v1/sdk.min.js"></script>
+<script src="https://swc.cdn.skype.com/sdk/v1/sdk.min.js"></script>
+<div style="padding:12px 16px">
+    <span class="skype-button rounded" data-contact-id="live:{{ $application->skype_id }}" data-text="Call"></span>
+</div>
 @endif
