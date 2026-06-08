@@ -1950,35 +1950,5 @@ class AdminJobApplicationController extends AdminBaseController
 
         return Reply::dataOnly(['jobs' => $html]);
     }
-    public function getAllIds(Request $request)
-{
-    $query = JobApplication::query();
-
-    // Apply the same filters your DataTable uses
-    if ($request->status && $request->status !== 'all') {
-        $query->where('status_id', $request->status);
-    }
-
-    if ($request->company && $request->company !== 'all') {
-        $query->whereHas('job', fn($q) => $q->where('company_id', $request->company));
-    }
-
-    if ($request->jobs && $request->jobs !== 'all') {
-        $query->where('job_id', $request->jobs);
-    }
-
-    if ($request->location && $request->location !== 'all') {
-        $query->where('location_id', $request->location);
-    }
-
-    if ($request->knockout == 1) {
-        $query->where('is_knockout', 1);
-    } else {
-        $query->where(fn($q) => $q->where('is_knockout', 0)->orWhereNull('is_knockout'));
-    }
-
-    $ids = $query->orderBy('full_name')->pluck('id')->values();
-
-    return response()->json(['ids' => $ids]);
-}
+    
 }

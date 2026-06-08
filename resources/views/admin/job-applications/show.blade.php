@@ -1030,21 +1030,8 @@ function deleteApplication(applicationId) {
     window._jaKeyNav = onKeyDown;
     document.addEventListener('keydown', window._jaKeyNav);
 
-    /* ── Init: poll until jaApplicantIds is ready ──────────────
-       jaRebuildIds() in index.blade.php is async (AJAX).
-       The sidebar HTML renders before that AJAX call finishes,
-       so buttons would stay disabled with a plain updateNavUI().
-       We poll every 80ms — typically resolves in 1–3 ticks.
-    ─────────────────────────────────────────────────────────── */
-    (function waitForIds() {
-        if (typeof jaApplicantIds !== 'undefined'
-            && Array.isArray(jaApplicantIds)
-            && jaApplicantIds.length > 0) {
-            updateNavUI();
-        } else {
-            setTimeout(waitForIds, 80);
-        }
-    })();
+    /* ── Init ── */
+    updateNavUI();
 
 })();
 </script>

@@ -456,24 +456,12 @@
      * in the exact visual order they appear on screen.
      * Called automatically after every draw (filter / sort / paginate).
      */
-    function jaRebuildIds(callback) {
-        var params = {
-            status:         $('#status').val()         || 'all',
-            company:        $('#company').val()        || 'all',
-            jobs:           $('#jobs').val()           || 'all',
-            location:       $('#location').val()       || 'all',
-            questions:      $('#questions').val()      || 'all',
-            question_value: $('#question-value').val() || '',
-            knockout:       jaShowKO ? 1 : 0
-        };
-        $.ajax({
-            url: '{{ route("admin.job-applications.all-ids") }}',
-            type: 'GET',
-            data: params,
-            success: function(res) {
-                if (res.ids) jaApplicantIds = res.ids;
-                if (typeof callback === 'function') callback();
-            }
+    function jaRebuildIds() {
+        jaApplicantIds = [];
+        // Each row has a .ja-row-chk with data-id — use that as the source of truth
+        document.querySelectorAll('#myTable tbody .ja-row-chk[data-id]').forEach(function (el) {
+            var id = parseInt(el.getAttribute('data-id'));
+            if (id) jaApplicantIds.push(id);
         });
     }
 
@@ -866,23 +854,19 @@
     });
 
     // ── Show detail sidebar ──────────────────────────────────────
-    // We open the sidebar immediately for instant feedback, then
-    // fire jaRebuildIds (AJAX) and load the panel in parallel.
-    // show.blade.php polls jaApplicantIds until it arrives.
+    // jaRebuildIds() is called here too so the counter is correct
+    // even if somehow drawCallback hasn't fired yet.
     $('#myTable').on('click', '.show-detail', function() {
         var $sidebar  = $('#right-sidebar');
         var $backdrop = $('#right-sidebar-backdrop');
         $sidebar.removeClass('translate-x-full').addClass('translate-x-0');
         $backdrop.removeClass('hidden').css({ display: 'block', visibility: 'visible' });
 
+        // Ensure ID list is fresh before opening the panel
+        jaRebuildIds();
+
         var id  = $(this).data('row-id');
         var url = "{{ route('admin.job-applications.show',':id') }}".replace(':id', id);
-
-        // Fetch fresh ID list and sidebar content in parallel.
-        // show.blade.php's waitForIds() loop picks up jaApplicantIds
-        // as soon as jaRebuildIds' AJAX call completes.
-        jaRebuildIds(); // no callback needed — polling in show.blade.php handles it
-
         $.easyAjax({
             type: 'GET', url: url,
             success: function(response) {
