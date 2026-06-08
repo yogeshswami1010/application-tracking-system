@@ -456,12 +456,28 @@
      * in the exact visual order they appear on screen.
      * Called automatically after every draw (filter / sort / paginate).
      */
+    var jaApplicantIds = [];
+
     function jaRebuildIds() {
-        jaApplicantIds = [];
-        // Each row has a .ja-row-chk with data-id — use that as the source of truth
-        document.querySelectorAll('#myTable tbody .ja-row-chk[data-id]').forEach(function (el) {
-            var id = parseInt(el.getAttribute('data-id'));
-            if (id) jaApplicantIds.push(id);
+        var params = {
+            status:         $('#status').val()         || 'all',
+            company:        $('#company').val()        || 'all',
+            jobs:           $('#jobs').val()           || 'all',
+            location:       $('#location').val()       || 'all',
+            questions:      $('#questions').val()      || 'all',
+            question_value: $('#question-value').val() || '',
+            knockout:       jaShowKO ? 1 : 0
+        };
+
+        $.ajax({
+            url: '{{ route("admin.job-applications.all-ids") }}',
+            type: 'GET',
+            data: params,
+            success: function(res) {
+                if (res.ids) {
+                    jaApplicantIds = res.ids;
+                }
+            }
         });
     }
 

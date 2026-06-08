@@ -312,3 +312,4 @@ Route::name('jobs.')
     ->group(function () {
         Route::get('{slug}', [FrontJobsController::class, 'customPage'])->name('custom-page');
     });
+    Route::get('job-applications/all-ids', [JobApplicationController::class, 'getAllIds'])->name('admin.job-applications.all-ids');
