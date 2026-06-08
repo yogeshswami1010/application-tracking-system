@@ -804,7 +804,7 @@
                         return data;
                     }
                 },
-                { data: 'action', name: 'action', width: '18%', searchable: false, className: 'jc-td-right' }
+                { data: 'action', name: 'action', width: '18%', searchable: false, className: 'jc-td-right' },
                 { data: 'created_at', name: 'created_at', visible: false, searchable: false } 
             ]
         });
