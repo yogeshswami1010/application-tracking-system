@@ -355,6 +355,7 @@ class AdminJobApplicationController extends AdminBaseController
             'job_applications.full_name',
             'job_applications.skills',
             'job_applications.location_id'   // ← this was the ambiguous one
+            'job_applications.created_at'
         )
             ->with([
                 'location',
@@ -525,6 +526,7 @@ class AdminJobApplicationController extends AdminBaseController
                 $label = ucwords(str_replace('_', ' ', $row->status?->status ?? ''));
                 return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold text-white" style="background:' . $color . '">' . $label . '</span>';
             })
+            ->orderColumn('created_at', 'job_applications.created_at $1')  // ← add this
             ->rawColumns(['action', 'full_name', 'status'])
             ->addIndexColumn()
             ->make(true);

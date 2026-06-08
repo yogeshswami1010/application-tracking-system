@@ -778,7 +778,7 @@
                 // what the user currently sees (filtered, sorted, paginated).
                 jaRebuildIds();
             },
-            order: [[1, 'asc']],
+            order: [[6, 'desc']],
             columns: [
                 {
                     data: null,
@@ -805,6 +805,7 @@
                     }
                 },
                 { data: 'action', name: 'action', width: '18%', searchable: false, className: 'jc-td-right' }
+                { data: 'created_at', name: 'created_at', visible: false, searchable: false } 
             ]
         });
     }
