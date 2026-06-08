@@ -40,7 +40,7 @@
             }
         }
     }
-
+@endphp
 {{-- 
   ============================================================
   TWO-COLUMN APPLICANT DETAIL PANEL
@@ -361,52 +361,44 @@
 
         {{-- ──────── LEFT: RESUME VIEWER ──────── --}}
         <div class="ja-pdf-panel">
+
             <div class="ja-pdf-toolbar">
                 <div class="ja-pdf-toolbar-label">
                     <i class="fa fa-file-pdf-o"></i>
                     <span>@lang('modules.jobApplication.resume')</span>
                 </div>
+
                 @if($resumeUrl)
+                    <div class="ja-pdf-toolbar-actions">
+                        <a href="{{ $resumeUrl }}" target="_blank" class="ja-pdf-btn">
+                            <i class="fa fa-external-link"></i>
+                            View
+                        </a>
 
-                    <embed
-                        src="{{ $resumeUrl }}"
-                        type="application/pdf"
-                        class="ja-pdf-frame">
-
-                @else
-
-                    <div class="ja-pdf-no-resume">
-                        <i class="fa fa-file-pdf-o"></i>
-                        <p>No resume uploaded.</p>
+                        <a href="{{ $resumeUrl }}" download class="ja-pdf-btn ja-pdf-btn-primary">
+                            <i class="fa fa-download"></i>
+                            Download
+                        </a>
                     </div>
-
                 @endif
             </div>
-                <script>
-                (function() {
-                    var embed = document.getElementById('resume-embed-{{ $application->id }}');
-                    var fallback = document.getElementById('resume-fallback-{{ $application->id }}');
-                    if (!embed) return;
-                    // Show fallback if embed loads nothing (height collapses or onerror)
-                    embed.onerror = function() {
-                        embed.style.display = 'none';
-                        if (fallback) fallback.style.display = 'flex';
-                    };
-                    // Also catch mobile / Firefox CORS blocks after short delay
-                    setTimeout(function() {
-                        if (embed.offsetHeight < 10) {
-                            embed.style.display = 'none';
-                            if (fallback) fallback.style.display = 'flex';
-                        }
-                    }, 1500);
-                })();
-                </script>
+
+            @if($resumeUrl)
+
+                <embed
+                    src="{{ $resumeUrl }}"
+                    type="application/pdf"
+                    class="ja-pdf-frame">
+
             @else
+
                 <div class="ja-pdf-no-resume">
                     <i class="fa fa-file-pdf-o"></i>
                     <p>No resume uploaded.</p>
                 </div>
+
             @endif
+
         </div>
 
         {{-- ──────── RIGHT: DETAIL TABS ──────── --}}
