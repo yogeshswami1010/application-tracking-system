@@ -19,26 +19,7 @@
     // $answer->file_url accessor may not work inside @php, so we build the URL manually
     // from $answer->file — same path the accessor would compute.
     // URL pattern seen in browser: /user-uploads/documents/{filename}
-    $resumeUrl = $application->resume_url ?? null;
-    $resumeFileAnswer = null;
-    if (is_null($resumeUrl) && isset($answers)) {
-        // Pass 1: answer whose question label mentions "resume"
-        foreach ($answers as $_ans) {
-            if (!is_null($_ans->file) && str_contains(strtolower($_ans->question->question ?? ''), 'resume')) {
-                $resumeFileAnswer = $_ans;
-                break;
-            }
-        }
-        // Pass 2: any answer with a file
-        if (is_null($resumeFileAnswer)) {
-            foreach ($answers as $_ans) {
-                if (!is_null($_ans->file)) {
-                    $resumeFileAnswer = $_ans;
-                    break;
-                }
-            }
-        }
-    }
+   $resumeUrl = null; // 1. Direct application resume if (!empty($application->resume_url)) { $resumeUrl = $application->resume_url; } // 2. Find resume/cv from question answers if (!$resumeUrl && isset($answers) && count($answers) > 0) { $resumeAnswer = null; // First pass: look for Resume/CV questions foreach ($answers as $answer) { if (empty($answer->file)) { continue; } $questionText = strtolower($answer->question->question ?? ''); if ( str_contains($questionText, 'resume') || str_contains($questionText, 'cv') || str_contains($questionText, 'curriculum vitae') || str_contains($questionText, 'upload resume') || str_contains($questionText, 'upload cv') ) { $resumeAnswer = $answer; break; } } // Second pass: use first uploaded file found if (!$resumeAnswer) { foreach ($answers as $answer) { if (!empty($answer->file)) { $resumeAnswer = $answer; break; } } } // Generate URL if ($resumeAnswer) { if (!empty($resumeAnswer->file_url)) { $resumeUrl = $resumeAnswer->file_url; } else { $filePath = $resumeAnswer->file; if (filter_var($filePath, FILTER_VALIDATE_URL)) { $resumeUrl = $filePath; } else { $resumeUrl = url($filePath); if (!str_contains($resumeUrl, 'user-uploads')) { $resumeUrl = url('user-uploads/documents/' . basename($filePath)); } } } } }
 @endphp
 
 {{-- Resolve file_url in Blade template scope where the accessor works --}}
@@ -385,6 +366,7 @@
                     <span>@lang('modules.jobApplication.resume')</span>
                 </div>
                 @if($resumeUrl)
+                
                 <div class="ja-pdf-toolbar-actions">
                     <a href="{{ $resumeUrl }}" download
                        class="ja-pdf-btn" title="Download">
@@ -400,21 +382,27 @@
 
             @if($resumeUrl)
                 {{-- Native browser PDF embed — works without pdf.js --}}
+  
+
+
                 <embed
                     src="{{ $resumeUrl }}"
                     type="application/pdf"
                     class="ja-pdf-frame"
-                    id="resume-embed-{{ $application->id }}">
+                    style="width:100%;height:100%;border:none;">
+               
 
-                {{-- Fallback: shown by JS if embed fails (e.g. CORS / mobile) --}}
-                <div class="ja-pdf-no-resume" id="resume-fallback-{{ $application->id }}" style="display:none">
+                @else
+
+              
+                <div class="ja-pdf-no-resume">
                     <i class="fa fa-file-pdf-o"></i>
-                    <p style="margin-bottom:14px">Preview not available in this browser.</p>
-                    <a href="{{ $resumeUrl }}" target="_blank"
-                       class="ja-pdf-btn ja-pdf-btn-primary" style="display:inline-flex">
-                        <i class="fa fa-external-link"></i> Open Resume
-                    </a>
+                    <p>No resume uploaded.</p>
                 </div>
+             
+
+                @endif
+
 
                 <script>
                 (function() {
