@@ -248,7 +248,7 @@
             @include('admin.job-applications.partials.ai-compare-modal')
         </div>
 
-        {{-- ── Filter bar (collapsible — same as original) ── --}}
+        {{-- ── Filter bar (collapsible) ── --}}
         <div id="ja-table-filter-bar" class="border-b border-[#E8E6E1] bg-white mt-3">
             <div class="px-5 sm:px-6">
                 <div class="flex items-center justify-between gap-2 pb-3 pt-0.5">
@@ -334,41 +334,41 @@
         {{-- ── Stage tabs ── --}}
         <div class="flex bg-white border-b border-[#E8E6E1] overflow-x-auto mt-3 rounded-t-[12px]" id="ja-stage-tabs-row">
 
-        {{-- All Applicants tab — first and active by default --}}
-        <button
-            class="ja-stage-tab active"
-            id="ja-tab-all"
-            data-stage-id="all"
-            onclick="jaStageTabAll()"
-            style="--tab-color:#2563eb;">
-            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/></svg>
-            All Applicants
-            <span class="ja-stage-badge" id="ja-tab-count-all">0</span>
-        </button>
-
-        @forelse($boardColumns as $col)
-        <button
-            class="ja-stage-tab"
-            data-stage-id="{{ $col->id }}"
-            data-stage-color="{{ $col->color ?? '#2563eb' }}"
-            data-stage-slug="{{ $col->status }}"
-            onclick="jaStageTab({{ $col->id }}, '{{ addslashes($col->color ?? '#2563eb') }}', '{{ addslashes($col->status) }}')"
-            style="--tab-color: {{ $col->color ?? '#2563eb' }}">
-            {{ ucfirst($col->status) }}
-            <span class="ja-stage-badge" id="ja-tab-count-{{ $col->id }}">0</span>
-        </button>
-        @empty
-        @endforelse
-
-        {{-- Knockouts tab --}}
-        <div class="ja-ko-tab flex items-center">
-            <button class="ja-stage-tab" id="ja-ko-tab-btn" onclick="jaKOTab()">
-                <i class="fa fa-user-times"></i>
-                Knockouts
-                <span class="ja-stage-badge" id="ja-ko-tab-count">0</span>
+            {{-- All Applicants tab --}}
+            <button
+                class="ja-stage-tab active"
+                id="ja-tab-all"
+                data-stage-id="all"
+                onclick="jaStageTabAll()"
+                style="--tab-color:#2563eb;">
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/></svg>
+                All Applicants
+                <span class="ja-stage-badge" id="ja-tab-count-all">0</span>
             </button>
+
+            @forelse($boardColumns as $col)
+            <button
+                class="ja-stage-tab"
+                data-stage-id="{{ $col->id }}"
+                data-stage-color="{{ $col->color ?? '#2563eb' }}"
+                data-stage-slug="{{ $col->status }}"
+                onclick="jaStageTab({{ $col->id }}, '{{ addslashes($col->color ?? '#2563eb') }}', '{{ addslashes($col->status) }}')"
+                style="--tab-color: {{ $col->color ?? '#2563eb' }}">
+                {{ ucfirst($col->status) }}
+                <span class="ja-stage-badge" id="ja-tab-count-{{ $col->id }}">0</span>
+            </button>
+            @empty
+            @endforelse
+
+            {{-- Knockouts tab --}}
+            <div class="ja-ko-tab flex items-center">
+                <button class="ja-stage-tab" id="ja-ko-tab-btn" onclick="jaKOTab()">
+                    <i class="fa fa-user-times"></i>
+                    Knockouts
+                    <span class="ja-stage-badge" id="ja-ko-tab-count">0</span>
+                </button>
+            </div>
         </div>
-    </div>
 
         {{-- KO banner --}}
         <div id="ja-ko-banner">
@@ -440,16 +440,33 @@
     <script src="{{ asset('assets/node_modules_files/bootstrap-datepicker/bootstrap-datepicker.min.js') }}" type="text/javascript"></script>
 
     <script>
-var jaStages = {!! $jaStagesJson !!};
+    var jaStages = {!! $jaStagesJson !!};
 
     // ── State ────────────────────────────────────────────────────
-    var jaActiveStageId = 'all';  // 'all' | stage id
-    var jaShowKO        = false;
-    var jaSelectedIds   = new Set();
+    var jaActiveStageId  = 'all';   // 'all' | stage id
+    var jaShowKO         = false;
+    var jaSelectedIds    = new Set();
     var table;
 
+    // ── Prev/Next: ordered ID list (populated in drawCallback) ───
+    var jaApplicantIds = [];
+
+    /**
+     * Rebuilds jaApplicantIds from the currently visible DataTable rows,
+     * in the exact visual order they appear on screen.
+     * Called automatically after every draw (filter / sort / paginate).
+     */
+    function jaRebuildIds() {
+        jaApplicantIds = [];
+        // Each row has a .ja-row-chk with data-id — use that as the source of truth
+        document.querySelectorAll('#myTable tbody .ja-row-chk[data-id]').forEach(function (el) {
+            var id = parseInt(el.getAttribute('data-id'));
+            if (id) jaApplicantIds.push(id);
+        });
+    }
+
     // ── Helpers ──────────────────────────────────────────────────
-   function jaNextStage(currentSlug) {
+    function jaNextStage(currentSlug) {
         var order = jaStages.map(function(s){ return s.slug; });
         var idx = order.indexOf(currentSlug);
         if (idx === -1 || idx >= order.length - 1) return null;
@@ -463,7 +480,6 @@ var jaStages = {!! $jaStagesJson !!};
         jaActiveStageId = stageId;
         jaSelectedIds = new Set();
 
-        // Update tab styles
         document.querySelectorAll('.ja-stage-tab').forEach(function(el){
             el.classList.remove('active');
         });
@@ -473,12 +489,12 @@ var jaStages = {!! $jaStagesJson !!};
         document.getElementById('ja-ko-tab-btn').classList.remove('active');
         document.getElementById('ja-ko-banner').classList.remove('show');
 
-        // Sync the hidden status select and reload
         $('#status').val(stageId).trigger('change.select2');
         tableLoad('filter');
         jaRenderBulkBar();
         jaTableSyncFilterBadge();
     }
+
     function jaStageTabAll() {
         jaShowKO = false;
         jaActiveStageId = 'all';
@@ -498,6 +514,7 @@ var jaStages = {!! $jaStagesJson !!};
         jaRenderBulkBar();
         jaTableSyncFilterBadge();
     }
+
     function jaKOTab() {
         jaShowKO = true;
         jaActiveStageId = 'all';
@@ -604,7 +621,6 @@ var jaStages = {!! $jaStagesJson !!};
                     }
                 }
             } else {
-                // 'all' stage — just reject option
                 var rejStage = jaStages.find(function(s){ return s.slug === 'rejected'; });
                 if (rejStage) {
                     html += '<button class="ja-bulk-btn red" onclick="jaBulkMove(' + rejStage.id + ')"><i class="fa fa-times"></i> Reject all</button>';
@@ -649,7 +665,6 @@ var jaStages = {!! $jaStagesJson !!};
         });
     }
 
-
     function jaMoveOne(appId, toStatusId) {
         $.easyAjax({
             url: '{{ route("admin.job-applications.bulk-status-update") }}',
@@ -667,7 +682,6 @@ var jaStages = {!! $jaStagesJson !!};
     }
 
     function jaToggleDrop(id) {
-        // Close all other open dropdowns first
         document.querySelectorAll('.ja-move-drop').forEach(function(el) {
             if (el.id !== id) el.style.display = 'none';
         });
@@ -680,7 +694,6 @@ var jaStages = {!! $jaStagesJson !!};
         if (el) el.style.display = 'none';
     }
 
-    // Close dropdowns when clicking outside
     document.addEventListener('click', function(e) {
         if (!e.target.closest('.ja-move-wrap')) {
             document.querySelectorAll('.ja-move-drop').forEach(function(el) {
@@ -688,14 +701,13 @@ var jaStages = {!! $jaStagesJson !!};
             });
         }
     });
+
     function jaMoveOneBySlug(appId, toSlug) {
         var stage = jaStages.find(function(s){ return s.slug === toSlug; });
-        if (!stage) {
-            alert('Stage not found: ' + toSlug);
-            return;
-        }
+        if (!stage) { alert('Stage not found: ' + toSlug); return; }
         jaMoveOne(appId, stage.id);
     }
+
     function jaRestoreOne(appId) {
         $.easyAjax({
             url: '{{ route("admin.job-applications.bulk-restore-knockout") }}',
@@ -719,14 +731,11 @@ var jaStages = {!! $jaStagesJson !!};
             type: 'GET',
             success: function(res) {
                 if (!res.counts) return;
-
                 var total = 0;
                 $.each(res.counts, function(stageId, cnt) {
                     $('#ja-tab-count-' + stageId).text(cnt);
                     total += parseInt(cnt) || 0;
                 });
-
-                // Update all-tab count with sum of all stages
                 $('#ja-tab-count-all').text(total);
                 $('#ja-ko-tab-count').text(res.ko_count || 0);
             }
@@ -744,7 +753,7 @@ var jaStages = {!! $jaStagesJson !!};
         var knockout       = jaShowKO ? 1 : 0;
 
         table = $('#myTable').DataTable({
-             responsive: false,
+            responsive: false,
             processing: false,
             serverSide: true,
             destroy: true,
@@ -763,6 +772,11 @@ var jaStages = {!! $jaStagesJson !!};
                     $('[data-toggle="tooltip"]').tooltip();
                 }
                 jaUpdateAllChk();
+
+                // ── Rebuild the ID list for Prev/Next navigation ──
+                // Must run after every draw so the order always matches
+                // what the user currently sees (filtered, sorted, paginated).
+                jaRebuildIds();
             },
             order: [[1, 'asc']],
             columns: [
@@ -790,12 +804,12 @@ var jaStages = {!! $jaStagesJson !!};
                         return data;
                     }
                 },
-                { data: 'action',       name: 'action', width: '18%', searchable: false, className: 'jc-td-right' }
+                { data: 'action', name: 'action', width: '18%', searchable: false, className: 'jc-td-right' }
             ]
         });
     }
 
-    // ── Filter badge counter (original logic preserved) ──────────
+    // ── Filter badge counter ─────────────────────────────────────
     $('#filter-form').on('change', 'select', function() { jaTableSyncFilterBadge(); });
 
     function jaTableSyncFilterBadge() {
@@ -809,7 +823,7 @@ var jaStages = {!! $jaStagesJson !!};
         $b.text(n).toggleClass('show', n > 0);
     }
 
-    // ── Filter toggle (original behaviour) ──────────────────────
+    // ── Filter toggle ────────────────────────────────────────────
     $('.toggle-filter').on('click', function() {
         var $bar = $('#ja-table-filter-bar');
         $bar.toggleClass('ja-filter-open');
@@ -840,11 +854,16 @@ var jaStages = {!! $jaStagesJson !!};
     });
 
     // ── Show detail sidebar ──────────────────────────────────────
+    // jaRebuildIds() is called here too so the counter is correct
+    // even if somehow drawCallback hasn't fired yet.
     $('#myTable').on('click', '.show-detail', function() {
         var $sidebar  = $('#right-sidebar');
         var $backdrop = $('#right-sidebar-backdrop');
         $sidebar.removeClass('translate-x-full').addClass('translate-x-0');
         $backdrop.removeClass('hidden').css({ display: 'block', visibility: 'visible' });
+
+        // Ensure ID list is fresh before opening the panel
+        jaRebuildIds();
 
         var id  = $(this).data('row-id');
         var url = "{{ route('admin.job-applications.show',':id') }}".replace(':id', id);
@@ -858,11 +877,11 @@ var jaStages = {!! $jaStagesJson !!};
         });
     });
 
-    // ── Delete / archive (original) ──────────────────────────────
+    // ── Delete / archive ─────────────────────────────────────────
     $('body').on('click', '.sa-params,.delete-document', function() {
         var id = $(this).data('row-id');
-        var deleteDocClassPresent  = $(this).hasClass('delete-document');
-        var saParamsClassPresent   = $(this).hasClass('sa-params');
+        var deleteDocClassPresent = $(this).hasClass('delete-document');
+        var saParamsClassPresent  = $(this).hasClass('sa-params');
 
         swal({
             title: "@lang('errors.areYouSure')",
@@ -896,7 +915,7 @@ var jaStages = {!! $jaStagesJson !!};
         });
     });
 
-    // ── Export (original) ────────────────────────────────────────
+    // ── Export ───────────────────────────────────────────────────
     function exportJobApplication() {
         var startDate = 0, endDate = 0;
         var status   = $('#status').val();
@@ -909,14 +928,14 @@ var jaStages = {!! $jaStagesJson !!};
         window.location.href = url;
     }
 
-    // ── Create schedule (original) ───────────────────────────────
+    // ── Create schedule ──────────────────────────────────────────
     function createSchedule(id) {
         var url = "{{ route('admin.job-applications.create-schedule',':id') }}".replace(':id', id);
         $('#modelHeading').html('Schedule');
         $.ajaxModal('#scheduleDetailModal', url);
     }
 
-    // ── Mail settings (original) ─────────────────────────────────
+    // ── Mail settings ────────────────────────────────────────────
     $(document).on('click', '.mail_setting', function() {
         $.ajax({
             url: "{{ route('admin.application-setting.create') }}",
@@ -936,7 +955,7 @@ var jaStages = {!! $jaStagesJson !!};
         return false;
     });
 
-    // ── Company → Jobs cascade (original) ───────────────────────
+    // ── Company → Jobs cascade ───────────────────────────────────
     $('#company').on('change', function() {
         var company_id = $(this).val();
         $.ajax({
@@ -954,8 +973,8 @@ var jaStages = {!! $jaStagesJson !!};
     // ── Select2 init ─────────────────────────────────────────────
     $('#filter-form select.select2').not('#skill').select2({ width: '100%' });
 
-   // ── Init ─────────────────────────────────────────────
-    tableLoad('load');   // loads with status=all by default
+    // ── Init ─────────────────────────────────────────────────────
+    tableLoad('load');   // drawCallback will call jaRebuildIds() automatically
     jaLoadTabCounts();
     jaTableSyncFilterBadge();
 
