@@ -15,16 +15,29 @@
     $currentStatusId = $application->status_id;
     $currentStatus = $allStatuses->firstWhere('id', $currentStatusId);
 
-    // Resume URL: use $application->resume_url first,
-    // then fall back to any file-type answer (e.g. "Upload Resume" question in Q&A)
+    // $resumeUrl is resolved below in Blade context (after @endphp)
+    // so that Eloquent accessors like file_url work correctly.
     $resumeUrl = $application->resume_url ?? null;
-    if (is_null($resumeUrl) && isset($answers)) {
-        $fileAnswer = collect($answers)->first(fn($a) => $a->question->type === 'file' && !is_null($a->file));
-        if ($fileAnswer) {
-            $resumeUrl = $fileAnswer->file_url;
-        }
-    }
 @endphp
+
+{{--
+  Resolve $resumeUrl in Blade context so Eloquent accessors (file_url) work correctly.
+  Priority: 1) $application->resume_url  2) answer whose question contains "resume"  3) any file answer
+--}}
+@if(is_null($resumeUrl) && isset($answers) && count($answers) > 0)
+    @foreach($answers as $_ans)
+        @if(is_null($resumeUrl) && !is_null($_ans->file) && str_contains(strtolower($_ans->question->question ?? ''), 'resume'))
+            @php $resumeUrl = $_ans->file_url; @endphp
+        @endif
+    @endforeach
+    @if(is_null($resumeUrl))
+        @foreach($answers as $_ans)
+            @if(is_null($resumeUrl) && !is_null($_ans->file))
+                @php $resumeUrl = $_ans->file_url; @endphp
+            @endif
+        @endforeach
+    @endif
+@endif
 
 {{-- 
   ============================================================
