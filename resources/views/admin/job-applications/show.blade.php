@@ -356,16 +356,46 @@
             </div>
 
             @if($application->resume_url)
-                {{-- PDF.js viewer embed --}}
-                <iframe
+                {{-- Native browser PDF embed — works without pdf.js --}}
+                <embed
+                    src="{{ $application->resume_url }}"
+                    type="application/pdf"
                     class="ja-pdf-frame"
-                    src="{{ asset('assets/plugins/pdfjs/web/viewer.html') }}?file={{ urlencode($application->resume_url) }}"
-                    title="Resume PDF viewer">
-                </iframe>
+                    id="resume-embed-{{ $application->id }}">
+
+                {{-- Fallback: shown by JS if embed fails (e.g. CORS / mobile) --}}
+                <div class="ja-pdf-no-resume" id="resume-fallback-{{ $application->id }}" style="display:none">
+                    <i class="fa fa-file-pdf-o"></i>
+                    <p style="margin-bottom:14px">Preview not available in this browser.</p>
+                    <a href="{{ $application->resume_url }}" target="_blank"
+                       class="ja-pdf-btn ja-pdf-btn-primary" style="display:inline-flex">
+                        <i class="fa fa-external-link"></i> Open Resume
+                    </a>
+                </div>
+
+                <script>
+                (function() {
+                    var embed = document.getElementById('resume-embed-{{ $application->id }}');
+                    var fallback = document.getElementById('resume-fallback-{{ $application->id }}');
+                    if (!embed) return;
+                    // Show fallback if embed loads nothing (height collapses or onerror)
+                    embed.onerror = function() {
+                        embed.style.display = 'none';
+                        if (fallback) fallback.style.display = 'flex';
+                    };
+                    // Also catch mobile / Firefox CORS blocks after short delay
+                    setTimeout(function() {
+                        if (embed.offsetHeight < 10) {
+                            embed.style.display = 'none';
+                            if (fallback) fallback.style.display = 'flex';
+                        }
+                    }, 1500);
+                })();
+                </script>
             @else
                 <div class="ja-pdf-no-resume">
                     <i class="fa fa-file-pdf-o"></i>
-                    <p>@lang('modules.jobApplication.noResume')</p>
+                    <p>No resume uploaded.</p>
                 </div>
             @endif
         </div>
