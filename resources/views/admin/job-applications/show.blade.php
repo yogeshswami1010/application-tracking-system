@@ -14,6 +14,16 @@
     $allStatuses = \App\ApplicationStatus::orderBy('position')->get();
     $currentStatusId = $application->status_id;
     $currentStatus = $allStatuses->firstWhere('id', $currentStatusId);
+
+    // Resume URL: use $application->resume_url first,
+    // then fall back to any file-type answer (e.g. "Upload Resume" question in Q&A)
+    $resumeUrl = $application->resume_url ?? null;
+    if (is_null($resumeUrl) && isset($answers)) {
+        $fileAnswer = collect($answers)->first(fn($a) => $a->question->type === 'file' && !is_null($a->file));
+        if ($fileAnswer) {
+            $resumeUrl = $fileAnswer->file_url;
+        }
+    }
 @endphp
 
 {{-- 
@@ -341,13 +351,13 @@
                     <i class="fa fa-file-pdf-o"></i>
                     <span>@lang('modules.jobApplication.resume')</span>
                 </div>
-                @if($application->resume_url)
+                @if($resumeUrl)
                 <div class="ja-pdf-toolbar-actions">
-                    <a href="{{ $application->resume_url }}" download
+                    <a href="{{ $resumeUrl }}" download
                        class="ja-pdf-btn" title="Download">
                         <i class="fa fa-download"></i> @lang('app.download')
                     </a>
-                    <a href="{{ $application->resume_url }}" target="_blank"
+                    <a href="{{ $resumeUrl }}" target="_blank"
                        class="ja-pdf-btn ja-pdf-btn-primary" title="Open in new tab">
                         <i class="fa fa-external-link"></i> @lang('app.view')
                     </a>
@@ -355,10 +365,10 @@
                 @endif
             </div>
 
-            @if($application->resume_url)
+            @if($resumeUrl)
                 {{-- Native browser PDF embed — works without pdf.js --}}
                 <embed
-                    src="{{ $application->resume_url }}"
+                    src="{{ $resumeUrl }}"
                     type="application/pdf"
                     class="ja-pdf-frame"
                     id="resume-embed-{{ $application->id }}">
@@ -367,7 +377,7 @@
                 <div class="ja-pdf-no-resume" id="resume-fallback-{{ $application->id }}" style="display:none">
                     <i class="fa fa-file-pdf-o"></i>
                     <p style="margin-bottom:14px">Preview not available in this browser.</p>
-                    <a href="{{ $application->resume_url }}" target="_blank"
+                    <a href="{{ $resumeUrl }}" target="_blank"
                        class="ja-pdf-btn ja-pdf-btn-primary" style="display:inline-flex">
                         <i class="fa fa-external-link"></i> Open Resume
                     </a>
@@ -438,9 +448,6 @@
                     {{-- Quick actions --}}
                     <div class="ja-card">
                         <div class="ja-action-btns">
-                            @if ($application->resume_url)
-                            {{-- handled by left panel, show smaller hint --}}
-                            @endif
                             @if($user->cans('add_schedule') && $application->status->status == 'interview' && is_null($application->schedule))
                             <a onclick="createSchedule('{{ $application->id }}')" href="javascript:;" class="ja-btn ja-btn-blue">
                                 <i class="fa fa-calendar-plus-o"></i>
