@@ -15,30 +15,31 @@
     $currentStatusId = $application->status_id;
     $currentStatus = $allStatuses->firstWhere('id', $currentStatusId);
 
-    // Resolve resume URL.
-    // $answer->file_url accessor may not work inside @php, so we build the URL manually
-    // from $answer->file — same path the accessor would compute.
-    // URL pattern seen in browser: /user-uploads/documents/{filename}
-   $resumeUrl = null; // 1. Direct application resume if (!empty($application->resume_url)) { $resumeUrl = $application->resume_url; } // 2. Find resume/cv from question answers if (!$resumeUrl && isset($answers) && count($answers) > 0) { $resumeAnswer = null; // First pass: look for Resume/CV questions foreach ($answers as $answer) { if (empty($answer->file)) { continue; } $questionText = strtolower($answer->question->question ?? ''); if ( str_contains($questionText, 'resume') || str_contains($questionText, 'cv') || str_contains($questionText, 'curriculum vitae') || str_contains($questionText, 'upload resume') || str_contains($questionText, 'upload cv') ) { $resumeAnswer = $answer; break; } } // Second pass: use first uploaded file found if (!$resumeAnswer) { foreach ($answers as $answer) { if (!empty($answer->file)) { $resumeAnswer = $answer; break; } } } // Generate URL if ($resumeAnswer) { if (!empty($resumeAnswer->file_url)) { $resumeUrl = $resumeAnswer->file_url; } else { $filePath = $resumeAnswer->file; if (filter_var($filePath, FILTER_VALIDATE_URL)) { $resumeUrl = $filePath; } else { $resumeUrl = url($filePath); if (!str_contains($resumeUrl, 'user-uploads')) { $resumeUrl = url('user-uploads/documents/' . basename($filePath)); } } } } }
-@endphp
+    // Resolve resume URL
+    $resumeUrl = null;
 
-{{-- Resolve file_url in Blade template scope where the accessor works --}}
-@if(is_null($resumeUrl) && !is_null($resumeFileAnswer))
-    @php
-        // Try the accessor first
-        $resumeUrl = $resumeFileAnswer->file_url ?? null;
-        // Hard fallback: build URL from the raw file column value
-        // Handles: full URL stored, relative path, or just filename
-        if (is_null($resumeUrl) && !is_null($resumeFileAnswer->file)) {
-            $rawFile = $resumeFileAnswer->file;
-            if (str_starts_with($rawFile, 'http')) {
-                $resumeUrl = $rawFile;
-            } else {
-                $resumeUrl = asset($rawFile);
+    // Application resume
+    if (!empty($application->resume_url)) {
+        $resumeUrl = $application->resume_url;
+    }
+
+    // Resume uploaded through custom questions
+    if (!$resumeUrl && !empty($answers)) {
+
+        foreach ($answers as $answer) {
+
+            if (!empty($answer->file)) {
+
+                if (!empty($answer->file_url)) {
+                    $resumeUrl = $answer->file_url;
+                } else {
+                    $resumeUrl = url('user-uploads/documents/' . basename($answer->file));
+                }
+
+                break;
             }
         }
-    @endphp
-@endif
+    }
 
 {{-- 
   ============================================================
@@ -366,44 +367,21 @@
                     <span>@lang('modules.jobApplication.resume')</span>
                 </div>
                 @if($resumeUrl)
-                
-                <div class="ja-pdf-toolbar-actions">
-                    <a href="{{ $resumeUrl }}" download
-                       class="ja-pdf-btn" title="Download">
-                        <i class="fa fa-download"></i> @lang('app.download')
-                    </a>
-                    <a href="{{ $resumeUrl }}" target="_blank"
-                       class="ja-pdf-btn ja-pdf-btn-primary" title="Open in new tab">
-                        <i class="fa fa-external-link"></i> @lang('app.view')
-                    </a>
-                </div>
-                @endif
-            </div>
 
-            @if($resumeUrl)
-                {{-- Native browser PDF embed — works without pdf.js --}}
-  
-
-
-                <embed
-                    src="{{ $resumeUrl }}"
-                    type="application/pdf"
-                    class="ja-pdf-frame"
-                    style="width:100%;height:100%;border:none;">
-               
+                    <embed
+                        src="{{ $resumeUrl }}"
+                        type="application/pdf"
+                        class="ja-pdf-frame">
 
                 @else
 
-              
-                <div class="ja-pdf-no-resume">
-                    <i class="fa fa-file-pdf-o"></i>
-                    <p>No resume uploaded.</p>
-                </div>
-             
+                    <div class="ja-pdf-no-resume">
+                        <i class="fa fa-file-pdf-o"></i>
+                        <p>No resume uploaded.</p>
+                    </div>
 
                 @endif
-
-
+            </div>
                 <script>
                 (function() {
                     var embed = document.getElementById('resume-embed-{{ $application->id }}');
