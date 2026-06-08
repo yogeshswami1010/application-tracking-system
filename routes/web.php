@@ -312,4 +312,5 @@ Route::name('jobs.')
     ->group(function () {
         Route::get('{slug}', [FrontJobsController::class, 'customPage'])->name('custom-page');
     });
-    Route::get('job-applications/all-ids', [JobApplicationController::class, 'getAllIds'])->name('admin.job-applications.all-ids');
+Route::post('job-applications/{id}/parse-skills', [JobApplicationController::class, 'parseSkills'])
+    ->name('admin.job-applications.parse-skills');

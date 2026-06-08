@@ -598,10 +598,13 @@
 
                     {{-- Skills --}}
                     @if ($user->cans('edit_job_applications'))
+             
                     <div class="ja-card" id="skills-container">
                         <div class="ja-card-title">
                             <i class="fa fa-star" style="font-size:11px"></i> @lang('modules.jobApplication.skills')
                         </div>
+
+                        {{-- Select2 multi-select --}}
                         <div class="mb-3">
                             <select name="skills[]" id="skills" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm select2" multiple>
                                 @forelse ($skills as $skill)
@@ -610,8 +613,72 @@
                                 @endforelse
                             </select>
                         </div>
+
+                        {{-- ── Parse from CV ── --}}
+                        <div style="border:1px solid #E8E6E1;border-radius:10px;padding:12px;margin-bottom:10px;background:#F8F7F4">
+                            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:8px">
+                                <i class="fa fa-magic" style="font-size:11px"></i> Auto-detect from CV
+                            </div>
+
+                            <button type="button" id="parse-skills-btn-{{ $application->id }}"
+                                    onclick="jaParseSkills({{ $application->id }})"
+                                    class="ja-btn ja-btn-blue" style="min-width:auto;flex:none;display:inline-flex;margin-bottom:8px">
+                                <i class="fa fa-search" id="parse-icon-{{ $application->id }}"></i>
+                                <span id="parse-label-{{ $application->id }}">Parse skills from CV</span>
+                            </button>
+
+                            {{-- Results area --}}
+                            <div id="parse-result-{{ $application->id }}" style="display:none">
+
+                                {{-- Matched chips (exist in DB — click to select) --}}
+                                <div id="parse-matched-wrap-{{ $application->id }}" style="display:none;margin-bottom:8px">
+                                    <div style="font-size:11px;color:#065F46;font-weight:600;margin-bottom:5px">
+                                        <i class="fa fa-check-circle" style="font-size:11px"></i> Matched in your skills list — click to add:
+                                    </div>
+                                    <div id="parse-matched-chips-{{ $application->id }}" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+                                </div>
+
+                                {{-- New chips (not in DB — click to create & add) --}}
+                                <div id="parse-new-wrap-{{ $application->id }}" style="display:none">
+                                    <div style="font-size:11px;color:#92400E;font-weight:600;margin-bottom:5px">
+                                        <i class="fa fa-plus-circle" style="font-size:11px"></i> New skills found — click to create & add:
+                                    </div>
+                                    <div id="parse-new-chips-{{ $application->id }}" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+                                </div>
+
+                                <div id="parse-status-{{ $application->id }}" style="font-size:11.5px;color:#059669;margin-top:6px"></div>
+                            </div>
+
+                            {{-- Error --}}
+                            <div id="parse-error-{{ $application->id }}" style="display:none;font-size:12px;color:#EF4444;margin-top:6px">
+                                <i class="fa fa-exclamation-circle"></i> <span></span>
+                            </div>
+                        </div>
+
+                        {{-- ── Add Manually ── --}}
+                        <div style="border:1px solid #E8E6E1;border-radius:10px;padding:12px;margin-bottom:12px;background:#F8F7F4">
+                            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:8px">
+                                <i class="fa fa-keyboard-o" style="font-size:11px"></i> Add manually
+                            </div>
+                            <div style="display:flex;gap:7px;align-items:center">
+                                <input type="text"
+                                    id="manual-skill-input-{{ $application->id }}"
+                                    placeholder="Type a skill name…"
+                                    class="ja-note-textarea"
+                                    style="flex:1;resize:none;height:36px;padding:6px 10px;font-size:12.5px"
+                                    onkeydown="if(event.key==='Enter'){event.preventDefault();jaAddManualSkill({{ $application->id }});}">
+                                <button type="button"
+                                        onclick="jaAddManualSkill({{ $application->id }})"
+                                        class="ja-btn ja-btn-blue"
+                                        style="min-width:auto;flex:none;display:inline-flex;white-space:nowrap;height:36px;padding:0 12px">
+                                    <i class="fa fa-plus"></i> Add
+                                </button>
+                            </div>
+                        </div>
+
+                        {{-- Save button --}}
                         <a href="javascript:addSkills({{ $application->id }});" id="add-skills"
-                           class="ja-btn ja-btn-blue" style="min-width:auto;flex:none;display:inline-flex">
+                        class="ja-btn ja-btn-blue" style="min-width:auto;flex:none;display:inline-flex">
                             <i class="fa fa-plus"></i>
                             @if (!is_null($application->skills) && sizeof($application->skills) > 0)
                                 @lang('modules.jobApplication.updateSkills')
@@ -620,8 +687,182 @@
                             @endif
                         </a>
                     </div>
-                    @endif
 
+                    {{-- ── Inline JS for skills panel ── --}}
+                    <script>
+                    (function () {
+
+                        /* ── Parse skills from CV ── */
+                        window.jaParseSkills = function (appId) {
+                            var btn   = document.getElementById('parse-skills-btn-' + appId);
+                            var icon  = document.getElementById('parse-icon-' + appId);
+                            var label = document.getElementById('parse-label-' + appId);
+                            var resArea  = document.getElementById('parse-result-' + appId);
+                            var errArea  = document.getElementById('parse-error-' + appId);
+                            var status   = document.getElementById('parse-status-' + appId);
+
+                            // Loading state
+                            btn.disabled = true;
+                            icon.className  = 'fa fa-spinner fa-spin';
+                            label.textContent = 'Parsing…';
+                            resArea.style.display = 'none';
+                            errArea.style.display = 'none';
+
+                            $.ajax({
+                                type: 'POST',
+                                url: '{{ route("admin.job-applications.parse-skills", ":id") }}'.replace(':id', appId),
+                                data: { _token: '{{ csrf_token() }}' },
+                                success: function (res) {
+                                    btn.disabled = false;
+                                    icon.className  = 'fa fa-search';
+                                    label.textContent = 'Re-parse CV';
+
+                                    if (res.status !== 'success') {
+                                        errArea.style.display = 'block';
+                                        errArea.querySelector('span').textContent = res.message || 'Parsing failed.';
+                                        return;
+                                    }
+
+                                    resArea.style.display = 'block';
+                                    var addedCount = 0;
+
+                                    /* ── Matched chips ── */
+                                    var matchedWrap  = document.getElementById('parse-matched-wrap-' + appId);
+                                    var matchedChips = document.getElementById('parse-matched-chips-' + appId);
+                                    matchedChips.innerHTML = '';
+
+                                    if (res.matched_skills && res.matched_skills.length) {
+                                        matchedWrap.style.display = 'block';
+                                        res.matched_skills.forEach(function (skill) {
+                                            var chip = document.createElement('span');
+                                            chip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11.5px;font-weight:500;cursor:pointer;background:#ECFDF5;color:#065F46;border:1px dashed #6EE7B7;transition:all .15s';
+                                            chip.innerHTML = '<i class="fa fa-plus" style="font-size:9px"></i> ' + skill.name;
+                                            chip.onclick = function () {
+                                                var $sel = $('#skills');
+                                                // Select the option if not already selected
+                                                if ($sel.val() && $sel.val().indexOf(String(skill.id)) > -1) return;
+                                                var opt = $sel.find('option[value="' + skill.id + '"]');
+                                                if (opt.length) {
+                                                    opt.prop('selected', true);
+                                                    $sel.trigger('change');
+                                                } else {
+                                                    // Option might not exist — add it
+                                                    var newOpt = new Option(skill.name, skill.id, true, true);
+                                                    $sel.append(newOpt).trigger('change');
+                                                }
+                                                chip.style.borderStyle = 'solid';
+                                                chip.style.background  = '#D1FAE5';
+                                                chip.innerHTML = '<i class="fa fa-check" style="font-size:9px"></i> ' + skill.name;
+                                                chip.onclick = null;
+                                                chip.style.cursor = 'default';
+                                                addedCount++;
+                                                status.textContent = addedCount + ' skill(s) added to the list — remember to save.';
+                                            };
+                                            matchedChips.appendChild(chip);
+                                        });
+                                    } else {
+                                        matchedWrap.style.display = 'none';
+                                    }
+
+                                    /* ── New chips ── */
+                                    var newWrap  = document.getElementById('parse-new-wrap-' + appId);
+                                    var newChips = document.getElementById('parse-new-chips-' + appId);
+                                    newChips.innerHTML = '';
+
+                                    if (res.new_skills && res.new_skills.length) {
+                                        newWrap.style.display = 'block';
+                                        res.new_skills.forEach(function (name) {
+                                            var chip = document.createElement('span');
+                                            chip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11.5px;font-weight:500;cursor:pointer;background:#FFFBEB;color:#92400E;border:1px dashed #FDE68A;transition:all .15s';
+                                            chip.innerHTML = '<i class="fa fa-plus" style="font-size:9px"></i> ' + name;
+                                            chip.onclick = function () {
+                                                // Create skill via AJAX then add to Select2
+                                                $.ajax({
+                                                    type: 'POST',
+                                                    url: '{{ route("admin.skills.store") }}', // adjust to your actual route
+                                                    data: { _token: '{{ csrf_token() }}', name: name },
+                                                    success: function (r) {
+                                                        if (r.status === 'success' && r.id) {
+                                                            var newOpt = new Option(name, r.id, true, true);
+                                                            $('#skills').append(newOpt).trigger('change');
+                                                            chip.style.background  = '#FEF3C7';
+                                                            chip.style.borderStyle = 'solid';
+                                                            chip.innerHTML = '<i class="fa fa-check" style="font-size:9px"></i> ' + name;
+                                                            chip.onclick = null;
+                                                            chip.style.cursor = 'default';
+                                                            addedCount++;
+                                                            status.textContent = addedCount + ' skill(s) added to the list — remember to save.';
+                                                        }
+                                                    },
+                                                    error: function () {
+                                                        // Skill create failed — add as temp option without DB ID
+                                                        // so it shows in the select but won't persist until you handle it
+                                                        chip.style.opacity = '.4';
+                                                        chip.title = 'Could not create skill — check permissions.';
+                                                    }
+                                                });
+                                            };
+                                            newChips.appendChild(chip);
+                                        });
+                                    } else {
+                                        newWrap.style.display = 'none';
+                                    }
+
+                                    if (!res.matched_skills.length && !res.new_skills.length) {
+                                        status.textContent = 'No skills detected in this CV.';
+                                    }
+                                },
+                                error: function () {
+                                    btn.disabled = false;
+                                    icon.className  = 'fa fa-search';
+                                    label.textContent = 'Parse skills from CV';
+                                    errArea.style.display = 'block';
+                                    errArea.querySelector('span').textContent = 'Server error. Please try again.';
+                                }
+                            });
+                        };
+
+                        /* ── Add skill manually ── */
+                        window.jaAddManualSkill = function (appId) {
+                            var input = document.getElementById('manual-skill-input-' + appId);
+                            var name  = input.value.trim();
+                            if (!name) return;
+
+                            // Check if an option with this text already exists
+                            var $sel   = $('#skills');
+                            var exists = $sel.find('option').filter(function () {
+                                return $(this).text().toLowerCase() === name.toLowerCase();
+                            });
+
+                            if (exists.length) {
+                                // Just select it
+                                exists.prop('selected', true).trigger('change');
+                                $sel.trigger('change');
+                                input.value = '';
+                                return;
+                            }
+
+                            // Create in DB, then add to Select2
+                            $.ajax({
+                                type: 'POST',
+                                url: '{{ route("admin.skills.store") }}', // adjust to your actual route
+                                data: { _token: '{{ csrf_token() }}', name: name },
+                                success: function (r) {
+                                    if (r.status === 'success' && r.id) {
+                                        var newOpt = new Option(name, r.id, true, true);
+                                        $sel.append(newOpt).trigger('change');
+                                        input.value = '';
+                                    }
+                                },
+                                error: function () {
+                                    alert('Could not create skill "' + name + '". Check server permissions.');
+                                }
+                            });
+                        };
+
+                    })();
+                    </script>
+                    @endif
                 </div>{{-- /details --}}
 
                 {{-- ── NOTES TAB ── --}}
