@@ -15,26 +15,49 @@
     $currentStatusId = $application->status_id;
     $currentStatus = $allStatuses->firstWhere('id', $currentStatusId);
 
-    // Resolve resume URL — done entirely in @php so variable stays in scope.
-    // Priority: 1) application->resume_url  2) answer labelled "resume" with file  3) any answer with file
+    // Resolve resume URL.
+    // $answer->file_url accessor may not work inside @php, so we build the URL manually
+    // from $answer->file — same path the accessor would compute.
+    // URL pattern seen in browser: /user-uploads/documents/{filename}
     $resumeUrl = $application->resume_url ?? null;
+    $resumeFileAnswer = null;
     if (is_null($resumeUrl) && isset($answers)) {
+        // Pass 1: answer whose question label mentions "resume"
         foreach ($answers as $_ans) {
             if (!is_null($_ans->file) && str_contains(strtolower($_ans->question->question ?? ''), 'resume')) {
-                $resumeUrl = $_ans->file_url;
+                $resumeFileAnswer = $_ans;
                 break;
             }
         }
-    }
-    if (is_null($resumeUrl) && isset($answers)) {
-        foreach ($answers as $_ans) {
-            if (!is_null($_ans->file)) {
-                $resumeUrl = $_ans->file_url;
-                break;
+        // Pass 2: any answer with a file
+        if (is_null($resumeFileAnswer)) {
+            foreach ($answers as $_ans) {
+                if (!is_null($_ans->file)) {
+                    $resumeFileAnswer = $_ans;
+                    break;
+                }
             }
         }
     }
 @endphp
+
+{{-- Resolve file_url in Blade template scope where the accessor works --}}
+@if(is_null($resumeUrl) && !is_null($resumeFileAnswer))
+    @php
+        // Try the accessor first
+        $resumeUrl = $resumeFileAnswer->file_url ?? null;
+        // Hard fallback: build URL from the raw file column value
+        // Handles: full URL stored, relative path, or just filename
+        if (is_null($resumeUrl) && !is_null($resumeFileAnswer->file)) {
+            $rawFile = $resumeFileAnswer->file;
+            if (str_starts_with($rawFile, 'http')) {
+                $resumeUrl = $rawFile;
+            } else {
+                $resumeUrl = asset($rawFile);
+            }
+        }
+    @endphp
+@endif
 
 {{-- 
   ============================================================
