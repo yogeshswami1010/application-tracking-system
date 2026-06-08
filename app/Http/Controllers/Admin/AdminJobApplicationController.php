@@ -354,7 +354,7 @@ class AdminJobApplicationController extends AdminBaseController
             'job_applications.status_id',
             'job_applications.full_name',
             'job_applications.skills',
-            'job_applications.location_id'   // ← this was the ambiguous one
+            'job_applications.location_id',   // ← this was the ambiguous one
             'job_applications.created_at'
         )
             ->with([
