@@ -919,20 +919,8 @@ function deleteApplication(applicationId) {
 
 /* ══════════════════════════════════════════════
    PREV / NEXT APPLICANT NAVIGATION
-   ══════════════════════════════════════════════
-   jaApplicantIds must be set on the parent page.
-
-   Option A – static list (server-side rendered): */
-     <script>var jaApplicantIds = @json($applications->pluck('id')->values());</script>
-
-   Option B – DataTable (client-side):
-     table.on('draw', function () {
-         jaApplicantIds = [];
-         $('#applicants-table tbody tr').each(function () {
-             var id = parseInt($(this).data('id'));
-             if (id) jaApplicantIds.push(id);
-         });
-     });
+   jaApplicantIds is built in index.blade.php
+   inside drawCallback via jaRebuildIds().
    ══════════════════════════════════════════════ */
 (function () {
 
