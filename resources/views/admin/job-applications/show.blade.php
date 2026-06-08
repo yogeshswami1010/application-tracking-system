@@ -824,41 +824,32 @@
 
                         /* ── Add skill manually ── */
                         window.jaAddManualSkill = function (appId) {
-                            var input = document.getElementById('manual-skill-input-' + appId);
-                            var name  = input.value.trim();
-                            if (!name) return;
+                        var input = document.getElementById('manual-skill-input-' + appId);
+                        var name  = input.value.trim();
+                        if (!name) return;
 
-                            // Check if an option with this text already exists
-                            var $sel   = $('#skills');
-                            var exists = $sel.find('option').filter(function () {
-                                return $(this).text().toLowerCase() === name.toLowerCase();
-                            });
+                        var $sel = $('#skills');
 
-                            if (exists.length) {
-                                // Just select it
-                                exists.prop('selected', true).trigger('change');
-                                $sel.trigger('change');
-                                input.value = '';
-                                return;
-                            }
+                        // Check if an option with this text already exists (case-insensitive)
+                        var exists = $sel.find('option').filter(function () {
+                            return $(this).text().toLowerCase() === name.toLowerCase();
+                        });
 
-                            // Create in DB, then add to Select2
-                            $.ajax({
-                                type: 'POST',
-                                url: '{{ route("admin.skills.store") }}', // adjust to your actual route
-                                data: { _token: '{{ csrf_token() }}', name: name },
-                                success: function (r) {
-                                    if (r.status === 'success' && r.id) {
-                                        var newOpt = new Option(name, r.id, true, true);
-                                        $sel.append(newOpt).trigger('change');
-                                        input.value = '';
-                                    }
-                                },
-                                error: function () {
-                                    alert('Could not create skill "' + name + '". Check server permissions.');
-                                }
-                            });
-                        };
+                        if (exists.length) {
+                            // Already in list — just select it
+                            exists.prop('selected', true);
+                            $sel.trigger('change');
+                            input.value = '';
+                            return;
+                        }
+
+                        // Add as a new option directly into Select2 (no DB call)
+                        // Value is prefixed with "new:" so the backend can handle it if needed
+                        var tempVal = 'new:' + name;
+                        var newOpt  = new Option(name, tempVal, true, true);
+                        $sel.append(newOpt).trigger('change');
+                        input.value = '';
+                    };
 
                     })();
                     </script>

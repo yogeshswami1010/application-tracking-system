@@ -1844,7 +1844,20 @@ class AdminJobApplicationController extends AdminBaseController
         abort_if(! $this->user->cans('edit_job_applications'), 403);
 
         $application = JobApplication::withTrashed()->findOrFail($applicationId);
-        $application->skills = $request->skills;
+
+        $skillIds = [];
+
+        foreach ((array) $request->skills as $val) {
+            if (str_starts_with((string) $val, 'new:')) {
+                $name  = trim(substr($val, 4));
+                $skill = \App\Models\Skill::firstOrCreate(['name' => $name]);
+                $skillIds[] = $skill->id;
+            } else {
+                $skillIds[] = $val;
+            }
+        }
+
+        $application->skills = $skillIds;
         $application->save();
 
         return Reply::success(__('messages.skillsSavedSuccessfully'));
