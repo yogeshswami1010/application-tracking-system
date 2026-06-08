@@ -40,6 +40,15 @@
             }
         }
     }
+
+    $previousId = \App\Models\JobApplication::where('id', '<', $application->id)
+        ->orderBy('id', 'desc')
+        ->value('id');
+
+    $nextId = \App\Models\JobApplication::where('id', '>', $application->id)
+        ->orderBy('id', 'asc')
+        ->value('id');
+
 @endphp
 {{-- 
   ============================================================
@@ -49,7 +58,8 @@
   Width: Controlled by the parent drawer (set to 75vw in JS)
   ============================================================
 --}}
-
+<input type="hidden" id="prev-applicant-id" value="{{ $previousId }}">
+<input type="hidden" id="next-applicant-id" value="{{ $nextId }}">
 <style>
 .ja-two-col-wrap {
     display: flex;
@@ -348,7 +358,21 @@
             </span>
             <span class="ja-pill ja-pill-cat {{ $detailCatClass }}">{{ ucfirst($detailCatName) }}</span>
         </div>
+        <div class="ja-nav-buttons" style="display:flex;gap:6px;margin-right:10px;">
+            <button type="button"
+                    class="ja-close-btn"
+                    onclick="loadPreviousApplicant({{ $application->id }})"
+                    title="Previous Applicant">
+                <i class="fa fa-chevron-left"></i>
+            </button>
 
+            <button type="button"
+                    class="ja-close-btn"
+                    onclick="loadNextApplicant({{ $application->id }})"
+                    title="Next Applicant">
+                <i class="fa fa-chevron-right"></i>
+            </button>
+        </div>
         <button type="button" class="right-side-toggle ja-close-btn" title="@lang('app.close')" aria-label="@lang('app.close')">
             <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
@@ -718,6 +742,57 @@
 
 <script>
 /* ── Tab switching ── */
+function loadPreviousApplicant(currentId)
+{
+    let previousId = $('#prev-applicant-id').val();
+
+    if (!previousId) {
+        Swal.fire({
+            icon: 'info',
+            title: 'No Previous Applicant'
+        });
+        return;
+    }
+
+    let url = "{{ route('admin.job-applications.show', ':id') }}";
+    url = url.replace(':id', previousId);
+
+    $.easyAjax({
+        type: 'GET',
+        url: url,
+        success: function(response) {
+            if (response.status === 'success') {
+                $('#right-sidebar-content').html(response.view);
+            }
+        }
+    });
+}
+
+function loadNextApplicant(currentId)
+{
+    let nextId = $('#next-applicant-id').val();
+
+    if (!nextId) {
+        Swal.fire({
+            icon: 'info',
+            title: 'No Next Applicant'
+        });
+        return;
+    }
+
+    let url = "{{ route('admin.job-applications.show', ':id') }}";
+    url = url.replace(':id', nextId);
+
+    $.easyAjax({
+        type: 'GET',
+        url: url,
+        success: function(response) {
+            if (response.status === 'success') {
+                $('#right-sidebar-content').html(response.view);
+            }
+        }
+    });
+}
 document.querySelectorAll('.ja-tab').forEach(function(tab) {
     tab.addEventListener('click', function() {
         var target = this.dataset.tab;
