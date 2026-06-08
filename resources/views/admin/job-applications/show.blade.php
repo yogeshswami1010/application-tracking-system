@@ -478,7 +478,7 @@
                         </div>
 
                         {{-- Rating --}}
-                        <div style="border-top:1px solid #F0EEE9;padding-top:12px">
+                        <!-- <div style="border-top:1px solid #F0EEE9;padding-top:12px">
                             <div class="ja-card-title" style="margin-bottom:8px">
                                 <i class="fa fa-star-o" style="font-size:11px"></i> @lang('modules.jobApplication.ratingLabel')
                             </div>
@@ -489,7 +489,7 @@
                                    style="font-size:22px;cursor:pointer;color:{{ $s <= ($application->rating ?? 0) ? '#F59E0B' : '#D1D5DB' }}"></i>
                                 @endfor
                             </div>
-                        </div>
+                        </div> -->
                         @endif
                     </div>
 
