@@ -22,7 +22,7 @@
     }
 </style>
 
-<div class="ja-applicant-detail max-h-[calc(100vh-0px)] overflow-y-auto bg-[#F8F7F4] font-[family-name:Plus_Jakarta_Sans]">
+<div class="ja-applicant-detail  profile-view max-h-[calc(100vh-0px)] overflow-y-auto bg-[#F8F7F4] font-[family-name:Plus_Jakarta_Sans]">
     <div class="relative bg-gradient-to-br from-[#0F1F3D] to-[#162849] px-5 pb-5 pt-6">
         <button type="button" class="right-side-toggle absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-lg border border-white/15 bg-white/[0.07] text-white/80 transition hover:bg-white/10" title="@lang('app.close')" aria-label="@lang('app.close')">
             <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
