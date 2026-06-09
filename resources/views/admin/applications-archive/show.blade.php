@@ -1,6 +1,6 @@
 <link rel="stylesheet" href="{{ asset('assets/plugins/jquery-bar-rating-master/dist/themes/fontawesome-stars.css') }}">
 @php
-    $detailCatName = $application->job?->category?->name ?? ($application->is_candidate ? 'Candidate' : __('app.category'));
+    $detailCatName = $application->job?->category?->name ?? __('app.category');
     $detailCatKey = \Illuminate\Support\Str::slug($detailCatName);
     $detailCatClass = match (true) {
         str_contains($detailCatKey, 'engineer') || str_contains($detailCatKey, 'tech') || str_contains($detailCatKey, 'it') => 'bg-[#EFF6FF] text-[#1D4ED8]',
@@ -557,8 +557,7 @@
                         </div>
 
                         {{-- Stage mover --}}
-                      {{-- Stage mover — only for applicants with a status, not internal candidates ──}}
-                        @if($user->cans('edit_job_applications') && !is_null($application->status_id))
+                        @if($user->cans('edit_job_applications'))
                         <div style="margin-bottom:14px">
                             <div class="ja-card-title" style="margin-bottom:8px">
                                 <i class="fa fa-exchange" style="font-size:11px"></i> Move to Stage
