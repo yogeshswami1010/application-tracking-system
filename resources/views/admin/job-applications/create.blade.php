@@ -601,7 +601,7 @@
         ───────────────────────────────────────────── */
         const bulkCsrfToken          = "{{ csrf_token() }}";
         const bulkStoreUrl           = "{{ route('admin.job-applications.store') }}";
-        const bulkIndexUrl           = "{{ route('admin.job-applications.index') }}";
+        const bulkIndexUrl           = "{{ route('admin.job-applications.table') }}";
         const bulkQuestionRouteBase  = "{{ route('admin.job-applications.question', ':id') }}";
 
         /* ─────────────────────────────────────────────
