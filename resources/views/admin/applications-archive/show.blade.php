@@ -740,7 +740,8 @@
 
                     {{-- Skills --}}
                     @if ($user->cans('edit_job_applications'))
-                    <div class="ja-card" id="skills-container">
+                    <div class="ja-card" id="skills-container-{{ $application->id }}">
+
                         <div class="ja-card-title">
                             <i class="fa fa-star" style="font-size:11px"></i> @lang('modules.jobApplication.skills')
                         </div>
@@ -831,166 +832,231 @@
 
                     {{-- ── Inline JS for skills panel ── --}}
                     <script>
-                    (function () {
+                        (function () {
 
-                        /* ── Parse skills from CV ── */
-                        window.jaParseSkills = function (appId) {
-                            var btn   = document.getElementById('parse-skills-btn-' + appId);
-                            var icon  = document.getElementById('parse-icon-' + appId);
-                            var label = document.getElementById('parse-label-' + appId);
-                            var resArea  = document.getElementById('parse-result-' + appId);
-                            var errArea  = document.getElementById('parse-error-' + appId);
-                            var status   = document.getElementById('parse-status-' + appId);
+                            var appId = {{ $application->id }};
 
-                            btn.disabled = true;
-                            icon.className  = 'fa fa-spinner fa-spin';
-                            label.textContent = 'Parsing…';
-                            resArea.style.display = 'none';
-                            errArea.style.display = 'none';
-
-                            $.ajax({
-                                type: 'POST',
-                                url: '{{ route("admin.job-applications.parse-skills", ":id") }}'.replace(':id', appId),
-                                data: { _token: '{{ csrf_token() }}' },
-                                success: function (res) {
-                                    btn.disabled = false;
-                                    icon.className  = 'fa fa-search';
-                                    label.textContent = 'Re-parse CV';
-
-                                    if (res.status !== 'success') {
-                                        errArea.style.display = 'block';
-                                        errArea.querySelector('span').textContent = res.message || 'Parsing failed.';
-                                        return;
-                                    }
-
-                                    resArea.style.display = 'block';
-                                    var addedCount = 0;
-
-                                    /* Matched chips */
-                                    var matchedWrap  = document.getElementById('parse-matched-wrap-' + appId);
-                                    var matchedChips = document.getElementById('parse-matched-chips-' + appId);
-                                    matchedChips.innerHTML = '';
-
-                                    if (res.matched_skills && res.matched_skills.length) {
-                                        matchedWrap.style.display = 'block';
-                                        res.matched_skills.forEach(function (skill) {
-                                            var chip = document.createElement('span');
-                                            chip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11.5px;font-weight:500;cursor:pointer;background:#ECFDF5;color:#065F46;border:1px dashed #6EE7B7;transition:all .15s';
-                                            chip.innerHTML = '<i class="fa fa-plus" style="font-size:9px"></i> ' + skill.name;
-                                            chip.onclick = function () {
-                                                var $sel = $('#skills');
-                                                if ($sel.val() && $sel.val().indexOf(String(skill.id)) > -1) return;
-                                                var opt = $sel.find('option[value="' + skill.id + '"]');
-                                                if (opt.length) {
-                                                    opt.prop('selected', true);
-                                                    $sel.trigger('change');
-                                                } else {
-                                                    var newOpt = new Option(skill.name, skill.id, true, true);
-                                                    $sel.append(newOpt).trigger('change');
-                                                }
-                                                chip.style.borderStyle = 'solid';
-                                                chip.style.background  = '#D1FAE5';
-                                                chip.innerHTML = '<i class="fa fa-check" style="font-size:9px"></i> ' + skill.name;
-                                                chip.onclick = null;
-                                                chip.style.cursor = 'default';
-                                                addedCount++;
-                                                status.textContent = 'Saving…';
-                                                addSkills(appId, function() {
-                                                    status.textContent = 'Saved successfully';
-                                                });
-                                            };
-                                            matchedChips.appendChild(chip);
-                                        });
-                                    } else {
-                                        matchedWrap.style.display = 'none';
-                                    }
-
-                                    /* New chips */
-                                    var newWrap  = document.getElementById('parse-new-wrap-' + appId);
-                                    var newChips = document.getElementById('parse-new-chips-' + appId);
-                                    newChips.innerHTML = '';
-
-                                    if (res.new_skills && res.new_skills.length) {
-                                        newWrap.style.display = 'block';
-                                        res.new_skills.forEach(function (name) {
-                                            var chip = document.createElement('span');
-                                            chip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11.5px;font-weight:500;cursor:pointer;background:#FFFBEB;color:#92400E;border:1px dashed #FDE68A;transition:all .15s';
-                                            chip.innerHTML = '<i class="fa fa-plus" style="font-size:9px"></i> ' + name;
-                                            chip.onclick = function () {
-                                                $.ajax({
-                                                    type: 'POST',
-                                                    url: '{{ route("admin.skills.quick-create") }}',
-                                                    data: { _token: '{{ csrf_token() }}', name: name },
-                                                    success: function (r) {
-                                                        if (r.status === 'success' && r.id) {
-                                                            var newOpt = new Option(name, r.id, true, true);
-                                                            $('#skills').append(newOpt).trigger('change');
-                                                            chip.style.background  = '#FEF3C7';
-                                                            chip.style.borderStyle = 'solid';
-                                                            chip.innerHTML = '<i class="fa fa-check" style="font-size:9px"></i> ' + name;
-                                                            chip.onclick = null;
-                                                            chip.style.cursor = 'default';
-                                                            addedCount++;
-                                                            status.textContent = 'Saving…';
-                                                            addSkills(appId, function() {
-                                                                status.textContent = 'Saved successfully.';
-                                                            });
-                                                        }
-                                                    },
-                                                    error: function () {
-                                                        chip.style.opacity = '.4';
-                                                        chip.title = 'Could not create skill — check permissions.';
-                                                    }
-                                                });
-                                            };
-                                            newChips.appendChild(chip);
-                                        });
-                                    } else {
-                                        newWrap.style.display = 'none';
-                                    }
-
-                                    if (!res.matched_skills.length && !res.new_skills.length) {
-                                        status.textContent = 'No skills detected in this CV.';
-                                    }
-                                },
-                                error: function () {
-                                    btn.disabled = false;
-                                    icon.className  = 'fa fa-search';
-                                    label.textContent = 'Parse skills from CV';
-                                    errArea.style.display = 'block';
-                                    errArea.querySelector('span').textContent = 'Server error. Please try again.';
-                                }
-                            });
-                        };
-
-                        /* ── Add skill manually ── */
-                        window.jaAddManualSkill = function (appId) {
-                            var input = document.getElementById('manual-skill-input-' + appId);
-                            var name  = input.value.trim();
-                            if (!name) return;
-
-                            var $sel = $('#skills');
-                            var exists = $sel.find('option').filter(function () {
-                                return $(this).text().toLowerCase() === name.toLowerCase();
-                            });
-
-                            if (exists.length) {
-                                exists.prop('selected', true);
-                                $sel.trigger('change');
-                                input.value = '';
-                                addSkills(appId);
-                                return;
+                            /* ── Ensure Select2 is initialised on THIS panel's #skills ── */
+                            function getSkillSelect() {
+                                return $('#skills-container-' + appId + ' select#skills');
                             }
 
-                            var tempVal = 'new:' + name;
-                            var newOpt  = new Option(name, tempVal, true, true);
-                            $sel.append(newOpt).trigger('change');
-                            input.value = '';
-                            addSkills(appId);
-                        };
+                            /* Re-init Select2 scoped to this skills container */
+                            (function initSelect2() {
+                                var $sel = getSkillSelect();
+                                if (!$sel.length) {
+                                    /* fallback: grab by ID directly */
+                                    $sel = $('#skills');
+                                }
+                                if ($sel.length && !$sel.hasClass('select2-hidden-accessible')) {
+                                    $sel.select2({ width: '100%' });
+                                }
+                            })();
 
-                    })();
-                    </script>
+                            /* ── Parse skills from CV ── */
+                            window.jaParseSkills = function (appId) {
+                                var btn      = document.getElementById('parse-skills-btn-' + appId);
+                                var icon     = document.getElementById('parse-icon-' + appId);
+                                var label    = document.getElementById('parse-label-' + appId);
+                                var resArea  = document.getElementById('parse-result-' + appId);
+                                var errArea  = document.getElementById('parse-error-' + appId);
+                                var status   = document.getElementById('parse-status-' + appId);
+
+                                btn.disabled      = true;
+                                icon.className    = 'fa fa-spinner fa-spin';
+                                label.textContent = 'Parsing…';
+                                resArea.style.display = 'none';
+                                errArea.style.display = 'none';
+
+                                $.ajax({
+                                    type: 'POST',
+                                    url: '{{ route("admin.job-applications.parse-skills", ":id") }}'.replace(':id', appId),
+                                    data: { _token: '{{ csrf_token() }}' },
+                                    success: function (res) {
+                                        btn.disabled      = false;
+                                        icon.className    = 'fa fa-search';
+                                        label.textContent = 'Re-parse CV';
+
+                                        if (res.status !== 'success') {
+                                            errArea.style.display = 'block';
+                                            errArea.querySelector('span').textContent = res.message || 'Parsing failed.';
+                                            return;
+                                        }
+
+                                        resArea.style.display = 'block';
+
+                                        /* ── Matched chips ── */
+                                        var matchedWrap  = document.getElementById('parse-matched-wrap-' + appId);
+                                        var matchedChips = document.getElementById('parse-matched-chips-' + appId);
+                                        matchedChips.innerHTML = '';
+
+                                        if (res.matched_skills && res.matched_skills.length) {
+                                            matchedWrap.style.display = 'block';
+                                            res.matched_skills.forEach(function (skill) {
+                                                var chip = document.createElement('span');
+                                                chip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11.5px;font-weight:500;cursor:pointer;background:#ECFDF5;color:#065F46;border:1px dashed #6EE7B7;transition:all .15s';
+                                                chip.innerHTML = '<i class="fa fa-plus" style="font-size:9px"></i> ' + skill.name;
+
+                                                chip.onclick = function () {
+                                                    var $sel = $('#skills');
+
+                                                    /* Check not already selected */
+                                                    var currentVals = $sel.val() || [];
+                                                    if (currentVals.indexOf(String(skill.id)) > -1) {
+                                                        chip.style.borderStyle = 'solid';
+                                                        chip.style.background  = '#D1FAE5';
+                                                        chip.innerHTML = '<i class="fa fa-check" style="font-size:9px"></i> ' + skill.name;
+                                                        chip.onclick = null; chip.style.cursor = 'default';
+                                                        return;
+                                                    }
+
+                                                    /* Select the option if it exists, otherwise create it */
+                                                    var opt = $sel.find('option[value="' + skill.id + '"]');
+                                                    if (opt.length) {
+                                                        opt.prop('selected', true);
+                                                    } else {
+                                                        $sel.append(new Option(skill.name, skill.id, true, true));
+                                                    }
+                                                    $sel.trigger('change');
+
+                                                    chip.style.borderStyle = 'solid';
+                                                    chip.style.background  = '#D1FAE5';
+                                                    chip.innerHTML = '<i class="fa fa-check" style="font-size:9px"></i> ' + skill.name;
+                                                    chip.onclick   = null;
+                                                    chip.style.cursor = 'default';
+
+                                                    status.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Saving…';
+                                                    jaDoSaveSkills(appId, status);
+                                                };
+                                                matchedChips.appendChild(chip);
+                                            });
+                                        } else {
+                                            matchedWrap.style.display = 'none';
+                                        }
+
+                                        /* ── New chips ── */
+                                        var newWrap  = document.getElementById('parse-new-wrap-' + appId);
+                                        var newChips = document.getElementById('parse-new-chips-' + appId);
+                                        newChips.innerHTML = '';
+
+                                        if (res.new_skills && res.new_skills.length) {
+                                            newWrap.style.display = 'block';
+                                            res.new_skills.forEach(function (name) {
+                                                var chip = document.createElement('span');
+                                                chip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11.5px;font-weight:500;cursor:pointer;background:#FFFBEB;color:#92400E;border:1px dashed #FDE68A;transition:all .15s';
+                                                chip.innerHTML = '<i class="fa fa-plus" style="font-size:9px"></i> ' + name;
+
+                                                chip.onclick = function () {
+                                                    chip.style.opacity = '.5';
+                                                    chip.style.cursor  = 'default';
+                                                    chip.onclick       = null;
+
+                                                    /* Create the skill in DB first, then add to Select2 */
+                                                    $.ajax({
+                                                        type: 'POST',
+                                                        url:  '{{ route("admin.skills.quick-create") }}',
+                                                        data: { _token: '{{ csrf_token() }}', name: name },
+                                                        success: function (r) {
+                                                            if (r.status === 'success' && r.id) {
+                                                                var $sel = $('#skills');
+                                                                var opt  = $sel.find('option[value="' + r.id + '"]');
+                                                                if (opt.length) {
+                                                                    opt.prop('selected', true);
+                                                                } else {
+                                                                    $sel.append(new Option(name, r.id, true, true));
+                                                                }
+                                                                $sel.trigger('change');
+
+                                                                chip.style.opacity    = '1';
+                                                                chip.style.background = '#FEF3C7';
+                                                                chip.style.borderStyle = 'solid';
+                                                                chip.innerHTML = '<i class="fa fa-check" style="font-size:9px"></i> ' + name;
+
+                                                                status.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Saving…';
+                                                                jaDoSaveSkills(appId, status);
+                                                            } else {
+                                                                chip.style.opacity = '.4';
+                                                                chip.title = 'Could not create skill.';
+                                                            }
+                                                        },
+                                                        error: function () {
+                                                            chip.style.opacity = '.4';
+                                                            chip.title = 'Server error — could not create skill.';
+                                                        }
+                                                    });
+                                                };
+                                                newChips.appendChild(chip);
+                                            });
+                                        } else {
+                                            newWrap.style.display = 'none';
+                                        }
+
+                                        if ((!res.matched_skills || !res.matched_skills.length) &&
+                                            (!res.new_skills     || !res.new_skills.length)) {
+                                            status.textContent = 'No skills detected in this CV.';
+                                        }
+                                    },
+                                    error: function () {
+                                        btn.disabled      = false;
+                                        icon.className    = 'fa fa-search';
+                                        label.textContent = 'Parse skills from CV';
+                                        errArea.style.display = 'block';
+                                        errArea.querySelector('span').textContent = 'Server error. Please try again.';
+                                    }
+                                });
+                            };
+
+                            /* ── Shared save helper — debounced so rapid clicks don't fire multiple POSTs ── */
+                            var _saveTimer = null;
+                            function jaDoSaveSkills(appId, statusEl) {
+                                clearTimeout(_saveTimer);
+                                _saveTimer = setTimeout(function () {
+                                    var url = "{{ route('admin.job-applications.addSkills', ':id') }}".replace(':id', appId);
+                                    $.easyAjax({
+                                        url: url, type: 'POST', container: '#skills-container',
+                                        data: { _token: '{{ csrf_token() }}', skills: $('#skills').val() },
+                                        success: function (response) {
+                                            if (response.status === 'success') {
+                                                if (statusEl) statusEl.innerHTML = '<i class="fa fa-check-circle" style="color:#059669"></i> Saved successfully';
+                                                if (typeof table !== 'undefined') table.draw(false);
+                                            } else {
+                                                if (statusEl) statusEl.innerHTML = '<span style="color:#EF4444"><i class="fa fa-exclamation-circle"></i> Save failed</span>';
+                                            }
+                                        },
+                                        error: function () {
+                                            if (statusEl) statusEl.innerHTML = '<span style="color:#EF4444"><i class="fa fa-exclamation-circle"></i> Save failed</span>';
+                                        }
+                                    });
+                                }, 300);
+                            }
+
+                            /* ── Add skill manually ── */
+                            window.jaAddManualSkill = function (appId) {
+                                var input = document.getElementById('manual-skill-input-' + appId);
+                                var name  = input.value.trim();
+                                if (!name) return;
+
+                                var $sel   = $('#skills');
+                                var exists = $sel.find('option').filter(function () {
+                                    return $(this).text().toLowerCase() === name.toLowerCase();
+                                });
+
+                                if (exists.length) {
+                                    exists.prop('selected', true);
+                                    $sel.trigger('change');
+                                    input.value = '';
+                                    addSkills(appId);
+                                    return;
+                                }
+
+                                var newOpt = new Option(name, 'new:' + name, true, true);
+                                $sel.append(newOpt).trigger('change');
+                                input.value = '';
+                                addSkills(appId);
+                            };
+
+                        })();
+                        </script>
                     @endif
                 </div>{{-- /details --}}
 
@@ -1198,7 +1264,7 @@ $('.select2#skills').select2();
 function addSkills(applicationId, callback) {
     var url = "{{ route('admin.job-applications.addSkills', ':id') }}".replace(':id', applicationId);
     $.easyAjax({
-        url: url, type: 'POST', container: '#skills-container',
+        url: url, type: 'POST', container: '#skills-container-{{ $application->id }}',
         data: { _token: '{{ csrf_token() }}', skills: $('#skills').val() },
         success: function(response) {
             if (response.status === 'success') {
