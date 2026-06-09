@@ -206,11 +206,14 @@ class AdminApplicationArchiveController extends AdminBaseController
         $this->skills = Skill::select('id', 'name')->get();
 
         $this->answers = $this->application->job_id
-        ? JobApplicationAnswer::with(['question'])
-            ->where('job_id', $this->application->job_id)
-            ->where('job_application_id', $this->application->id)
-            ->get()
-        : collect();
+            ? JobApplicationAnswer::with(['question'])
+                ->where('job_id', $this->application->job_id)
+                ->where('job_application_id', $this->application->id)
+                ->get()
+            : collect();
+
+        $this->allJobs     = \App\Job::orderBy('title')->with('location')->get();
+        $this->zoom_setting = \App\ZoomSetting::first();
 
         $view = view('admin.applications-archive.show', $this->data)->render();
 

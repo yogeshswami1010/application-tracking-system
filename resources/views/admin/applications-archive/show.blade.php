@@ -750,7 +750,7 @@
                         <div class="mb-3">
                             <select name="skills[]" id="skills" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm select2" multiple>
                                 @forelse ($skills as $skill)
-                                    <option @if(!is_null($application->skills) && in_array($skill->id, $application->skills)) selected @endif value="{{ $skill->id }}">{{ $skill->name }}</option>
+                                    <option @if(!is_null($application->skills) && in_array((string)$skill->id, array_map('strval', (array)$application->skills))) selected @endif value="{{ $skill->id }}">
                                 @empty
                                 @endforelse
                             </select>

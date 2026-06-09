@@ -790,6 +790,26 @@ class AdminJobApplicationController extends AdminBaseController
             }
             // DO NOT soft-delete — knockout is tracked by the answer, not deletion
         }
+        // ── Process skills from bulk create form ──
+        if ($request->filled('skills')) {
+            $skillNames = array_filter(array_map('trim', explode(',', $request->skills)));
+            $skillIds   = [];
+
+            foreach ($skillNames as $name) {
+                if (empty($name)) continue;
+                $skill = \App\Skill::whereRaw('LOWER(name) = ?', [strtolower($name)])->first();
+                if (!$skill) {
+                    $skill = \App\Skill::create(['name' => $name]);
+                }
+                $skillIds[] = (string) $skill->id;
+            }
+
+            if (!empty($skillIds)) {
+                $jobApplication->skills = array_values(array_unique($skillIds));
+                $jobApplication->save();
+            }
+        }
+
         if ($request->filled('notes') && is_array($request->notes)) {
             foreach ($request->notes as $noteText) {
                 if (trim($noteText)) {
@@ -801,9 +821,11 @@ class AdminJobApplicationController extends AdminBaseController
                 }
             }
         }
+
         return Reply::successWithData(__('menu.jobApplications').' '.__('messages.createdSuccessfully'), [
             'redirect' => route('admin.job-applications.table')
         ]);
+    
     }
 
     public function update(UpdateJobApplication $request, $id)
