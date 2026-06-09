@@ -1965,87 +1965,83 @@ class AdminJobApplicationController extends AdminBaseController
 
         return Reply::dataOnly(['jobs' => $html]);
     }
-    public function parseSkills(Request $request, $id)
-    {
-        $application = JobApplication::with('job')->findOrFail($id);
+   public function parseSkills(Request $request, $id)
+{
+    $application = JobApplication::with('job')->findOrFail($id);
 
-        // Resolve the resume URL (same logic as your Blade view)
-        $resumeUrl = null;
-        if (!empty($application->resume_url)) {
-            $resumeUrl = $application->resume_url;
-        }
-        if (!$resumeUrl) {
-            $answers = $application->answers()->with('question')->get();
-            foreach ($answers as $answer) {
-                if (!empty($answer->file)) {
-                    $resumeUrl = $answer->file_url ?? url('user-uploads/documents/' . basename($answer->file));
-                    break;
-                }
+    // Resolve the resume URL
+    $resumeUrl = null;
+    if (!empty($application->resume_url)) {
+        $resumeUrl = $application->resume_url;
+    }
+    if (!$resumeUrl) {
+        $answers = $application->answers()->with('question')->get();
+        foreach ($answers as $answer) {
+            if (!empty($answer->file)) {
+                $resumeUrl = $answer->file_url ?? url('user-uploads/documents/' . basename($answer->file));
+                break;
             }
-        }
-
-        if (!$resumeUrl) {
-            return response()->json(['status' => 'error', 'message' => 'No resume found for this applicant.']);
-        }
-
-        try {
-            // Fetch PDF contents as base64
-            $pdfContents = file_get_contents($resumeUrl);
-            if (!$pdfContents) {
-                return response()->json(['status' => 'error', 'message' => 'Could not fetch the resume file.']);
-            }
-            $base64Pdf = base64_encode($pdfContents);
-
-            // Get all skill names from your DB for context
-            $allSkillNames = \App\Models\Skill::pluck('name')->implode(', ');
-
-            // Call Anthropic API
-            $client = new \GuzzleHttp\Client();
-            $response = $client->post('https://api.anthropic.com/v1/messages', [
-                'headers' => [
-                    'x-api-key'         => config('services.anthropic.key'),
-                    'anthropic-version' => '2023-06-01',
-                    'content-type'      => 'application/json',
-                ],
-                'json' => [
-                    'model'      => 'claude-opus-4-6',
-                    'max_tokens' => 512,
-                    'messages'   => [[
-                        'role'    => 'user',
-                        'content' => [
-                            [
-                                'type'   => 'document',
-                                'source' => [
-                                    'type'       => 'base64',
-                                    'media_type' => 'application/pdf',
-                                    'data'       => $base64Pdf,
-                                ],
-                            ],
-                            [
-                                'type' => 'text',
-                                'text' => "Extract all professional skills from this resume (programming languages, frameworks, tools, soft skills, certifications, etc.).\n\nFor each skill, check if it matches any name in this list: [{$allSkillNames}].\n\nRespond ONLY with valid JSON — no preamble, no markdown fences:\n{\"matched\": [\"Skill A\", \"Skill B\"], \"new\": [\"Skill C\", \"Skill D\"]}\n\n- \"matched\" = skills from the resume that exist in the provided list (use exact casing from the list)\n- \"new\" = skills from the resume NOT in the provided list",
-                            ],
-                        ],
-                    ]],
-                ],
-            ]);
-
-            $body   = json_decode($response->getBody()->getContents(), true);
-            $text   = collect($body['content'] ?? [])->where('type', 'text')->pluck('text')->first() ?? '{}';
-            $parsed = json_decode(trim($text), true);
-
-            // Fetch IDs for matched skills
-            $matchedSkills = \App\Models\Skill::whereIn('name', $parsed['matched'] ?? [])->get(['id', 'name']);
-
-            return response()->json([
-                'status'         => 'success',
-                'matched_skills' => $matchedSkills,   // [{id, name}, ...] — these exist in DB
-                'new_skills'     => $parsed['new'] ?? [], // plain strings — don't exist in DB yet
-            ]);
-
-        } catch (\Exception $e) {
-            \Log::error('parseSkills error: ' . $e->getMessage());
-            return response()->json(['status' => 'error', 'message' => 'Skill parsing failed. Please try again.']);
         }
     }
+
+    if (!$resumeUrl) {
+        return response()->json(['status' => 'error', 'message' => 'No resume found for this applicant.']);
+    }
+
+    try {
+        $pdfContents = file_get_contents($resumeUrl);
+        if (!$pdfContents) {
+            return response()->json(['status' => 'error', 'message' => 'Could not fetch the resume file.']);
+        }
+        $base64Pdf = base64_encode($pdfContents);
+
+        $allSkillNames = \App\Skill::pluck('name')->implode(', ');
+
+        $client = new \GuzzleHttp\Client();
+        $response = $client->post('https://api.anthropic.com/v1/messages', [
+            'headers' => [
+                'x-api-key'         => config('services.anthropic.key'),
+                'anthropic-version' => '2023-06-01',
+                'content-type'      => 'application/json',
+            ],
+            'json' => [
+                'model'      => 'claude-haiku-4-5-20251001',
+                'max_tokens' => 512,
+                'messages'   => [[
+                    'role'    => 'user',
+                    'content' => [
+                        [
+                            'type'   => 'document',
+                            'source' => [
+                                'type'       => 'base64',
+                                'media_type' => 'application/pdf',
+                                'data'       => $base64Pdf,
+                            ],
+                        ],
+                        [
+                            'type' => 'text',
+                            'text' => "Extract all professional skills from this resume (programming languages, frameworks, tools, soft skills, certifications, etc.).\n\nFor each skill, check if it matches any name in this list: [{$allSkillNames}].\n\nRespond ONLY with valid JSON — no preamble, no markdown fences:\n{\"matched\": [\"Skill A\", \"Skill B\"], \"new\": [\"Skill C\", \"Skill D\"]}\n\n- \"matched\" = skills from the resume that exist in the provided list (use exact casing from the list)\n- \"new\" = skills from the resume NOT in the provided list",
+                        ],
+                    ],
+                ]],
+            ],
+        ]);
+
+        $body   = json_decode($response->getBody()->getContents(), true);
+        $text   = collect($body['content'] ?? [])->where('type', 'text')->pluck('text')->first() ?? '{}';
+        $parsed = json_decode(trim($text), true);
+
+        $matchedSkills = \App\Skill::whereIn('name', $parsed['matched'] ?? [])->get(['id', 'name']);
+
+        return response()->json([
+            'status'         => 'success',
+            'matched_skills' => $matchedSkills,
+            'new_skills'     => $parsed['new'] ?? [],
+        ]);
+
+    } catch (\Exception $e) {
+        \Log::error('parseSkills error: ' . $e->getMessage());
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()]);
+    }
+}
 }
