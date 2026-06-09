@@ -1051,7 +1051,26 @@
             bulkSetInput('bf-name',    d.full_name,  !!d.full_name);
             bulkSetInput('bf-email',   d.email,      !!d.email);
             bulkSetInput('bf-phone',   d.phone,      !!d.phone);
-            bulkSetInput('bf-skills',  d.skills,     !!d.skills);
+            // Combine all detected skills into the text field automatically
+            var allSkillNames = [];
+            (d.matched_skills || []).forEach(function(s) { allSkillNames.push(s.name); });
+            (d.new_skills || []).forEach(function(n) { allSkillNames.push(n); });
+
+            // Merge with any existing skills string (deduplicate)
+            var existingSkills = (d.skills || '').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+            allSkillNames.forEach(function(name) {
+                var lower = name.toLowerCase();
+                var exists = existingSkills.some(function(e){ return e.toLowerCase() === lower; });
+                if (!exists) existingSkills.push(name);
+            });
+
+            var finalSkillsStr = existingSkills.join(', ');
+            bulkSetInput('bf-skills', finalSkillsStr, !!finalSkillsStr);
+
+            // Update snapshot immediately
+            if (bulkQueue[bulkActive] && bulkQueue[bulkActive].parsed) {
+                bulkQueue[bulkActive].parsed.skills = finalSkillsStr;
+            }
             bulkSetTextarea('bf-address', d.address, !!d.address);
 
             // Confidence badges
