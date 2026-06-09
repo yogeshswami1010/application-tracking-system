@@ -2071,12 +2071,14 @@ class AdminJobApplicationController extends AdminBaseController
     }
     public function assignJob(Request $request, $id)
     {
+        abort_if(! $this->user->cans('edit_job_applications'), 403);
+
         $request->validate(['job_id' => 'required|exists:jobs,id']);
 
         $application = JobApplication::findOrFail($id);
         $application->job_id = $request->job_id;
         $application->save();
 
-        return response()->json(['status' => 'success', 'message' => 'Job assigned successfully.']);
+        return Reply::success('Job assigned successfully.');
     }
 }

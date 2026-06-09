@@ -125,8 +125,7 @@ Route::middleware('auth')->group(function () {
             Route::prefix('settings')->group(function () {
                 Route::resource('settings', CompanySettingsController::class)->only(['edit', 'update', 'index']);
                 Route::resource('application-setting', ApplicationSettingsController::class);
-            Route::post('job-applications/{id}/assign-job', [JobApplicationController::class, 'assignJob'])
-                ->name('admin.job-applications.assign-job');
+
                 Route::post('role-permission/assignAllPermission', [ManageRolePermissionController::class, 'assignAllPermission'])
                     ->name('role-permission.assignAllPermission');
                 Route::post('role-permission/removeAllPermission', [ManageRolePermissionController::class, 'removeAllPermission'])
@@ -239,6 +238,8 @@ Route::middleware('auth')->group(function () {
             Route::resource('job-applications', AdminJobApplicationController::class);
             Route::post('job-applications/{id}/parse-skills', [AdminJobApplicationController::class, 'parseSkills'])
                 ->name('job-applications.parse-skills');
+            Route::post('job-applications/{id}/assign-job', [AdminJobApplicationController::class, 'assignJob'])
+                ->name('job-applications.assign-job');
             Route::get('applications-archive/data', [AdminApplicationArchiveController::class, 'data'])->name('applications-archive.data');
             Route::get('applications-archive/export/{skill}', [AdminApplicationArchiveController::class, 'export'])->name('applications-archive.export');
             Route::resource('applications-archive', AdminApplicationArchiveController::class);

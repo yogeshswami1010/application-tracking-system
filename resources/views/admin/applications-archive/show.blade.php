@@ -1340,7 +1340,7 @@ function jaAssignJob(appId) {
     if (label) label.textContent = 'Saving…';
     if (msg)   { msg.style.display = 'none'; }
 
-    var url = "{{ route('admin.job-applications.assign-job', ':id') }}".replace(':id', appId);
+   var url = "{{ route('admin.job-applications.assign-job', ':id') }}".replace(':id', appId);
 
     $.ajax({
         type: 'POST',
