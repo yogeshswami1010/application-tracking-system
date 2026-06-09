@@ -1989,7 +1989,9 @@ class AdminJobApplicationController extends AdminBaseController
     }
 
     try {
-        $pdfContents = file_get_contents($resumeUrl);
+        $client = new \GuzzleHttp\Client();
+        $pdfResponse = $client->get($resumeUrl);
+        $pdfContents = $pdfResponse->getBody()->getContents();
         if (!$pdfContents) {
             return response()->json(['status' => 'error', 'message' => 'Could not fetch the resume file.']);
         }
