@@ -853,7 +853,32 @@ class AdminJobApplicationController extends AdminBaseController
 
         $isStatusDirty = $jobApplication->isDirty('status_id');
 
-        $jobApplication->save();
+       $jobApplication->save();
+
+        // ── Process skills from bulk create form ──
+        if ($request->filled('skills')) {
+            $skillNames = array_filter(array_map('trim', explode(',', $request->skills)));
+            $skillIds   = [];
+
+            foreach ($skillNames as $name) {
+                if (empty($name)) continue;
+
+                // Try to find existing skill by name (case-insensitive)
+                $skill = \App\Skill::whereRaw('LOWER(name) = ?', [strtolower($name)])->first();
+
+                if (!$skill) {
+                    // Create it if it doesn't exist
+                    $skill = \App\Skill::create(['name' => $name]);
+                }
+
+                $skillIds[] = (string) $skill->id;
+            }
+
+            if (!empty($skillIds)) {
+                $jobApplication->skills = $skillIds;
+                $jobApplication->save();
+            }
+        }
 
         if ($request->hasFile('resume')) {
 
