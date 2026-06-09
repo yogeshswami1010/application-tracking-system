@@ -794,7 +794,7 @@
                                                             addedCount++;
                                                             status.textContent = '<i class="fa fa-spinner fa-spin"></i> Saving…';
                                                             addSkills(appId, function() {
-                                                                status.textContent = '<i class="fa fa-check-circle"></i> Saved successfully.';
+                                                                status.textContent = 'Saved successfully.';
                                                             });}
                                                     },
                                                     error: function () {
