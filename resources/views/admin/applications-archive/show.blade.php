@@ -12,8 +12,8 @@
     $stagePillBg = $application->status->color ?? '#0F1F3D';
     $initials = collect(explode(' ', $application->full_name))->map(fn($w) => strtoupper(substr($w,0,1)))->take(2)->join('');
     $allStatuses = \App\ApplicationStatus::orderBy('position')->get();
-    $currentStatusId = $application->status_id;
-    $currentStatus = $allStatuses->firstWhere('id', $currentStatusId);
+    $currentStatusId = $application->status_id ?? 0;
+    $currentStatus = $currentStatusId ? $allStatuses->firstWhere('id', $currentStatusId) : null;
 
     // All jobs for the assign dropdown
     $allJobs = \App\Job::orderBy('title')->with('location')->get();
@@ -426,8 +426,8 @@
         </div>
 
         <div class="ja-header-pills">
-            <span class="ja-pill ja-pill-stage" style="background: {{ $stagePillBg }};">
-                {{ ucwords($application->status->status) }}
+           <span class="ja-pill ja-pill-stage" style="background: {{ $stagePillBg }};">
+                {{ $application->status ? ucwords($application->status->status) : 'Internal' }}
             </span>
             <span class="ja-pill ja-pill-cat {{ $detailCatClass }}">{{ ucfirst($detailCatName) }}</span>
         </div>
@@ -542,13 +542,13 @@
                     {{-- Quick actions --}}
                     <div class="ja-card">
                         <div class="ja-action-btns">
-                            @if($user->cans('add_schedule') && $application->status->status == 'interview' && is_null($application->schedule))
+                            @if($user->cans('add_schedule') && $application->status?->status == 'interview' && is_null($application->schedule))
                             <a onclick="createSchedule('{{ $application->id }}')" href="javascript:;" class="ja-btn ja-btn-blue">
                                 <i class="fa fa-calendar-plus-o"></i>
                                 @lang('modules.interviewSchedule.scheduleInterview')
                             </a>
                             @endif
-                            @if($application->status->status == 'hired' && is_null($application->onboard))
+                                @if($application->status?->status == 'hired' && is_null($application->onboard))
                             <a href="{{ route('admin.job-onboard.create') }}?id={{ $application->id }}" class="ja-btn ja-btn-green">
                                 <i class="fa fa-rocket"></i>
                                 @lang('app.startOnboard')
@@ -572,7 +572,7 @@
                                     onchange="jaMoveFromDetail({{ $application->id }}, this.value, this.options[this.selectedIndex].text, {{ $currentStatusId }})">
                                     <option value="">Select stage…</option>
                                     @foreach($allStatuses as $stageOption)
-                                        @if($stageOption->id !== $currentStatusId)
+                                        @if($stageOption->id !== $currentStatusId && $currentStatusId != 0)
                                         <option value="{{ $stageOption->id }}">{{ ucwords(str_replace('_', ' ', $stageOption->status)) }}</option>
                                         @endif
                                     @endforeach
