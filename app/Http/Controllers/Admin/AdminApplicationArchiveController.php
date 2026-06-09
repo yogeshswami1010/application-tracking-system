@@ -109,7 +109,7 @@ class AdminApplicationArchiveController extends AdminBaseController
 
         ->editColumn('full_name', function ($row) {
             return '<a href="javascript:;" class="show-detail" data-row-id="'.$row->id.'">'
-                . ucwords($row->full_name) .
+                . mb_convert_case(mb_strtolower($row->full_name), MB_CASE_TITLE, 'UTF-8') .
                 '</a>';
         })
 
