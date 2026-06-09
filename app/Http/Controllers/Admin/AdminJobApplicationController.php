@@ -2018,7 +2018,7 @@ class AdminJobApplicationController extends AdminBaseController
                 'content-type'      => 'application/json',
             ],
             'json' => [
-                'model'      => 'claude-haiku-4-5-20251001',
+                'model'      => 'claude-sonnet-4-6',
                 'max_tokens' => 512,
                 'messages'   => [[
                     'role'    => 'user',
@@ -2033,18 +2033,25 @@ class AdminJobApplicationController extends AdminBaseController
                         ],
                         [
                             'type' => 'text',
-                            'text' => "Extract all professional skills from this resume (programming languages, frameworks, tools, soft skills, certifications, etc.).\n\nFor each skill, check if it matches any name in this list: [{$allSkillNames}].\n\nRespond ONLY with valid JSON — no preamble, no markdown fences:\n{\"matched\": [\"Skill A\", \"Skill B\"], \"new\": [\"Skill C\", \"Skill D\"]}\n\n- \"matched\" = skills from the resume that exist in the provided list (use exact casing from the list)\n- \"new\" = skills from the resume NOT in the provided list",
+                            'text' => "You are a skill extractor. Read this resume PDF and extract ALL skills mentioned anywhere in the document including technical skills, software, tools, programming languages, soft skills.\n\nCompare each skill against this list: [{$allSkillNames}]\n\nYou MUST respond with ONLY a raw JSON object, no explanation, no markdown, no backticks:\n{\"matched\": [\"exact name from list\"], \"new\": [\"skills not in list\"]}\n\nIf no skills found still return: {\"matched\": [], \"new\": []}",
                         ],
                     ],
                 ]],
             ],
         ]);
 
-        $body   = json_decode($apiResponse->getBody()->getContents(), true);
-        \Log::info('parseSkills API response: ' . json_encode($body));
+        $body = json_decode($apiResponse->getBody()->getContents(), true);
+        \Log::info('parseSkills raw response: ' . json_encode($body));
 
-        $text   = collect($body['content'] ?? [])->where('type', 'text')->pluck('text')->first() ?? '{}';
+        $text = collect($body['content'] ?? [])->where('type', 'text')->pluck('text')->first() ?? '{}';
+        \Log::info('parseSkills extracted text: ' . $text);
+
+        // Strip markdown fences if Claude wrapped the JSON
+        $text = preg_replace('/^```json\s*/i', '', trim($text));
+        $text = preg_replace('/```$/', '', trim($text));
+
         $parsed = json_decode(trim($text), true);
+        \Log::info('parseSkills parsed: ' . json_encode($parsed));
 
         $matchedSkills = \App\Skill::whereIn('name', $parsed['matched'] ?? [])->get(['id', 'name']);
 
