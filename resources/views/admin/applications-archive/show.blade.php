@@ -15,6 +15,9 @@
     $currentStatusId = $application->status_id;
     $currentStatus = $allStatuses->firstWhere('id', $currentStatusId);
 
+    // All jobs for the assign dropdown
+    $allJobs = \App\Job::orderBy('title')->with('location')->get();
+
     // Resolve resume URL
     $resumeUrl = null;
 
@@ -323,6 +326,60 @@
 .ja-btn-green { background: #ECFDF5; color: #065F46; }
 .ja-btn-red   { background: #FFF1F2; color: #EF4444; }
 
+/* ── Job assign box ── */
+.ja-job-assign-box {
+    margin-top: 8px;
+    background: #F8F7F4;
+    border: 1px solid #E2DED8;
+    border-radius: 10px;
+    padding: 10px 12px;
+}
+.ja-job-assign-box-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .07em; color: #B0B8C4; margin-bottom: 7px;
+    display: flex; align-items: center; gap: 5px;
+}
+.ja-job-assign-row { display: flex; gap: 7px; align-items: center; }
+.ja-job-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 20px;
+    font-size: 11.5px; font-weight: 600;
+    background: #EFF6FF; color: #1D4ED8;
+}
+.ja-job-none-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 20px;
+    font-size: 11.5px; font-weight: 600;
+    background: #F1F3F7; color: #8A94A6;
+    border: 1px dashed #D1D5DB;
+}
+.ja-job-edit-btn {
+    width: 24px; height: 24px; border-radius: 6px;
+    border: 1px solid #E2DED8; background: #F8F7F4;
+    color: #8A94A6; display: flex; align-items: center;
+    justify-content: center; cursor: pointer; flex-shrink: 0;
+    transition: background .15s, color .15s;
+}
+.ja-job-edit-btn:hover { background: #E8E6E1; color: #1A1E2E; }
+.ja-job-save-btn {
+    padding: 7px 14px; border-radius: 9px;
+    border: none; background: #2563EB; color: #fff;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    white-space: nowrap; transition: background .15s; flex-shrink: 0;
+}
+.ja-job-save-btn:hover { background: #1d4ed8; }
+.ja-job-cancel-btn {
+    padding: 7px 10px; border-radius: 9px;
+    border: 1px solid #E2DED8; background: #fff;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 5px;
+    color: #5A6478; font-family: 'Plus Jakarta Sans', sans-serif;
+    white-space: nowrap; transition: background .15s; flex-shrink: 0;
+}
+.ja-job-cancel-btn:hover { background: #F8F7F4; }
+
 /* ── Interview card ── */
 .ja-schedule-card {
     background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 10px; padding: 12px 14px;
@@ -365,7 +422,7 @@
 
         <div class="ja-header-meta">
             <h2>{{ ucwords($application->full_name) }}</h2>
-            <p>{{ ucwords($application->job?->title ?? '—') }} · Applied {{ $application->created_at->timezone($global->timezone)->format('d M, Y') }}</p>
+            <p>{{ ucwords($application->job?->title ?? 'No job assigned') }} · Applied {{ $application->created_at->timezone($global->timezone)->format('d M, Y') }}</p>
         </div>
 
         <div class="ja-header-pills">
@@ -522,20 +579,6 @@
                                 </select>
                             </div>
                         </div>
-
-                        {{-- Rating --}}
-                        <!-- <div style="border-top:1px solid #F0EEE9;padding-top:12px">
-                            <div class="ja-card-title" style="margin-bottom:8px">
-                                <i class="fa fa-star-o" style="font-size:11px"></i> @lang('modules.jobApplication.ratingLabel')
-                            </div>
-                            <div class="ja-stars" id="stars-wrapper-{{ $application->id }}">
-                                @for($s = 1; $s <= 5; $s++)
-                                <i class="fa {{ $s <= ($application->rating ?? 0) ? 'fa-star' : 'fa-star-o' }} ja-star {{ $s <= ($application->rating ?? 0) ? 'on' : '' }}"
-                                   data-val="{{ $s }}" onclick="jaSetRating({{ $application->id }}, {{ $s }})"
-                                   style="font-size:22px;cursor:pointer;color:{{ $s <= ($application->rating ?? 0) ? '#F59E0B' : '#D1D5DB' }}"></i>
-                                @endfor
-                            </div>
-                        </div> -->
                         @endif
                     </div>
 
@@ -544,40 +587,139 @@
                         <div class="ja-card-title">
                             <i class="fa fa-user" style="font-size:11px"></i> @lang('Personal Information')
                         </div>
+
                         <div class="ja-info-row">
                             <span class="ja-info-label"><i class="fa fa-id-card-o" style="font-size:11px"></i> @lang('app.name')</span>
                             <span class="ja-info-val">{{ ucwords($application->full_name) }}</span>
                         </div>
+
                         <div class="ja-info-row">
                             <span class="ja-info-label"><i class="fa fa-envelope-o" style="font-size:11px"></i> @lang('app.email')</span>
                             <span class="ja-info-val"><a href="mailto:{{ $application->email }}">{{ $application->email }}</a></span>
                         </div>
+
                         <div class="ja-info-row">
                             <span class="ja-info-label"><i class="fa fa-phone" style="font-size:11px"></i> @lang('app.phone')</span>
                             <span class="ja-info-val"><a href="tel:{{ $application->phone }}">{{ $application->phone }}</a></span>
                         </div>
+
                         @if (!is_null($application->gender))
                         <div class="ja-info-row">
                             <span class="ja-info-label"><i class="fa fa-venus-mars" style="font-size:11px"></i> @lang('app.gender')</span>
                             <span class="ja-info-val">{{ ucfirst($application->gender) }}</span>
                         </div>
                         @endif
+
                         @if (!is_null($application->dob))
                         <div class="ja-info-row">
                             <span class="ja-info-label"><i class="fa fa-birthday-cake" style="font-size:11px"></i> @lang('app.dob')</span>
                             <span class="ja-info-val">{{ $application->dob->format('jS F, Y') }}</span>
                         </div>
                         @endif
-                        <div class="ja-info-row">
-                            <span class="ja-info-label"><i class="fa fa-briefcase" style="font-size:11px"></i> @lang('modules.jobApplication.appliedFor')</span>
-                            <span class="ja-info-val">{{ ucwords($application->job?->title ?? 'N/A') }} ({{ ucwords(optional($application->location)->location ?? 'N/A') }})</span>
+
+                        {{-- ══════════════════════════════════════
+                             JOB ROW — assign / change job
+                             ══════════════════════════════════════ --}}
+                        <div class="ja-info-row" style="flex-direction:column; align-items:stretch; gap:0; border-bottom:1px solid #F0EEE9;">
+                            {{-- Top line: label + badge + edit button --}}
+                            <div style="display:flex; align-items:center; justify-content:space-between; padding:2px 0;">
+                                <span class="ja-info-label" style="flex-shrink:0; width:105px;">
+                                    <i class="fa fa-briefcase" style="font-size:11px"></i>
+                                    @lang('modules.jobApplication.appliedFor')
+                                </span>
+
+                                <div style="display:flex; align-items:center; gap:6px; flex:1; justify-content:flex-end;" id="ja-job-display-{{ $application->id }}">
+                                    @if(!is_null($application->job))
+                                        <span class="ja-job-badge">
+                                            <i class="fa fa-briefcase" style="font-size:9px"></i>
+                                            {{ ucwords($application->job->title) }}
+                                            @if($application->location)
+                                                &ndash; {{ ucwords($application->location->location) }}
+                                            @endif
+                                        </span>
+                                        @if($user->cans('edit_job_applications'))
+                                        <button type="button"
+                                                class="ja-job-edit-btn"
+                                                onclick="jaToggleJobAssign({{ $application->id }})"
+                                                title="Change job">
+                                            <i class="fa fa-pencil" style="font-size:10px"></i>
+                                        </button>
+                                        @endif
+                                    @else
+                                        <span class="ja-job-none-badge">
+                                            <i class="fa fa-unlink" style="font-size:9px"></i>
+                                            No job assigned
+                                        </span>
+                                        @if($user->cans('edit_job_applications'))
+                                        <button type="button"
+                                                class="ja-job-edit-btn"
+                                                onclick="jaToggleJobAssign({{ $application->id }})"
+                                                title="Assign a job">
+                                            <i class="fa fa-plus" style="font-size:10px"></i>
+                                        </button>
+                                        @endif
+                                    @endif
+                                </div>
+                            </div>
+
+                            {{-- Assign / change job dropdown (open by default when no job) --}}
+                            @if($user->cans('edit_job_applications'))
+                            <div class="ja-job-assign-box"
+                                 id="ja-job-assign-box-{{ $application->id }}"
+                                 style="display: {{ is_null($application->job) ? 'block' : 'none' }};">
+
+                                <div class="ja-job-assign-box-title">
+                                    <i class="fa fa-link" style="font-size:11px"></i>
+                                    {{ is_null($application->job) ? 'Assign to a job' : 'Change job' }}
+                                </div>
+
+                                <div class="ja-job-assign-row">
+                                    <select id="ja-job-select-{{ $application->id }}"
+                                            class="ja-stage-select select2"
+                                            style="flex:1">
+                                        <option value="">Select a job posting…</option>
+                                        @foreach($allJobs as $jobOption)
+                                            <option value="{{ $jobOption->id }}"
+                                                    {{ $application->job_id == $jobOption->id ? 'selected' : '' }}>
+                                                {{ ucwords($jobOption->title) }}
+                                                @if($jobOption->location)
+                                                    – {{ ucwords($jobOption->location->location ?? '') }}
+                                                @endif
+                                            </option>
+                                        @endforeach
+                                    </select>
+
+                                    <button type="button"
+                                            class="ja-job-save-btn"
+                                            onclick="jaAssignJob({{ $application->id }})">
+                                        <i class="fa fa-check" id="ja-job-save-icon-{{ $application->id }}"></i>
+                                        <span id="ja-job-save-label-{{ $application->id }}">Assign</span>
+                                    </button>
+
+                                    @if(!is_null($application->job))
+                                    <button type="button"
+                                            class="ja-job-cancel-btn"
+                                            onclick="jaToggleJobAssign({{ $application->id }})">
+                                        Cancel
+                                    </button>
+                                    @endif
+                                </div>
+
+                                {{-- Inline feedback --}}
+                                <div id="ja-job-assign-msg-{{ $application->id }}"
+                                     style="display:none; font-size:11.5px; margin-top:6px;"></div>
+                            </div>
+                            @endif
                         </div>
+                        {{-- ══ end job row ══ --}}
+
                         @if (!is_null($application->city))
                         <div class="ja-info-row">
                             <span class="ja-info-label"><i class="fa fa-map-marker" style="font-size:11px"></i> @lang('app.city')</span>
                             <span class="ja-info-val">{{ $application->city }}{{ $application->state ? ', '.$application->state : '' }}{{ $application->country ? ', '.$application->country : '' }}</span>
                         </div>
                         @endif
+
                         @if (!is_null($application->address))
                         <div class="ja-info-row">
                             <span class="ja-info-label"><i class="fa fa-home" style="font-size:11px"></i> @lang('app.address')</span>
@@ -598,7 +740,6 @@
 
                     {{-- Skills --}}
                     @if ($user->cans('edit_job_applications'))
-             
                     <div class="ja-card" id="skills-container">
                         <div class="ja-card-title">
                             <i class="fa fa-star" style="font-size:11px"></i> @lang('modules.jobApplication.skills')
@@ -630,7 +771,7 @@
                             {{-- Results area --}}
                             <div id="parse-result-{{ $application->id }}" style="display:none">
 
-                                {{-- Matched chips (exist in DB — click to select) --}}
+                                {{-- Matched chips --}}
                                 <div id="parse-matched-wrap-{{ $application->id }}" style="display:none;margin-bottom:8px">
                                     <div style="font-size:11px;color:#065F46;font-weight:600;margin-bottom:5px">
                                         <i class="fa fa-check-circle" style="font-size:11px"></i> Matched in your skills list — click to add:
@@ -638,7 +779,7 @@
                                     <div id="parse-matched-chips-{{ $application->id }}" style="display:flex;flex-wrap:wrap;gap:5px"></div>
                                 </div>
 
-                                {{-- New chips (not in DB — click to create & add) --}}
+                                {{-- New chips --}}
                                 <div id="parse-new-wrap-{{ $application->id }}" style="display:none">
                                     <div style="font-size:11px;color:#92400E;font-weight:600;margin-bottom:5px">
                                         <i class="fa fa-plus-circle" style="font-size:11px"></i> New skills found — click to create & add:
@@ -678,7 +819,7 @@
 
                         {{-- Save button --}}
                         <a href="javascript:addSkills({{ $application->id }});" id="add-skills"
-                        class="ja-btn ja-btn-blue" style="min-width:auto;flex:none;display:inline-flex">
+                           class="ja-btn ja-btn-blue" style="min-width:auto;flex:none;display:inline-flex">
                             <i class="fa fa-plus"></i>
                             @if (!is_null($application->skills) && sizeof($application->skills) > 0)
                                 @lang('modules.jobApplication.updateSkills')
@@ -701,7 +842,6 @@
                             var errArea  = document.getElementById('parse-error-' + appId);
                             var status   = document.getElementById('parse-status-' + appId);
 
-                            // Loading state
                             btn.disabled = true;
                             icon.className  = 'fa fa-spinner fa-spin';
                             label.textContent = 'Parsing…';
@@ -726,7 +866,7 @@
                                     resArea.style.display = 'block';
                                     var addedCount = 0;
 
-                                    /* ── Matched chips ── */
+                                    /* Matched chips */
                                     var matchedWrap  = document.getElementById('parse-matched-wrap-' + appId);
                                     var matchedChips = document.getElementById('parse-matched-chips-' + appId);
                                     matchedChips.innerHTML = '';
@@ -754,7 +894,7 @@
                                                 chip.onclick = null;
                                                 chip.style.cursor = 'default';
                                                 addedCount++;
-                                                status.textContent = '<i class="fa fa-spinner fa-spin"></i> Saving…';
+                                                status.textContent = 'Saving…';
                                                 addSkills(appId, function() {
                                                     status.textContent = 'Saved successfully';
                                                 });
@@ -765,7 +905,7 @@
                                         matchedWrap.style.display = 'none';
                                     }
 
-                                    /* ── New chips ── */
+                                    /* New chips */
                                     var newWrap  = document.getElementById('parse-new-wrap-' + appId);
                                     var newChips = document.getElementById('parse-new-chips-' + appId);
                                     newChips.innerHTML = '';
@@ -777,10 +917,9 @@
                                             chip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11.5px;font-weight:500;cursor:pointer;background:#FFFBEB;color:#92400E;border:1px dashed #FDE68A;transition:all .15s';
                                             chip.innerHTML = '<i class="fa fa-plus" style="font-size:9px"></i> ' + name;
                                             chip.onclick = function () {
-                                                // Create skill via AJAX then add to Select2
                                                 $.ajax({
                                                     type: 'POST',
-                                                    url: '{{ route("admin.skills.quick-create") }}', // adjust to your actual route
+                                                    url: '{{ route("admin.skills.quick-create") }}',
                                                     data: { _token: '{{ csrf_token() }}', name: name },
                                                     success: function (r) {
                                                         if (r.status === 'success' && r.id) {
@@ -792,14 +931,13 @@
                                                             chip.onclick = null;
                                                             chip.style.cursor = 'default';
                                                             addedCount++;
-                                                            status.textContent = '<i class="fa fa-spinner fa-spin"></i> Saving…';
+                                                            status.textContent = 'Saving…';
                                                             addSkills(appId, function() {
                                                                 status.textContent = 'Saved successfully.';
-                                                            });}
+                                                            });
+                                                        }
                                                     },
                                                     error: function () {
-                                                        // Skill create failed — add as temp option without DB ID
-                                                        // so it shows in the select but won't persist until you handle it
                                                         chip.style.opacity = '.4';
                                                         chip.title = 'Could not create skill — check permissions.';
                                                     }
@@ -826,31 +964,30 @@
                         };
 
                         /* ── Add skill manually ── */
-                    window.jaAddManualSkill = function (appId) {
-                        var input = document.getElementById('manual-skill-input-' + appId);
-                        var name  = input.value.trim();
-                        if (!name) return;
+                        window.jaAddManualSkill = function (appId) {
+                            var input = document.getElementById('manual-skill-input-' + appId);
+                            var name  = input.value.trim();
+                            if (!name) return;
 
-                        var $sel = $('#skills');
+                            var $sel = $('#skills');
+                            var exists = $sel.find('option').filter(function () {
+                                return $(this).text().toLowerCase() === name.toLowerCase();
+                            });
 
-                        var exists = $sel.find('option').filter(function () {
-                            return $(this).text().toLowerCase() === name.toLowerCase();
-                        });
+                            if (exists.length) {
+                                exists.prop('selected', true);
+                                $sel.trigger('change');
+                                input.value = '';
+                                addSkills(appId);
+                                return;
+                            }
 
-                        if (exists.length) {
-                            exists.prop('selected', true);
-                            $sel.trigger('change');
+                            var tempVal = 'new:' + name;
+                            var newOpt  = new Option(name, tempVal, true, true);
+                            $sel.append(newOpt).trigger('change');
                             input.value = '';
-                            addSkills(appId);  // auto-save
-                            return;
-                        }
-
-                        var tempVal = 'new:' + name;
-                        var newOpt  = new Option(name, tempVal, true, true);
-                        $sel.append(newOpt).trigger('change');
-                        input.value = '';
-                        addSkills(appId);  // auto-save
-                    };
+                            addSkills(appId);
+                        };
 
                     })();
                     </script>
@@ -1071,6 +1208,7 @@ function addSkills(applicationId, callback) {
         }
     });
 }
+
 /* ── Notes ── */
 $('#add-note').click(function() {
     $.easyAjax({
@@ -1150,6 +1288,114 @@ function deleteApplication(applicationId) {
 }
 
 /* ══════════════════════════════════════════════
+   JOB ASSIGN / CHANGE
+   ══════════════════════════════════════════════ */
+
+/* Toggle the assign box open/closed */
+function jaToggleJobAssign(appId) {
+    var box = document.getElementById('ja-job-assign-box-' + appId);
+    if (!box) return;
+    var isHidden = box.style.display === 'none';
+    box.style.display = isHidden ? 'block' : 'none';
+
+    /* Update box title text when opening */
+    var title = box.querySelector('.ja-job-assign-box-title');
+    if (title && isHidden) {
+        var hasBadge = !!document.querySelector('#ja-job-display-' + appId + ' .ja-job-badge');
+        title.innerHTML = '<i class="fa fa-link" style="font-size:11px"></i> ' + (hasBadge ? 'Change job' : 'Assign to a job');
+    }
+
+    /* Also initialise Select2 on the job dropdown if not done yet */
+    var $sel = $('#ja-job-select-' + appId);
+    if (isHidden && $sel.length && !$sel.hasClass('select2-hidden-accessible')) {
+        $sel.select2({ width: 'resolve', placeholder: 'Select a job posting…' });
+    }
+
+    if (isHidden) {
+        /* Hide any previous feedback message */
+        var msg = document.getElementById('ja-job-assign-msg-' + appId);
+        if (msg) { msg.style.display = 'none'; msg.textContent = ''; }
+    }
+}
+
+/* Save the selected job to the application */
+function jaAssignJob(appId) {
+    var $sel   = $('#ja-job-select-' + appId);
+    var jobId  = $sel.val();
+    var msg    = document.getElementById('ja-job-assign-msg-' + appId);
+    var icon   = document.getElementById('ja-job-save-icon-' + appId);
+    var label  = document.getElementById('ja-job-save-label-' + appId);
+
+    if (!jobId) {
+        if (msg) {
+            msg.style.display = 'block';
+            msg.style.color   = '#EF4444';
+            msg.innerHTML     = '<i class="fa fa-exclamation-circle"></i> Please select a job first.';
+        }
+        return;
+    }
+
+    /* Loading state */
+    if (icon)  icon.className = 'fa fa-spinner fa-spin';
+    if (label) label.textContent = 'Saving…';
+    if (msg)   { msg.style.display = 'none'; }
+
+    var url = "{{ route('admin.job-applications.assign-job', ':id') }}".replace(':id', appId);
+
+    $.ajax({
+        type: 'POST',
+        url: url,
+        data: { _token: '{{ csrf_token() }}', job_id: jobId },
+        success: function (response) {
+            /* Reset button */
+            if (icon)  icon.className = 'fa fa-check';
+            if (label) label.textContent = 'Assign';
+
+            if (response.status === 'success') {
+
+                /* Show inline success feedback briefly */
+                if (msg) {
+                    msg.style.display = 'block';
+                    msg.style.color   = '#059669';
+                    msg.innerHTML     = '<i class="fa fa-check-circle"></i> Job assigned successfully.';
+                }
+
+                /* Reload the entire sidebar panel to reflect all changes
+                   (header subtitle, badge, location, etc.) */
+                var showUrl = "{{ route('admin.job-applications.show', ':id') }}".replace(':id', appId);
+                $.easyAjax({
+                    type: 'GET', url: showUrl,
+                    success: function (res) {
+                        if (res.status === 'success') {
+                            $('#right-sidebar-content').html(res.view);
+                        }
+                    }
+                });
+
+                /* Refresh the DataTable row if it exists */
+                if (typeof table !== 'undefined') table.draw(false);
+
+            } else {
+                if (msg) {
+                    msg.style.display = 'block';
+                    msg.style.color   = '#EF4444';
+                    msg.innerHTML     = '<i class="fa fa-exclamation-circle"></i> ' + (response.message || 'Could not assign job. Please try again.');
+                }
+            }
+        },
+        error: function () {
+            if (icon)  icon.className = 'fa fa-check';
+            if (label) label.textContent = 'Assign';
+            if (msg) {
+                msg.style.display = 'block';
+                msg.style.color   = '#EF4444';
+                msg.innerHTML     = '<i class="fa fa-exclamation-circle"></i> Server error. Please try again.';
+            }
+        }
+    });
+}
+
+/* ══════════════════════════════════════════════
    PREV / NEXT APPLICANT NAVIGATION
    jaApplicantIds is built in index.blade.php
    inside drawCallback via jaRebuildIds().
@@ -1159,7 +1405,6 @@ function deleteApplication(applicationId) {
     var CURRENT_ID = {{ $application->id }};
     var showUrlTpl = "{{ route('admin.job-applications.show', ':id') }}";
 
-    /* ── Helpers ── */
     function getIds() {
         return (typeof jaApplicantIds !== 'undefined' && Array.isArray(jaApplicantIds) && jaApplicantIds.length)
             ? jaApplicantIds
@@ -1189,7 +1434,6 @@ function deleteApplication(applicationId) {
         if (next) next.disabled    = (idx === ids.length - 1);
     }
 
-    /* ── Public navigate function ── */
     window.jaNavigate = function (direction, fromId) {
         var ids = getIds();
         var idx = ids.indexOf(fromId);
@@ -1199,13 +1443,11 @@ function deleteApplication(applicationId) {
         var targetId = (direction === 'prev') ? ids[idx - 1] : ids[idx + 1];
         if (targetId === undefined) return;
 
-        /* Disable both buttons while loading */
         var prevBtn = document.getElementById('ja-prev-btn');
         var nextBtn = document.getElementById('ja-next-btn');
         if (prevBtn) prevBtn.disabled = true;
         if (nextBtn) nextBtn.disabled = true;
 
-        /* Optional: dim the panel while loading */
         var wrap = document.querySelector('.ja-two-col-wrap');
         if (wrap) wrap.classList.add('ja-nav-loading');
 
@@ -1216,20 +1458,15 @@ function deleteApplication(applicationId) {
             url: url,
             success: function (res) {
                 if (res.status === 'success') {
-                    /* Replace sidebar content – the new panel's own script
-                       will call updateNavUI() with its own CURRENT_ID */
                     $('#right-sidebar-content').html(res.view);
 
-                    /* Scroll the target row into view in the list table */
                     var $row = $('[data-id="' + targetId + '"]');
                     if ($row.length) {
                         $row[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                        /* Highlight briefly */
                         $row.addClass('table-active');
                         setTimeout(function () { $row.removeClass('table-active'); }, 1200);
                     }
                 } else {
-                    /* Re-enable on failure */
                     if (wrap) wrap.classList.remove('ja-nav-loading');
                     updateNavUI();
                 }
@@ -1241,9 +1478,8 @@ function deleteApplication(applicationId) {
         });
     };
 
-    /* ── Keyboard shortcut: ← → arrows ── */
+    /* Keyboard: ← → arrows */
     function onKeyDown(e) {
-        /* Only fire when the sidebar is open and focus is not in a text input */
         var tag = document.activeElement ? document.activeElement.tagName : '';
         if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
 
@@ -1257,12 +1493,10 @@ function deleteApplication(applicationId) {
         }
     }
 
-    /* Remove any previously bound listener to avoid duplicates across reloads */
     document.removeEventListener('keydown', window._jaKeyNav);
     window._jaKeyNav = onKeyDown;
     document.addEventListener('keydown', window._jaKeyNav);
 
-    /* ── Init ── */
     updateNavUI();
 
 })();

@@ -1965,108 +1965,118 @@ class AdminJobApplicationController extends AdminBaseController
 
         return Reply::dataOnly(['jobs' => $html]);
     }
-   public function parseSkills(Request $request, $id)
-{
-    \Log::info('parseSkills called for id: ' . $id);
+    public function parseSkills(Request $request, $id)
+    {
+        \Log::info('parseSkills called for id: ' . $id);
 
-    $application = JobApplication::with('job')->findOrFail($id);
+        $application = JobApplication::with('job')->findOrFail($id);
 
-    // Resolve the resume URL
-    $resumeUrl = null;
-    if (!empty($application->resume_url)) {
-        $resumeUrl = $application->resume_url;
-    }
-    if (!$resumeUrl) {
-        $answers = $application->answers()->with('question')->get();
-        foreach ($answers as $answer) {
-            if (!empty($answer->file)) {
-                $resumeUrl = $answer->file_url ?? url('user-uploads/documents/' . basename($answer->file));
-                break;
+        // Resolve the resume URL
+        $resumeUrl = null;
+        if (!empty($application->resume_url)) {
+            $resumeUrl = $application->resume_url;
+        }
+        if (!$resumeUrl) {
+            $answers = $application->answers()->with('question')->get();
+            foreach ($answers as $answer) {
+                if (!empty($answer->file)) {
+                    $resumeUrl = $answer->file_url ?? url('user-uploads/documents/' . basename($answer->file));
+                    break;
+                }
             }
         }
-    }
 
-    \Log::info('parseSkills resumeUrl: ' . $resumeUrl);
+        \Log::info('parseSkills resumeUrl: ' . $resumeUrl);
 
-    if (!$resumeUrl) {
-        return response()->json(['status' => 'error', 'message' => 'No resume found for this applicant.']);
-    }
-
-    try {
-        $client = new \GuzzleHttp\Client(['verify' => false]);
-
-        // Fetch the PDF via Guzzle
-        $pdfResponse = $client->get($resumeUrl);
-        $pdfContents = $pdfResponse->getBody()->getContents();
-
-        if (!$pdfContents) {
-            return response()->json(['status' => 'error', 'message' => 'Could not fetch the resume file.']);
+        if (!$resumeUrl) {
+            return response()->json(['status' => 'error', 'message' => 'No resume found for this applicant.']);
         }
 
-        $base64Pdf = base64_encode($pdfContents);
+        try {
+            $client = new \GuzzleHttp\Client(['verify' => false]);
 
-        // Get all skill names from DB for matching
-        $allSkillNames = \App\Skill::pluck('name')->implode(', ');
+            // Fetch the PDF via Guzzle
+            $pdfResponse = $client->get($resumeUrl);
+            $pdfContents = $pdfResponse->getBody()->getContents();
 
-        \Log::info('parseSkills calling Anthropic API');
+            if (!$pdfContents) {
+                return response()->json(['status' => 'error', 'message' => 'Could not fetch the resume file.']);
+            }
 
-        // Call Anthropic API
-        $apiResponse = $client->post('https://api.anthropic.com/v1/messages', [
-            'headers' => [
-                'x-api-key'         => config('services.anthropic.key'),
-                'anthropic-version' => '2023-06-01',
-                'content-type'      => 'application/json',
-            ],
-            'json' => [
-                'model'      => 'claude-sonnet-4-6',
-                'max_tokens' => 512,
-                'messages'   => [[
-                    'role'    => 'user',
-                    'content' => [
-                        [
-                            'type'   => 'document',
-                            'source' => [
-                                'type'       => 'base64',
-                                'media_type' => 'application/pdf',
-                                'data'       => $base64Pdf,
+            $base64Pdf = base64_encode($pdfContents);
+
+            // Get all skill names from DB for matching
+            $allSkillNames = \App\Skill::pluck('name')->implode(', ');
+
+            \Log::info('parseSkills calling Anthropic API');
+
+            // Call Anthropic API
+            $apiResponse = $client->post('https://api.anthropic.com/v1/messages', [
+                'headers' => [
+                    'x-api-key'         => config('services.anthropic.key'),
+                    'anthropic-version' => '2023-06-01',
+                    'content-type'      => 'application/json',
+                ],
+                'json' => [
+                    'model'      => 'claude-sonnet-4-6',
+                    'max_tokens' => 512,
+                    'messages'   => [[
+                        'role'    => 'user',
+                        'content' => [
+                            [
+                                'type'   => 'document',
+                                'source' => [
+                                    'type'       => 'base64',
+                                    'media_type' => 'application/pdf',
+                                    'data'       => $base64Pdf,
+                                ],
+                            ],
+                            [
+                                'type' => 'text',
+                                'text' => "You are a skill extractor. Read this resume PDF and extract ALL skills mentioned anywhere in the document including technical skills, software, tools, programming languages, soft skills.\n\nCompare each skill against this list: [{$allSkillNames}]\n\nYou MUST respond with ONLY a raw JSON object, no explanation, no markdown, no backticks:\n{\"matched\": [\"exact name from list\"], \"new\": [\"skills not in list\"]}\n\nIf no skills found still return: {\"matched\": [], \"new\": []}",
                             ],
                         ],
-                        [
-                            'type' => 'text',
-                            'text' => "You are a skill extractor. Read this resume PDF and extract ALL skills mentioned anywhere in the document including technical skills, software, tools, programming languages, soft skills.\n\nCompare each skill against this list: [{$allSkillNames}]\n\nYou MUST respond with ONLY a raw JSON object, no explanation, no markdown, no backticks:\n{\"matched\": [\"exact name from list\"], \"new\": [\"skills not in list\"]}\n\nIf no skills found still return: {\"matched\": [], \"new\": []}",
-                        ],
-                    ],
-                ]],
-            ],
-        ]);
+                    ]],
+                ],
+            ]);
 
-        $body = json_decode($apiResponse->getBody()->getContents(), true);
-        \Log::info('parseSkills raw response: ' . json_encode($body));
+            $body = json_decode($apiResponse->getBody()->getContents(), true);
+            \Log::info('parseSkills raw response: ' . json_encode($body));
 
-        $text = collect($body['content'] ?? [])->where('type', 'text')->pluck('text')->first() ?? '{}';
-        \Log::info('parseSkills extracted text: ' . $text);
+            $text = collect($body['content'] ?? [])->where('type', 'text')->pluck('text')->first() ?? '{}';
+            \Log::info('parseSkills extracted text: ' . $text);
 
-        // Strip markdown fences if Claude wrapped the JSON
-        $text = preg_replace('/^```json\s*/i', '', trim($text));
-        $text = preg_replace('/```$/', '', trim($text));
+            // Strip markdown fences if Claude wrapped the JSON
+            $text = preg_replace('/^```json\s*/i', '', trim($text));
+            $text = preg_replace('/```$/', '', trim($text));
 
-        $parsed = json_decode(trim($text), true);
-        \Log::info('parseSkills parsed: ' . json_encode($parsed));
+            $parsed = json_decode(trim($text), true);
+            \Log::info('parseSkills parsed: ' . json_encode($parsed));
 
-        $matchedSkills = \App\Skill::whereIn('name', $parsed['matched'] ?? [])->get(['id', 'name']);
+            $matchedSkills = \App\Skill::whereIn('name', $parsed['matched'] ?? [])->get(['id', 'name']);
 
-        return response()->json([
-            'status'         => 'success',
-            'matched_skills' => $matchedSkills,
-            'new_skills'     => $parsed['new'] ?? [],
-        ]);
+            return response()->json([
+                'status'         => 'success',
+                'matched_skills' => $matchedSkills,
+                'new_skills'     => $parsed['new'] ?? [],
+            ]);
 
-    } catch (\Throwable $e) {
-        \Log::error('parseSkills error: ' . $e->getMessage() . ' on line ' . $e->getLine() . ' in ' . $e->getFile());
-        return response()->json([
-            'status'  => 'error',
-            'message' => $e->getMessage() . ' (line ' . $e->getLine() . ')',
-        ]);
+        } catch (\Throwable $e) {
+            \Log::error('parseSkills error: ' . $e->getMessage() . ' on line ' . $e->getLine() . ' in ' . $e->getFile());
+            return response()->json([
+                'status'  => 'error',
+                'message' => $e->getMessage() . ' (line ' . $e->getLine() . ')',
+            ]);
+        }
     }
-}
+    public function assignJob(Request $request, $id)
+    {
+        $request->validate(['job_id' => 'required|exists:jobs,id']);
+
+        $application = JobApplication::findOrFail($id);
+        $application->job_id = $request->job_id;
+        $application->save();
+
+        return response()->json(['status' => 'success', 'message' => 'Job assigned successfully.']);
+    }
 }

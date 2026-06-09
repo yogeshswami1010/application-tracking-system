@@ -125,7 +125,8 @@ Route::middleware('auth')->group(function () {
             Route::prefix('settings')->group(function () {
                 Route::resource('settings', CompanySettingsController::class)->only(['edit', 'update', 'index']);
                 Route::resource('application-setting', ApplicationSettingsController::class);
-
+                Route::post('job-applications/{id}/assign-job', [JobApplicationController::class, 'assignJob'])
+                    ->name('admin.job-applications.assign-job');
                 Route::post('role-permission/assignAllPermission', [ManageRolePermissionController::class, 'assignAllPermission'])
                     ->name('role-permission.assignAllPermission');
                 Route::post('role-permission/removeAllPermission', [ManageRolePermissionController::class, 'removeAllPermission'])
