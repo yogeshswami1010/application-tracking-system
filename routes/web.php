@@ -301,6 +301,8 @@ Route::middleware('auth')->group(function () {
     Route::post('verify-otp-phone', [VerifyMobileController::class, 'verifyOtpCode'])->name('verifyOtpCode');
     Route::post('verify-otp-phone/account', [VerifyMobileController::class, 'verifyOtpCode'])->name('verifyOtpCode.account');
     Route::get('remove-session', [VerifyMobileController::class, 'removeSession'])->name('removeSession');
+        Route::post('job-applications/{id}/parse-skills', [JobApplicationController::class, 'parseSkills'])
+        ->name('admin.job-applications.parse-skills');
 });
 Route::get('assistmyday', [App\Http\Controllers\Front\FrontJobsController::class, 'assistMyDay'])->name('assistmyday');
 // Catch-all custom CMS page (register last)
@@ -312,5 +314,3 @@ Route::name('jobs.')
     ->group(function () {
         Route::get('{slug}', [FrontJobsController::class, 'customPage'])->name('custom-page');
     });
-Route::post('job-applications/{id}/parse-skills', [JobApplicationController::class, 'parseSkills'])
-    ->name('admin.job-applications.parse-skills');
