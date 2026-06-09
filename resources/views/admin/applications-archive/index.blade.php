@@ -29,6 +29,7 @@
         }
         .ja-filter-active-count.show { display: inline-flex; }
         .hidden { display: none !important; visibility: hidden !important; }
+        
     </style>
 @endpush
 
