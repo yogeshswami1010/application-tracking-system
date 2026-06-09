@@ -2087,4 +2087,88 @@ class AdminJobApplicationController extends AdminBaseController
 
         return Reply::success('Job assigned successfully.');
     }
+    public function bulkParseResume(Request $request)
+    {
+        abort_if(! $this->user->cans('add_job_applications'), 403);
+
+        if (!$request->hasFile('resume')) {
+            return response()->json(['status' => 'error', 'message' => 'No file uploaded.']);
+        }
+
+        try {
+            $file     = $request->file('resume');
+            $contents = file_get_contents($file->getRealPath());
+
+            if (!$contents) {
+                return response()->json(['status' => 'error', 'message' => 'Could not read file.']);
+            }
+
+            $base64   = base64_encode($contents);
+            $ext      = strtolower($file->getClientOriginalExtension());
+            $mimeType = $ext === 'pdf' ? 'application/pdf' : 'application/octet-stream';
+
+            $allSkillNames = \App\Skill::pluck('name')->implode(', ');
+
+            $client = new \GuzzleHttp\Client(['verify' => false]);
+
+            $apiResponse = $client->post('https://api.anthropic.com/v1/messages', [
+                'headers' => [
+                    'x-api-key'         => config('services.anthropic.key'),
+                    'anthropic-version' => '2023-06-01',
+                    'content-type'      => 'application/json',
+                ],
+                'json' => [
+                    'model'      => 'claude-sonnet-4-6',
+                    'max_tokens' => 1024,
+                    'messages'   => [[
+                        'role'    => 'user',
+                        'content' => [
+                            [
+                                'type'   => 'document',
+                                'source' => [
+                                    'type'       => 'base64',
+                                    'media_type' => $mimeType,
+                                    'data'       => $base64,
+                                ],
+                            ],
+                            [
+                                'type' => 'text',
+                                'text' => "Extract the following fields from this CV and also extract skills.\n\nSkills list to match against: [{$allSkillNames}]\n\nRespond ONLY with a raw JSON object, no explanation, no markdown, no backticks:\n{\"full_name\": \"\", \"email\": \"\", \"phone\": \"\", \"address\": \"\", \"matched_skills\": [\"exact name from list\"], \"new_skills\": [\"skills not in list\"]}\n\nRules:\n- full_name: person's full name in Title Case\n- email: email address or empty string\n- phone: phone number digits only, no spaces or dashes\n- address: city/state/country or full address if found, or empty string\n- matched_skills: skills that exactly match the provided list\n- new_skills: skills found in CV but NOT in the list\n- If a field is not found, use empty string or empty array",
+                            ],
+                        ],
+                    ]],
+                ],
+            ]);
+
+            $body = json_decode($apiResponse->getBody()->getContents(), true);
+            $text = collect($body['content'] ?? [])->where('type', 'text')->pluck('text')->first() ?? '{}';
+
+            // Strip markdown fences if present
+            $text = preg_replace('/^```json\s*/i', '', trim($text));
+            $text = preg_replace('/```$/', '', trim($text));
+            $parsed = json_decode(trim($text), true);
+
+            if (!$parsed) {
+                return response()->json(['status' => 'error', 'message' => 'AI could not parse the CV.']);
+            }
+
+            // Get matched skill objects from DB
+            $matchedSkills = \App\Skill::whereIn('name', $parsed['matched_skills'] ?? [])
+                ->get(['id', 'name']);
+
+            return response()->json([
+                'status'          => 'success',
+                'full_name'       => $parsed['full_name']  ?? '',
+                'email'           => $parsed['email']      ?? '',
+                'phone'           => $parsed['phone']      ?? '',
+                'address'         => $parsed['address']    ?? '',
+                'matched_skills'  => $matchedSkills,
+                'new_skills'      => $parsed['new_skills'] ?? [],
+            ]);
+
+        } catch (\Throwable $e) {
+            \Log::error('bulkParseResume error: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+    }
 }

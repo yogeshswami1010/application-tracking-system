@@ -603,6 +603,7 @@
         const bulkStoreUrl           = "{{ route('admin.job-applications.store') }}";
         const bulkIndexUrl           = "{{ route('admin.job-applications.table') }}";
         const bulkQuestionRouteBase  = "{{ route('admin.job-applications.question', ':id') }}";
+        const bulkParseResumeUrl     = "{{ route('admin.job-applications.bulk-parse-resume') }}";
 
         /* ─────────────────────────────────────────────
            State
@@ -751,84 +752,109 @@
             var ftype = (item.file.type || '').toLowerCase();
             var isPdf  = ftype.indexOf('pdf') >= 0 || fname.endsWith('.pdf');
             var isDocx = fname.endsWith('.docx');
-            var isTxt  = !isPdf && !isDocx;
 
-            // Read file buffer once, then use for both text extraction and visual render
-            var bufPromise = (isPdf || isDocx) ? bulkReadArrayBuffer(item.file) : bulkReadText(item.file);
+            // ── Step 1: Send file to AI for parsing ──
+            var fd = new FormData();
+            fd.append('_token',  bulkCsrfToken);
+            fd.append('resume',  item.file);
 
-            bufPromise.then(function (bufOrText) {
-                var textP, visualP;
-
-                if (isPdf) {
-                    if (typeof pdfjsLib === 'undefined') throw 'PDF parser not loaded.';
-                    if (pdfjsLib.GlobalWorkerOptions) {
-                        pdfjsLib.GlobalWorkerOptions.workerSrc =
-                            'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-                    }
-                    // Two separate getDocument calls so each has its own internal state
-                    var buf1 = bufOrText.slice(0);
-                    var buf2 = bufOrText.slice(0);
-
-                    textP = pdfjsLib.getDocument({ data: buf1 }).promise.then(function (pdf) {
-                        var pages = [];
-                        for (var p = 1; p <= pdf.numPages; p++) {
-                            pages.push(pdf.getPage(p).then(function (page) {
-                                return page.getTextContent();
-                            }).then(function (c) {
-                                return c.items.map(function (it) { return it.str; }).join(' ');
-                            }));
+            $.ajax({
+                url:         bulkParseResumeUrl,
+                type:        'POST',
+                data:        fd,
+                processData: false,
+                contentType: false,
+                dataType:    'json',
+                success: function (res) {
+                    if (res.status !== 'success') {
+                        item.status = 'error';
+                        bulkRenderQueue();
+                        if (bulkActive === i) {
+                            document.getElementById('bulk-cv-viewer').innerHTML =
+                                '<div class="flex flex-col items-center justify-center h-full gap-2 text-red-400">' +
+                                '<i class="fa fa-exclamation-triangle fa-2x"></i>' +
+                                '<p class="text-xs text-center">' + bulkEsc(res.message || 'AI parsing failed.') + '</p></div>';
                         }
-                        return Promise.all(pages).then(function (ps) { return ps.join('\n'); });
-                    });
-
-                    visualP = pdfjsLib.getDocument({ data: buf2 }).promise.then(function (pdf) {
-                        item._pdfDoc = pdf;
-                        return '__PDF__'; // sentinel; canvas drawn after DOM mount
-                    });
-
-                } else if (isDocx) {
-                    if (typeof mammoth === 'undefined') throw 'DOCX parser not loaded.';
-                    var buf1d = bufOrText.slice(0);
-                    var buf2d = bufOrText.slice(0);
-                    textP   = mammoth.extractRawText({ arrayBuffer: buf1d }).then(function (r) { return r.value || ''; });
-                    visualP = mammoth.convertToHtml({ arrayBuffer: buf2d }).then(function (r) { return r.value || ''; });
-
-                } else {
-                    // TXT — bufOrText is already the string
-                    textP   = Promise.resolve(bufOrText);
-                    visualP = Promise.resolve('__TXT__');
-                }
-
-                return Promise.all([textP, visualP]).then(function (res) {
-                    var text     = res[0] || '';
-                    var visual   = res[1];
-
-                    if (!text.trim()) throw 'No readable text found in this CV.';
-
-                    item.parsed      = bulkParseResumeText(text);
-                    item.status      = 'done';
-                    item.resumeText  = text;
-                    item._visual     = visual;   // '__PDF__' | '__TXT__' | docx html string
-                    item._fileType   = isPdf ? 'pdf' : (isDocx ? 'docx' : 'txt');
-
-                    bulkRenderQueue();
-                    bulkUpdateBatchBar();
-
-                    if (bulkActive === i) {
-                        bulkRenderCV(item);
-                        bulkFillForm(item);
+                        return;
                     }
-                });
 
-            }).catch(function (err) {
-                item.status = 'error';
-                item.parsed = null;
-                bulkRenderQueue();
-                if (bulkActive === i) {
-                    document.getElementById('bulk-cv-viewer').innerHTML =
-                        '<div class="flex flex-col items-center justify-center h-full gap-2 text-red-400">' +
-                        '<i class="fa fa-exclamation-triangle fa-2x"></i>' +
-                        '<p class="text-xs text-center">' + bulkEsc(String(err)) + '</p></div>';
+                    // Store AI parsed data
+                    item.parsed = {
+                        full_name:      res.full_name  || '',
+                        email:          res.email      || '',
+                        phone:          res.phone      || '',
+                        address:        res.address    || '',
+                        skills:         (res.matched_skills || []).map(function(s){ return s.name; }).concat(res.new_skills || []).join(', '),
+                        matched_skills: res.matched_skills || [],
+                        new_skills:     res.new_skills || [],
+                    };
+
+                    item.status = 'done';
+
+                    // ── Step 2: Render the CV visually ──
+                    var bufPromise = (isPdf || isDocx) ? bulkReadArrayBuffer(item.file) : bulkReadText(item.file);
+
+                    bufPromise.then(function (bufOrText) {
+                        var visualP;
+
+                        if (isPdf) {
+                            if (typeof pdfjsLib === 'undefined') throw 'PDF parser not loaded.';
+                            if (pdfjsLib.GlobalWorkerOptions) {
+                                pdfjsLib.GlobalWorkerOptions.workerSrc =
+                                    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                            }
+                            var buf2 = bufOrText.slice(0);
+                            visualP = pdfjsLib.getDocument({ data: buf2 }).promise.then(function (pdf) {
+                                item._pdfDoc = pdf;
+                                return '__PDF__';
+                            });
+
+                        } else if (isDocx) {
+                            if (typeof mammoth === 'undefined') throw 'DOCX parser not loaded.';
+                            var buf2d = bufOrText.slice(0);
+                            visualP = mammoth.convertToHtml({ arrayBuffer: buf2d }).then(function (r) { return r.value || ''; });
+
+                        } else {
+                            item.resumeText = bufOrText;
+                            visualP = Promise.resolve('__TXT__');
+                        }
+
+                        return visualP.then(function (visual) {
+                            item._visual   = visual;
+                            item._fileType = isPdf ? 'pdf' : (isDocx ? 'docx' : 'txt');
+
+                            bulkRenderQueue();
+                            bulkUpdateBatchBar();
+
+                            if (bulkActive === i) {
+                                bulkRenderCV(item);
+                                bulkFillForm(item);
+                            }
+                        });
+
+                    }).catch(function (err) {
+                        // Visual render failed but we still have parsed data — show text fallback
+                        item._fileType = 'txt';
+                        item._visual   = '__TXT__';
+                        item.resumeText = '';
+                        bulkRenderQueue();
+                        bulkUpdateBatchBar();
+                        if (bulkActive === i) {
+                            bulkRenderCV(item);
+                            bulkFillForm(item);
+                        }
+                    });
+                },
+                error: function (xhr) {
+                    item.status = 'error';
+                    item.parsed = null;
+                    bulkRenderQueue();
+                    if (bulkActive === i) {
+                        document.getElementById('bulk-cv-viewer').innerHTML =
+                            '<div class="flex flex-col items-center justify-center h-full gap-2 text-red-400">' +
+                            '<i class="fa fa-exclamation-triangle fa-2x"></i>' +
+                            '<p class="text-xs text-center">Server error. Please try again.</p></div>';
+                    }
                 }
             });
         }
@@ -1015,7 +1041,7 @@
                 flag.textContent = '✓ saved';
             } else if (item.status === 'done') {
                 flag.className   = 'text-xs px-2 py-0.5 rounded-full font-medium bg-green-100 text-green-700';
-                flag.textContent = 'parsed';
+                flag.textContent = 'AI parsed';
             } else {
                 flag.className   = 'text-xs px-2 py-0.5 rounded-full font-medium bg-yellow-100 text-yellow-700';
                 flag.textContent = 'needs review';
@@ -1029,8 +1055,10 @@
             bulkSetTextarea('bf-address', d.address, !!d.address);
 
             // Confidence badges
+            bulkSetConf('bconf-name',   d.full_name);
             bulkSetConf('bconf-email',  d.email);
             bulkSetConf('bconf-phone',  d.phone);
+            bulkSetConf('bconf-skills', d.skills);
 
             // Resume text for AI
             document.getElementById('bulk-resume-text-for-ai').value = item.resumeText || '';
@@ -1040,8 +1068,8 @@
             bulkRenderNotes();
 
             // Job/location hidden fields
-            document.getElementById('bulk-job-id').value  = item.jobId  || '';
-            document.getElementById('bulk-location-id').value = item.locId || '';
+            document.getElementById('bulk-job-id').value      = item.jobId  || '';
+            document.getElementById('bulk-location-id').value = item.locId  || '';
             if (item.jobLocId) {
                 document.getElementById('bulk-job-select').value = item.jobLocId;
             } else {
@@ -1050,6 +1078,56 @@
                 document.getElementById('bulk-question-box').innerHTML = '';
                 document.getElementById('bulk-show-columns').innerHTML = '';
                 document.getElementById('bulk-show-sections').innerHTML = '';
+            }
+
+            // ── Skill chips ──
+            var skillsField = document.getElementById('bf-skills');
+            var existingWrap = document.getElementById('bulk-skill-chips-' + bulkActive);
+            if (existingWrap) existingWrap.remove();
+
+            var matched = d.matched_skills || [];
+            var newSkills = d.new_skills || [];
+
+            if (matched.length || newSkills.length) {
+                var wrap = document.createElement('div');
+                wrap.id = 'bulk-skill-chips-' + bulkActive;
+                wrap.style.cssText = 'margin-top:6px;';
+
+                if (matched.length) {
+                    var mLabel = document.createElement('div');
+                    mLabel.style.cssText = 'font-size:10px;color:#065f46;font-weight:600;margin-bottom:4px;';
+                    mLabel.textContent = '✓ Matched skills:';
+                    wrap.appendChild(mLabel);
+
+                    var mChips = document.createElement('div');
+                    mChips.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;';
+                    matched.forEach(function (skill) {
+                        var chip = document.createElement('span');
+                        chip.style.cssText = 'display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:500;background:#ECFDF5;color:#065F46;border:1px solid #6EE7B7;';
+                        chip.textContent = skill.name;
+                        mChips.appendChild(chip);
+                    });
+                    wrap.appendChild(mChips);
+                }
+
+                if (newSkills.length) {
+                    var nLabel = document.createElement('div');
+                    nLabel.style.cssText = 'font-size:10px;color:#92400e;font-weight:600;margin-bottom:4px;';
+                    nLabel.textContent = '+ New skills found:';
+                    wrap.appendChild(nLabel);
+
+                    var nChips = document.createElement('div');
+                    nChips.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;';
+                    newSkills.forEach(function (name) {
+                        var chip = document.createElement('span');
+                        chip.style.cssText = 'display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:500;background:#FFFBEB;color:#92400E;border:1px solid #FDE68A;';
+                        chip.textContent = name;
+                        nChips.appendChild(chip);
+                    });
+                    wrap.appendChild(nChips);
+                }
+
+                skillsField.parentNode.insertBefore(wrap, skillsField.nextSibling);
             }
         }
 

@@ -238,6 +238,8 @@ Route::middleware('auth')->group(function () {
             Route::resource('job-applications', AdminJobApplicationController::class);
             Route::post('job-applications/{id}/parse-skills', [AdminJobApplicationController::class, 'parseSkills'])
                 ->name('job-applications.parse-skills');
+            Route::post('job-applications/bulk-parse-resume', [AdminJobApplicationController::class, 'bulkParseResume'])
+                 ->name('job-applications.bulk-parse-resume');
             Route::post('job-applications/{id}/assign-job', [AdminJobApplicationController::class, 'assignJob'])
                 ->name('job-applications.assign-job');
             Route::get('applications-archive/data', [AdminApplicationArchiveController::class, 'data'])->name('applications-archive.data');
