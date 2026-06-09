@@ -1096,15 +1096,42 @@
                 if (matched.length) {
                     var mLabel = document.createElement('div');
                     mLabel.style.cssText = 'font-size:10px;color:#065f46;font-weight:600;margin-bottom:4px;';
-                    mLabel.textContent = '✓ Matched skills:';
+                    mLabel.textContent = '✓ Matched skills — click to add:';
                     wrap.appendChild(mLabel);
 
                     var mChips = document.createElement('div');
                     mChips.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;';
+
                     matched.forEach(function (skill) {
                         var chip = document.createElement('span');
-                        chip.style.cssText = 'display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:500;background:#ECFDF5;color:#065F46;border:1px solid #6EE7B7;';
-                        chip.textContent = skill.name;
+                        chip.style.cssText = 'display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:500;background:#ECFDF5;color:#065F46;border:1px dashed #6EE7B7;cursor:pointer;transition:all .15s;';
+                        chip.innerHTML = '<i class="fa fa-plus" style="font-size:9px"></i> ' + bulkEsc(skill.name);
+
+                        chip.addEventListener('click', function () {
+                            // Check if already added
+                            var current = document.getElementById('bf-skills').value;
+                            var parts   = current ? current.split(',').map(function(s){ return s.trim().toLowerCase(); }) : [];
+                            if (parts.indexOf(skill.name.toLowerCase()) > -1) return;
+
+                            // Add to skills input
+                            var skillsEl = document.getElementById('bf-skills');
+                            skillsEl.value = skillsEl.value
+                                ? skillsEl.value.trim() + ', ' + skill.name
+                                : skill.name;
+
+                            // Update snapshot so it persists when navigating
+                            if (bulkActive >= 0 && bulkQueue[bulkActive] && bulkQueue[bulkActive].parsed) {
+                                bulkQueue[bulkActive].parsed.skills = skillsEl.value;
+                            }
+
+                            // Mark chip as added
+                            chip.style.background    = '#D1FAE5';
+                            chip.style.borderStyle   = 'solid';
+                            chip.style.cursor        = 'default';
+                            chip.innerHTML = '<i class="fa fa-check" style="font-size:9px"></i> ' + bulkEsc(skill.name);
+                            chip.removeEventListener('click', arguments.callee);
+                        });
+
                         mChips.appendChild(chip);
                     });
                     wrap.appendChild(mChips);
@@ -1113,15 +1140,42 @@
                 if (newSkills.length) {
                     var nLabel = document.createElement('div');
                     nLabel.style.cssText = 'font-size:10px;color:#92400e;font-weight:600;margin-bottom:4px;';
-                    nLabel.textContent = '+ New skills found:';
+                    nLabel.textContent = '+ New skills found — click to add:';
                     wrap.appendChild(nLabel);
 
                     var nChips = document.createElement('div');
                     nChips.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;';
+
                     newSkills.forEach(function (name) {
                         var chip = document.createElement('span');
-                        chip.style.cssText = 'display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:500;background:#FFFBEB;color:#92400E;border:1px solid #FDE68A;';
-                        chip.textContent = name;
+                        chip.style.cssText = 'display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:500;background:#FFFBEB;color:#92400E;border:1px dashed #FDE68A;cursor:pointer;transition:all .15s;';
+                        chip.innerHTML = '<i class="fa fa-plus" style="font-size:9px"></i> ' + bulkEsc(name);
+
+                        chip.addEventListener('click', function () {
+                            // Check if already added
+                            var current = document.getElementById('bf-skills').value;
+                            var parts   = current ? current.split(',').map(function(s){ return s.trim().toLowerCase(); }) : [];
+                            if (parts.indexOf(name.toLowerCase()) > -1) return;
+
+                            // Add to skills input
+                            var skillsEl = document.getElementById('bf-skills');
+                            skillsEl.value = skillsEl.value
+                                ? skillsEl.value.trim() + ', ' + name
+                                : name;
+
+                            // Update snapshot
+                            if (bulkActive >= 0 && bulkQueue[bulkActive] && bulkQueue[bulkActive].parsed) {
+                                bulkQueue[bulkActive].parsed.skills = skillsEl.value;
+                            }
+
+                            // Mark chip as added
+                            chip.style.background  = '#FEF3C7';
+                            chip.style.borderStyle = 'solid';
+                            chip.style.cursor      = 'default';
+                            chip.innerHTML = '<i class="fa fa-check" style="font-size:9px"></i> ' + bulkEsc(name);
+                            chip.removeEventListener('click', arguments.callee);
+                        });
+
                         nChips.appendChild(chip);
                     });
                     wrap.appendChild(nChips);
