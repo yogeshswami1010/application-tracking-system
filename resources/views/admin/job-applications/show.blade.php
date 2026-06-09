@@ -739,14 +739,12 @@
                                             chip.innerHTML = '<i class="fa fa-plus" style="font-size:9px"></i> ' + skill.name;
                                             chip.onclick = function () {
                                                 var $sel = $('#skills');
-                                                // Select the option if not already selected
                                                 if ($sel.val() && $sel.val().indexOf(String(skill.id)) > -1) return;
                                                 var opt = $sel.find('option[value="' + skill.id + '"]');
                                                 if (opt.length) {
                                                     opt.prop('selected', true);
                                                     $sel.trigger('change');
                                                 } else {
-                                                    // Option might not exist — add it
                                                     var newOpt = new Option(skill.name, skill.id, true, true);
                                                     $sel.append(newOpt).trigger('change');
                                                 }
@@ -756,7 +754,10 @@
                                                 chip.onclick = null;
                                                 chip.style.cursor = 'default';
                                                 addedCount++;
-                                                status.textContent = addedCount + ' skill(s) added to the list — remember to save.';
+                                                status.textContent = '<i class="fa fa-spinner fa-spin"></i> Saving…';
+                                                addSkills(appId, function() {
+                                                    status.textContent = '<i class="fa fa-check-circle"></i> Saved successfully.';
+                                                });
                                             };
                                             matchedChips.appendChild(chip);
                                         });
@@ -791,8 +792,10 @@
                                                             chip.onclick = null;
                                                             chip.style.cursor = 'default';
                                                             addedCount++;
-                                                            status.textContent = addedCount + ' skill(s) added to the list — remember to save.';
-                                                        }
+                                                            status.textContent = '<i class="fa fa-spinner fa-spin"></i> Saving…';
+                                                            addSkills(appId, function() {
+                                                                status.textContent = '<i class="fa fa-check-circle"></i> Saved successfully.';
+                                                            });}
                                                     },
                                                     error: function () {
                                                         // Skill create failed — add as temp option without DB ID
@@ -823,32 +826,30 @@
                         };
 
                         /* ── Add skill manually ── */
-                        window.jaAddManualSkill = function (appId) {
+                    window.jaAddManualSkill = function (appId) {
                         var input = document.getElementById('manual-skill-input-' + appId);
                         var name  = input.value.trim();
                         if (!name) return;
 
                         var $sel = $('#skills');
 
-                        // Check if an option with this text already exists (case-insensitive)
                         var exists = $sel.find('option').filter(function () {
                             return $(this).text().toLowerCase() === name.toLowerCase();
                         });
 
                         if (exists.length) {
-                            // Already in list — just select it
                             exists.prop('selected', true);
                             $sel.trigger('change');
                             input.value = '';
+                            addSkills(appId);  // auto-save
                             return;
                         }
 
-                        // Add as a new option directly into Select2 (no DB call)
-                        // Value is prefixed with "new:" so the backend can handle it if needed
                         var tempVal = 'new:' + name;
                         var newOpt  = new Option(name, tempVal, true, true);
                         $sel.append(newOpt).trigger('change');
                         input.value = '';
+                        addSkills(appId);  // auto-save
                     };
 
                     })();
@@ -1057,20 +1058,19 @@ function jaSetRating(appId, val) {
 
 /* ── Skills ── */
 $('.select2#skills').select2();
-function addSkills(applicationId) {
+function addSkills(applicationId, callback) {
     var url = "{{ route('admin.job-applications.addSkills', ':id') }}".replace(':id', applicationId);
     $.easyAjax({
         url: url, type: 'POST', container: '#skills-container',
         data: { _token: '{{ csrf_token() }}', skills: $('#skills').val() },
         success: function(response) {
             if (response.status === 'success') {
-                if (window.raCloseRightSidebar) window.raCloseRightSidebar();
+                if (typeof callback === 'function') callback();
                 if (typeof table !== 'undefined') table.draw(false); else loadData();
             }
         }
     });
 }
-
 /* ── Notes ── */
 $('#add-note').click(function() {
     $.easyAjax({
