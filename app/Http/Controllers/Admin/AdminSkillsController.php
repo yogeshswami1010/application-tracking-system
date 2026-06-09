@@ -581,5 +581,22 @@ class AdminSkillsController extends AdminBaseController
 
         throw new \RuntimeException('Unsupported AI provider: '.$provider);
     }
+    public function quickCreate(Request $request)
+    {
+        abort_if(! $this->user->cans('add_skills'), 403);
 
+        $name = trim($request->input('name', ''));
+
+        if ($name === '') {
+            return response()->json(['status' => 'error', 'message' => 'Skill name is required.']);
+        }
+
+        $skill = Skill::firstOrCreate(['name' => $name]);
+
+        return response()->json([
+            'status' => 'success',
+            'id'     => $skill->id,
+            'name'   => $skill->name,
+        ]);
+    }
 }

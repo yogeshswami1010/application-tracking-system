@@ -192,7 +192,8 @@ Route::middleware('auth')->group(function () {
             Route::post('skills/ai-generate', [AdminSkillsController::class, 'aiGenerateSkills'])
                 ->name('skills.ai-generate');
             Route::resource('locations', AdminLocationsController::class);
-
+            Route::post('skills/quick-create', [AdminSkillsController::class, 'quickCreate'])
+                ->name('skills.quick-create');
             Route::get('jobs/data', [AdminJobsController::class, 'data'])->name('jobs.data');
             Route::post('jobs/bulk-destroy', [AdminJobsController::class, 'bulkDestroy'])->name('jobs.bulkDestroy');
             Route::post('jobs/{job}/toggle-status', [AdminJobsController::class, 'toggleStatus'])->name('jobs.toggleStatus');

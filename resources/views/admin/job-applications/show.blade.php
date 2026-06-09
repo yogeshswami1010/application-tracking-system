@@ -779,7 +779,7 @@
                                                 // Create skill via AJAX then add to Select2
                                                 $.ajax({
                                                     type: 'POST',
-                                                    url: '{{ route("admin.skills.store") }}', // adjust to your actual route
+                                                    url: '{{ route("admin.skills.quick-create") }}', // adjust to your actual route
                                                     data: { _token: '{{ csrf_token() }}', name: name },
                                                     success: function (r) {
                                                         if (r.status === 'success' && r.id) {
