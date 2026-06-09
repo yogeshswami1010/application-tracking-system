@@ -235,7 +235,8 @@ Route::middleware('auth')->group(function () {
                 ->name('job-applications.ai-parse-resume');
             Route::get('job-applications/get-jobs', [AdminJobApplicationController::class, 'getJobs'])->name('job-applications.get-jobs');
             Route::resource('job-applications', AdminJobApplicationController::class);
-
+            Route::post('job-applications/{id}/parse-skills', [AdminJobApplicationController::class, 'parseSkills'])
+                ->name('job-applications.parse-skills');
             Route::get('applications-archive/data', [AdminApplicationArchiveController::class, 'data'])->name('applications-archive.data');
             Route::get('applications-archive/export/{skill}', [AdminApplicationArchiveController::class, 'export'])->name('applications-archive.export');
             Route::resource('applications-archive', AdminApplicationArchiveController::class);
@@ -301,8 +302,7 @@ Route::middleware('auth')->group(function () {
     Route::post('verify-otp-phone', [VerifyMobileController::class, 'verifyOtpCode'])->name('verifyOtpCode');
     Route::post('verify-otp-phone/account', [VerifyMobileController::class, 'verifyOtpCode'])->name('verifyOtpCode.account');
     Route::get('remove-session', [VerifyMobileController::class, 'removeSession'])->name('removeSession');
-        Route::post('job-applications/{id}/parse-skills', [JobApplicationController::class, 'parseSkills'])
-        ->name('admin.job-applications.parse-skills');
+
 });
 Route::get('assistmyday', [App\Http\Controllers\Front\FrontJobsController::class, 'assistMyDay'])->name('assistmyday');
 // Catch-all custom CMS page (register last)
