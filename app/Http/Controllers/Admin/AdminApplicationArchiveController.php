@@ -205,10 +205,12 @@ class AdminApplicationArchiveController extends AdminBaseController
 
         $this->skills = Skill::select('id', 'name')->get();
 
-        $this->answers = JobApplicationAnswer::with(['question'])
+        $this->answers = $this->application->job_id
+        ? JobApplicationAnswer::with(['question'])
             ->where('job_id', $this->application->job_id)
             ->where('job_application_id', $this->application->id)
-            ->get();
+            ->get()
+        : collect();
 
         $view = view('admin.applications-archive.show', $this->data)->render();
 

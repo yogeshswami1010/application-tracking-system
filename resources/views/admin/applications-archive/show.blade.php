@@ -9,7 +9,7 @@
         str_contains($detailCatKey, 'hr') || str_contains($detailCatKey, 'people') => 'bg-[#F5F3FF] text-[#5B21B6]',
         default => 'bg-[#F1F3F7] text-[#5A6478]',
     };
-    $stagePillBg = $application->status->color ?? '#0F1F3D';
+    $stagePillBg = $application->status?->color ?? '#6366F1';
     $initials = collect(explode(' ', $application->full_name))->map(fn($w) => strtoupper(substr($w,0,1)))->take(2)->join('');
     $allStatuses = \App\ApplicationStatus::orderBy('position')->get();
     $currentStatusId = $application->status_id ?? 0;
@@ -1013,7 +1013,7 @@
                                 _saveTimer = setTimeout(function () {
                                     var url = "{{ route('admin.job-applications.addSkills', ':id') }}".replace(':id', appId);
                                     $.easyAjax({
-                                        url: url, type: 'POST', container: '#skills-container',
+                                        url: url, type: 'POST', container: '#skills-container-' + appId,
                                         data: { _token: '{{ csrf_token() }}', skills: $('#skills').val() },
                                         success: function (response) {
                                             if (response.status === 'success') {
