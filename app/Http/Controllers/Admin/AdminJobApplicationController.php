@@ -1967,6 +1967,8 @@ class AdminJobApplicationController extends AdminBaseController
     }
    public function parseSkills(Request $request, $id)
 {
+    \Log::info('parseSkills called for id: ' . $id);
+
     $application = JobApplication::with('job')->findOrFail($id);
 
     // Resolve the resume URL
@@ -1984,23 +1986,32 @@ class AdminJobApplicationController extends AdminBaseController
         }
     }
 
+    \Log::info('parseSkills resumeUrl: ' . $resumeUrl);
+
     if (!$resumeUrl) {
         return response()->json(['status' => 'error', 'message' => 'No resume found for this applicant.']);
     }
 
     try {
-        $client = new \GuzzleHttp\Client();
+        $client = new \GuzzleHttp\Client(['verify' => false]);
+
+        // Fetch the PDF via Guzzle
         $pdfResponse = $client->get($resumeUrl);
         $pdfContents = $pdfResponse->getBody()->getContents();
+
         if (!$pdfContents) {
             return response()->json(['status' => 'error', 'message' => 'Could not fetch the resume file.']);
         }
+
         $base64Pdf = base64_encode($pdfContents);
 
+        // Get all skill names from DB for matching
         $allSkillNames = \App\Skill::pluck('name')->implode(', ');
 
-        $client = new \GuzzleHttp\Client();
-        $response = $client->post('https://api.anthropic.com/v1/messages', [
+        \Log::info('parseSkills calling Anthropic API');
+
+        // Call Anthropic API
+        $apiResponse = $client->post('https://api.anthropic.com/v1/messages', [
             'headers' => [
                 'x-api-key'         => config('services.anthropic.key'),
                 'anthropic-version' => '2023-06-01',
@@ -2029,7 +2040,9 @@ class AdminJobApplicationController extends AdminBaseController
             ],
         ]);
 
-        $body   = json_decode($response->getBody()->getContents(), true);
+        $body   = json_decode($apiResponse->getBody()->getContents(), true);
+        \Log::info('parseSkills API response: ' . json_encode($body));
+
         $text   = collect($body['content'] ?? [])->where('type', 'text')->pluck('text')->first() ?? '{}';
         $parsed = json_decode(trim($text), true);
 
@@ -2041,9 +2054,12 @@ class AdminJobApplicationController extends AdminBaseController
             'new_skills'     => $parsed['new'] ?? [],
         ]);
 
-    } catch (\Exception $e) {
-        \Log::error('parseSkills error: ' . $e->getMessage());
-        return response()->json(['status' => 'error', 'message' => $e->getMessage()]);
+    } catch (\Throwable $e) {
+        \Log::error('parseSkills error: ' . $e->getMessage() . ' on line ' . $e->getLine() . ' in ' . $e->getFile());
+        return response()->json([
+            'status'  => 'error',
+            'message' => $e->getMessage() . ' (line ' . $e->getLine() . ')',
+        ]);
     }
 }
 }
