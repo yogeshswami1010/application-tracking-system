@@ -700,9 +700,11 @@ class AdminJobApplicationController extends AdminBaseController
         }
 
         $jobApplication = new JobApplication;
-        $jobApplication->full_name = $request->full_name;
+        $jobApplication->full_name = collect(explode(' ', trim($request->full_name)))
+        ->map(fn($word) => ucfirst(strtolower($word)))
+        ->join(' ');
         $jobApplication->job_id = $request->job_id;
-        $jobApplication->status_id = 1; // applied status id
+       $jobApplication->status_id = ($request->entry_type === 'candidate') ? null : 1; // applied status id
         $jobApplication->email = $request->email;
         $jobApplication->location_id = $request->location_id;
         $jobApplication->phone = $request->phone;
@@ -809,7 +811,9 @@ class AdminJobApplicationController extends AdminBaseController
         $mailSetting = ApplicationSetting::select('id', 'mail_setting')->first()->mail_setting;
 
         $jobApplication = JobApplication::with(['documents'])->findOrFail($id);
-        $jobApplication->full_name = $request->full_name;
+        $jobApplication->full_name = collect(explode(' ', trim($request->full_name)))
+        ->map(fn($word) => ucfirst(strtolower($word)))
+        ->join(' ');
         $jobApplication->job_id = $request->job_id;
         $jobApplication->status_id = $request->status_id;
         $jobApplication->location_id = $request->location_id;

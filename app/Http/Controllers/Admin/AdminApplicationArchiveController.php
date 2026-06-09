@@ -122,13 +122,17 @@ class AdminApplicationArchiveController extends AdminBaseController
         })
 
         ->addColumn('location', function ($row) {
-            return optional($row->location)->location;
+            return optional($row->location)->location; 
         })
 
         ->addColumn('status', function ($row) {
 
             if ($row->trashed()) {
                 return '<span class="label label-danger">Archived</span>';
+            }
+
+            if ($row->is_candidate) {
+                return '<span class="label" style="background:#6366F1;color:#fff;">Internal</span>';
             }
 
             if ($row->status) {
