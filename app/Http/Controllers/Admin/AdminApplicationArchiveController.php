@@ -49,8 +49,8 @@ class AdminApplicationArchiveController extends AdminBaseController
                 'job',
                 'location',
                 'status'
-            ]);
-
+            ])
+            ->orderBy('created_at', 'desc');  
         // ── Skill filter ───────────────────────────────────────────────
         if ($request->filled('skill')) {
             $skill = Skill::select('id', 'name')
@@ -161,7 +161,9 @@ class AdminApplicationArchiveController extends AdminBaseController
             'status',
             'action'
         ])
-
+        ->addColumn('created_at', function ($row) {        // ← ADD THIS
+            return $row->created_at->format('Y-m-d H:i:s');
+        })
         ->addIndexColumn()
         ->make(true);
     }

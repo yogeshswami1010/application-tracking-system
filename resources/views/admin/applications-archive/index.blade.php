@@ -266,6 +266,7 @@
                 responsive: false,
                 serverSide: true,
                 destroy: true,
+                order: [[5, 'desc']],
                 ajax: {
                     url: "{!! route('admin.applications-archive.data') !!}",
                     data: function (d) {
@@ -311,6 +312,12 @@
                                 data: 'status',
                                 name: 'status_id',
                                 orderable: false
+                            },
+                             {
+                                data: 'created_at',         
+                                name: 'created_at',
+                                visible: false,
+                                searchable: false
                             }
                         ]
             });
