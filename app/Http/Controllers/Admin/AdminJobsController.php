@@ -204,6 +204,8 @@ class AdminJobsController extends AdminBaseController
         $job->title = $request->title;
         $job->job_description = $request->job_description;
         $job->total_positions = $request->total_positions;
+        $job->show_on_consortium  = $request->boolean('show_on_consortium');
+        $job->show_on_assistmyday = $request->boolean('show_on_assistmyday');
         // Handle manual category entry
         if ($request->filled('category_new')) {
             $category = JobCategory::firstOrCreate(
@@ -369,6 +371,8 @@ class AdminJobsController extends AdminBaseController
         $job->job_description = $request->job_description;
        
         $job->total_positions = $request->total_positions;
+        $job->show_on_consortium  = $request->boolean('show_on_consortium');
+        $job->show_on_assistmyday = $request->boolean('show_on_assistmyday');
         // Handle manual category entry
         if ($request->filled('category_new')) {
             $category = JobCategory::firstOrCreate(

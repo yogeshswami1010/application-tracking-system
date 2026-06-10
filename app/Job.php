@@ -16,6 +16,8 @@ class Job extends Model
         'required_columns' => 'array',
         'meta_details' => 'array',
         'section_visibility' => 'array',
+        'show_on_consortium'   => 'boolean',
+        'show_on_assistmyday'  => 'boolean',
     ];
 
     protected $appends = [

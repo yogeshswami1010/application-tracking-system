@@ -226,7 +226,7 @@ $(document).ready(function(){
         $.easyAjax({
             url: "{{ route('jobs.more-data') }}",
             type: 'POST',
-            data: { _token: token, totalCurrentData: totalCurrentData, location_id: location_id, category: category, skill: 'all', company: 'all' },
+            data: { _token: token, totalCurrentData: totalCurrentData, location_id: location_id, category: category, skill: 'all', company: 'all',page_source: 'assistmyday' },
             success: function(response) {
                 $('#amd-job-list').append(response.view);
                 totalCurrentData = response.data.job_current_count;
@@ -245,7 +245,7 @@ $(document).ready(function(){
         $.easyAjax({
             url: "{{ route('jobs.search-job') }}",
             type: 'POST',
-            data: { _token: token, location_id: location_id, category: category, skill: 'all', company: 'all' },
+            data: { _token: token, location_id: location_id, category: category, skill: 'all', company: 'all', page_source: 'assistmyday' },
             success: function(response) {
                 $('#amd-job-list').html(response.view);
                 totalCurrentData = response.data.job_current_count;

@@ -635,6 +635,88 @@
                             </div>
                         </div>
                     </div>
+                    {{-- ── HOMEPAGE VISIBILITY ── --}}
+                    <div class="overflow-hidden rounded-2xl border border-[#E8E6E1] bg-white">
+                        <div class="flex items-center gap-3 border-b border-gray-100 px-5 py-4">
+                            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-50">
+                                <svg class="h-[18px] w-[18px] text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7
+                                        -1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-[15px] font-bold text-[#0F1F3D]">Homepage Visibility</h3>
+                                <p class="mt-0.5 text-[12px] text-[#8892A0]">
+                                    Control which public job boards show this job
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-4 p-5">
+
+                            {{-- Consortium toggle --}}
+                            <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-200 bg-[#F8F7F4]/60
+                                        px-4 py-3 text-[13px] font-medium text-slate-600 transition
+                                        hover:border-blue-300 hover:bg-blue-50/40 has-[:checked]:border-blue-400
+                                        has-[:checked]:bg-blue-50 has-[:checked]:text-blue-700">
+
+                                {{-- Toggle track --}}
+                                <div class="relative h-5 w-9 shrink-0">
+                                    <input
+                                        type="checkbox"
+                                        name="show_on_consortium"
+                                        id="show_on_consortium"
+                                        value="1"
+                                        class="peer sr-only"
+                                        {{ old('show_on_consortium', $job->show_on_consortium ?? true) ? 'checked' : '' }}
+                                    >
+                                    <span class="absolute inset-0 rounded-full bg-gray-300 transition
+                                                peer-checked:bg-[#2563EB]"></span>
+                                    <span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow
+                                                transition-transform peer-checked:translate-x-4"></span>
+                                </div>
+
+                                <span class="select-none leading-tight">
+                                    Show on
+                                    <strong class="font-bold text-[#1D4ED8]">Consortium</strong>
+                                    homepage
+                                </span>
+                            </label>
+
+                            {{-- AssistMyDay toggle --}}
+                            <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-200 bg-[#F8F7F4]/60
+                                        px-4 py-3 text-[13px] font-medium text-slate-600 transition
+                                        hover:border-orange-300 hover:bg-orange-50/40 has-[:checked]:border-orange-400
+                                        has-[:checked]:bg-orange-50 has-[:checked]:text-orange-700">
+
+                                {{-- Toggle track --}}
+                                <div class="relative h-5 w-9 shrink-0">
+                                    <input
+                                        type="checkbox"
+                                        name="show_on_assistmyday"
+                                        id="show_on_assistmyday"
+                                        value="1"
+                                        class="peer sr-only"
+                                        {{ old('show_on_assistmyday', $job->show_on_assistmyday ?? true) ? 'checked' : '' }}
+                                    >
+                                    <span class="absolute inset-0 rounded-full bg-gray-300 transition
+                                                peer-checked:bg-[#F97316]"></span>
+                                    <span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow
+                                                transition-transform peer-checked:translate-x-4"></span>
+                                </div>
+
+                                <span class="select-none leading-tight">
+                                    Show on
+                                    <strong class="font-bold text-[#C2410C]">AssistMyDay</strong>
+                                    homepage
+                                </span>
+                            </label>
+
+                        </div>
+                    </div>
 @if (count($questions) > 0)
 
 <div class="overflow-hidden rounded-2xl border border-[#E8E6E1] bg-white job-page-question-wrapper">
