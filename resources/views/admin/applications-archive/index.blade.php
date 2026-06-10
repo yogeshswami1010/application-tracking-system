@@ -1,18 +1,12 @@
 @extends('layouts.app')
 
-@php
-    $jaDefaultStart = now()->subDays(30)->format('Y-m-d');
-    $jaDefaultEnd   = now()->format('Y-m-d');
-@endphp
-
 @push('head-script')
-    <link rel="stylesheet" href="{{ asset('assets/node_modules_files/bootstrap-datepicker/bootstrap-datepicker.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/node_modules_files/multiselect/css/multi-select.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
     @include('admin.job-applications.partials.select2-filter-skin')
     <style>
-        .datepicker { z-index: 9999 !important; }
         .ja-board-scope { font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; }
+
         .ja-filter-btn-active {
             border-color: #2563eb !important;
             background: #eff6ff !important;
@@ -29,7 +23,85 @@
         }
         .ja-filter-active-count.show { display: inline-flex; }
         .hidden { display: none !important; visibility: hidden !important; }
-        
+
+        /* ── Skill tag input ─────────────────────────────────────────── */
+        .skill-tag-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 5px;
+            min-height: 38px;
+            padding: 4px 10px;
+            border: 1.5px solid #E2DED8;
+            border-radius: 10px;
+            background: #F8F7F4;
+            cursor: text;
+            transition: border-color .15s;
+        }
+        .skill-tag-wrap:focus-within {
+            border-color: #2563eb;
+            background: #fff;
+        }
+        .skill-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 9px;
+            border-radius: 999px;
+            background: #2563eb;
+            color: #fff;
+            font-size: 11.5px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .skill-tag .skill-tag-remove {
+            cursor: pointer;
+            font-size: 13px;
+            line-height: 1;
+            opacity: .75;
+            transition: opacity .1s;
+        }
+        .skill-tag .skill-tag-remove:hover { opacity: 1; }
+        .skill-tag-input {
+            flex: 1;
+            min-width: 90px;
+            border: none !important;
+            background: transparent !important;
+            outline: none !important;
+            box-shadow: none !important;
+            font-size: 13px;
+            padding: 0 !important;
+            margin: 0 !important;
+            height: 26px;
+        }
+        /* skill suggestion dropdown */
+        .skill-suggestions {
+            position: absolute;
+            z-index: 9999;
+            background: #fff;
+            border: 1.5px solid #E2DED8;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,.10);
+            max-height: 180px;
+            overflow-y: auto;
+            min-width: 180px;
+        }
+        .skill-suggestions .ss-item {
+            padding: 7px 14px;
+            font-size: 13px;
+            cursor: pointer;
+            color: #1A1E2E;
+        }
+        .skill-suggestions .ss-item:hover,
+        .skill-suggestions .ss-item.active {
+            background: #EFF6FF;
+            color: #2563eb;
+        }
+        .skill-suggestions .ss-empty {
+            padding: 7px 14px;
+            font-size: 12px;
+            color: #8892A0;
+        }
     </style>
 @endpush
 
@@ -69,11 +141,21 @@
                 </div>
                 <form id="filter-form" class="flex flex-wrap items-end gap-3.5 pb-3">
 
-                    {{-- Skill search --}}
-                    <div class="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[220px]">
-                        <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('modules.applicationArchive.enterSkill')</label>
-                        <input id="skill" class="form-control rounded-[10px] border-[1.5px] border-[#E2DED8] bg-[#F8F7F4] text-[13px]"
-                               type="text" name="skill" placeholder="@lang('modules.applicationArchive.enterSkill')">
+                    {{-- ── Skill tag input ── --}}
+                    <div class="flex min-w-[200px] flex-1 flex-col gap-1 sm:max-w-[300px]">
+                        <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">
+                            @lang('modules.applicationArchive.enterSkill')
+                        </label>
+                        {{-- Hidden input carries comma-joined skill list for form submit --}}
+                        <input type="hidden" id="skill" name="skill" value="">
+                        <div class="relative">
+                            <div class="skill-tag-wrap" id="skill-tag-wrap">
+                                <input type="text" id="skill-tag-input" class="skill-tag-input"
+                                    placeholder="Type a skill, press Enter…"
+                                    autocomplete="off">
+                            </div>
+                            <div class="skill-suggestions" id="skill-suggestions" style="display:none;"></div>
+                        </div>
                     </div>
 
                     {{-- Company --}}
@@ -112,6 +194,18 @@
                         </select>
                     </div>
 
+                    {{-- Status --}}
+                    <div class="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[220px]">
+                        <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('app.status')</label>
+                        <select class="select2 w-full" name="status" id="status">
+                            <option value="all">@lang('app.allStatus')</option>
+                            @forelse($statuses as $status)
+                                <option value="{{ $status->id }}">{{ ucfirst($status->status) }}</option>
+                            @empty
+                            @endforelse
+                        </select>
+                    </div>
+
                     {{-- Question --}}
                     <div class="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[240px]">
                         <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('modules.jobApplication.allQuestion')</label>
@@ -129,21 +223,6 @@
                         <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('app.filterBy')</label>
                         <input type="text" class="form-control rounded-[10px] border-[1.5px] border-[#E2DED8] bg-[#F8F7F4] text-[13px]"
                                name="question_value" id="question-value" placeholder="">
-                    </div>
-
-                    {{-- Date Range --}}
-                    <div class="flex min-w-[140px] flex-1 flex-col gap-1 sm:max-w-[180px]">
-                        <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('app.startDate')</label>
-                        <input type="text" id="start-date" name="start_date"
-                               class="form-control rounded-[10px] border-[1.5px] border-[#E2DED8] bg-[#F8F7F4] text-[13px]"
-                               value="{{ $jaDefaultStart }}" autocomplete="off" placeholder="YYYY-MM-DD">
-                    </div>
-
-                    <div class="flex min-w-[140px] flex-1 flex-col gap-1 sm:max-w-[180px]">
-                        <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('app.endDate')</label>
-                        <input type="text" id="end-date" name="end_date"
-                               class="form-control rounded-[10px] border-[1.5px] border-[#E2DED8] bg-[#F8F7F4] text-[13px]"
-                               value="{{ $jaDefaultEnd }}" autocomplete="off" placeholder="YYYY-MM-DD">
                     </div>
 
                     {{-- Actions --}}
@@ -182,196 +261,330 @@
 
 @push('footer-script')
     <script src="{{ asset('assets/node_modules_files/select2/dist/js/select2.full.min.js') }}" type="text/javascript"></script>
-    <script src="{{ asset('assets/node_modules_files/bootstrap-datepicker/bootstrap-datepicker.min.js') }}" type="text/javascript"></script>
 
     <script>
-        var jaDefaultStart = @json($jaDefaultStart);
-        var jaDefaultEnd   = @json($jaDefaultEnd);
+    // ── Skill tag input ────────────────────────────────────────────────────────
+    (function () {
+        // All available skills from Laravel (for autocomplete suggestions)
+        var allSkills = @json($skills ?? []);   // expects an array of skill name strings
 
-        // ── Datepickers ────────────────────────────────────────────────
-        $('#start-date').datepicker({ format: 'yyyy-mm-dd', autoclose: true });
-        $('#end-date').datepicker({ format: 'yyyy-mm-dd', autoclose: true });
+        var tags   = [];   // currently selected skill strings
+        var active = -1;   // keyboard-highlighted suggestion index
 
-        $('#start-date').datepicker().on('changeDate', function () {
-            $('#end-date').datepicker('setStartDate', $(this).datepicker('getDate'));
+        var $wrap  = $('#skill-tag-wrap');
+        var $input = $('#skill-tag-input');
+        var $drop  = $('#skill-suggestions');
+        var $hidden= $('#skill');
+
+        // ── helpers ──────────────────────────────────────────────────────────
+        function syncHidden() {
+            $hidden.val(tags.join(','));
             jaTableSyncFilterBadge();
-        });
-        $('#end-date').datepicker().on('changeDate', function () {
-            $('#start-date').datepicker('setEndDate', $(this).datepicker('getDate'));
-            jaTableSyncFilterBadge();
+        }
+
+        function renderTags() {
+            $wrap.find('.skill-tag').remove();
+            tags.forEach(function (tag, i) {
+                var $t = $('<span class="skill-tag"></span>')
+                    .text(tag)
+                    .append(
+                        $('<span class="skill-tag-remove">×</span>').on('click', function (e) {
+                            e.stopPropagation();
+                            tags.splice(i, 1);
+                            renderTags();
+                            syncHidden();
+                        })
+                    );
+                $wrap.prepend($t); // prepend so input stays at end
+            });
+        }
+
+        function addTag(val) {
+            val = val.trim();
+            if (!val) return;
+            // Split on comma to allow pasting "React, Vue, Angular"
+            val.split(',').forEach(function (v) {
+                v = v.trim();
+                if (v && !tags.includes(v)) {
+                    tags.push(v);
+                }
+            });
+            $input.val('');
+            renderTags();
+            syncHidden();
+            hideDrop();
+        }
+
+        // ── suggestion dropdown ──────────────────────────────────────────────
+        function showDrop(term) {
+            if (!term) { hideDrop(); return; }
+            var lower = term.toLowerCase();
+            var matches = allSkills.filter(function (s) {
+                return s.toLowerCase().includes(lower) && !tags.includes(s);
+            }).slice(0, 8);
+
+            if (!matches.length) {
+                // Show "add custom" hint
+                $drop.html('<div class="ss-item active" data-val="' + $('<div>').text(term).html() + '">'
+                    + '+ Add "<strong>' + $('<div>').text(term).html() + '</strong>"'
+                    + '</div>').show();
+                active = 0;
+                return;
+            }
+
+            active = -1;
+            $drop.empty();
+            matches.forEach(function (s) {
+                $drop.append(
+                    $('<div class="ss-item"></div>').text(s).attr('data-val', s)
+                );
+            });
+            $drop.show();
+
+            // Position below wrap
+            positionDrop();
+        }
+
+        function positionDrop() {
+            var offset = $wrap.offset();
+            var height = $wrap.outerHeight();
+            $drop.css({
+                top:   offset.top + height + 4,
+                left:  offset.left,
+                width: $wrap.outerWidth()
+            }).appendTo('body');
+        }
+
+        function hideDrop() { $drop.hide().empty(); active = -1; }
+
+        // ── events ───────────────────────────────────────────────────────────
+        $wrap.on('click', function () { $input.focus(); });
+
+        $input.on('input', function () {
+            showDrop($(this).val().trim());
         });
 
-        // ── Select2 ────────────────────────────────────────────────────
-        $('#filter-form select.select2').select2({ width: '100%' });
+        $input.on('keydown', function (e) {
+            var items = $drop.find('.ss-item');
+            if (e.key === 'Enter' || e.key === ',') {
+                e.preventDefault();
+                if (active >= 0 && items.eq(active).length) {
+                    addTag(items.eq(active).data('val'));
+                } else {
+                    addTag($(this).val());
+                }
+                return;
+            }
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                active = Math.min(active + 1, items.length - 1);
+                items.removeClass('active').eq(active).addClass('active');
+                return;
+            }
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                active = Math.max(active - 1, 0);
+                items.removeClass('active').eq(active).addClass('active');
+                return;
+            }
+            if (e.key === 'Backspace' && !$(this).val() && tags.length) {
+                tags.pop();
+                renderTags();
+                syncHidden();
+                hideDrop();
+            }
+            if (e.key === 'Escape') { hideDrop(); }
+        });
 
-        // ── Question value toggle ──────────────────────────────────────
-        $('#question_value').addClass('hidden');
-        $('#questions').on('change', function () {
-            if ($(this).val() === 'all') {
-                $('#question_value').addClass('hidden');
-                $('#question-value').val('');
-            } else {
-                $('#question_value').removeClass('hidden');
+        $drop.on('mousedown', '.ss-item', function (e) {
+            e.preventDefault();
+            addTag($(this).data('val'));
+        });
+
+        $(document).on('click', function (e) {
+            if (!$(e.target).closest('#skill-tag-wrap, #skill-suggestions').length) {
+                hideDrop();
             }
         });
 
-        // ── Filter badge counter ───────────────────────────────────────
-        $('#filter-form').on('change', 'select', jaTableSyncFilterBadge);
+        // reset helper exposed to global reset
+        window.jaSkillReset = function () {
+            tags = [];
+            renderTags();
+            syncHidden();
+            hideDrop();
+        };
 
-        function jaTableSyncFilterBadge() {
-            var n = 0;
-            if (($('#company').val()   || 'all') !== 'all') n++;
-            if (($('#jobs').val()      || 'all') !== 'all') n++;
-            if (($('#location').val()  || 'all') !== 'all') n++;
-            if (($('#questions').val() || 'all') !== 'all') n++;
-            var sd = $('#start-date').val(), ed = $('#end-date').val();
-            if (sd && sd !== jaDefaultStart) n++;
-            if (ed && ed !== jaDefaultEnd)   n++;
-            var $b = $('#ja-table-filter-active-count');
-            $b.text(n).toggleClass('show', n > 0);
+        // read-back helper for tableLoad
+        window.jaGetSkills = function () { return tags.join(','); };
+    })();
+
+    // ── Select2 ───────────────────────────────────────────────────────────────
+    $('#filter-form select.select2').select2({ width: '100%' });
+
+    // ── Question value toggle ─────────────────────────────────────────────────
+    $('#question_value').addClass('hidden');
+    $('#questions').on('change', function () {
+        if ($(this).val() === 'all') {
+            $('#question_value').addClass('hidden');
+            $('#question-value').val('');
+        } else {
+            $('#question_value').removeClass('hidden');
         }
+    });
 
-        // ── Filter toggle bar ──────────────────────────────────────────
-        $('.toggle-filter').on('click', function () {
-            var $bar = $('#ja-table-filter-bar');
-            $bar.toggleClass('ja-filter-open');
-            $('#toggle-filter').toggleClass('ja-filter-btn-active', $bar.hasClass('ja-filter-open'));
-        });
+    // ── Filter badge counter ──────────────────────────────────────────────────
+    $('#filter-form').on('change', 'select', jaTableSyncFilterBadge);
 
-        // ── DataTable ──────────────────────────────────────────────────
-        var table;
+    function jaTableSyncFilterBadge() {
+        var n = 0;
+        if (window.jaGetSkills && window.jaGetSkills())              n++;
+        if (($('#company').val()   || 'all') !== 'all')              n++;
+        if (($('#jobs').val()      || 'all') !== 'all')              n++;
+        if (($('#location').val()  || 'all') !== 'all')              n++;
+        if (($('#status').val()    || 'all') !== 'all')              n++;
+        if (($('#questions').val() || 'all') !== 'all')              n++;
+        var $b = $('#ja-table-filter-active-count');
+        $b.text(n).toggleClass('show', n > 0);
+    }
 
+    // ── Filter toggle bar ─────────────────────────────────────────────────────
+    $('.toggle-filter').on('click', function () {
+        var $bar = $('#ja-table-filter-bar');
+        $bar.toggleClass('ja-filter-open');
+        $('#toggle-filter').toggleClass('ja-filter-btn-active', $bar.hasClass('ja-filter-open'));
+    });
+
+    // ── DataTable ─────────────────────────────────────────────────────────────
+    var table;
+
+    tableLoad();
+    jaTableSyncFilterBadge();
+
+    $('#apply-filters').on('click', function () {
         tableLoad();
         jaTableSyncFilterBadge();
+    });
 
-        $('#apply-filters').on('click', function () {
-            tableLoad();
-            jaTableSyncFilterBadge();
-        });
+    $('#reset-filters').on('click', function () {
+        window.location.reload();
+    });
 
-        $('#reset-filters').on('click', function () {
-            window.location.reload();
-        });
+    function tableLoad() {
+        var skill          = window.jaGetSkills ? window.jaGetSkills() : '';
+        var company        = $('#company').val();
+        var jobs           = $('#jobs').val();
+        var location       = $('#location').val();
+        var status         = $('#status').val();
+        var questions      = $('#questions').val();
+        var question_value = $('#question-value').val();
 
-        function tableLoad() {
-            var skill          = $('#skill').val();
-            var company        = $('#company').val();
-            var jobs           = $('#jobs').val();
-            var location       = $('#location').val();
-            var questions      = $('#questions').val();
-            var question_value = $('#question-value').val();
-            var startDate      = $('#start-date').val() || 0;
-            var endDate        = $('#end-date').val()   || 0;
-
-            table = $('#myTable').DataTable({
-                responsive: false,
-                serverSide: true,
-                destroy: true,
-                order: [[5, 'desc']],
-                ajax: {
-                    url: "{!! route('admin.applications-archive.data') !!}",
-                    data: function (d) {
-                        return $.extend({}, d, {
-                            skill:          skill,
-                            company:        company,
-                            jobs:           jobs,
-                            location:       location,
-                            questions:      questions,
-                            question_value: question_value,
-                            start_date:     startDate,
-                            end_date:       endDate
-                        });
-                    }
-                },
-                language: languageOptions(),
-                stripeClasses: [],
-                dom: '<"jc-table-toolbar"lf>rt<"jc-table-toolbar jc-table-toolbar--footer"ip>',
-                drawCallback: function () {
+        table = $('#myTable').DataTable({
+            responsive: false,
+            serverSide: true,
+            destroy: true,
+            order: [[5, 'desc']],
+            ajax: {
+                url: "{!! route('admin.applications-archive.data') !!}",
+                data: function (d) {
+                    return $.extend({}, d, {
+                        skill:          skill,
+                        company:        company,
+                        jobs:           jobs,
+                        location:       location,
+                        status:         status,
+                        questions:      questions,
+                        question_value: question_value
+                    });
+                }
+            },
+            language: languageOptions(),
+            stripeClasses: [],
+            dom: '<"jc-table-toolbar"lf>rt<"jc-table-toolbar jc-table-toolbar--footer"ip>',
+            drawCallback: function () {
                 if ($.fn.tooltip) {
                     $('[data-toggle="tooltip"]').tooltip();
                 }
+            },
+            columns: [
+                {
+                    data: 'DT_Row_Index',
+                    orderable: false,
+                    searchable: false
                 },
-                columns: [
-                            {
-                                data: 'DT_Row_Index',
-                                orderable: false,
-                                searchable: false
-                            },
-                            {
-                                data: 'full_name',
-                                name: 'full_name'
-                            },
-                            {
-                                data: 'title',
-                                name: 'job_id'
-                            },
-                            {
-                                data: 'location',
-                                name: 'location_id'
-                            },
-                            {
-                                data: 'status',
-                                name: 'status_id',
-                                orderable: false
-                            },
-                             {
-                                data: 'created_at',         
-                                name: 'created_at',
-                                visible: false,
-                                searchable: false
-                            }
-                        ]
-            });
-        }
-
-        // ── Show detail sidebar ────────────────────────────────────────
-        $('#myTable').on('click', '.show-detail', function () {
-            var $sidebar = $("#right-sidebar");
-            $sidebar.removeClass('translate-x-full').addClass('shw-rside');
-            var id  = $(this).data('row-id');
-            var url = "{{ route('admin.applications-archive.show', ':id') }}".replace(':id', id);
-            $.easyAjax({
-                type: 'GET', url: url,
-                success: function (response) {
-                    if (response.status === 'success') {
-                        $('#right-sidebar-content').html(response.view);
-                    }
+                {
+                    data: 'full_name',
+                    name: 'full_name'
+                },
+                {
+                    data: 'title',
+                    name: 'job_id'
+                },
+                {
+                    data: 'location',
+                    name: 'location_id'
+                },
+                {
+                    data: 'status',
+                    name: 'status_id',
+                    orderable: false
+                },
+                {
+                    data: 'created_at',
+                    name: 'created_at',
+                    visible: false,
+                    searchable: false
                 }
-            });
+            ]
         });
+    }
 
-        // ── Export ────────────────────────────────────────────────────
-        function exportJobApplication() {
-            var skill     = $('#skill').val()     || undefined;
-            var company   = $('#company').val()   || 'all';
-            var jobs      = $('#jobs').val()      || 'all';
-            var location  = $('#location').val()  || 'all';
-            var startDate = $('#start-date').val() || 0;
-            var endDate   = $('#end-date').val()   || 0;
-
-            var url = '{{ route('admin.applications-archive.export', ':skill') }}';
-            url = url.replace(':skill', skill || 'all');
-
-            url += '?company=' + company + '&jobs=' + jobs + '&location=' + location
-                 + '&start_date=' + startDate + '&end_date=' + endDate;
-
-            window.location.href = url;
-        }
-
-        // ── Company → Jobs cascade ─────────────────────────────────────
-        $('#company').on('change', function () {
-            var company_id = $(this).val();
-            $.ajax({
-                url: "{{ route('admin.job-applications.get-jobs') }}",
-                type: 'GET',
-                data: { companyId: company_id },
-                success: function (data) {
-                    var was = $('#jobs').val();
-                    $('#jobs').select2('destroy').html(data.jobs).select2({ width: '100%' });
-                    var val = $('#jobs option[value="' + was + '"]').length ? was : 'all';
-                    $('#jobs').val(val).trigger('change');
+    // ── Show detail sidebar ───────────────────────────────────────────────────
+    $('#myTable').on('click', '.show-detail', function () {
+        var $sidebar = $("#right-sidebar");
+        $sidebar.removeClass('translate-x-full').addClass('shw-rside');
+        var id  = $(this).data('row-id');
+        var url = "{{ route('admin.applications-archive.show', ':id') }}".replace(':id', id);
+        $.easyAjax({
+            type: 'GET', url: url,
+            success: function (response) {
+                if (response.status === 'success') {
+                    $('#right-sidebar-content').html(response.view);
                 }
-            });
+            }
         });
+    });
+
+    // ── Export ────────────────────────────────────────────────────────────────
+    function exportJobApplication() {
+        var skill    = window.jaGetSkills ? window.jaGetSkills() : 'all';
+        var company  = $('#company').val()  || 'all';
+        var jobs     = $('#jobs').val()     || 'all';
+        var location = $('#location').val() || 'all';
+        var status   = $('#status').val()   || 'all';
+
+        var url = '{{ route('admin.applications-archive.export', ':skill') }}';
+        url = url.replace(':skill', skill || 'all');
+        url += '?company=' + company + '&jobs=' + jobs
+             + '&location=' + location + '&status=' + status;
+
+        window.location.href = url;
+    }
+
+    // ── Company → Jobs cascade ────────────────────────────────────────────────
+    $('#company').on('change', function () {
+        var company_id = $(this).val();
+        $.ajax({
+            url: "{{ route('admin.job-applications.get-jobs') }}",
+            type: 'GET',
+            data: { companyId: company_id },
+            success: function (data) {
+                var was = $('#jobs').val();
+                $('#jobs').select2('destroy').html(data.jobs).select2({ width: '100%' });
+                var val = $('#jobs option[value="' + was + '"]').length ? was : 'all';
+                $('#jobs').val(val).trigger('change');
+            }
+        });
+    });
     </script>
 @endpush
