@@ -16,3 +16,4 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Api\JobController;
 
 Route::get('/jobs', [\App\Http\Controllers\Api\JobController::class, 'allJobs']);
+Route::get('/assistmyday/jobs', [JobController::class, 'assistMyDayJobs']); // new
