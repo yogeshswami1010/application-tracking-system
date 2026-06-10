@@ -122,7 +122,9 @@
     </div>
 </div>
 
-<footer class="fr-site-footer">
+<footer class="fr-site-footer" style="
+    display: none;
+">
     <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 px-6">
         
         <nav class="flex flex-wrap justify-center gap-4 sm:gap-6">
