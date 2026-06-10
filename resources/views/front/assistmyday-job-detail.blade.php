@@ -131,7 +131,7 @@
 
         /* ── Content layout ── */
         .amd-content {
-            max-width: 900px; margin: 0 auto;
+            max-width: 1200px; margin: 0 auto;
             padding: 32px 24px 60px;
             display: flex; flex-direction: column; gap: 24px;
         }
