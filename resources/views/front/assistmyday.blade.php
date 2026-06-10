@@ -2,22 +2,19 @@
 
 @php
     $companyShort = 'AssistMyDay';
-@endphp 
-
+@endphp
 
 @section('body-class', 'assistmyday-front')
 @section('content')
 
 {{-- ── HERO ── --}}
 <section class="relative px-6 pt-20 pb-24 overflow-hidden" style="background: linear-gradient(135deg, #0c1929 0%, #1a3a5c 50%, #0f2b47 100%);">
-    {{-- Decorative elements --}}
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
         <div class="absolute -top-24 -right-24 w-96 h-96 rounded-full opacity-[0.07]" style="background: radial-gradient(circle, #38bdf8, transparent 70%);"></div>
         <div class="absolute -bottom-32 -left-32 w-[500px] h-[500px] rounded-full opacity-[0.05]" style="background: radial-gradient(circle, #818cf8, transparent 70%);"></div>
     </div>
 
     <div class="max-w-5xl mx-auto text-center relative z-10">
-        {{-- Logo / Brand --}}
         <div class="inline-flex items-center gap-3 mb-8">
             <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-400 to-indigo-500 flex items-center justify-center shadow-lg shadow-sky-500/20">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,11 +95,8 @@
                 <div class="amd-job-item" data-groups="{{ optional($location->location)->location }},{{ optional($location->job->category)->name }}">
                     <a href="{{ route('jobs.assistmyday.jobDetail', [$location->job->slug, optional($location->location)->id]) }}"
                        class="group block bg-white rounded-2xl border border-[#E8E6E1] overflow-hidden transition-all duration-200 hover:shadow-[0_12px_32px_rgba(15,31,61,0.1)] hover:-translate-y-0.5">
-                        {{-- Color bar --}}
                         <div class="h-1 w-full" style="background: {{ $c['bar'] }};"></div>
-
                         <div class="p-5">
-                            {{-- Header --}}
                             <div class="flex items-start justify-between mb-4">
                                 <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: {{ $c['bg'] }};">
                                     <svg class="w-5 h-5" style="color: {{ $c['fg'] }};" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -115,12 +109,9 @@
                                     </span>
                                 @endif
                             </div>
-
-                            {{-- Title --}}
                             <h3 class="font-bold text-[17px] leading-snug tracking-[-0.01em] text-[#1A1E2E] group-hover:text-sky-600 transition-colors mb-1">
                                 {{ ucwords($location->job->title) }}
                             </h3>
-
                             @if($location->job->company->show_in_frontend == 'true')
                                 <p class="text-[13px] font-medium text-[#8892A0] mb-4">
                                     {{ ucwords($location->job->company->company_name) }}
@@ -128,8 +119,6 @@
                             @else
                                 <p class="text-[13px] mb-4">&nbsp;</p>
                             @endif
-
-                            {{-- Footer --}}
                             <div class="flex items-center justify-between pt-4 border-t border-[#F0EEE9]">
                                 <span class="flex items-center gap-1.5 text-[13px] text-[#8892A0]">
                                     <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -191,6 +180,38 @@
 
 @endsection
 
+@push('head-script')
+<style>
+    /* ── Hide header & footer on AssistMyDay page ── */
+    .assistmyday-front .fr-nav,
+    .assistmyday-front .fr-header,
+    .assistmyday-front header.fr-header,
+    .assistmyday-front #fr-header,
+    .assistmyday-front .front-header,
+    .assistmyday-front #front-header,
+    .assistmyday-front footer,
+    .assistmyday-front .fr-footer,
+    .assistmyday-front #fr-footer,
+    .assistmyday-front .front-footer,
+    .assistmyday-front #front-footer,
+    .assistmyday-front .footer-section,
+    .assistmyday-front #footer-section {
+        display: none !important;
+    }
+
+    /* Remove header offset padding added by layout */
+    .assistmyday-front .fr-body,
+    .assistmyday-front .fr-content,
+    .assistmyday-front #app > .pt-16,
+    .assistmyday-front #app > .pt-14,
+    .assistmyday-front #app > .mt-16,
+    .assistmyday-front #app > .mt-14 {
+        padding-top: 0 !important;
+        margin-top: 0 !important;
+    }
+</style>
+@endpush
+
 @push('footer-script')
 <style>
     .amd-select {
@@ -220,13 +241,21 @@ $(document).ready(function(){
 
     $('#amd-load-more').on('click', function() {
         var location_id = $('#amd-location').val();
-        var category = $('#amd-category').val();
-        var token = '{{ csrf_token() }}';
+        var category    = $('#amd-category').val();
+        var token       = '{{ csrf_token() }}';
         $(this).html('<b>Loading...</b>');
         $.easyAjax({
             url: "{{ route('jobs.more-data') }}",
             type: 'POST',
-            data: { _token: token, totalCurrentData: totalCurrentData, location_id: location_id, category: category, skill: 'all', company: 'all',page_source: 'assistmyday' },
+            data: {
+                _token: token,
+                totalCurrentData: totalCurrentData,
+                location_id: location_id,
+                category: category,
+                skill: 'all',
+                company: 'all',
+                page_source: 'assistmyday'
+            },
             success: function(response) {
                 $('#amd-job-list').append(response.view);
                 totalCurrentData = response.data.job_current_count;
@@ -240,16 +269,25 @@ $(document).ready(function(){
     $('#amd-search').on('click', function(e) {
         e.preventDefault();
         var location_id = $('#amd-location').val();
-        var category = $('#amd-category').val();
-        var token = '{{ csrf_token() }}';
+        var category    = $('#amd-category').val();
+        var token       = '{{ csrf_token() }}';
         $.easyAjax({
             url: "{{ route('jobs.search-job') }}",
             type: 'POST',
-            data: { _token: token, location_id: location_id, category: category, skill: 'all', company: 'all', page_source: 'assistmyday' },
+            data: {
+                _token: token,
+                location_id: location_id,
+                category: category,
+                skill: 'all',
+                company: 'all',
+                page_source: 'assistmyday'
+            },
             success: function(response) {
                 $('#amd-job-list').html(response.view);
                 totalCurrentData = response.data.job_current_count;
-                $([document.documentElement, document.body]).animate({ scrollTop: $('#amd-job-list').offset().top - 80 }, 600);
+                $([document.documentElement, document.body]).animate({
+                    scrollTop: $('#amd-job-list').offset().top - 80
+                }, 600);
                 if (response.data.hideButton === 'yes') $('#amd-load-more').hide();
                 else $('#amd-load-more').show();
             }
