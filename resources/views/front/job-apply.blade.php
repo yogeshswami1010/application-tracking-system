@@ -12,10 +12,51 @@
         : '';
 @endphp
 
+@section('body-class', 'apply-page-bare')
+
 @push('style')
 <style>
     .required:after { content: " *"; color: #ef4444; }
-    .has-error input, .has-error select, .has-error textarea { border-color: #ef4444 !important; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08); }
+    .has-error input, .has-error select, .has-error textarea {
+        border-color: #ef4444 !important;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
+    }
+
+    /* ── Hide header & footer on job-apply page ──────────────────── */
+    /* Common class/id patterns — will be trimmed once layout is confirmed */
+    .apply-page-bare .fr-nav,
+    .apply-page-bare .fr-header,
+    .apply-page-bare header.fr-header,
+    .apply-page-bare #fr-header,
+    .apply-page-bare .front-header,
+    .apply-page-bare #front-header,
+    .apply-page-bare header:not(.fr-mini-hero),
+    .apply-page-bare nav.fr-nav,
+    .apply-page-bare .top-bar,
+    .apply-page-bare #top-bar,
+    .apply-page-bare footer,
+    .apply-page-bare .fr-footer,
+    .apply-page-bare #fr-footer,
+    .apply-page-bare .front-footer,
+    .apply-page-bare #front-footer,
+    .apply-page-bare .footer-section,
+    .apply-page-bare #footer-section,
+    .apply-page-bare .site-footer,
+    .apply-page-bare #site-footer {
+        display: none !important;
+    }
+
+    /* Remove top padding/margin the layout adds to offset the fixed header */
+    .apply-page-bare body,
+    .apply-page-bare #app,
+    .apply-page-bare .fr-body,
+    .apply-page-bare .fr-content,
+    .apply-page-bare .main-content,
+    .apply-page-bare #main-content {
+        padding-top: 0 !important;
+        margin-top:  0 !important;
+    }
+    /* ─────────────────────────────────────────────────────────────── */
 </style>
 @endpush
 
@@ -28,7 +69,7 @@
 
 <section class="fr-mini-hero relative px-6 pt-10 pb-12">
     <div class="max-w-6xl mx-auto relative z-10">
-      
+
         <nav class="fr-breadcrumb flex flex-wrap items-center mb-6">
             <a href="{{ route('jobs.jobOpenings') }}">@lang('modules.front.jobOpenings')</a>
             <span class="sep">›</span>
@@ -59,19 +100,12 @@
         <h1 class="text-white font-bold leading-tight tracking-[-0.02em] text-[clamp(22px,3vw,36px)]">
             @lang('modules.front.applyForJob'): <span class="font-serif-recruit italic font-normal text-sky-300">{!! $titleHtml !!}</span>
         </h1>
-        <!--@if($companyLine || (isset($location) && $location))-->
-        <!--    <p class="mt-2 text-[14px] text-white/50">-->
-        <!--        @if($companyLine){{ $companyLine }}@endif-->
-        <!--        @if($companyLine && isset($location->location)) &nbsp;·&nbsp; @endif-->
-        <!--        @if(isset($location->location)){{ ucwords($location->location) }}@endif-->
-        <!--    </p>-->
-        <!--@endif-->
     </div>
 </section>
 
 @php
     $gender = [
-        'male' => __('modules.front.male'),
+        'male'   => __('modules.front.male'),
         'female' => __('modules.front.female'),
         'others' => __('modules.front.others'),
     ];
@@ -80,12 +114,13 @@
 <div id="apply-form-area" class="max-w-6xl mx-auto py-10">
     <form id="createForm" method="POST">
         @csrf
-        <input type="hidden" name="job_id" value="{{ $job->id }}">
+        <input type="hidden" name="job_id"     value="{{ $job->id }}">
         <input type="hidden" name="location_id" @if(isset($location->id)) value="{{ $location->id }}" @else value="" @endif>
 
         <div class="flex flex-col lg:flex-row gap-8">
             <div class="flex-1 min-w-0 space-y-4">
 
+                {{-- Personal Information --}}
                 <div class="fr-form-card">
                     <div class="flex items-center gap-3 mb-6 pb-5 border-b border-[#F0EEE9]">
                         <div class="w-9 h-9 rounded-xl flex items-center justify-center bg-[#EFF6FF]">
@@ -141,7 +176,7 @@
                             <select class="fr-form-input states" name="state" id="stateId">
                                 <option value="0">@lang('modules.front.selectState')</option>
                             </select>
-                            <input class="fr-form-input" type="text" name="city" id="cityId" placeholder="@lang('modules.front.selectCity')">
+                            <input class="fr-form-input" type="text"   name="city"     id="cityId"  placeholder="@lang('modules.front.selectCity')">
                             <input class="fr-form-input" type="number" name="zip_code" id="zipCode" placeholder="@lang('modules.front.zipCode')">
                         </div>
                         @endif
@@ -154,12 +189,14 @@
                             @if ($user)
                                 <input type="hidden" name="apply_type" value="linkedin">
                             @endif
-                            <input class="block w-full text-sm text-[#8892A0] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#EFF6FF] file:text-blue-700 hover:file:bg-blue-100 select-file" accept=".png,.jpg,.jpeg" type="file" name="photo">
+                            <input class="block w-full text-sm text-[#8892A0] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#EFF6FF] file:text-blue-700 hover:file:bg-blue-100 select-file"
+                                   accept=".png,.jpg,.jpeg" type="file" name="photo">
                         </div>
                         @endif
                     </div>
                 </div>
 
+                {{-- Resume --}}
                 @if ($job->section_visibility['resume'] == 'yes')
                 <div class="fr-form-card">
                     <div class="flex items-center gap-3 mb-6 pb-5 border-b border-[#F0EEE9]">
@@ -175,29 +212,31 @@
                 </div>
                 @endif
 
+                {{-- Questions --}}
                 @if (count($jobQuestion) > 0)
                 <div class="fr-form-card">
                     <h3 class="font-bold text-[16px] text-[#1A1A2A] mb-4 pb-3 border-b border-[#F0EEE9]">@lang('modules.front.additionalDetails')</h3>
                     @forelse($jobQuestion as $question)
                         <div class="mb-4">
                             <label class="block text-sm font-medium text-[#1A1A2A] mb-2" for="answer[{{ $question->id }}]">{{ $question->question }}</label>
-                          @if ($question->type == 'text')
+                            @if ($question->type == 'text')
                                 <input class="fr-form-input" type="text" id="answer[{{ $question->id }}]" name="answer[{{ $question->id }}]" placeholder="@lang('modules.front.yourAnswer')">
                             @elseif ($question->type == 'radio')
                                 <div class="flex flex-wrap gap-4 mt-1">
                                     @foreach(explode(',', $question->answer_type) as $option)
                                         <label class="inline-flex items-center gap-2 cursor-pointer text-[#3D4A5C] text-sm">
-                                            <input class="rounded border-[#D1D9E8] text-blue-600 focus:ring-blue-500" 
-                                                type="radio" 
-                                                name="answer[{{ $question->id }}]" 
-                                                value="{{ trim($option) }}">
+                                            <input class="rounded border-[#D1D9E8] text-blue-600 focus:ring-blue-500"
+                                                   type="radio"
+                                                   name="answer[{{ $question->id }}]"
+                                                   value="{{ trim($option) }}">
                                             <span>{{ trim($option) }}</span>
                                         </label>
                                     @endforeach
                                 </div>
                             @else
                                 <input type="hidden" name="answer[{{ $question->id }}]">
-                                <input class="select-file text-sm w-full" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx,.rtf" type="file" id="answer[{{ $question->id }}]" name="answer[{{ $question->id }}]">
+                                <input class="select-file text-sm w-full" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.xls,.xlsx,.rtf"
+                                       type="file" id="answer[{{ $question->id }}]" name="answer[{{ $question->id }}]">
                                 <p class="text-xs text-[#8892A0] mt-1">@lang('modules.front.resumeFileType')</p>
                             @endif
                         </div>
@@ -206,6 +245,7 @@
                 </div>
                 @endif
 
+                {{-- Cover Letter --}}
                 @if ($job->section_visibility['cover_letter'] == 'yes')
                 <div class="fr-form-card">
                     <div class="flex items-center gap-3 mb-6 pb-5 border-b border-[#F0EEE9]">
@@ -220,6 +260,7 @@
                 </div>
                 @endif
 
+                {{-- Terms --}}
                 @if ($job->section_visibility['terms_and_conditions'] == 'yes')
                 <div class="fr-form-card">
                     <div class="flex items-center gap-3 mb-6 pb-5 border-b border-[#F0EEE9]">
@@ -240,20 +281,25 @@
                 </div>
                 @endif
 
+                {{-- Captcha --}}
                 @if ($credentials->job_apply_page == 'active' && $credentials->status == 'active')
                 <div id="captcha_container" class="fr-form-card !py-6"></div>
                 @endif
                 <input type="hidden" name="recaptcha" id="recaptcha">
 
+                {{-- Submit --}}
                 <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2">
                     <button class="fr-btn-lg w-full sm:w-auto flex items-center justify-center gap-2" id="save-form" type="button">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
                         @lang('modules.front.submitApplication')
                     </button>
-                    <a href="{{ route('jobs.jobDetail', [$job->slug, isset($location) && $location ? $location->id : null]) }}" class="text-center sm:text-left text-[13px] font-semibold text-[#8892A0] py-3">← @lang('app.back')</a>
+                    <a href="{{ route('jobs.jobDetail', [$job->slug, isset($location) && $location ? $location->id : null]) }}"
+                       class="text-center sm:text-left text-[13px] font-semibold text-[#8892A0] py-3">← @lang('app.back')</a>
                 </div>
+
             </div>
 
+            {{-- Sidebar --}}
             <aside class="lg:w-64 shrink-0">
                 <div class="sticky top-24 space-y-4">
                     <div class="fr-sidebar-card">
@@ -264,9 +310,6 @@
                             </div>
                             <div>
                                 <p class="font-bold text-[14px] leading-snug text-[#1A1A2A]">{{ ucwords($job->title) }}</p>
-                                <!--@if($companyLine)-->
-                                <!--    <p class="text-[12px] mt-1 text-[#8892A0]">{{ $companyLine }}</p>-->
-                                <!--@endif-->
                                 <div class="flex flex-wrap gap-1.5 mt-2">
                                     @if($job->show_job_type && $job->jobType)
                                         <span class="fr-badge text-[10.5px] py-0.5 bg-[#EFF6FF] text-[#1D4ED8]">{{ $job->jobType->job_type }}</span>
@@ -316,48 +359,43 @@
                 'sitekey': '{{ $credentials->v2_site_key }}',
                 'theme': 'light',
                 'callback': function(response) {
-                    if (response) {
-                        $('#recaptcha').val(response);
-                    }
+                    if (response) { $('#recaptcha').val(response); }
                 },
             });
         };
     </script>
-@endif
+    @endif
 
     @if ($credentials->v3_status == 'active' && $credentials->status == 'active')
-        <script src="https://www.google.com/recaptcha/api.js?render={{ $credentials->v3_site_key }}"></script>
-        <script>
-            grecaptcha.ready(function() {
-                grecaptcha.execute('{{ $credentials->v3_site_key }}', {
-                    action: 'contact'
-                }).then(function(token) {
-                    if (token) {
-                        document.getElementById('recaptcha').value = token;
-                    }
+    <script src="https://www.google.com/recaptcha/api.js?render={{ $credentials->v3_site_key }}"></script>
+    <script>
+        grecaptcha.ready(function() {
+            grecaptcha.execute('{{ $credentials->v3_site_key }}', { action: 'contact' })
+                .then(function(token) {
+                    if (token) { document.getElementById('recaptcha').value = token; }
                 });
-            });
-        </script>
+        });
+    </script>
     @endif
 
     <script>
-        var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
         $('.js-switch').each(function() {
             new Switchery($(this)[0], $(this).data());
         });
     </script>
+
     <script>
         const fetchCountryState = "{{ route('jobs.fetchCountryState') }}";
-        const csrfToken = "{{ csrf_token() }}";
-        const selectCountry = "@lang('modules.front.selectCountry')";
-        const selectState = "@lang('modules.front.selectState')";
-        const selectCity = "@lang('modules.front.selectCity')";
-        const pleaseWait = "@lang('modules.front.pleaseWait')";
-
+        const csrfToken         = "{{ csrf_token() }}";
+        const selectCountry     = "@lang('modules.front.selectCountry')";
+        const selectState       = "@lang('modules.front.selectState')";
+        const selectCity        = "@lang('modules.front.selectCity')";
+        const pleaseWait        = "@lang('modules.front.pleaseWait')";
         let country = "";
-        let state = "";
+        let state   = "";
     </script>
     <script src="{{ asset('front/assets/js/location.js') }}"></script>
+
     <script>
         $('.dob').datepicker({
             autoclose: true,
@@ -367,86 +405,68 @@
 
         $('#save-form').click(function() {
             $.easyAjax({
-                url: '{{ route('jobs.saveApplication') }}',
+                url:       '{{ route('jobs.saveApplication') }}',
                 container: '#createForm',
-                type: "POST",
-                file: true,
-                redirect: true,
+                type:      'POST',
+                file:      true,
+                redirect:  true,
                 success: function(response) {
                     if (response.status == 'success') {
-                        var successMsg = '<div class="fr-form-card border-emerald-200 bg-emerald-50/80 text-emerald-900 p-8 text-center rounded-2xl" role="alert">' +
-                            '<div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-emerald-100 text-emerald-600 text-2xl">✓</div>' +
-                            '<p class="text-lg font-semibold mb-2">' + (response.msg || '') + '</p>' +
-                            ' <a class="fr-btn-lg inline-block mt-4" href="{{ route('jobs.jobOpenings') }}">@lang('app.view') @lang('modules.front.jobOpenings')</a>' +
-                        '</div>';
+                        var successMsg =
+                            '<div class="fr-form-card border-emerald-200 bg-emerald-50/80 text-emerald-900 p-8 text-center rounded-2xl" role="alert">' +
+                                '<div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-emerald-100 text-emerald-600 text-2xl">✓</div>' +
+                                '<p class="text-lg font-semibold mb-2">' + (response.msg || '') + '</p>' +
+                                '<a class="fr-btn-lg inline-block mt-4" href="{{ route('jobs.jobOpenings') }}">@lang('app.view') @lang('modules.front.jobOpenings')</a>' +
+                            '</div>';
                         $('#apply-form-area').html(successMsg);
                     }
                 },
-                error: function(response) {
-                    handleFails(response);
-                }
-            })
+                error: function(response) { handleFails(response); }
+            });
         });
 
         function handleFails(response) {
             var errors = null;
-            if (response && response.responseJSON && typeof response.responseJSON.errors != "undefined") {
+            if (response && response.responseJSON && typeof response.responseJSON.errors != 'undefined') {
                 errors = response.responseJSON.errors;
-            } else if (response && typeof response.errors != "undefined") {
+            } else if (response && typeof response.errors != 'undefined') {
                 errors = response.errors;
             }
+            if (!errors) return;
 
-            if (errors) {
-                var keys = Object.keys(errors);
-                $('#createForm').find(".invalid-feedback").remove();
-                $('#createForm').find(".is-invalid").removeClass("is-invalid");
-                $('#createForm').find(".has-error").removeClass("has-error");
-                $('#createForm').find(".help-block").remove();
+            var keys = Object.keys(errors);
+            $('#createForm').find('.invalid-feedback, .help-block').remove();
+            $('#createForm').find('.is-invalid').removeClass('is-invalid');
+            $('#createForm').find('.has-error').removeClass('has-error');
 
-                for (var i = 0; i < keys.length; i++) {
-                    var key = keys[i].replace(".", '\\.');
-                    var formarray = keys[i];
-
-                    if (formarray.indexOf('.') > 0) {
-                        var array = formarray.split('.');
-                        key = array[0] + '[' + array[1] + ']';
-                    }
-
-                    var ele = $('#createForm').find("[name='" + key + "']");
-
-                    var grp = ele.closest(".form-group");
-                    if (grp.length === 0) {
-                        grp = ele.closest("div");
-                    }
-                    $(grp).find(".help-block").remove();
-
-                    var wys = $(grp).find(".wysihtml5-toolbar").length;
-
-                    if (wys > 0) {
-                        var helpBlockContainer = $(grp);
-                    } else {
-                        var helpBlockContainer = $(grp).find("div:first");
-                    }
-                    if ($(ele).is(':radio')) {
-                        helpBlockContainer = $(grp);
-                    }
-
-                    if (helpBlockContainer.length == 0) {
-                        helpBlockContainer = $(grp);
-                    }
-
-                    helpBlockContainer.append('<div class="text-red-600 text-sm mt-1">' + errors[keys[i]] +
-                    '</div>');
-                    $(grp).addClass("has-error");
-                    $(ele).addClass("border-red-500");
+            for (var i = 0; i < keys.length; i++) {
+                var key      = keys[i].replace('.', '\\.');
+                var formarray = keys[i];
+                if (formarray.indexOf('.') > 0) {
+                    var arr = formarray.split('.');
+                    key = arr[0] + '[' + arr[1] + ']';
                 }
+                var ele = $('#createForm').find("[name='" + key + "']");
+                var grp = ele.closest('.form-group');
+                if (grp.length === 0) grp = ele.closest('div');
+                $(grp).find('.help-block').remove();
 
-                if (keys.length > 0) {
-                    var element = $("[name='" + keys[0] + "']");
-                    if (element.length > 0) {
-                        element[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                }
+                var helpBlockContainer = $(grp).find('.wysihtml5-toolbar').length
+                    ? $(grp)
+                    : $(grp).find('div:first');
+                if ($(ele).is(':radio')) helpBlockContainer = $(grp);
+                if (helpBlockContainer.length == 0) helpBlockContainer = $(grp);
+
+                helpBlockContainer.append(
+                    '<div class="text-red-600 text-sm mt-1">' + errors[keys[i]] + '</div>'
+                );
+                $(grp).addClass('has-error');
+                $(ele).addClass('border-red-500');
+            }
+
+            if (keys.length > 0) {
+                var first = $("[name='" + keys[0] + "']");
+                if (first.length > 0) first[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         }
     </script>
