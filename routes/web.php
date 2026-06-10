@@ -229,15 +229,14 @@ Route::middleware('auth')->group(function () {
             Route::get('job-applications/ai-compare-applicants',          [AdminJobApplicationController::class, 'aiCompareApplicants'])->name('job-applications.ai-compare-applicants');
             Route::post('job-applications/ai-generate-cover-letter',      [AdminJobApplicationController::class, 'aiGenerateCoverLetterAndDetails'])->name('job-applications.ai-generate-cover-letter');
             Route::post('job-applications/ai-parse-resume',               [AdminJobApplicationController::class, 'aiParseResumeFromUpload'])->name('job-applications.ai-parse-resume');
-            Route::get('job-applications/get-jobs',                       [AdminJobApplicationController::class, 'getJobs'])->name('job-applications.get-jobs');
-            Route::resource('job-applications', AdminJobApplicationController::class);
-            Route::post('job-applications/{id}/parse-skills',             [AdminJobApplicationController::class, 'parseSkills'])->name('job-applications.parse-skills');
-            Route::post('job-applications/bulk-parse-resume',             [AdminJobApplicationController::class, 'bulkParseResume'])->name('job-applications.bulk-parse-resume');
-            Route::post('job-applications/{id}/assign-job',               [AdminJobApplicationController::class, 'assignJob'])->name('job-applications.assign-job');
+           Route::get('job-applications/get-jobs',                       [AdminJobApplicationController::class, 'getJobs'])->name('job-applications.get-jobs');
+            Route::get('job-applications/stage-counts',                   [AdminJobApplicationController::class, 'stageCounts'])->name('job-applications.stage-counts');
             Route::post('job-applications/bulk-status-update',            [AdminJobApplicationController::class, 'bulkStatusUpdate'])->name('job-applications.bulk-status-update');
             Route::post('job-applications/bulk-restore-knockout',         [AdminJobApplicationController::class, 'bulkRestoreKnockout'])->name('job-applications.bulk-restore-knockout');
-            Route::get('job-applications/stage-counts', 'AdminJobApplicationController@stageCounts')
-            ->name('admin.job-applications.stage-counts');
+            Route::post('job-applications/bulk-parse-resume',             [AdminJobApplicationController::class, 'bulkParseResume'])->name('job-applications.bulk-parse-resume');
+            Route::resource('job-applications', AdminJobApplicationController::class);
+            Route::post('job-applications/{id}/parse-skills',             [AdminJobApplicationController::class, 'parseSkills'])->name('job-applications.parse-skills');
+            Route::post('job-applications/{id}/assign-job',               [AdminJobApplicationController::class, 'assignJob'])->name('job-applications.assign-job');
 
             // Applications Archive
             Route::get('applications-archive/data',            [AdminApplicationArchiveController::class, 'data'])->name('applications-archive.data');
