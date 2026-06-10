@@ -479,16 +479,28 @@
         var questions      = $('#questions').val();
         var question_value = $('#question-value').val();
 
-        // Fully destroy before reinitializing
+        // Destroy existing instance
         if ($.fn.DataTable.isDataTable('#myTable')) {
             $('#myTable').DataTable().destroy();
-            $('#myTable').empty();
         }
+
+        // Rebuild thead so DataTables has correct columns to measure
+        $('#myTable').html(
+            '<thead><tr>' +
+                '<th>#</th>' +
+                '<th>{{ __('modules.jobApplication.applicantName') }}</th>' +
+                '<th>{{ __('menu.jobs') }}</th>' +
+                '<th>{{ __('menu.locations') }}</th>' +
+                '<th>{{ __('app.status') }}</th>' +
+                '<th></th>' +
+            '</tr></thead>' +
+            '<tbody></tbody>'
+        );
 
         table = $('#myTable').DataTable({
             responsive: false,
             serverSide: true,
-            destroy: true,
+            autoWidth: false,
             order: [[5, 'desc']],
             ajax: {
                 url: "{!! route('admin.applications-archive.data') !!}",
@@ -513,11 +525,11 @@
                 }
             },
             columns: [
-                { data: 'DT_Row_Index', orderable: false, searchable: false },
+                { data: 'DT_Row_Index', orderable: false,  searchable: false },
                 { data: 'full_name',    name: 'full_name' },
                 { data: 'title',        name: 'job_id' },
                 { data: 'location',     name: 'location_id' },
-                { data: 'status',       name: 'status_id', orderable: false },
+                { data: 'status',       name: 'status_id',  orderable: false },
                 { data: 'created_at',   name: 'created_at', visible: false, searchable: false }
             ]
         });
