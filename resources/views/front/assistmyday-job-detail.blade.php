@@ -89,7 +89,7 @@
             background: linear-gradient(135deg, #0c1929 0%, #1a3a5c 50%, #0f2b47 100%);
             padding: 40px 24px 48px;
         }
-        .amd-hero-inner { max-width: 900px; margin: 0 auto; }
+        .amd-hero-inner { max-width: 1100px; margin: 0 auto; }
         .amd-badge {
             display: inline-flex; align-items: center;
             font-size: 11px; font-weight: 700;
