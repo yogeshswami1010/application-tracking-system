@@ -1572,8 +1572,20 @@
                 '<div class="flex flex-col items-center justify-center h-full gap-2 text-green-600">' +
                 '<i class="fa fa-check-circle fa-3x"></i>' +
                 '<p class="text-sm font-medium">All CVs reviewed!</p>' +
-                '<a href="' + bulkIndexUrl + '" class="text-xs text-blue-600 underline mt-1">Go to applicants board →</a>' +
+                '<p class="text-xs text-gray-400">Redirecting to applicants board in <span id="bulk-redirect-countdown">3</span>s...</p>' +
+                '<a href="' + bulkIndexUrl + '" class="text-xs text-blue-600 underline mt-1">Go now →</a>' +
                 '</div>';
+
+            var seconds = 3;
+            var interval = setInterval(function () {
+                seconds--;
+                var el = document.getElementById('bulk-redirect-countdown');
+                if (el) el.textContent = seconds;
+                if (seconds <= 0) {
+                    clearInterval(interval);
+                    window.location.href = bulkIndexUrl;
+                }
+            }, 1000);
         }
 
         /* ─────────────────────────────────────────────
