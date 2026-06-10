@@ -25,7 +25,9 @@
 
         <!-- Left -->
         <div class="relative hidden min-h-screen flex-1 flex-col justify-between overflow-hidden bg-[linear-gradient(160deg,#0F1F3D_0%,#162849_55%,#1B3560_100%)] px-14 py-12 before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(ellipse_60%_60%_at_80%_30%,rgba(37,99,235,0.22)_0%,transparent_65%),radial-gradient(ellipse_40%_50%_at_10%_80%,rgba(5,150,105,0.12)_0%,transparent_60%)] after:pointer-events-none after:absolute after:inset-0 after:bg-[radial-gradient(circle,rgba(255,255,255,0.045)_1px,transparent_1px)] after:[background-size:28px_28px] lg:flex">
-            <div class="relative z-10">
+            <div class="relative z-10" style="
+                    display: none;
+                ">
                 <div class="flex animate-auth-slide-in items-center gap-3 opacity-0 [animation-delay:100ms]">
                     <img src="{{ $setting->logo_url }}" alt="" class="max-h-8 " />
                     <span class="text-xl font-extrabold tracking-tight text-white">{{ $setting->company_name }}</span>
