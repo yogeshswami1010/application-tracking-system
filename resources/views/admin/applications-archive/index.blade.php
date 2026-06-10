@@ -479,6 +479,12 @@
         var questions      = $('#questions').val();
         var question_value = $('#question-value').val();
 
+        // Fully destroy before reinitializing
+        if ($.fn.DataTable.isDataTable('#myTable')) {
+            $('#myTable').DataTable().destroy();
+            $('#myTable').empty();
+        }
+
         table = $('#myTable').DataTable({
             responsive: false,
             serverSide: true,
@@ -507,34 +513,12 @@
                 }
             },
             columns: [
-                {
-                    data: 'DT_Row_Index',
-                    orderable: false,
-                    searchable: false
-                },
-                {
-                    data: 'full_name',
-                    name: 'full_name'
-                },
-                {
-                    data: 'title',
-                    name: 'job_id'
-                },
-                {
-                    data: 'location',
-                    name: 'location_id'
-                },
-                {
-                    data: 'status',
-                    name: 'status_id',
-                    orderable: false
-                },
-                {
-                    data: 'created_at',
-                    name: 'created_at',
-                    visible: false,
-                    searchable: false
-                }
+                { data: 'DT_Row_Index', orderable: false, searchable: false },
+                { data: 'full_name',    name: 'full_name' },
+                { data: 'title',        name: 'job_id' },
+                { data: 'location',     name: 'location_id' },
+                { data: 'status',       name: 'status_id', orderable: false },
+                { data: 'created_at',   name: 'created_at', visible: false, searchable: false }
             ]
         });
     }
