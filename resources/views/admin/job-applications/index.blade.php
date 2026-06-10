@@ -731,14 +731,20 @@
             url: '{{ route("admin.job-applications.stage-counts") }}',
             type: 'GET',
             success: function(res) {
-                if (!res.counts) return;
+                // Reply::dataOnly may nest under .data — handle both
+                var payload = res.data ? res.data : res;
+                var counts  = payload.counts;
+                var koCount = payload.ko_count;
+
+                if (!counts) { console.warn('stage-counts: no counts in response', res); return; }
+
                 var total = 0;
-                $.each(res.counts, function(stageId, cnt) {
+                $.each(counts, function(stageId, cnt) {
                     $('#ja-tab-count-' + stageId).text(cnt);
                     total += parseInt(cnt) || 0;
                 });
                 $('#ja-tab-count-all').text(total);
-                $('#ja-ko-tab-count').text(res.ko_count || 0);
+                $('#ja-ko-tab-count').text(koCount || 0);
             }
         });
     }

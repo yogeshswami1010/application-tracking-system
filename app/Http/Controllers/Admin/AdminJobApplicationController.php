@@ -534,7 +534,7 @@ class AdminJobApplicationController extends AdminBaseController
    public function stageCounts()
     {
         $counts = ApplicationStatus::withCount(['applications as cnt' => function ($q) {
-            $q->where('is_candidate', 0)->whereNull('deleted_at');
+            $q->where('is_candidate', 0);
         }])->get()->pluck('cnt', 'id');
 
         // KO count = applicants who answered a knockout question with the knockout answer
