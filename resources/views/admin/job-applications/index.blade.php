@@ -744,68 +744,93 @@
     }
 
   function tableLoad(type) {
-        var status         = $('#status').val();
-        var jobs           = $('#jobs').val();
-        var questions      = $('#questions').val();
-        var location       = $('#location').val();
-        var company        = $('#company').val();
-        var question_value = $('#question-value').val();
-        var knockout       = jaShowKO ? 1 : 0;
+    var status         = $('#status').val();
+    var jobs           = $('#jobs').val();
+    var questions      = $('#questions').val();
+    var location       = $('#location').val();
+    var company        = $('#company').val();
+    var question_value = $('#question-value').val();
+    var knockout       = jaShowKO ? 1 : 0;
 
-        table = $('#myTable').DataTable({
-            responsive: false,
-            autoWidth: false,
-            processing: false,
-            serverSide: true,
-            destroy: true,
-            ajax: '{!! route('admin.job-applications.data') !!}?status=' + status
-                + '&location=' + location
-                + '&jobs=' + jobs
-                + '&questions=' + questions
-                + '&question_value=' + question_value
-                + '&company=' + company
-                + '&knockout=' + knockout,
-            language: languageOptions(),
-            stripeClasses: [],
-            dom: '<"jc-table-toolbar"lf>rt<"jc-table-toolbar jc-table-toolbar--footer"ip>',
-            drawCallback: function() {
-                if (typeof $.fn.tooltip === 'function') {
-                    $('[data-toggle="tooltip"]').tooltip();
-                }
-                jaUpdateAllChk();
-                jaRebuildIds();
-            },
-            order: [[6, 'desc']],
-            columns: [
-                {
-                    data: null,
-                    orderable: false,
-                    searchable: false,
-                    width: '40px',
-                    render: function(data, type, row) {
-                        return '<div class="ja-chk ja-row-chk" data-id="' + row.id + '" onclick="jaToggleRow(' + row.id + ', this)"></div>';
-                    }
-                },
-                { data: 'full_name',   name: 'full_name',  width: '17%' },
-                { data: 'title',       name: 'job_id',     width: '15%' },
-                { data: 'location_id', name: 'location_id' },
-                {
-                    data: 'status',
-                    name: 'status_id',
-                    render: function(data, type, row) {
-                        if (jaShowKO) {
-                            return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold text-white" style="background:#dc2626;">'
-                                + '<i class="fa fa-user-times" style="font-size:10px;margin-right:3px;"></i>Knockout'
-                                + '</span>';
-                        }
-                        return data;
-                    }
-                },
-                { data: 'action', name: 'action', width: '18%', searchable: false, className: 'jc-td-right' },
-                { data: 'created_at', name: 'created_at', visible: false, searchable: false, orderable: true, defaultContent: '' }
-            ]
-        });
+    // Destroy existing instance cleanly
+    if ($.fn.DataTable.isDataTable('#myTable')) {
+        $('#myTable').DataTable().destroy();
     }
+
+    // Rebuild thead to avoid column width calculation error
+    $('#myTable').html(
+        '<thead><tr>' +
+            '<th style="width:40px;"></th>' +
+            '<th>{{ __("modules.jobApplication.applicantName") }}</th>' +
+            '<th>{{ __("menu.jobs") }}</th>' +
+            '<th>{{ __("menu.locations") }}</th>' +
+            '<th>{{ __("app.status") }}</th>' +
+            '<th style="padding-right:16px;">{{ __("app.action") }}</th>' +
+            '<th style="display:none;"></th>' +
+        '</tr></thead>' +
+        '<tbody></tbody>'
+    );
+
+    table = $('#myTable').DataTable({
+        responsive: false,
+        autoWidth: false,
+        processing: false,
+        serverSide: true,
+        ajax: {
+            url: '{!! route("admin.job-applications.data") !!}',
+            data: function(d) {
+                return $.extend({}, d, {
+                    status:         status,
+                    location:       location,
+                    jobs:           jobs,
+                    questions:      questions,
+                    question_value: question_value,
+                    company:        company,
+                    knockout:       knockout
+                });
+            }
+        },
+        language: languageOptions(),
+        stripeClasses: [],
+        dom: '<"jc-table-toolbar"lf>rt<"jc-table-toolbar jc-table-toolbar--footer"ip>',
+        drawCallback: function() {
+            if (typeof $.fn.tooltip === 'function') {
+                $('[data-toggle="tooltip"]').tooltip();
+            }
+            jaUpdateAllChk();
+            jaRebuildIds();
+        },
+        order: [[6, 'desc']],
+        columns: [
+            {
+                data: null,
+                orderable: false,
+                searchable: false,
+                width: '40px',
+                render: function(data, type, row) {
+                    return '<div class="ja-chk ja-row-chk" data-id="' + row.id + '" onclick="jaToggleRow(' + row.id + ', this)"></div>';
+                }
+            },
+            { data: 'full_name',   name: 'full_name',  width: '17%' },
+            { data: 'title',       name: 'job_id',     width: '15%' },
+            { data: 'location_id', name: 'location_id' },
+            {
+                data: 'status',
+                name: 'status_id',
+                render: function(data, type, row) {
+                    if (jaShowKO) {
+                        return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold text-white" style="background:#dc2626;">'
+                            + '<i class="fa fa-user-times" style="font-size:10px;margin-right:3px;"></i>Knockout'
+                            + '</span>';
+                    }
+                    return data;
+                }
+            },
+            { data: 'action',     name: 'action',     width: '18%', searchable: false, className: 'jc-td-right' },
+            { data: 'created_at', name: 'created_at',  visible: false, searchable: false, orderable: true, defaultContent: '' }
+        ]
+    });
+}
 
     // ── Filter badge counter ─────────────────────────────────────
     $('#filter-form').on('change', 'select', function() { jaTableSyncFilterBadge(); });
