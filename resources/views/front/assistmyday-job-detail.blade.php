@@ -3,11 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>{{ $job->title }} — AssistMyDay</title>
     <meta name="description" content="{{ $metaDescription ?? '' }}">
 
-    {{-- Reuse the same CSS your front layout loads --}}
-    @include('layouts.front-head-assets')
+    {{-- Favicon --}}
+    <link rel="shortcut icon" href="{{ $global->favicon_url ?? asset('favicon.png') }}">
+
+    {{-- Google Fonts --}}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    {{-- 
+        Pull in the same compiled CSS your front layout uses.
+        Check your layouts/front.blade.php and copy the <link> or
+        @vite() line here. Common patterns shown below — uncomment
+        whichever matches your setup:
+    --}}
+
+    {{-- Option A: Vite (Laravel 9+) --}}
+    {{-- @vite(['resources/css/app.css']) --}}
+
+    {{-- Option B: Laravel Mix --}}
+    {{-- <link rel="stylesheet" href="{{ mix('css/app.css') }}"> --}}
+
+    {{-- Option C: Direct public asset --}}
+    {{-- <link rel="stylesheet" href="{{ asset('css/app.css') }}"> --}}
+
+    {{-- Option D: Your front layout uses a specific CSS file --}}
+    {{-- Copy the exact <link> tags from resources/views/layouts/front.blade.php here --}}
 
     <style>
         /* ── Page shell ── */
@@ -44,7 +69,7 @@
         }
         .amd-nav-brand span em { font-style: normal; color: #38bdf8; }
         .amd-nav-back {
-            display: inline-flex; align-items: center; gap-6px; gap: 6px;
+            display: inline-flex; align-items: center; gap: 6px;
             font-size: 13px; font-weight: 600;
             color: rgba(255,255,255,0.55);
             text-decoration: none;
@@ -53,7 +78,11 @@
             border-radius: 10px;
             transition: all .15s;
         }
-        .amd-nav-back:hover { color: #fff; border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.06); }
+        .amd-nav-back:hover {
+            color: #fff;
+            border-color: rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.06);
+        }
 
         /* ── Hero ── */
         .amd-hero {
@@ -94,14 +123,22 @@
             box-shadow: 0 6px 20px rgba(14,165,233,0.35);
             transition: background .15s, box-shadow .15s, transform .1s;
         }
-        .amd-apply-btn:hover { background: #0284c7; transform: translateY(-1px); box-shadow: 0 10px 28px rgba(14,165,233,0.4); }
+        .amd-apply-btn:hover {
+            background: #0284c7;
+            transform: translateY(-1px);
+            box-shadow: 0 10px 28px rgba(14,165,233,0.4);
+        }
 
         /* ── Content layout ── */
-        .amd-content { max-width: 900px; margin: 0 auto; padding: 32px 24px 60px; display: flex; flex-direction: column; gap: 24px; }
+        .amd-content {
+            max-width: 900px; margin: 0 auto;
+            padding: 32px 24px 60px;
+            display: flex; flex-direction: column; gap: 24px;
+        }
         @media (min-width: 768px) {
             .amd-content { flex-direction: row; align-items: flex-start; }
-            .amd-main  { flex: 1; min-width: 0; }
-            .amd-aside { width: 280px; flex-shrink: 0; }
+            .amd-main    { flex: 1; min-width: 0; }
+            .amd-aside   { width: 280px; flex-shrink: 0; }
         }
 
         /* ── Main card ── */
@@ -125,12 +162,14 @@
             margin: 3px 3px 3px 0;
         }
         .amd-body { font-size: 15px; line-height: 1.75; color: #3D4A5C; }
-        .amd-body p  { margin-bottom: 14px; }
-        .amd-body ul, .amd-body ol { padding-left: 22px; margin-bottom: 14px; }
-        .amd-body li { margin-bottom: 6px; }
-        .amd-body h2, .amd-body h3 { color: #0F1F3D; font-weight: 700; margin: 20px 0 10px; }
-        .amd-body hr { border: none; border-top: 1px solid #F0EEE9; margin: 24px 0; }
-        .amd-body strong { color: #0F1F3D; }
+        .amd-body p          { margin-bottom: 14px; }
+        .amd-body ul,
+        .amd-body ol         { padding-left: 22px; margin-bottom: 14px; }
+        .amd-body li         { margin-bottom: 6px; }
+        .amd-body h2,
+        .amd-body h3         { color: #0F1F3D; font-weight: 700; margin: 20px 0 10px; }
+        .amd-body hr         { border: none; border-top: 1px solid #F0EEE9; margin: 24px 0; }
+        .amd-body strong     { color: #0F1F3D; }
 
         /* ── Sidebar ── */
         .amd-sidebar-card {
@@ -141,13 +180,17 @@
             margin-bottom: 16px;
         }
         .amd-sidebar-card:last-child { margin-bottom: 0; }
-        .amd-detail-row { padding: 12px 0; border-bottom: 1px solid #F0EEE9; }
+        .amd-detail-row           { padding: 12px 0; border-bottom: 1px solid #F0EEE9; }
         .amd-detail-row:first-child { padding-top: 0; }
         .amd-detail-row:last-child  { border-bottom: none; padding-bottom: 0; }
-        .amd-detail-label { font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9CA3AF; margin-bottom: 4px; }
+        .amd-detail-label {
+            font-size: 10.5px; font-weight: 700;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: #9CA3AF; margin-bottom: 4px;
+        }
         .amd-detail-value { font-size: 14px; font-weight: 600; color: #1A1E2E; }
 
-        /* Share buttons */
+        /* ── Share buttons ── */
         .amd-share-btn {
             display: inline-flex; align-items: center; justify-content: center;
             width: 36px; height: 36px; border-radius: 10px;
@@ -155,22 +198,29 @@
         }
         .amd-share-btn:hover { opacity: .85; transform: translateY(-1px); }
 
-        /* QR */
+        /* ── QR ── */
         .amd-qr-wrap {
             display: flex; justify-content: center;
             padding: 12px; border: 1px solid #E8E6E1;
             border-radius: 14px; background: #fff;
         }
 
-        /* Sticky aside */
+        /* ── Sticky aside ── */
         .amd-sticky { position: sticky; top: 72px; }
+
+        /* ── Apply btn full width util ── */
+        .amd-apply-btn-full {
+            width: 100%;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
     </style>
 </head>
 <body>
 
 {{-- ── Top nav ── --}}
 <nav class="amd-nav">
-    <a href="{{ route('jobs.assistmyday') }}" class="amd-nav-brand">
+    <a href="{{ route('assistmyday') }}" class="amd-nav-brand">
         <div class="amd-nav-logo">
             <svg width="18" height="18" fill="none" stroke="white" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -181,7 +231,7 @@
         </div>
         <span>Assist<em>My</em>Day</span>
     </a>
-    <a href="{{ route('jobs.assistmyday') }}" class="amd-nav-back">
+    <a href="{{ route('assistmyday') }}" class="amd-nav-back">
         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
         </svg>
@@ -192,6 +242,7 @@
 {{-- ── Hero ── --}}
 <div class="amd-hero">
     <div class="amd-hero-inner">
+
         <div class="amd-badges">
             @if($job->show_job_type && $job->jobType)
                 <span class="amd-badge amd-badge-blue">{{ $job->jobType->job_type }}</span>
@@ -206,8 +257,8 @@
                 <span>
                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243
-                               a8 8 0 1111.314 0z"/>
+                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0
+                               l-4.244-4.243a8 8 0 1111.314 0z"/>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                     </svg>
@@ -217,9 +268,10 @@
             <span>
                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857
-                           M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857
-                           m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2
+                           c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857
+                           M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0
+                           M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
                 </svg>
                 {{ $job->total_positions }} {{ $job->total_positions == 1 ? 'Position' : 'Positions' }}
             </span>
@@ -243,13 +295,14 @@
             </svg>
             Apply for this Job
         </a>
+
     </div>
 </div>
 
 {{-- ── Main content ── --}}
 <div class="amd-content">
 
-    {{-- Left: description ── --}}
+    {{-- Left: description --}}
     <main class="amd-main">
         <div class="amd-card">
 
@@ -270,7 +323,7 @@
         </div>
     </main>
 
-    {{-- Right: sidebar ── --}}
+    {{-- Right: sidebar --}}
     <aside class="amd-aside">
         <div class="amd-sticky">
 
@@ -307,14 +360,13 @@
                 @endif
 
                 @if($job->show_salary)
-                    @php $currencySymbol = $job->currency->currency_symbol ?? '$'; @endphp
-
+                    @php $sym = $job->currency->currency_symbol ?? '$'; @endphp
                     @if($job->pay_type == 'Range')
                         <div class="amd-detail-row">
                             <div class="amd-detail-label">Salary Range</div>
                             <div class="amd-detail-value">
-                                {{ $currencySymbol }}{{ number_format($job->starting_salary) }}
-                                – {{ $currencySymbol }}{{ number_format($job->maximum_salary) }}
+                                {{ $sym }}{{ number_format($job->starting_salary) }}
+                                – {{ $sym }}{{ number_format($job->maximum_salary) }}
                                 / {{ $job->pay_according }}
                             </div>
                         </div>
@@ -322,32 +374,31 @@
                         <div class="amd-detail-row">
                             <div class="amd-detail-label">Starting Salary</div>
                             <div class="amd-detail-value">
-                                {{ $currencySymbol }}{{ number_format($job->starting_salary) }} / {{ $job->pay_according }}
+                                {{ $sym }}{{ number_format($job->starting_salary) }} / {{ $job->pay_according }}
                             </div>
                         </div>
                     @elseif($job->pay_type == 'Maximum')
                         <div class="amd-detail-row">
                             <div class="amd-detail-label">Maximum Salary</div>
                             <div class="amd-detail-value">
-                                {{ $currencySymbol }}{{ number_format($job->maximum_salary) }} / {{ $job->pay_according }}
+                                {{ $sym }}{{ number_format($job->maximum_salary) }} / {{ $job->pay_according }}
                             </div>
                         </div>
                     @elseif($job->pay_type == 'Exact Amount')
                         <div class="amd-detail-row">
                             <div class="amd-detail-label">Salary</div>
                             <div class="amd-detail-value">
-                                {{ $currencySymbol }}{{ number_format($job->starting_salary) }} / {{ $job->pay_according }}
+                                {{ $sym }}{{ number_format($job->starting_salary) }} / {{ $job->pay_according }}
                             </div>
                         </div>
                     @endif
                 @endif
 
-            </div>
+            </div>{{-- /.amd-sidebar-card --}}
 
             {{-- Apply button --}}
             <a href="{{ route('jobs.jobApply', [$job->slug, $locations ? $locations->id : null]) }}"
-               class="amd-apply-btn"
-               style="width:100%; justify-content:center; margin-bottom:16px;">
+               class="amd-apply-btn amd-apply-btn-full">
                 Apply for this Job
             </a>
 
@@ -355,50 +406,53 @@
             <div class="amd-sidebar-card" style="text-align:center;">
                 <div class="amd-detail-label" style="margin-bottom:12px;">Scan to Apply</div>
                 <div class="amd-qr-wrap">
-                    {!! QrCode::size(150)->generate(route('jobs.jobApply', [$job->slug, $locations ? $locations->id : null])) !!}
+                    {!! QrCode::size(150)->generate(
+                        route('jobs.jobApply', [$job->slug, $locations ? $locations->id : null])
+                    ) !!}
                 </div>
             </div>
 
             {{-- Share --}}
             <div class="amd-sidebar-card" style="text-align:center;">
                 <div class="amd-detail-label" style="margin-bottom:12px;">Share this Job</div>
-                <div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap;">
+                <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;">
                     <a class="amd-share-btn" style="background:#0A66C2;"
                        href="https://www.linkedin.com/shareArticle?mini=true&url={{ urlencode(request()->url()) }}&title={{ urlencode(ucwords($job->title)) }}"
-                       target="_blank" rel="noopener">
+                       target="_blank" rel="noopener" title="LinkedIn">
                         <svg width="15" height="15" fill="white" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
                     </a>
                     <a class="amd-share-btn" style="background:#1877F2;"
                        href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode(request()->url()) }}"
-                       target="_blank" rel="noopener">
+                       target="_blank" rel="noopener" title="Facebook">
                         <svg width="15" height="15" fill="white" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
                     </a>
                     <a class="amd-share-btn" style="background:#25D366;"
                        href="https://wa.me/?text={{ urlencode(request()->url()) }}"
-                       target="_blank" rel="noopener">
+                       target="_blank" rel="noopener" title="WhatsApp">
                         <svg width="15" height="15" fill="white" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                     </a>
                     <a class="amd-share-btn" style="background:#1DA1F2;"
                        href="https://twitter.com/intent/tweet?url={{ urlencode(request()->url()) }}"
-                       target="_blank" rel="noopener">
+                       target="_blank" rel="noopener" title="Twitter / X">
                         <svg width="15" height="15" fill="white" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/></svg>
                     </a>
                 </div>
             </div>
 
             {{-- LinkedIn apply --}}
-            @if($linkedinGlobal->status == 'enable')
+            @if(isset($linkedinGlobal) && $linkedinGlobal->status == 'enable')
                 <a href="{{ route('jobs.linkedinRedirect', 'linkedin') }}"
-                   class="amd-apply-btn"
-                   style="width:100%; justify-content:center; background:#0A66C2; box-shadow:0 6px 20px rgba(10,102,194,0.35);">
+                   class="amd-apply-btn amd-apply-btn-full"
+                   style="background:#0A66C2; box-shadow:0 6px 20px rgba(10,102,194,0.35);">
                     <svg width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
                     Apply with LinkedIn
                 </a>
             @endif
 
-        </div>
+        </div>{{-- /.amd-sticky --}}
     </aside>
-</div>
+
+</div>{{-- /.amd-content --}}
 
 </body>
 </html>
