@@ -15,6 +15,7 @@
 @section('body-class', 'apply-page-bare')
 
 @push('style')
+@push('style')
 <style>
     .required:after { content: " *"; color: #ef4444; }
     .has-error input, .has-error select, .has-error textarea {
@@ -22,42 +23,19 @@
         box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
     }
 
-    /* ── Hide header & footer on job-apply page ──────────────────── */
-    /* Common class/id patterns — will be trimmed once layout is confirmed */
-    .apply-page-bare .fr-nav,
-    .apply-page-bare .fr-header,
-    .apply-page-bare header.fr-header,
-    .apply-page-bare #fr-header,
-    .apply-page-bare .front-header,
-    .apply-page-bare #front-header,
-    .apply-page-bare header:not(.fr-mini-hero),
-    .apply-page-bare nav.fr-nav,
-    .apply-page-bare .top-bar,
-    .apply-page-bare #top-bar,
-    .apply-page-bare footer,
-    .apply-page-bare .fr-footer,
-    .apply-page-bare #fr-footer,
-    .apply-page-bare .front-footer,
-    .apply-page-bare #front-footer,
-    .apply-page-bare .footer-section,
-    .apply-page-bare #footer-section,
-    .apply-page-bare .site-footer,
-    .apply-page-bare #site-footer {
+    /* ── Hide header & footer on job-apply page ── */
+    .apply-page-bare nav.fr-navbar,
+    .apply-page-bare footer.fr-site-footer {
         display: none !important;
     }
 
-    /* Remove top padding/margin the layout adds to offset the fixed header */
-    .apply-page-bare body,
-    .apply-page-bare #app,
-    .apply-page-bare .fr-body,
-    .apply-page-bare .fr-content,
-    .apply-page-bare .main-content,
-    .apply-page-bare #main-content {
+    /* Remove the top padding main-content gets to offset the fixed navbar */
+    .apply-page-bare .main-content {
         padding-top: 0 !important;
         margin-top:  0 !important;
     }
-    /* ─────────────────────────────────────────────────────────────── */
 </style>
+@endpush
 @endpush
 
 @push('header-css')
