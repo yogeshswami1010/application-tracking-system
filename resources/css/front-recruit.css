@@ -20,6 +20,7 @@
   position: sticky;
   top: 0;
   z-index: 100;
+  display: none;
 }
 
 /* Hero (listing) */
@@ -411,6 +412,7 @@
   background: #fff;
   border-top: 1px solid #ebebeb;
   padding: 28px 24px;
+  display: none;
 }
 
 .front-site .fr-lang-menu[x-cloak] {
