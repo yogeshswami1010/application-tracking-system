@@ -14,36 +14,25 @@
 
 @section('body-class', 'apply-page-bare')
 
-@push('style')
-@push('style')
-<style>
-    .required:after { content: " *"; color: #ef4444; }
-    .has-error input, .has-error select, .has-error textarea {
-        border-color: #ef4444 !important;
-        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
-    }
-
-    /* ── Hide header & footer on job-apply page ── */
-    .apply-page-bare nav.fr-navbar,
-    .apply-page-bare footer.fr-site-footer {
-        display: none !important;
-    }
-
-    /* Remove the top padding main-content gets to offset the fixed navbar */
-    .apply-page-bare .main-content {
-        padding-top: 0 !important;
-        margin-top:  0 !important;
-    }
-</style>
-@endpush
-@endpush
-
 @push('header-css')
     <link rel="stylesheet" href="{{ asset('assets/plugins/datepicker/datepicker3.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/node_modules_files/switchery/dist/switchery.min.css') }}">
 @endpush
 
 @section('content')
+
+{{-- ── Hide navbar & footer ── --}}
+<style>
+    nav.fr-navbar        { display: none !important; }
+    footer.fr-site-footer { display: none !important; }
+    .main-content        { padding-top: 0 !important; margin-top: 0 !important; }
+
+    .required:after { content: " *"; color: #ef4444; }
+    .has-error input, .has-error select, .has-error textarea {
+        border-color: #ef4444 !important;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
+    }
+</style>
 
 <section class="fr-mini-hero relative px-6 pt-10 pb-12">
     <div class="max-w-6xl mx-auto relative z-10">
