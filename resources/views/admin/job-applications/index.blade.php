@@ -731,12 +731,13 @@
             url: '{{ route("admin.job-applications.stage-counts") }}',
             type: 'GET',
             success: function(res) {
-                // Reply::dataOnly may nest under .data — handle both
+                console.log('stage-counts response:', res);   // ← check this in console
+
                 var payload = res.data ? res.data : res;
                 var counts  = payload.counts;
                 var koCount = payload.ko_count;
 
-                if (!counts) { console.warn('stage-counts: no counts in response', res); return; }
+                if (!counts) { console.warn('No counts key in response'); return; }
 
                 var total = 0;
                 $.each(counts, function(stageId, cnt) {
@@ -745,6 +746,9 @@
                 });
                 $('#ja-tab-count-all').text(total);
                 $('#ja-ko-tab-count').text(koCount || 0);
+            },
+            error: function(xhr) {
+                console.error('stage-counts failed:', xhr.status, xhr.responseText);
             }
         });
     }

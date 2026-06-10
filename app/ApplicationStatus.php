@@ -8,8 +8,9 @@ class ApplicationStatus extends Model
 {
     protected $table = 'application_status';
 
-    public function applications(){
-        return $this->hasMany(JobApplication::class, 'status_id')->orderBy('column_priority');
+    public function applications()
+    {
+        return $this->hasMany(JobApplication::class, 'status_id');
     }
 
     public function scopeStatus($query, $type)

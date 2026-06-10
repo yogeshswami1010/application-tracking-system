@@ -537,7 +537,6 @@ class AdminJobApplicationController extends AdminBaseController
             $q->where('is_candidate', 0);
         }])->get()->pluck('cnt', 'id');
 
-        // KO count = applicants who answered a knockout question with the knockout answer
         $koCount = JobApplication::where('is_candidate', 0)
             ->whereHas('answers', function ($q) {
                 $q->whereHas('question', function ($qq) {
@@ -548,8 +547,7 @@ class AdminJobApplicationController extends AdminBaseController
                     DB::raw('LOWER(TRIM(job_application_answers.answer))'),
                     DB::raw('LOWER(TRIM((SELECT knockout_answer FROM questions WHERE questions.id = job_application_answers.question_id LIMIT 1)))')
                 );
-            })
-            ->count();
+            })->count();
 
         return Reply::dataOnly(['counts' => $counts, 'ko_count' => $koCount]);
     }
