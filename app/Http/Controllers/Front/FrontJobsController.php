@@ -523,4 +523,33 @@ class FrontJobsController extends FrontBaseController
         JobAlert::where('id', request()->id)->update(['status' => 'inactive']);
         return Reply::redirect(route('jobs.jobOpenings'), __('messages.disableJobAlert'));
     }
+    public function assistMyDayJobDetail($slug, $location = null)
+    {
+        $this->job = Job::with(['workExperience', 'jobType'])
+            ->where('slug', $slug)
+            ->whereDate('start_date', '<=', Carbon::now())
+            ->whereDate('end_date',   '>=', Carbon::now())
+            ->where('status', 'active')
+            ->firstOrFail();
+
+        Session::put('lastPageUrl', $slug);
+
+        $locationId     = JobJobLocation::where('job_id', $this->job->id)
+                            ->where('location_id', $location)->first()?->id;
+        $this->location  = JobJobLocation::withoutGlobalScope('company')->find($locationId);
+        $this->locations = ($this->location && $this->location->location_id)
+            ? JobLocation::withoutGlobalScope('company')->where('id', $this->location->location_id)->first()
+            : null;
+
+        $this->linkedinGlobal  = LinkedInSetting::first();
+        $this->pageTitle       = $this->job->title . ' - AssistMyDay';
+        $this->metaTitle       = $this->job->meta_details['title']       ?? '';
+        $this->metaDescription = $this->job->meta_details['description'] ?? '';
+        $this->metaImage       = $this->job->company->logo_url;
+        $this->pageUrl         = request()->url();
+
+        Session::put('slug', $slug);
+
+        return view('front.assistmyday-job-detail', $this->data);
+    }
 }

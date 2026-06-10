@@ -96,7 +96,7 @@
                     $c = $colors[$index % 4];
                 @endphp
                 <div class="amd-job-item" data-groups="{{ optional($location->location)->location }},{{ optional($location->job->category)->name }}">
-                    <a href="{{ route('jobs.jobDetail', [$location->job->slug, optional($location->location)->id]) }}"
+                    <a href="{{ route('jobs.assistmyday.jobDetail', [$location->job->slug, optional($location->location)->id]) }}"
                        class="group block bg-white rounded-2xl border border-[#E8E6E1] overflow-hidden transition-all duration-200 hover:shadow-[0_12px_32px_rgba(15,31,61,0.1)] hover:-translate-y-0.5">
                         {{-- Color bar --}}
                         <div class="h-1 w-full" style="background: {{ $c['bar'] }};"></div>

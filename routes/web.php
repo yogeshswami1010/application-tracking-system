@@ -84,6 +84,9 @@ Route::name('jobs.')
         Route::get('job-alert', [FrontJobsController::class, 'jobAlert'])->name('jobAlert');
         Route::post('save-job-alert', [FrontJobsController::class, 'saveJobAlert'])->name('saveJobAlert');
         Route::post('disable-job-alert/{id}', [FrontJobsController::class, 'disableJobAlert'])->name('disableJobAlert');
+        // AssistMyDay job detail page
+        Route::get('/assistmyday/job/{slug}/{location?}', [FrontJobsController::class, 'assistMyDayJobDetail'])
+            ->name('jobs.assistmyday.jobDetail');
     });
 
 Auth::routes();
