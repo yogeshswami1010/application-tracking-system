@@ -760,7 +760,7 @@
     // Rebuild thead to avoid column width calculation error
     $('#myTable').html(
         '<thead><tr>' +
-            '<th style="width:40px;"></th>' +
+            '<th style="width:40px;"><div class="ja-chk" id="ja-chk-all" onclick="jaToggleAll()" title="Select all"></div></th>' +
             '<th>{{ __("modules.jobApplication.applicantName") }}</th>' +
             '<th>{{ __("menu.jobs") }}</th>' +
             '<th>{{ __("menu.locations") }}</th>' +
