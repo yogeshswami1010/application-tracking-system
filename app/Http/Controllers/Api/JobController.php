@@ -18,6 +18,7 @@ class JobController extends Controller
             'currency'
         ])
         ->where('status', 'active')
+        ->where('show_on_consortium', true) 
         ->orderBy('created_at', 'desc')
         ->get();
 
