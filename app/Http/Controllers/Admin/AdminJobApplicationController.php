@@ -822,10 +822,10 @@ class AdminJobApplicationController extends AdminBaseController
             }
         }
 
-        return Reply::successWithData(__('menu.jobApplications').' '.__('messages.createdSuccessfully'), [
-            'redirect' => route('admin.job-applications.table')
-        ]);
-    
+            return Reply::successWithData(__('menu.jobApplications').' '.__('messages.createdSuccessfully'), 
+            $request->input('is_bulk') ? [] : ['redirect' => route('admin.job-applications.table')]
+        );
+            
     }
 
     public function update(UpdateJobApplication $request, $id)
