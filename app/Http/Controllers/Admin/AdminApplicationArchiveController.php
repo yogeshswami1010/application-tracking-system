@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Excel as ExcelExcel;
 use Maatwebsite\Excel\Facades\Excel;
 use Yajra\DataTables\Facades\DataTables;
-
+use App\JobApplicationStatus; 
 class AdminApplicationArchiveController extends AdminBaseController
 {
     public function __construct()
@@ -34,6 +34,8 @@ class AdminApplicationArchiveController extends AdminBaseController
         $this->companies = Company::select('id', 'company_name')->orderBy('company_name')->get();
         $this->jobs      = Job::select('id', 'title')->orderBy('title')->get();
         $this->locations = JobLocation::select('id', 'location')->orderBy('location')->get();
+        $this->statuses = \App\JobApplicationStatus::select('id', 'status')->orderBy('id')->get();
+
 
         $this->questions = Question::select('id', 'question')->orderBy('question')->get();
 

@@ -199,8 +199,8 @@
                         <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('app.status')</label>
                         <select class="select2 w-full" name="status" id="status">
                             <option value="all">@lang('modules.jobApplication.allStatus')</option>
-                            @forelse($boardColumns as $col)
-                                <option value="{{ $col->id }}">{{ ucfirst($col->status) }}</option>
+                            @forelse($statuses as $s)
+                                <option value="{{ $s->id }}">{{ ucfirst($s->status) }}</option>
                             @empty
                             @endforelse
                         </select>
