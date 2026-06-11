@@ -1023,7 +1023,7 @@
                     @endif
                 </div>{{-- /details --}}
 
-                {{-- ── NOTES TAB ── --}}
+              {{-- ── NOTES TAB ── --}}
                 <div id="ja-tab-notes" class="ja-tab-pane" style="display:none">
                     <div id="applicant-notes">
                         @foreach($application->notes as $note)
@@ -1052,44 +1052,8 @@
                         </div>
                         @endforeach
                     </div>
-                
-                    {{-- ── CLIENT NOTES TAB ── --}}
-                    <div id="ja-tab-client-notes" class="ja-tab-pane" style="display:none;min-height:200px">
 
-                        {{-- Shared-job context banner --}}
-                        <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:8px">
-                            <i class="fa fa-info-circle" style="color:#059669;font-size:13px;flex-shrink:0"></i>
-                            <span style="font-size:11.5px;color:#065F46;line-height:1.5">
-                                These notes are shared across <strong>all applicants</strong> for
-                                <strong>{{ ucwords($application->job?->title ?? 'this job') }}</strong>.
-                            </span>
-                        </div>
-
-                        {{-- Notes list --}}
-                        <div id="client-notes-list">
-                            @include('admin.job-applications.partials.client-notes-list', ['clientNotes' => $clientNotes])
-                        </div>
-
-                        {{-- Add note form — always visible for now to debug --}}
-                        <div class="ja-add-note" style="margin-top:10px">
-                            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:8px">
-                                <i class="fa fa-plus-circle" style="color:#059669"></i> Add Client Note
-                            </div>
-                            <textarea id="client_note_text"
-                                    rows="4"
-                                    class="ja-note-textarea"
-                                    style="width:100%;min-height:90px"
-                                    placeholder="Add a note visible to all applicants on this job…"></textarea>
-                            <button id="add-client-note"
-                                    class="ja-save-note-btn"
-                                    style="background:#059669;margin-top:8px"
-                                    data-job-id="{{ $application->job_id }}">
-                                <i class="fa fa-plus"></i> Add Client Note
-                            </button>
-                        </div>
-
-                    </div>
-                                        @if($user->cans('edit_job_applications'))
+                    @if($user->cans('edit_job_applications'))
                     <div class="ja-add-note" style="margin-top:4px">
                         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:8px">
                             @lang('modules.jobApplication.addNote')
@@ -1102,6 +1066,40 @@
                     </div>
                     @endif
                 </div>{{-- /notes --}}
+
+                {{-- ── CLIENT NOTES TAB ── --}}
+                <div id="ja-tab-client-notes" class="ja-tab-pane" style="display:none">
+
+                    <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:8px">
+                        <i class="fa fa-info-circle" style="color:#059669;font-size:13px;flex-shrink:0"></i>
+                        <span style="font-size:11.5px;color:#065F46;line-height:1.5">
+                            These notes are shared across <strong>all applicants</strong> for
+                            <strong>{{ ucwords($application->job?->title ?? 'this job') }}</strong>.
+                        </span>
+                    </div>
+
+                    <div id="client-notes-list">
+                        @include('admin.job-applications.partials.client-notes-list', ['clientNotes' => $clientNotes])
+                    </div>
+
+                    <div class="ja-add-note" style="margin-top:10px">
+                        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:8px">
+                            <i class="fa fa-plus-circle" style="color:#059669"></i> Add Client Note
+                        </div>
+                        <textarea id="client_note_text"
+                                  rows="4"
+                                  class="ja-note-textarea"
+                                  style="width:100%;min-height:90px"
+                                  placeholder="Add a note visible to all applicants on this job…"></textarea>
+                        <button id="add-client-note"
+                                class="ja-save-note-btn"
+                                style="background:#059669;margin-top:8px"
+                                data-job-id="{{ $application->job_id }}">
+                            <i class="fa fa-plus"></i> Add Client Note
+                        </button>
+                    </div>
+
+                </div>{{-- /client-notes --}}
 
                 {{-- ── Q&A TAB ── --}}
                 @if(count($answers) > 0)
