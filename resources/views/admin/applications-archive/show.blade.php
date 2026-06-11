@@ -1216,36 +1216,43 @@ document.querySelectorAll('.ja-tab').forEach(function(tab) {
 /* ── Stage mover ── */
 function jaMoveFromDetail(appId, toStatusId, toStatusLabel, currentStatusId) {
     if (!toStatusId) return;
+
     var token = '{{ csrf_token() }}';
     var url = '{{ route("admin.job-applications.bulk-status-update") }}';
-    swal({
-        title: 'Move to ' + toStatusLabel + '?',
-        text: 'This applicant will be moved to the ' + toStatusLabel + ' stage.',
-        type: 'info', showCancelButton: true,
-        confirmButtonColor: '#2563EB', confirmButtonText: 'Yes, move',
-        cancelButtonText: 'Cancel', closeOnConfirm: true, closeOnCancel: true
-    }, function(isConfirm) {
-        if (!isConfirm) {
-            document.getElementById('stage-mover-select-' + appId).value = '';
-            return;
-        }
-        $.easyAjax({
-            type: 'POST', url: url,
-            data: { _token: token, ids: [appId], status_id: toStatusId },
-            success: function(response) {
-                if (response.status === 'success') {
-                    var showUrl = "{{ route('admin.job-applications.show', ':id') }}".replace(':id', appId);
-                    $.easyAjax({
-                        type: 'GET', url: showUrl,
-                        success: function(res) {
-                            if (res.status === 'success') $('#right-sidebar-content').html(res.view);
+
+    $.easyAjax({
+        type: 'POST',
+        url: url,
+        data: {
+            _token: token,
+            ids: [appId],
+            status_id: toStatusId
+        },
+        success: function(response) {
+            if (response.status === 'success') {
+
+                var showUrl = "{{ route('admin.job-applications.show', ':id') }}"
+                    .replace(':id', appId);
+
+                $.easyAjax({
+                    type: 'GET',
+                    url: showUrl,
+                    success: function(res) {
+                        if (res.status === 'success') {
+                            $('#right-sidebar-content').html(res.view);
                         }
-                    });
-                    if (typeof table !== 'undefined') table.draw(false);
-                    if (typeof jaLoadTabCounts === 'function') jaLoadTabCounts();
+                    }
+                });
+
+                if (typeof table !== 'undefined') {
+                    table.draw(false);
+                }
+
+                if (typeof jaLoadTabCounts === 'function') {
+                    jaLoadTabCounts();
                 }
             }
-        });
+        }
     });
 }
 
