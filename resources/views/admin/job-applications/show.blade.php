@@ -1220,12 +1220,12 @@
             </span>
             @endif
             @if($application->job?->experience)
-            <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 11px;
+            <!-- <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 11px;
                          border-radius:20px;font-size:11.5px;font-weight:600;
                          background:#F5F3FF;color:#5B21B6">
                 <i class="fa fa-star-o" style="font-size:10px"></i>
                 {{ $application->job->experience }}
-            </span>
+            </span> -->
             @endif
             @if($application->job?->start_date)
             <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 11px;
