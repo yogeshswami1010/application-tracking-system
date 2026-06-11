@@ -12,8 +12,17 @@
     $stagePillBg = $application->status?->color ?? '#6366F1';
     $initials = collect(explode(' ', $application->full_name))->map(fn($w) => strtoupper(substr($w,0,1)))->take(2)->join('');
     $allStatuses = \App\ApplicationStatus::orderBy('position')->get();
-    $currentStatusId = $application->status_id ?? 0;
-    $currentStatus = $currentStatusId ? $allStatuses->firstWhere('id', $currentStatusId) : null;
+    $currentStatusId = $application->status_id;
+
+    if (!$currentStatusId) {
+        $currentStatus = (object) [
+            'id' => 0,
+            'status' => 'Internal',
+            'color' => '#6366F1'
+        ];
+    } else {
+        $currentStatus = $allStatuses->firstWhere('id', $currentStatusId);
+    }
 
     // All jobs for the assign dropdown
     $allJobs = \App\Job::orderBy('title')->with('location')->get();
@@ -571,9 +580,11 @@
                                 <select class="ja-stage-select" id="stage-mover-select-{{ $application->id }}"
                                     onchange="jaMoveFromDetail({{ $application->id }}, this.value, this.options[this.selectedIndex].text, {{ $currentStatusId }})">
                                     <option value="">Select stage…</option>
-                                    @foreach($allStatuses as $stageOption)
-                                        @if($stageOption->id !== $currentStatusId && $currentStatusId != 0)
-                                        <option value="{{ $stageOption->id }}">{{ ucwords(str_replace('_', ' ', $stageOption->status)) }}</option>
+                                   @foreach($allStatuses as $stageOption)
+                                        @if($stageOption->id != $currentStatusId)
+                                            <option value="{{ $stageOption->id }}">
+                                                {{ ucwords(str_replace('_', ' ', $stageOption->status)) }}
+                                            </option>
                                         @endif
                                     @endforeach
                                 </select>
