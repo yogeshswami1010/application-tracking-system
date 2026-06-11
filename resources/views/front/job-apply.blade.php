@@ -371,11 +371,10 @@
         });
 
         // ── Email check state ────────────────────────────────────
-        var emailCheckPassed  = false;   // true once user confirms proceed
-        var emailCheckTimer   = null;
-        var lastCheckedEmail  = '';
+       // ── Email check state ────────────────────────────────────────
+        var emailCheckTimer  = null;
+        var lastCheckedEmail = '';
 
-        // ── Email input — check on blur + debounced typing ───────
         $('[name="email"]').on('blur', function() {
             checkEmailExists($(this).val());
         }).on('input', function() {
@@ -391,9 +390,7 @@
             if (!email || email === lastCheckedEmail) return;
             if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
 
-            lastCheckedEmail  = email;
-            emailCheckPassed  = false;
-
+            lastCheckedEmail = email;
             $('#email-check-result').remove();
 
             $.ajax({
@@ -401,151 +398,24 @@
                 type: 'POST',
                 data: { _token: '{{ csrf_token() }}', email: email, job_id: {{ $job->id }} },
                 success: function(res) {
-                    if (!res.exists) {
-                        emailCheckPassed = true;
-                        showEmailNote(
-                            'green',
-                            '<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>' +
-                            ' Email is available. You\'re good to go!'
-                        );
-                        return;
-                    }
+                    if (!res.exists) return; // new email — do nothing
 
-                    if (res.already_applied) {
-                        // Already applied to THIS job
-                        emailCheckPassed = false;
-                        var html = buildEmailWarning(res, true);
-                        showEmailNote('red', html);
-                        return;
-                    }
-
-                    // Applied to OTHER jobs — ask to proceed
-                    emailCheckPassed = false;
-                    var html = buildEmailWarning(res, false);
-                    showEmailNote('yellow', html);
+                    // Show simple already-registered message
+                    $('[name="email"]').closest('div').append(
+                        '<div id="email-check-result" class="mt-2 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">' +
+                            '<svg class="w-4 h-4 shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' +
+                            '<span class="text-[12.5px] font-medium text-amber-800">This email is already registered. Your application will be linked to the existing profile.</span>' +
+                        '</div>'
+                    );
                 }
             });
         }
 
-        function buildEmailWarning(res, alreadyThisJob) {
-            var rows = '';
-            res.applications.forEach(function(app) {
-                rows += '<div class="flex items-center justify-between gap-3 py-2 border-b border-[#F0EEE9] last:border-0">' +
-                            '<span class="text-[12.5px] font-medium text-[#1A1E2E]">' + app.job_title + '</span>' +
-                            '<div class="flex items-center gap-2">' +
-                                '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold text-white" style="background:' + app.color + '">' + app.status + '</span>' +
-                                '<span class="text-[11px] text-[#8892A0]">' + app.applied_at + '</span>' +
-                            '</div>' +
-                        '</div>';
-            });
-
-            if (alreadyThisJob) {
-                return '<div class="flex items-start gap-2 mb-3">' +
-                            '<svg class="w-4 h-4 shrink-0 mt-0.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' +
-                            '<span class="text-[13px] font-semibold text-red-700">You have already applied for this job with <b>' + res.full_name + '</b>.</span>' +
-                        '</div>' +
-                        '<div class="rounded-lg bg-white border border-[#F0EEE9] px-3 py-1 mb-1">' + rows + '</div>' +
-                        '<p class="text-[12px] text-red-600 mt-2">Please use a different email address to submit a new application.</p>';
+        // Clear message when email changes
+        $('[name="email"]').on('input', function() {
+            if ($.trim($(this).val()) !== lastCheckedEmail) {
+                $('#email-check-result').remove();
             }
-
-            return '<div class="flex items-start gap-2 mb-3">' +
-                        '<svg class="w-4 h-4 shrink-0 mt-0.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' +
-                        '<span class="text-[13px] font-semibold text-amber-800">This email is already registered as <b>' + res.full_name + '</b>.</span>' +
-                    '</div>' +
-                    '<div class="rounded-lg bg-white border border-[#F0EEE9] px-3 py-1 mb-3">' + rows + '</div>' +
-                    '<p class="text-[12px] text-[#5A6478] mb-3">Your new application will be linked to this existing profile. Previous applications will remain visible.</p>' +
-                    '<button type="button" id="email-proceed-btn" onclick="confirmEmailProceed()" ' +
-                        'class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[13px] font-semibold transition">' +
-                        '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>' +
-                        'Yes, proceed with this email' +
-                    '</button>' +
-                    '<button type="button" onclick="cancelEmailProceed()" ' +
-                        'class="ml-2 inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-[#E2DED8] bg-white hover:bg-[#F1F3F7] text-[#5A6478] text-[13px] font-semibold transition">' +
-                        'Use different email' +
-                    '</button>';
-        }
-
-        function showEmailNote(type, html) {
-            $('#email-check-result').remove();
-
-            var bg, border;
-            if (type === 'green')  { bg = 'bg-emerald-50';  border = 'border-emerald-200'; }
-            if (type === 'yellow') { bg = 'bg-amber-50';    border = 'border-amber-200'; }
-            if (type === 'red')    { bg = 'bg-red-50';      border = 'border-red-200'; }
-
-            var $note = $(
-                '<div id="email-check-result" class="mt-3 rounded-xl border p-4 ' + bg + ' ' + border + '">' +
-                    html +
-                '</div>'
-            );
-
-            $('[name="email"]').closest('div').append($note);
-        }
-
-        function confirmEmailProceed() {
-            emailCheckPassed = true;
-            $('#email-check-result').remove();
-            showEmailNote(
-                'green',
-                '<div class="flex items-center gap-2">' +
-                    '<svg class="w-4 h-4 shrink-0 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>' +
-                    '<span class="text-[13px] font-semibold text-emerald-800">Confirmed — proceeding with existing email. Your new application will be linked to your profile.</span>' +
-                '</div>'
-            );
-        }
-
-        function cancelEmailProceed() {
-            emailCheckPassed = false;
-            lastCheckedEmail = '';
-            $('[name="email"]').val('').focus();
-            $('#email-check-result').remove();
-        }
-
-        // ── Submit ───────────────────────────────────────────────
-        $('#save-form').click(function() {
-            var email = $.trim($('[name="email"]').val());
-
-            // If email not yet checked, check first then resubmit
-            if (email && !emailCheckPassed && lastCheckedEmail !== email) {
-                checkEmailExists(email);
-                setTimeout(function() {
-                    if (!emailCheckPassed) {
-                        showEmailNote('red',
-                            '<div class="flex items-center gap-2">' +
-                                '<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' +
-                                'Please confirm your email before submitting.' +
-                            '</div>'
-                        );
-                    }
-                }, 800);
-                return;
-            }
-
-            // Block if already applied to this job
-            if (!emailCheckPassed && lastCheckedEmail === email) {
-                $('[name="email"]')[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-                return;
-            }
-
-            $.easyAjax({
-                url:       '{{ route('jobs.saveApplication') }}',
-                container: '#createForm',
-                type:      'POST',
-                file:      true,
-                redirect:  true,
-                success: function(response) {
-                    if (response.status == 'success') {
-                        var successMsg =
-                            '<div class="fr-form-card border-emerald-200 bg-emerald-50/80 text-emerald-900 p-8 text-center rounded-2xl" role="alert">' +
-                                '<div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-emerald-100 text-emerald-600 text-2xl">✓</div>' +
-                                '<p class="text-lg font-semibold mb-2">' + (response.msg || '') + '</p>' +
-                                '<a class="fr-btn-lg inline-block mt-4" href="{{ route('jobs.jobOpenings') }}">@lang('app.view') @lang('modules.front.jobOpenings')</a>' +
-                            '</div>';
-                        $('#apply-form-area').html(successMsg);
-                    }
-                },
-                error: function(response) { handleFails(response); }
-            });
         });
 
         function handleFails(response) {
