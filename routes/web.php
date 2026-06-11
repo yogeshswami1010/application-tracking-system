@@ -70,7 +70,6 @@ Route::get('assistmyday/job/{slug}/{location?}', [FrontJobsController::class, 'a
 // ── Front public job board ─────────────────────────────────────────────────
 Route::name('jobs.')
     ->group(function () {
-
         Route::get('/', [FrontJobsController::class, 'jobOpenings'])
             ->name('jobOpenings')
             ->middleware('disable-frontend');
@@ -88,11 +87,14 @@ Route::name('jobs.')
         Route::post('/job/fetch-country-state',     [FrontJobsController::class, 'fetchCountryState'])->name('fetchCountryState');
         Route::post('change-language/{code}',       [FrontJobsController::class, 'changeLanguage'])->name('changeLanguage');
 
+        // ── Email check ──────────────────────────────────────────
+        Route::post('/job/check-email', [FrontJobsController::class, 'checkApplicantEmail'])->name('checkApplicantEmail');
+
         Route::get('auth/callback/{provider}', [FrontJobsController::class, 'callback'])->name('linkedinCallback');
         Route::get('auth/redirect/{provider}', [FrontJobsController::class, 'redirect'])->name('linkedinRedirect');
 
-        Route::get('job-alert',            [FrontJobsController::class, 'jobAlert'])->name('jobAlert');
-        Route::post('save-job-alert',      [FrontJobsController::class, 'saveJobAlert'])->name('saveJobAlert');
+        Route::get('job-alert',               [FrontJobsController::class, 'jobAlert'])->name('jobAlert');
+        Route::post('save-job-alert',         [FrontJobsController::class, 'saveJobAlert'])->name('saveJobAlert');
         Route::post('disable-job-alert/{id}', [FrontJobsController::class, 'disableJobAlert'])->name('disableJobAlert');
     });
 
@@ -200,7 +202,7 @@ Route::middleware('auth')->group(function () {
             Route::resource('locations', AdminLocationsController::class);
 
             // Jobs
-            Route::post('jobs/check-email', [JobsController::class, 'checkApplicantEmail'])->name('jobs.checkApplicantEmail');
+        
             Route::get('jobs/data',                   [AdminJobsController::class, 'data'])->name('jobs.data');
             Route::post('jobs/bulk-destroy',           [AdminJobsController::class, 'bulkDestroy'])->name('jobs.bulkDestroy');
             Route::post('jobs/{job}/toggle-status',    [AdminJobsController::class, 'toggleStatus'])->name('jobs.toggleStatus');
