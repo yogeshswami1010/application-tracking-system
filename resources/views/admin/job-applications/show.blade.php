@@ -1024,32 +1024,27 @@
                 </div>{{-- /details --}}
 
               {{-- ── NOTES TAB ── --}}
-                <div id="ja-tab-notes" class="ja-tab-pane" style="display:none">
-                    <div id="applicant-notes">
-                        @foreach($application->notes as $note)
-                        <div class="ja-note" id="note-{{ $note->id }}">
-                            <div class="ja-note-meta">
-                                <span class="ja-note-author">
-                                    <i class="fa fa-user-circle" style="font-size:14px;color:#2563EB"></i>
-                                    {{ ucwords($note->user->name) }}
-                                </span>
-                                <span class="ja-note-time">
-                                    {{ $note->created_at->timezone('America/Toronto')->format('d M Y, h:i A') }}
-                                </span>
-                            </div>
-                            <p class="note-text ja-note-body">{{ ucfirst($note->note_text) }}</p>
-                            <div class="note-textarea"></div>
-                            @if($user->cans('edit_job_applications'))
-                            <div class="ja-note-actions">
-                                <button class="edit-note ja-note-btn" data-note-id="{{ $note->id }}">
-                                    <i class="fa fa-pencil"></i> @lang('app.edit')
-                                </button>
-                                <button class="delete-note ja-note-btn" data-note-id="{{ $note->id }}" style="color:#EF4444">
-                                    <i class="fa fa-trash"></i> @lang('app.delete')
-                                </button>
-                            </div>
-                            @endif
+  
+                    <div id="ja-tab-notes" class="ja-tab-pane" style="display:none">
+                        <div id="applicant-notes">
+                            @include('admin.job-applications.partials.applicant-notes-list', [
+                                'notes' => $application->notes()->with('user:id,name')->orderByDesc('created_at')->get()
+                            ])
                         </div>
+
+                        @if($user->cans('edit_job_applications'))
+                        <div class="ja-add-note" style="margin-top:4px">
+                            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:8px">
+                                @lang('modules.jobApplication.addNote')
+                            </div>
+                            <textarea id="note_text" rows="3" class="ja-note-textarea"
+                                    placeholder="@lang('modules.jobApplication.addNote')"></textarea>
+                            <button id="add-note" class="ja-save-note-btn">
+                                <i class="fa fa-plus"></i> @lang('modules.jobApplication.addNote')
+                            </button>
+                        </div>
+                        @endif
+                    </div>{{-- /notes --}}
                         @endforeach
                     </div>
 
