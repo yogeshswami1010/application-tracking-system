@@ -730,8 +730,15 @@
         $.ajax({
             url: '{{ route("admin.job-applications.stage-counts") }}',
             type: 'GET',
+            data: {
+                jobs:           $('#jobs').val()           || 'all',
+                company:        $('#company').val()        || 'all',
+                location:       $('#location').val()       || 'all',
+                questions:      $('#questions').val()      || 'all',
+                question_value: $('#question-value').val() || ''
+            },
             success: function(res) {
-                console.log('stage-counts response:', res);   // ← check this in console
+                console.log('stage-counts response:', res);
 
                 var payload = res.data ? res.data : res;
                 var counts  = payload.counts;
@@ -744,6 +751,14 @@
                     $('#ja-tab-count-' + stageId).text(cnt);
                     total += parseInt(cnt) || 0;
                 });
+
+                // Zero out any stage tabs not present in the filtered counts
+                jaStages.forEach(function(s) {
+                    if (!counts.hasOwnProperty(s.id)) {
+                        $('#ja-tab-count-' + s.id).text(0);
+                    }
+                });
+
                 $('#ja-tab-count-all').text(total);
                 $('#ja-ko-tab-count').text(koCount || 0);
             },
@@ -753,19 +768,19 @@
         });
     }
 
-  function tableLoad(type) {
-    var status         = $('#status').val();
-    var jobs           = $('#jobs').val();
-    var questions      = $('#questions').val();
-    var location       = $('#location').val();
-    var company        = $('#company').val();
-    var question_value = $('#question-value').val();
-    var knockout       = jaShowKO ? 1 : 0;
+    function tableLoad(type) {
+        var status         = $('#status').val();
+        var jobs           = $('#jobs').val();
+        var questions      = $('#questions').val();
+        var location       = $('#location').val();
+        var company        = $('#company').val();
+        var question_value = $('#question-value').val();
+        var knockout       = jaShowKO ? 1 : 0;
 
-    // Destroy existing instance cleanly
-    if ($.fn.DataTable.isDataTable('#myTable')) {
-        $('#myTable').DataTable().destroy();
-    }
+        // Destroy existing instance cleanly
+        if ($.fn.DataTable.isDataTable('#myTable')) {
+            $('#myTable').DataTable().destroy();
+        }
 
     // Rebuild thead to avoid column width calculation error
     $('#myTable').html(
