@@ -49,7 +49,7 @@ use App\Http\Controllers\VerifyMobileController;
 use App\Http\Controllers\ZoomWebhookController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\Admin\AdminJobClientNoteController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -114,9 +114,9 @@ Route::middleware('auth')->group(function () {
 
             Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
             // In routes/web.php (inside admin middleware group)
-            Route::post('job-client-notes/store',           [AdminJobClientNoteController::class, 'store'])->name('admin.job-client-notes.store');
-            Route::post('job-client-notes/{id}/update',     [AdminJobClientNoteController::class, 'update'])->name('admin.job-client-notes.update');
-            Route::post('job-client-notes/{id}/destroy',    [AdminJobClientNoteController::class, 'destroy'])->name('admin.job-client-notes.destroy');
+            Route::post('job-client-notes/store',           [AdminJobClientNoteController::class, 'store'])->name('job-client-notes.store');
+            Route::post('job-client-notes/{id}/update',     [AdminJobClientNoteController::class, 'update'])->name('job-client-notes.update');
+            Route::post('job-client-notes/{id}/destroy',    [AdminJobClientNoteController::class, 'destroy'])->name('job-client-notes.destroy');
             // Job Categories
             Route::get('job-categories/getSkills/{categoryId}', [AdminJobCategoryController::class, 'getSkills'])
                 ->name('job-categories.getSkills');
