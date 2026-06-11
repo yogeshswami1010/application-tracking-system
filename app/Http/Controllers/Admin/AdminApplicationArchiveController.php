@@ -133,14 +133,16 @@ class AdminApplicationArchiveController extends AdminBaseController
                 return '<span class="label label-danger">Archived</span>';
             }
 
-            if ($row->is_candidate) {
-                return '<span class="label" style="background:#6366F1;color:#fff;">Internal</span>';
+            // Show actual status if assigned
+            if ($row->status_id && $row->status) {
+                return '<span class="label label-success">'
+                    . e(ucfirst($row->status->status))
+                    . '</span>';
             }
 
-            if ($row->status) {
-                return '<span class="label label-success">'
-                    . e($row->status->status) .
-                    '</span>';
+            // Candidate with no status assigned
+            if ($row->is_candidate) {
+                return '<span class="label">Internal</span>';
             }
 
             return '<span class="label label-default">No Status</span>';
