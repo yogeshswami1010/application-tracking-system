@@ -411,6 +411,29 @@
             });
         }
 
+    // ── Submit ───────────────────────────────────────────────
+        $('#save-form').click(function() {
+            $.easyAjax({
+                url:       '{{ route('jobs.saveApplication') }}',
+                container: '#createForm',
+                type:      'POST',
+                file:      true,
+                redirect:  true,
+                success: function(response) {
+                    if (response.status == 'success') {
+                        var successMsg =
+                            '<div class="fr-form-card border-emerald-200 bg-emerald-50/80 text-emerald-900 p-8 text-center rounded-2xl" role="alert">' +
+                                '<div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-emerald-100 text-emerald-600 text-2xl">✓</div>' +
+                                '<p class="text-lg font-semibold mb-2">' + (response.msg || '') + '</p>' +
+                                '<a class="fr-btn-lg inline-block mt-4" href="{{ route('jobs.jobOpenings') }}">@lang('app.view') @lang('modules.front.jobOpenings')</a>' +
+                            '</div>';
+                        $('#apply-form-area').html(successMsg);
+                    }
+                },
+                error: function(response) { handleFails(response); }
+            });
+        });
+
         // Clear message when email changes
         $('[name="email"]').on('input', function() {
             if ($.trim($(this).val()) !== lastCheckedEmail) {
