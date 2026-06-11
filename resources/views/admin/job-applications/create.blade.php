@@ -602,6 +602,7 @@
         const bulkCsrfToken          = "{{ csrf_token() }}";
         const bulkStoreUrl           = "{{ route('admin.job-applications.store') }}";
         const bulkIndexUrl           = "{{ route('admin.job-applications.index') }}";
+        const archiveUrl             = "{{ route('admin.applications-archive') }}";
         const bulkQuestionRouteBase  = "{{ route('admin.job-applications.question', ':id') }}";
         const bulkParseResumeUrl     = "{{ route('admin.job-applications.bulk-parse-resume') }}";
 
@@ -1573,7 +1574,7 @@
                 '<i class="fa fa-check-circle fa-3x"></i>' +
                 '<p class="text-sm font-medium">All CVs reviewed!</p>' +
                 '<p class="text-xs text-gray-400">Redirecting to applicants board in <span id="bulk-redirect-countdown">3</span>s...</p>' +
-                '<a href="' + bulkIndexUrl + '" class="text-xs text-blue-600 underline mt-1">Go now →</a>' +
+                '<a href="' + archiveUrl + '" class="text-xs text-blue-600 underline mt-1">Go now →</a>' +
                 '</div>';
 
             var seconds = 3;
@@ -1583,7 +1584,7 @@
                 if (el) el.textContent = seconds;
                 if (seconds <= 0) {
                     clearInterval(interval);
-                    window.location.href = bulkIndexUrl;
+                    window.location.href = archiveUrl;
                 }
             }, 1000);
         }
