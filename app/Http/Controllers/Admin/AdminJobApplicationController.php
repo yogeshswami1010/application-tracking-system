@@ -590,11 +590,14 @@ class AdminJobApplicationController extends AdminBaseController
         $koCount = $koQuery->count('job_applications.id');
 
         // ── Merge counts into DataTable response ──
-        $responseData                 = $dataTable->getData(true);
-        $responseData['stage_counts'] = $stageCounts;
-        $responseData['ko_count']     = $koCount;
+        $responseData = $dataTable->getData(true);
 
-        return response()->json($responseData);
+        // getData(true) returns array — ensure rows are under 'data' key
+        $output                 = is_array($responseData) ? $responseData : (array) $responseData;
+        $output['stage_counts'] = $stageCounts;
+        $output['ko_count']     = $koCount;
+
+        return response()->json($output);
     }
     public function stageCounts(Request $request)
     {

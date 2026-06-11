@@ -804,12 +804,13 @@
                         knockout:       knockout
                     });
                 },
-                // ── Counts arrive with table data — zero extra request ──
                 dataSrc: function(json) {
+                    // Update tab counts from the same response
                     if (json.stage_counts !== undefined) {
                         jaUpdateTabCounts(json.stage_counts, json.ko_count || 0);
                     }
-                    return json.data;
+                    // DataTables expects rows under 'data' key
+                    return json.data || [];
                 }
             },
             language: languageOptions(),
