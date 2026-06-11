@@ -340,7 +340,7 @@
             html += '</label></td>';
             html += '<td class="px-4 py-3 align-middle text-[12.5px] font-semibold text-[#C4CBD4]">' + String(i + 1).padStart(2, '0') + '</td>';
             html += '<td class="px-4 py-3 align-middle">'
-            + '<a href="' + esc(j.editUrl) + '" class="text-[13.5px] font-bold leading-snug text-[#1A1E2E] hover:text-[#2563EB] transition-colors cursor-pointer jobs-copy-url" '">' + esc(j.title) + '</a>';
+                + '<a href="' + esc(j.editUrl) + '" class="text-[13.5px] font-bold leading-snug text-[#1A1E2E] hover:text-[#2563EB] transition-colors">' + esc(j.title) + '</a>';
             html += '<div class="mt-1 flex flex-wrap items-center gap-2">';
             html += '<span class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11.5px] font-semibold" style="background:' + c.bg + ';color:' + c.tc + '">' + esc(j.category) + '</span>';
             html += '<span class="text-[11px] font-semibold text-[#B0B8C4]">' + esc(j.jobType) + '</span></div></td>';
