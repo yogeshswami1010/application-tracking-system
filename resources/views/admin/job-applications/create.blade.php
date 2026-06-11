@@ -602,7 +602,7 @@
         const bulkCsrfToken          = "{{ csrf_token() }}";
         const bulkStoreUrl           = "{{ route('admin.job-applications.store') }}";
         const bulkIndexUrl           = "{{ route('admin.job-applications.index') }}";
-        const archiveUrl             = "{{ route('admin.applications-archive') }}";
+        const archiveUrl             = "https://virtualtecsolutions.com/admin/applications-archive";
         const bulkQuestionRouteBase  = "{{ route('admin.job-applications.question', ':id') }}";
         const bulkParseResumeUrl     = "{{ route('admin.job-applications.bulk-parse-resume') }}";
 
