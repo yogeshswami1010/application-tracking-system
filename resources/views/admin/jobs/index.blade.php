@@ -340,10 +340,7 @@
             html += '</label></td>';
             html += '<td class="px-4 py-3 align-middle text-[12.5px] font-semibold text-[#C4CBD4]">' + String(i + 1).padStart(2, '0') + '</td>';
             html += '<td class="px-4 py-3 align-middle">'
-            + '<div class="flex items-center gap-2 group">'
-            +   '<div class="text-[13.5px] font-bold leading-snug text-[#1A1E2E] cursor-pointer jobs-copy-url" data-url="' + esc(j.copyUrl) + '" data-tip="' + esc(I18N.copyUrl) + '">' + esc(j.title) + '</div>'
-            +   '<svg class="h-3 w-3 flex-shrink-0 text-[#7C3AED] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>'
-            + '</div>';
+            + '<a href="' + esc(j.editUrl) + '" class="text-[13.5px] font-bold leading-snug text-[#1A1E2E] hover:text-[#2563EB] transition-colors cursor-pointer jobs-copy-url" data-url="' + esc(j.copyUrl) + '" data-tip="' + esc(I18N.copyUrl) + '">' + esc(j.title) + '</a>';
             html += '<div class="mt-1 flex flex-wrap items-center gap-2">';
             html += '<span class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11.5px] font-semibold" style="background:' + c.bg + ';color:' + c.tc + '">' + esc(j.category) + '</span>';
             html += '<span class="text-[11px] font-semibold text-[#B0B8C4]">' + esc(j.jobType) + '</span></div></td>';
