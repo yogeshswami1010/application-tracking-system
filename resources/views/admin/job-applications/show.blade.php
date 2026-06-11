@@ -1490,8 +1490,7 @@ $('body').on('click', '.update-client-note', function () {
     var url = "{{ route('admin.job-client-notes.update', ':id') }}".replace(':id', noteId);
     $.easyAjax({
         type: 'POST', url: url,
-        data: { '_token': '{{ csrf_token() }}', 'note': $('#cn-edit-text-' + noteId).val(), '_method': 'PUT' },
-        success: function (response) {
+            data: { '_token': '{{ csrf_token() }}', 'note': $('#cn-edit-text-' + noteId).val() },        success: function (response) {
             if (response.status === 'success') $('#client-notes-list').html(response.view);
         }
     });
@@ -1508,7 +1507,7 @@ $('body').on('click', '.delete-client-note', function () {
             var url = "{{ route('admin.job-client-notes.destroy', ':id') }}".replace(':id', noteId);
             $.easyAjax({
                 type: 'POST', url: url,
-                data: { '_token': '{{ csrf_token() }}', '_method': 'DELETE' },
+                data: { '_token': '{{ csrf_token() }}' },
                 success: function (response) {
                     if (response.status === 'success') $('#client-notes-list').html(response.view);
                 }
