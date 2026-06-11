@@ -2071,6 +2071,7 @@ class AdminJobApplicationController extends AdminBaseController
                 'json' => [
                     'model'      => 'claude-sonnet-4-6',
                     'max_tokens' => 512,
+                    'cache_control' => ['type' => 'ephemeral',],
                     'messages'   => [[
                         'role'    => 'user',
                         'content' => [
@@ -2165,6 +2166,7 @@ class AdminJobApplicationController extends AdminBaseController
                 'json' => [
                     'model'      => 'claude-sonnet-4-6',
                     'max_tokens' => 1024,
+                    'cache_control' => ['type' => 'ephemeral',],
                     'messages'   => [[
                         'role'    => 'user',
                         'content' => [
