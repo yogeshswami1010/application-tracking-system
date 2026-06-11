@@ -404,7 +404,7 @@
                     $('[name="email"]').closest('div').append(
                         '<div id="email-check-result" class="mt-2 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">' +
                             '<svg class="w-4 h-4 shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' +
-                            '<span class="text-[12.5px] font-medium text-amber-800">This email is already registered. Your application will be linked to the existing profile.</span>' +
+                            '<span class="text-[12.5px] font-medium text-amber-800">This email address is already registered. Would you like to proceed with the same email address?</span>' +
                         '</div>'
                     );
                 }
