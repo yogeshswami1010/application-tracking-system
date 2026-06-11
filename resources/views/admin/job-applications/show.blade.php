@@ -1024,28 +1024,11 @@
                 </div>{{-- /details --}}
 
               {{-- ── NOTES TAB ── --}}
-  
-                    <div id="ja-tab-notes" class="ja-tab-pane" style="display:none">
-                        <div id="applicant-notes">
-                            @include('admin.job-applications.partials.applicant-notes-list', [
-                                'notes' => $application->notes()->with('user:id,name')->orderByDesc('created_at')->get()
-                            ])
-                        </div>
-
-                        @if($user->cans('edit_job_applications'))
-                        <div class="ja-add-note" style="margin-top:4px">
-                            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:8px">
-                                @lang('modules.jobApplication.addNote')
-                            </div>
-                            <textarea id="note_text" rows="3" class="ja-note-textarea"
-                                    placeholder="@lang('modules.jobApplication.addNote')"></textarea>
-                            <button id="add-note" class="ja-save-note-btn">
-                                <i class="fa fa-plus"></i> @lang('modules.jobApplication.addNote')
-                            </button>
-                        </div>
-                        @endif
-                    </div>{{-- /notes --}}
-                        @endforeach
+                <div id="ja-tab-notes" class="ja-tab-pane" style="display:none">
+                    <div id="applicant-notes">
+                        @include('admin.job-applications.partials.applicant-notes-list', [
+                            'notes' => $application->notes()->with('user:id,name')->orderByDesc('created_at')->get()
+                        ])
                     </div>
 
                     @if($user->cans('edit_job_applications'))
