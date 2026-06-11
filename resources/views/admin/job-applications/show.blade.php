@@ -867,7 +867,7 @@
                                     <i class="fa fa-user-circle" style="font-size:14px;color:#2563EB"></i>
                                     {{ ucwords($note->user->name) }}
                                 </span>
-                                <span class="ja-note-time">{{ $note->created_at->diffForHumans() }}</span>
+                                <span class="ja-note-time">{{ $note->created_at->format('h:i A') }}</span>
                             </div>
                             <p class="note-text ja-note-body">{{ ucfirst($note->note_text) }}</p>
                             <div class="note-textarea"></div>
