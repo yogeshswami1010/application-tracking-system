@@ -15,6 +15,14 @@
     $currentStatusId = $application->status_id;
     $currentStatus = $allStatuses->firstWhere('id', $currentStatusId);
 
+    // ── Previous applications (same email) ──
+    $previousApps = \App\JobApplication::where('email', $application->email)
+        ->where('is_candidate', 0)
+        ->where('id', '!=', $application->id)
+        ->with(['job:id,title', 'status:id,status,color'])
+        ->orderByDesc('created_at')
+        ->get();
+
     // Resolve resume URL
     $resumeUrl = null;
 
@@ -446,35 +454,7 @@
             @endif
 
         </div>
-        @if($previousApps->isNotEmpty())
-        <div id="ja-tab-history" class="ja-tab-pane" style="display:none">
-            <div class="ja-card">
-                <div class="ja-card-title">
-                    <i class="fa fa-history" style="font-size:11px"></i>
-                    Previous Applications
-                </div>
-                <div class="divide-y" style="border-top:1px solid #F0EEE9">
-                    @foreach($previousApps as $prev)
-                    <div class="ja-info-row" style="gap:10px;padding:10px 0;align-items:center">
-                        <div style="flex:1;min-width:0">
-                            <div style="font-size:13px;font-weight:600;color:#1A1E2E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-                                {{ ucwords($prev->job?->title ?? '—') }}
-                            </div>
-                            <div style="font-size:11px;color:#8A94A6;margin-top:2px">
-                                <i class="fa fa-calendar-o" style="font-size:10px"></i>
-                                {{ $prev->created_at?->format('d M Y') }}
-                            </div>
-                        </div>
-                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold text-white shrink-0"
-                            style="background:{{ $prev->status?->color ?? '#6B7280' }}">
-                            {{ ucwords(str_replace('_', ' ', $prev->status?->status ?? '—')) }}
-                        </span>
-                    </div>
-                    @endforeach
-                </div>
-            </div>
-        </div>
-        @endif
+        
         {{-- ──────── RIGHT: DETAIL TABS ──────── --}}
         <div class="ja-right-panel">
 
@@ -503,15 +483,6 @@
                     @lang('modules.interviewSchedule.scheduleDetail')
                 </div>
                 @endif
-                {{-- ADD THIS after it --}}
-                @php
-                    $previousApps = \App\JobApplication::where('email', $application->email)
-                        ->where('is_candidate', 0)
-                        ->where('id', '!=', $application->id)
-                        ->with(['job:id,title', 'status:id,status,color'])
-                        ->orderByDesc('created_at')
-                        ->get();
-                @endphp
 
                 @if($previousApps->isNotEmpty())
                 <div class="ja-tab" data-tab="history">
@@ -523,7 +494,35 @@
             </div>
 
             <div class="ja-right-scroll">
-
+                @if($previousApps->isNotEmpty())
+                <div id="ja-tab-history" class="ja-tab-pane" style="display:none">
+                    <div class="ja-card">
+                        <div class="ja-card-title">
+                            <i class="fa fa-history" style="font-size:11px"></i>
+                            Previous Applications
+                        </div>
+                        <div style="border-top:1px solid #F0EEE9">
+                            @foreach($previousApps as $prev)
+                            <div class="ja-info-row" style="gap:10px;padding:10px 0;align-items:center">
+                                <div style="flex:1;min-width:0">
+                                    <div style="font-size:13px;font-weight:600;color:#1A1E2E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                                        {{ ucwords($prev->job?->title ?? '—') }}
+                                    </div>
+                                    <div style="font-size:11px;color:#8A94A6;margin-top:2px">
+                                        <i class="fa fa-calendar-o" style="font-size:10px"></i>
+                                        {{ $prev->created_at?->format('d M Y') }}
+                                    </div>
+                                </div>
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold text-white shrink-0"
+                                    style="background:{{ $prev->status?->color ?? '#6B7280' }}">
+                                    {{ ucwords(str_replace('_', ' ', $prev->status?->status ?? '—')) }}
+                                </span>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+                @endif
                 {{-- ── DETAILS TAB ── --}}
                 <div id="ja-tab-details" class="ja-tab-pane">
 
