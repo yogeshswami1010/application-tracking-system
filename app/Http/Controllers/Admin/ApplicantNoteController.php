@@ -5,10 +5,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Requests\ApplicantNote\StoreNote;
 use App\ApplicantNote;
 use App\Helper\Reply;
+use Illuminate\Http\Request;
 
 class ApplicantNoteController extends AdminBaseController
 {
-    public function store(Request $request)
+    public function store(StoreNote $request)
     {
         $note = new ApplicantNote();
         $note->note_text = $request->note;
@@ -18,7 +19,7 @@ class ApplicantNoteController extends AdminBaseController
 
         $notes = ApplicantNote::with('user:id,name')
             ->where('job_application_id', $request->id)
-            ->orderByDesc('created_at')   // ← newest first
+            ->orderByDesc('created_at')
             ->get();
 
         $view = view('admin.job-applications.partials.applicant-notes-list', compact('notes'))->render();
@@ -57,5 +58,4 @@ class ApplicantNoteController extends AdminBaseController
 
         return Reply::dataOnly(['status' => 'success', 'view' => $view]);
     }
-
 }
