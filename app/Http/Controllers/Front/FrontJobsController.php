@@ -552,4 +552,43 @@ class FrontJobsController extends FrontBaseController
 
         return view('front.assistmyday-job-detail', $this->data);
     }
+    public function checkApplicantEmail(Request $request)
+    {
+        $email = trim($request->input('email', ''));
+        $jobId = (int) $request->input('job_id', 0);
+
+        if (!$email || !$jobId) {
+            return response()->json(['exists' => false]);
+        }
+
+        $existing = JobApplication::where('email', $email)
+            ->where('is_candidate', 0)
+            ->with(['job:id,title', 'status:id,status,color'])
+            ->orderByDesc('created_at')
+            ->get();
+
+        if ($existing->isEmpty()) {
+            return response()->json(['exists' => false]);
+        }
+
+        // Check if already applied to this exact job
+        $alreadyApplied = $existing->where('job_id', $jobId)->first();
+
+        $applications = $existing->map(function ($app) {
+            return [
+                'id'         => $app->id,
+                'job_title'  => ucwords($app->job?->title ?? '—'),
+                'status'     => ucwords(str_replace('_', ' ', $app->status?->status ?? '—')),
+                'color'      => $app->status?->color ?? '#6B7280',
+                'applied_at' => $app->created_at?->format('d M Y'),
+            ];
+        })->values()->all();
+
+        return response()->json([
+            'exists'          => true,
+            'already_applied' => $alreadyApplied ? true : false,
+            'full_name'       => $existing->first()->full_name ?? '',
+            'applications'    => $applications,
+        ]);
+    }
 }

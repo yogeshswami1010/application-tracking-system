@@ -200,6 +200,7 @@ Route::middleware('auth')->group(function () {
             Route::resource('locations', AdminLocationsController::class);
 
             // Jobs
+            Route::post('jobs/check-email', [JobsController::class, 'checkApplicantEmail'])->name('jobs.checkApplicantEmail');
             Route::get('jobs/data',                   [AdminJobsController::class, 'data'])->name('jobs.data');
             Route::post('jobs/bulk-destroy',           [AdminJobsController::class, 'bulkDestroy'])->name('jobs.bulkDestroy');
             Route::post('jobs/{job}/toggle-status',    [AdminJobsController::class, 'toggleStatus'])->name('jobs.toggleStatus');
@@ -309,6 +310,7 @@ Route::middleware('auth')->group(function () {
     Route::post('verify-otp-phone/account', [VerifyMobileController::class, 'verifyOtpCode'])->name('verifyOtpCode.account');
     Route::get('remove-session',            [VerifyMobileController::class, 'removeSession'])->name('removeSession');
 });
+
 
 // ── Catch-all CMS page (must be LAST) ─────────────────────────────────────
 Route::name('jobs.')
