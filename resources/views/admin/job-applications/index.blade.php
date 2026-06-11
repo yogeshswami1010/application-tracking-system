@@ -444,17 +444,23 @@
     var jaStages = {!! $jaStagesJson !!};
 
     // ── State ────────────────────────────────────────────────────
-    var jaActiveStageId = 'all';
-    var jaShowKO        = false;
-    var jaSelectedIds   = new Set();
+    var jaActiveStageId  = 'all';   // 'all' | stage id
+    var jaShowKO         = false;
+    var jaSelectedIds    = new Set();
     var table;
 
-    // ── Prev/Next: ordered ID list ───────────────────────────────
+    // ── Prev/Next: ordered ID list (populated in drawCallback) ───
     var jaApplicantIds = [];
 
+    /**
+     * Rebuilds jaApplicantIds from the currently visible DataTable rows,
+     * in the exact visual order they appear on screen.
+     * Called automatically after every draw (filter / sort / paginate).
+     */
     function jaRebuildIds() {
         jaApplicantIds = [];
-        document.querySelectorAll('#myTable tbody .ja-row-chk[data-id]').forEach(function(el) {
+        // Each row has a .ja-row-chk with data-id — use that as the source of truth
+        document.querySelectorAll('#myTable tbody .ja-row-chk[data-id]').forEach(function (el) {
             var id = parseInt(el.getAttribute('data-id'));
             if (id) jaApplicantIds.push(id);
         });
@@ -462,51 +468,11 @@
 
     // ── Helpers ──────────────────────────────────────────────────
     function jaNextStage(currentSlug) {
-        var order = jaStages.map(function(s) { return s.slug; });
+        var order = jaStages.map(function(s){ return s.slug; });
         var idx = order.indexOf(currentSlug);
         if (idx === -1 || idx >= order.length - 1) return null;
         var nextSlug = order[idx + 1];
-        return jaStages.find(function(s) { return s.slug === nextSlug; }) || null;
-    }
-
-    // ── Tab count update (called from DataTable dataSrc) ─────────
-    function jaUpdateTabCounts(counts, koCount) {
-        // Zero all stage badges first
-        jaStages.forEach(function(s) {
-            $('#ja-tab-count-' + s.id).text(0);
-        });
-
-        var total = 0;
-        $.each(counts, function(stageId, cnt) {
-            var n = parseInt(cnt) || 0;
-            $('#ja-tab-count-' + stageId).text(n);
-            total += n;
-        });
-
-        $('#ja-tab-count-all').text(total);
-        $('#ja-ko-tab-count').text(koCount || 0);
-    }
-
-    // ── Fallback tab counts (used after delete/restore/bulk) ─────
-    function jaLoadTabCounts() {
-        $.ajax({
-            url: '{{ route("admin.job-applications.stage-counts") }}',
-            type: 'GET',
-            data: {
-                company:        $('#company').val()        || 'all',
-                jobs:           $('#jobs').val()           || 'all',
-                location:       $('#location').val()       || 'all',
-                questions:      $('#questions').val()      || 'all',
-                question_value: $('#question-value').val() || ''
-            },
-            success: function(res) {
-                var payload = res.data ? res.data : res;
-                jaUpdateTabCounts(payload.counts || {}, payload.ko_count || 0);
-            },
-            error: function(xhr) {
-                console.error('stage-counts failed:', xhr.status, xhr.responseText);
-            }
-        });
+        return jaStages.find(function(s){ return s.slug === nextSlug; }) || null;
     }
 
     // ── Tab switching ────────────────────────────────────────────
@@ -515,7 +481,7 @@
         jaActiveStageId = stageId;
         jaSelectedIds = new Set();
 
-        document.querySelectorAll('.ja-stage-tab').forEach(function(el) {
+        document.querySelectorAll('.ja-stage-tab').forEach(function(el){
             el.classList.remove('active');
         });
         var btn = document.querySelector('[data-stage-id="' + stageId + '"]');
@@ -555,7 +521,7 @@
         jaActiveStageId = 'all';
         jaSelectedIds = new Set();
 
-        document.querySelectorAll('.ja-stage-tab').forEach(function(el) {
+        document.querySelectorAll('.ja-stage-tab').forEach(function(el){
             el.classList.remove('active');
         });
         document.getElementById('ja-ko-tab-btn').classList.add('active');
@@ -585,7 +551,7 @@
         var allChk = document.getElementById('ja-chk-all');
         var rowChks = document.querySelectorAll('.ja-row-chk');
         var allOn = allChk.classList.contains('on');
-        rowChks.forEach(function(el) {
+        rowChks.forEach(function(el){
             var id = parseInt(el.dataset.id);
             if (allOn) {
                 jaSelectedIds.delete(id);
@@ -606,7 +572,7 @@
         var rowChks = document.querySelectorAll('.ja-row-chk');
         var total = rowChks.length;
         var selCount = 0;
-        rowChks.forEach(function(el) { if (el.classList.contains('on')) selCount++; });
+        rowChks.forEach(function(el){ if (el.classList.contains('on')) selCount++; });
         var allChk = document.getElementById('ja-chk-all');
         if (total > 0 && selCount === total) {
             allChk.classList.add('on');
@@ -619,7 +585,7 @@
 
     function jaClearSelection() {
         jaSelectedIds = new Set();
-        document.querySelectorAll('.ja-row-chk').forEach(function(el) {
+        document.querySelectorAll('.ja-row-chk').forEach(function(el){
             el.classList.remove('on');
             el.innerHTML = '';
         });
@@ -643,20 +609,20 @@
         if (jaShowKO) {
             html = '<button class="ja-bulk-btn teal" onclick="jaBulkRestore()"><i class="fa fa-undo"></i> Restore to queue</button>';
         } else {
-            var currentStage = jaStages.find(function(s) { return s.id == jaActiveStageId; });
+            var currentStage = jaStages.find(function(s){ return s.id == jaActiveStageId; });
             if (currentStage) {
                 var next = jaNextStage(currentStage.slug);
                 if (next) {
                     html += '<button class="ja-bulk-btn blue" onclick="jaBulkMove(' + next.id + ')"><i class="fa fa-arrow-right"></i> Move to ' + next.label + '</button> ';
                 }
                 if (currentStage.slug !== 'rejected' && currentStage.slug !== 'hired') {
-                    var rejStage = jaStages.find(function(s) { return s.slug === 'rejected'; });
+                    var rejStage = jaStages.find(function(s){ return s.slug === 'rejected'; });
                     if (rejStage) {
                         html += '<button class="ja-bulk-btn red" onclick="jaBulkMove(' + rejStage.id + ')"><i class="fa fa-times"></i> Reject all</button>';
                     }
                 }
             } else {
-                var rejStage = jaStages.find(function(s) { return s.slug === 'rejected'; });
+                var rejStage = jaStages.find(function(s){ return s.slug === 'rejected'; });
                 if (rejStage) {
                     html += '<button class="ja-bulk-btn red" onclick="jaBulkMove(' + rejStage.id + ')"><i class="fa fa-times"></i> Reject all</button>';
                 }
@@ -738,7 +704,7 @@
     });
 
     function jaMoveOneBySlug(appId, toSlug) {
-        var stage = jaStages.find(function(s) { return s.slug === toSlug; });
+        var stage = jaStages.find(function(s){ return s.slug === toSlug; });
         if (!stage) { alert('Stage not found: ' + toSlug); return; }
         jaMoveOne(appId, stage.id);
     }
@@ -759,7 +725,57 @@
         });
     }
 
-    // ── tableLoad ────────────────────────────────────────────────
+    // ── Tab counts ───────────────────────────────────────────────
+    function jaLoadTabCounts() {
+        // Read values directly from the DOM elements (not Select2 cache)
+        var company        = $('#company').val()        || 'all';
+        var jobs           = $('#jobs').val()           || 'all';
+        var location       = $('#location').val()       || 'all';
+        var questions      = $('#questions').val()      || 'all';
+        var question_value = $('#question-value').val() || '';
+
+        console.log('jaLoadTabCounts sending:', { company, jobs, location, questions, question_value });
+
+        $.ajax({
+            url: '{{ route("admin.job-applications.stage-counts") }}',
+            type: 'GET',
+            data: {
+                company:        company,
+                jobs:           jobs,
+                location:       location,
+                questions:      questions,
+                question_value: question_value
+            },
+            success: function(res) {
+                console.log('stage-counts response:', res);
+
+                var payload = res.data ? res.data : res;
+                var counts  = payload.counts;
+                var koCount = payload.ko_count;
+
+                if (!counts) { console.warn('No counts key in response'); return; }
+
+                // Zero ALL stage badges first
+                jaStages.forEach(function(s) {
+                    $('#ja-tab-count-' + s.id).text(0);
+                });
+
+                var total = 0;
+                $.each(counts, function(stageId, cnt) {
+                    var n = parseInt(cnt) || 0;
+                    $('#ja-tab-count-' + stageId).text(n);
+                    total += n;
+                });
+
+                $('#ja-tab-count-all').text(total);
+                $('#ja-ko-tab-count').text(koCount || 0);
+            },
+            error: function(xhr) {
+                console.error('stage-counts failed:', xhr.status, xhr.responseText);
+            }
+        });
+    }
+
     function tableLoad(type) {
         var status         = $('#status').val();
         var jobs           = $('#jobs').val();
@@ -769,91 +785,85 @@
         var question_value = $('#question-value').val();
         var knockout       = jaShowKO ? 1 : 0;
 
+        // Destroy existing instance cleanly
         if ($.fn.DataTable.isDataTable('#myTable')) {
             $('#myTable').DataTable().destroy();
         }
 
-        $('#myTable').html(
-            '<thead><tr>' +
-                '<th style="width:40px;"><div class="ja-chk" id="ja-chk-all" onclick="jaToggleAll()" title="Select all"></div></th>' +
-                '<th>{{ __("modules.jobApplication.applicantName") }}</th>' +
-                '<th>{{ __("menu.jobs") }}</th>' +
-                '<th>{{ __("menu.locations") }}</th>' +
-                '<th>{{ __("app.status") }}</th>' +
-                '<th style="padding-right:16px;">{{ __("app.action") }}</th>' +
-                '<th style="display:none;"></th>' +
-            '</tr></thead>' +
-            '<tbody></tbody>'
-        );
+    // Rebuild thead to avoid column width calculation error
+    $('#myTable').html(
+        '<thead><tr>' +
+            '<th style="width:40px;"><div class="ja-chk" id="ja-chk-all" onclick="jaToggleAll()" title="Select all"></div></th>' +
+            '<th>{{ __("modules.jobApplication.applicantName") }}</th>' +
+            '<th>{{ __("menu.jobs") }}</th>' +
+            '<th>{{ __("menu.locations") }}</th>' +
+            '<th>{{ __("app.status") }}</th>' +
+            '<th style="padding-right:16px;">{{ __("app.action") }}</th>' +
+            '<th style="display:none;"></th>' +
+        '</tr></thead>' +
+        '<tbody></tbody>'
+    );
 
-        table = $('#myTable').DataTable({
-            responsive: false,
-            autoWidth: false,
-            processing: false,
-            serverSide: true,
-            ajax: {
-                url: '{!! route("admin.job-applications.data") !!}',
-                data: function(d) {
-                    return $.extend({}, d, {
-                        status:         status,
-                        location:       location,
-                        jobs:           jobs,
-                        questions:      questions,
-                        question_value: question_value,
-                        company:        company,
-                        knockout:       knockout
-                    });
-                },
-                dataSrc: function(json) {
-                    // Update tab counts from the same response
-                    if (json.stage_counts !== undefined) {
-                        jaUpdateTabCounts(json.stage_counts, json.ko_count || 0);
-                    }
-                    // DataTables expects rows under 'data' key
-                    return json.data || [];
+    table = $('#myTable').DataTable({
+        responsive: false,
+        autoWidth: false,
+        processing: false,
+        serverSide: true,
+        ajax: {
+            url: '{!! route("admin.job-applications.data") !!}',
+            data: function(d) {
+                return $.extend({}, d, {
+                    status:         status,
+                    location:       location,
+                    jobs:           jobs,
+                    questions:      questions,
+                    question_value: question_value,
+                    company:        company,
+                    knockout:       knockout
+                });
+            }
+        },
+        language: languageOptions(),
+        stripeClasses: [],
+        dom: '<"jc-table-toolbar"lf>rt<"jc-table-toolbar jc-table-toolbar--footer"ip>',
+        drawCallback: function() {
+            if (typeof $.fn.tooltip === 'function') {
+                $('[data-toggle="tooltip"]').tooltip();
+            }
+            jaUpdateAllChk();
+            jaRebuildIds();
+        },
+        order: [[6, 'desc']],
+        columns: [
+            {
+                data: null,
+                orderable: false,
+                searchable: false,
+                width: '40px',
+                render: function(data, type, row) {
+                    return '<div class="ja-chk ja-row-chk" data-id="' + row.id + '" onclick="jaToggleRow(' + row.id + ', this)"></div>';
                 }
             },
-            language: languageOptions(),
-            stripeClasses: [],
-            dom: '<"jc-table-toolbar"lf>rt<"jc-table-toolbar jc-table-toolbar--footer"ip>',
-            drawCallback: function() {
-                if (typeof $.fn.tooltip === 'function') {
-                    $('[data-toggle="tooltip"]').tooltip();
+            { data: 'full_name',   name: 'full_name',  width: '17%' },
+            { data: 'title',       name: 'job_id',     width: '15%' },
+            { data: 'location_id', name: 'location_id' },
+            {
+                data: 'status',
+                name: 'status_id',
+                render: function(data, type, row) {
+                    if (jaShowKO) {
+                        return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold text-white" style="background:#dc2626;">'
+                            + '<i class="fa fa-user-times" style="font-size:10px;margin-right:3px;"></i>Knockout'
+                            + '</span>';
+                    }
+                    return data;
                 }
-                jaUpdateAllChk();
-                jaRebuildIds();
             },
-            order: [[6, 'desc']],
-            columns: [
-                {
-                    data: null,
-                    orderable: false,
-                    searchable: false,
-                    width: '40px',
-                    render: function(data, type, row) {
-                        return '<div class="ja-chk ja-row-chk" data-id="' + row.id + '" onclick="jaToggleRow(' + row.id + ', this)"></div>';
-                    }
-                },
-                { data: 'full_name',   name: 'full_name',  width: '17%' },
-                { data: 'title',       name: 'job_id',     width: '15%' },
-                { data: 'location_id', name: 'location_id' },
-                {
-                    data: 'status',
-                    name: 'status_id',
-                    render: function(data, type, row) {
-                        if (jaShowKO) {
-                            return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold text-white" style="background:#dc2626;">'
-                                + '<i class="fa fa-user-times" style="font-size:10px;margin-right:3px;"></i>Knockout'
-                                + '</span>';
-                        }
-                        return data;
-                    }
-                },
-                { data: 'action',     name: 'action',     width: '18%', searchable: false, className: 'jc-td-right' },
-                { data: 'created_at', name: 'created_at',  visible: false, searchable: false, orderable: true, defaultContent: '' }
-            ]
-        });
-    }
+            { data: 'action',     name: 'action',     width: '18%', searchable: false, className: 'jc-td-right' },
+            { data: 'created_at', name: 'created_at',  visible: false, searchable: false, orderable: true, defaultContent: '' }
+        ]
+    });
+}
 
     // ── Filter badge counter ─────────────────────────────────────
     $('#filter-form').on('change', 'select', function() { jaTableSyncFilterBadge(); });
@@ -891,8 +901,12 @@
     $('#apply-filters').on('click', function() {
         jaSelectedIds = new Set();
         jaRenderBulkBar();
-        tableLoad('filter');   // counts arrive inside DataTable response — no extra call needed
+        tableLoad('filter');
         jaTableSyncFilterBadge();
+        // Small delay ensures Select2 has committed values before we read them
+        setTimeout(function() {
+            jaLoadTabCounts();
+        }, 100);
     });
 
     $('#reset-filters').on('click', function() {
@@ -900,12 +914,15 @@
     });
 
     // ── Show detail sidebar ──────────────────────────────────────
+    // jaRebuildIds() is called here too so the counter is correct
+    // even if somehow drawCallback hasn't fired yet.
     $('#myTable').on('click', '.show-detail', function() {
         var $sidebar  = $('#right-sidebar');
         var $backdrop = $('#right-sidebar-backdrop');
         $sidebar.removeClass('translate-x-full').addClass('translate-x-0');
         $backdrop.removeClass('hidden').css({ display: 'block', visibility: 'visible' });
 
+        // Ensure ID list is fresh before opening the panel
         jaRebuildIds();
 
         var id  = $(this).data('row-id');
@@ -1017,9 +1034,11 @@
     $('#filter-form select.select2').not('#skill').select2({ width: '100%' });
 
     // ── Init ─────────────────────────────────────────────────────
-    tableLoad('load');
+    tableLoad('load');   // drawCallback will call jaRebuildIds() automatically
+    jaLoadTabCounts();
     jaTableSyncFilterBadge();
 
+    // Set All tab as active on load
     document.getElementById('ja-tab-all').classList.add('active');
     </script>
 @endpush

@@ -354,7 +354,7 @@ class AdminJobApplicationController extends AdminBaseController
             'job_applications.status_id',
             'job_applications.full_name',
             'job_applications.skills',
-            'job_applications.location_id',
+            'job_applications.location_id',   // ← this was the ambiguous one
             'job_applications.created_at'
         )
             ->with([
@@ -366,6 +366,7 @@ class AdminJobApplicationController extends AdminBaseController
         $jobApplications = $jobApplications->where('job_applications.is_candidate', 0);
 
         // Knockout filter
+        // Knockout filter — show applicants who answered a knockout question with knockout answer
         if ($request->knockout == 1) {
             $jobApplications = $jobApplications->whereHas('answers', function ($q) {
                 $q->whereHas('question', function ($qq) {
@@ -443,6 +444,7 @@ class AdminJobApplicationController extends AdminBaseController
             }
         }
 
+        // Find rejected & applied status ids for restore button
         $rejectedStatus = $allStatuses->firstWhere('status', 'rejected');
         $appliedStatus  = $allStatuses->firstWhere('status', 'applied');
 
@@ -450,46 +452,50 @@ class AdminJobApplicationController extends AdminBaseController
         $canView   = $this->user->cans('view_job_applications');
         $canDelete = $this->user->cans('delete_job_applications');
 
-        $dataTable = DataTables::of($jobApplications)
-            ->addColumn('action', function ($row) use ($nextMap, $rejectedStatus, $appliedStatus, $allStatuses, $canEdit, $canView, $canDelete) {
-                $parts = [];
+        return DataTables::of($jobApplications)
+                ->addColumn('action', function ($row) use ($nextMap, $rejectedStatus, $appliedStatus, $allStatuses, $canEdit, $canView, $canDelete) {                $parts = [];
                 $statusSlug = strtolower($row->status?->status ?? '');
 
                 if ($canEdit) {
-                    if (isset($nextMap[$statusSlug]) && $statusSlug !== 'rejected') {
-                        $nextLabel = $nextMap[$statusSlug]['label'];
-                        $nextSlug  = $nextMap[$statusSlug]['slug'];
-                        $parts[] = '<button type="button" onclick="jaMoveOneBySlug(' . $row->id . ',\'' . $nextSlug . '\')" class="ja-act-btn move" title="Move to ' . $nextLabel . '">' . $nextLabel . ' <i class="fa fa-arrow-right" style="font-size:10px;margin-left:2px;"></i></button>';
-                    }
-
-                    if (!in_array($statusSlug, ['rejected', 'hired'])) {
-                        $dropdownId = 'ja-move-drop-' . $row->id;
-                        $dropdownHtml = '<div class="ja-move-wrap" style="position:relative;display:inline-flex;">';
-                        $dropdownHtml .= '<button type="button" class="ja-act-btn" onclick="jaToggleDrop(\'' . $dropdownId . '\')" title="Move to stage" style="padding:5px 8px;border-radius:8px;"><i class="fa fa-chevron-down" style="font-size:10px;"></i></button>';
-                        $dropdownHtml .= '<div id="' . $dropdownId . '" class="ja-move-drop" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:#fff;border:1.5px solid #E2DED8;border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.13);z-index:999;min-width:150px;overflow:hidden;">';
-
-                        foreach ($allStatuses as $s) {
-                            if ($s->status === $statusSlug) continue;
-                            $stageLabel = ucwords(str_replace('_', ' ', $s->status));
-                            $stageDot   = $s->color ?? '#6B7280';
-                            $dropdownHtml .= '<button type="button" onclick="jaMoveOneBySlug(' . $row->id . ',\'' . $s->status . '\');jaCloseDrop(\'' . $dropdownId . '\')" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;border:none;background:none;font-size:13px;font-weight:500;color:#1A1E2E;cursor:pointer;font-family:inherit;text-align:left;" onmouseover="this.style.background=\'#F1F3F7\'" onmouseout="this.style.background=\'none\'">';
-                            $dropdownHtml .= '<span style="width:8px;height:8px;border-radius:50%;background:' . $stageDot . ';flex-shrink:0;display:inline-block;"></span>' . $stageLabel;
-                            $dropdownHtml .= '</button>';
-                        }
-
-                        $dropdownHtml .= '</div></div>';
-                        $parts[] = $dropdownHtml;
-                    }
-
-                    if (!in_array($statusSlug, ['rejected', 'hired'])) {
-                        $parts[] = '<button type="button" onclick="jaMoveOneBySlug(' . $row->id . ',\'rejected\')" class="ja-act-btn reject" title="Reject"><i class="fa fa-times"></i></button>';
-                    }
-
-                    if ($statusSlug === 'rejected' && $appliedStatus) {
-                        $parts[] = '<button type="button" onclick="jaMoveOne(' . $row->id . ',' . $appliedStatus->id . ')" class="ja-act-btn restore" title="Restore to Applied"><i class="fa fa-undo"></i></button>';
-                    }
+             
+                if (isset($nextMap[$statusSlug]) && $statusSlug !== 'rejected') {
+                    $nextLabel = $nextMap[$statusSlug]['label'];
+                    $nextSlug  = $nextMap[$statusSlug]['slug'];
+                    $parts[] = '<button type="button" onclick="jaMoveOneBySlug(' . $row->id . ',\'' . $nextSlug . '\')" class="ja-act-btn move" title="Move to ' . $nextLabel . '">' . $nextLabel . ' <i class="fa fa-arrow-right" style="font-size:10px;margin-left:2px;"></i></button>';
                 }
 
+                // Move to ANY stage dropdown
+                if (!in_array($statusSlug, ['rejected', 'hired'])) {
+                    $dropdownId = 'ja-move-drop-' . $row->id;
+                    $dropdownHtml = '<div class="ja-move-wrap" style="position:relative;display:inline-flex;">';
+                    $dropdownHtml .= '<button type="button" class="ja-act-btn" onclick="jaToggleDrop(\'' . $dropdownId . '\')" title="Move to stage" style="padding:5px 8px;border-radius:8px;"><i class="fa fa-chevron-down" style="font-size:10px;"></i></button>';
+                    $dropdownHtml .= '<div id="' . $dropdownId . '" class="ja-move-drop" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:#fff;border:1.5px solid #E2DED8;border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.13);z-index:999;min-width:150px;overflow:hidden;">';
+
+                    foreach ($allStatuses as $s) {
+                        if ($s->status === $statusSlug) continue;
+                        $stageLabel = ucwords(str_replace('_', ' ', $s->status));
+                        $stageDot   = $s->color ?? '#6B7280';
+                        $dropdownHtml .= '<button type="button" onclick="jaMoveOneBySlug(' . $row->id . ',\'' . $s->status . '\');jaCloseDrop(\'' . $dropdownId . '\')" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;border:none;background:none;font-size:13px;font-weight:500;color:#1A1E2E;cursor:pointer;font-family:inherit;text-align:left;" onmouseover="this.style.background=\'#F1F3F7\'" onmouseout="this.style.background=\'none\'">';
+                        $dropdownHtml .= '<span style="width:8px;height:8px;border-radius:50%;background:' . $stageDot . ';flex-shrink:0;display:inline-block;"></span>' . $stageLabel;
+                        $dropdownHtml .= '</button>';
+                    }
+
+                    $dropdownHtml .= '</div></div>';
+                    $parts[] = $dropdownHtml;
+                }
+
+                // Reject button
+                if (!in_array($statusSlug, ['rejected', 'hired'])) {
+                    $parts[] = '<button type="button" onclick="jaMoveOneBySlug(' . $row->id . ',\'rejected\')" class="ja-act-btn reject" title="Reject"><i class="fa fa-times"></i></button>';
+                }
+
+                // Restore button for rejected
+                if ($statusSlug === 'rejected' && $appliedStatus) {
+                    $parts[] = '<button type="button" onclick="jaMoveOne(' . $row->id . ',' . $appliedStatus->id . ')" class="ja-act-btn restore" title="Restore to Applied"><i class="fa fa-undo"></i></button>';
+                }
+                }
+
+                // View detail (sidebar) — always shown
                 $parts[] = '<a href="javascript:;" class="show-detail ja-act-btn" data-row-id="' . $row->id . '" title="View profile"><i class="fa fa-eye"></i></a>';
 
                 return '<div class="ja-row-actions">' . implode('', $parts) . '</div>';
@@ -516,88 +522,14 @@ class AdminJobApplicationController extends AdminBaseController
                 return ucwords($row->location?->location ?? '—');
             })
             ->editColumn('status', function ($row) {
-                if (request()->knockout == 1) {
-                    return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold text-white" style="background:#dc2626;">'
-                        . '<i class="fa fa-user-times" style="font-size:10px;margin-right:3px;"></i>Knockout'
-                        . '</span>';
-                }
                 $color = $row->status?->color ?? '#6B7280';
                 $label = ucwords(str_replace('_', ' ', $row->status?->status ?? ''));
                 return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold text-white" style="background:' . $color . '">' . $label . '</span>';
             })
-            ->orderColumn('created_at', 'job_applications.created_at $1')
+            ->orderColumn('created_at', 'job_applications.created_at $1')  // ← add this
             ->rawColumns(['action', 'full_name', 'status'])
             ->addIndexColumn()
-            ->make(false);  // ← false so we can append counts
-
-        // ── Stage counts (same filters, no status filter so all tabs update) ──
-        $countQuery = JobApplication::select(
-                'job_applications.status_id',
-                DB::raw('COUNT(*) as cnt')
-            )
-            ->where('job_applications.is_candidate', 0);
-
-        if ($request->company != 'all' && $request->company != '') {
-            $countQuery->join('jobs as j_cnt', 'j_cnt.id', '=', 'job_applications.job_id')
-                    ->where('j_cnt.company_id', $request->company);
-        }
-        if ($request->jobs != 'all' && $request->jobs != '') {
-            $countQuery->where('job_applications.job_id', $request->jobs);
-        }
-        if ($request->location != 'all' && $request->location != '') {
-            $countQuery->where('job_applications.location_id', $request->location);
-        }
-        if ($request->questions != 'all' && $request->questions != '') {
-            $countQuery->whereHas('job.questions', function ($q) use ($request) {
-                $q->where('question_id', $request->questions);
-            });
-            if ($request->question_value != '') {
-                $countQuery->whereHas('answers', function ($q) use ($request) {
-                    $q->where('question_id', $request->questions)
-                    ->where('answer', 'LIKE', '%' . $request->question_value . '%');
-                });
-            }
-        }
-
-        $stageCounts = $countQuery
-            ->groupBy('job_applications.status_id')
-            ->pluck('cnt', 'job_applications.status_id');
-
-        // ── KO count ──
-        $koQuery = JobApplication::where('job_applications.is_candidate', 0)
-            ->whereHas('answers', function ($q) {
-                $q->whereHas('question', function ($qq) {
-                    $qq->where('type', 'radio')
-                    ->where('is_knockout', 1)
-                    ->whereNotNull('knockout_answer');
-                })->whereColumn(
-                    DB::raw('LOWER(TRIM(job_application_answers.answer))'),
-                    DB::raw('LOWER(TRIM((SELECT knockout_answer FROM questions WHERE questions.id = job_application_answers.question_id LIMIT 1)))')
-                );
-            });
-
-        if ($request->company != 'all' && $request->company != '') {
-            $koQuery->join('jobs as j_ko', 'j_ko.id', '=', 'job_applications.job_id')
-                    ->where('j_ko.company_id', $request->company);
-        }
-        if ($request->jobs != 'all' && $request->jobs != '') {
-            $koQuery->where('job_applications.job_id', $request->jobs);
-        }
-        if ($request->location != 'all' && $request->location != '') {
-            $koQuery->where('job_applications.location_id', $request->location);
-        }
-
-        $koCount = $koQuery->count('job_applications.id');
-
-        // ── Merge counts into DataTable response ──
-        $responseData = $dataTable->getData(true);
-
-        // getData(true) returns array — ensure rows are under 'data' key
-        $output                 = is_array($responseData) ? $responseData : (array) $responseData;
-        $output['stage_counts'] = $stageCounts;
-        $output['ko_count']     = $koCount;
-
-        return response()->json($output);
+            ->make(true);
     }
     public function stageCounts(Request $request)
     {
