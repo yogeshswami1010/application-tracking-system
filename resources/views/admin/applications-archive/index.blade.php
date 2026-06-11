@@ -142,7 +142,7 @@
                 <form id="filter-form" class="flex flex-wrap items-end gap-3.5 pb-3">
 
                     {{-- ── Skill tag input ── --}}
-                    <div class="flex min-w-[200px] flex-1 flex-col gap-1 sm:max-w-[300px]">
+                    <!-- <div class="flex min-w-[200px] flex-1 flex-col gap-1 sm:max-w-[300px]">
                         <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">
                             @lang('modules.applicationArchive.enterSkill')
                         </label>
@@ -156,7 +156,7 @@
                             </div>
                             <div class="skill-suggestions" id="skill-suggestions" style="display:none;"></div>
                         </div>
-                    </div>
+                    </div> -->
 
                     {{-- Company --}}
                     <div class="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[220px]">
