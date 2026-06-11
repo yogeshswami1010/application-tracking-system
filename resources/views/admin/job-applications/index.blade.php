@@ -727,15 +727,24 @@
 
     // ── Tab counts ───────────────────────────────────────────────
     function jaLoadTabCounts() {
+        // Read values directly from the DOM elements (not Select2 cache)
+        var company        = $('#company').val()        || 'all';
+        var jobs           = $('#jobs').val()           || 'all';
+        var location       = $('#location').val()       || 'all';
+        var questions      = $('#questions').val()      || 'all';
+        var question_value = $('#question-value').val() || '';
+
+        console.log('jaLoadTabCounts sending:', { company, jobs, location, questions, question_value });
+
         $.ajax({
             url: '{{ route("admin.job-applications.stage-counts") }}',
             type: 'GET',
             data: {
-                jobs:           $('#jobs').val()           || 'all',
-                company:        $('#company').val()        || 'all',
-                location:       $('#location').val()       || 'all',
-                questions:      $('#questions').val()      || 'all',
-                question_value: $('#question-value').val() || ''
+                company:        company,
+                jobs:           jobs,
+                location:       location,
+                questions:      questions,
+                question_value: question_value
             },
             success: function(res) {
                 console.log('stage-counts response:', res);
@@ -746,17 +755,16 @@
 
                 if (!counts) { console.warn('No counts key in response'); return; }
 
-                var total = 0;
-                $.each(counts, function(stageId, cnt) {
-                    $('#ja-tab-count-' + stageId).text(cnt);
-                    total += parseInt(cnt) || 0;
+                // Zero ALL stage badges first
+                jaStages.forEach(function(s) {
+                    $('#ja-tab-count-' + s.id).text(0);
                 });
 
-                // Zero out any stage tabs not present in the filtered counts
-                jaStages.forEach(function(s) {
-                    if (!counts.hasOwnProperty(s.id)) {
-                        $('#ja-tab-count-' + s.id).text(0);
-                    }
+                var total = 0;
+                $.each(counts, function(stageId, cnt) {
+                    var n = parseInt(cnt) || 0;
+                    $('#ja-tab-count-' + stageId).text(n);
+                    total += n;
                 });
 
                 $('#ja-tab-count-all').text(total);
@@ -895,6 +903,10 @@
         jaRenderBulkBar();
         tableLoad('filter');
         jaTableSyncFilterBadge();
+        // Small delay ensures Select2 has committed values before we read them
+        setTimeout(function() {
+            jaLoadTabCounts();
+        }, 100);
     });
 
     $('#reset-filters').on('click', function() {
