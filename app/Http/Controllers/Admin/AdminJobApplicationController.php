@@ -533,41 +533,48 @@ class AdminJobApplicationController extends AdminBaseController
     }
     public function stageCounts(Request $request)
     {
-        $query = JobApplication::where('is_candidate', 0);
+        // Build base query with filters (same logic as data())
+        $query = JobApplication::select('job_applications.status_id')
+            ->where('job_applications.is_candidate', 0);
 
-        // Apply the same filters as data()
-        if ($request->jobs != 'all' && $request->jobs != '') {
-            $query->where('job_id', $request->jobs);
-        }
-
+        // Company filter — needs a join
         if ($request->company != 'all' && $request->company != '') {
             $query->join('jobs', 'jobs.id', 'job_applications.job_id')
                 ->where('jobs.company_id', $request->company);
         }
 
-        if ($request->location != 'all' && $request->location != '') {
-            $query->where('location_id', $request->location);
+        // Jobs filter
+        if ($request->jobs != 'all' && $request->jobs != '') {
+            $query->where('job_applications.job_id', $request->jobs);
         }
 
+        // Location filter
+        if ($request->location != 'all' && $request->location != '') {
+            $query->where('job_applications.location_id', $request->location);
+        }
+
+        // Question filter
         if ($request->questions != 'all' && $request->questions != '') {
             $query->whereHas('job.questions', function ($q) use ($request) {
                 $q->where('question_id', $request->questions);
             });
         }
 
+        // Question value filter
         if ($request->question_value != '' && $request->questions != 'all' && $request->questions != '') {
             $query->join('job_application_answers', 'job_application_answers.job_application_id', 'job_applications.id')
                 ->where('job_application_answers.question_id', $request->questions)
                 ->where('job_application_answers.answer', 'LIKE', '%' . $request->question_value . '%');
         }
 
-        // Count per stage from filtered set
-        $counts = $query->select('status_id', DB::raw('count(*) as cnt'))
-                        ->groupBy('status_id')
-                        ->pluck('cnt', 'status_id');
+        // Get counts grouped by status_id
+        $counts = (clone $query)
+            ->selectRaw('job_applications.status_id, count(*) as cnt')
+            ->groupBy('job_applications.status_id')
+            ->pluck('cnt', 'job_applications.status_id');
 
-        // KO count with same filters
-        $koQuery = JobApplication::where('is_candidate', 0)
+        // KO count — reuse same filtered base, add knockout condition
+        $koCount = (clone $query)
             ->whereHas('answers', function ($q) {
                 $q->whereHas('question', function ($qq) {
                     $qq->where('type', 'radio')
@@ -577,20 +584,7 @@ class AdminJobApplicationController extends AdminBaseController
                     DB::raw('LOWER(TRIM(job_application_answers.answer))'),
                     DB::raw('LOWER(TRIM((SELECT knockout_answer FROM questions WHERE questions.id = job_application_answers.question_id LIMIT 1)))')
                 );
-            });
-
-        if ($request->jobs != 'all' && $request->jobs != '') {
-            $koQuery->where('job_id', $request->jobs);
-        }
-        if ($request->company != 'all' && $request->company != '') {
-            $koQuery->join('jobs as j2', 'j2.id', 'job_applications.job_id')
-                    ->where('j2.company_id', $request->company);
-        }
-        if ($request->location != 'all' && $request->location != '') {
-            $koQuery->where('location_id', $request->location);
-        }
-
-        $koCount = $koQuery->count();
+            })->count();
 
         return Reply::dataOnly(['counts' => $counts, 'ko_count' => $koCount]);
     }
