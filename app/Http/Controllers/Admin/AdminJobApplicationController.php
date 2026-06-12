@@ -2281,4 +2281,27 @@ class AdminJobApplicationController extends AdminBaseController
             return response()->json(['status' => 'error', 'message' => $e->getMessage()]);
         }
     }
+    public function updateBasicInfo(Request $request, $id)
+    {
+        abort_if(!$this->user->cans('edit_job_applications'), 403);
+
+        $request->validate([
+            'full_name' => 'required|string|max:191',
+            'email'     => 'required|email|max:191',
+            'phone'     => 'nullable|string|max:50',
+        ]);
+
+        $application = JobApplication::findOrFail($id);
+        $application->full_name = collect(explode(' ', trim($request->full_name)))
+            ->map(fn($w) => ucfirst(strtolower($w)))->join(' ');
+        $application->email = $request->email;
+        $application->phone = $request->phone;
+        $application->save();
+
+        return Reply::successWithData(__('messages.updatedSuccessfully'), [
+            'full_name' => $application->full_name,
+            'email'     => $application->email,
+            'phone'     => $application->phone,
+        ]);
+    }
 }

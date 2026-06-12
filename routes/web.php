@@ -235,7 +235,7 @@ Route::middleware('auth')->group(function () {
             Route::get('job-applications/ai-compare-applicants',          [AdminJobApplicationController::class, 'aiCompareApplicants'])->name('job-applications.ai-compare-applicants');
             Route::post('job-applications/ai-generate-cover-letter',      [AdminJobApplicationController::class, 'aiGenerateCoverLetterAndDetails'])->name('job-applications.ai-generate-cover-letter');
             Route::post('job-applications/ai-parse-resume',               [AdminJobApplicationController::class, 'aiParseResumeFromUpload'])->name('job-applications.ai-parse-resume');
-           Route::get('job-applications/get-jobs',                       [AdminJobApplicationController::class, 'getJobs'])->name('job-applications.get-jobs');
+            Route::get('job-applications/get-jobs',                       [AdminJobApplicationController::class, 'getJobs'])->name('job-applications.get-jobs');
             Route::get('job-applications/stage-counts',                   [AdminJobApplicationController::class, 'stageCounts'])->name('job-applications.stage-counts');
             Route::post('job-applications/bulk-status-update',            [AdminJobApplicationController::class, 'bulkStatusUpdate'])->name('job-applications.bulk-status-update');
             Route::post('job-applications/bulk-restore-knockout',         [AdminJobApplicationController::class, 'bulkRestoreKnockout'])->name('job-applications.bulk-restore-knockout');
@@ -243,7 +243,8 @@ Route::middleware('auth')->group(function () {
             Route::resource('job-applications', AdminJobApplicationController::class);
             Route::post('job-applications/{id}/parse-skills',             [AdminJobApplicationController::class, 'parseSkills'])->name('job-applications.parse-skills');
             Route::post('job-applications/{id}/assign-job',               [AdminJobApplicationController::class, 'assignJob'])->name('job-applications.assign-job');
-
+            Route::post('job-applications/{id}/update-info', [AdminJobApplicationController::class, 'updateBasicInfo'])
+                ->name('admin.job-applications.update-basic-info');
             // Applications Archive
             Route::get('applications-archive/data',            [AdminApplicationArchiveController::class, 'data'])->name('applications-archive.data');
             Route::get('applications-archive/export/{skill}',  [AdminApplicationArchiveController::class, 'export'])->name('applications-archive.export');

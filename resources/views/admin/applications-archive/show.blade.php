@@ -594,25 +594,97 @@
                     </div>
 
                     {{-- Personal info --}}
-                    <div class="ja-card">
-                        <div class="ja-card-title">
-                            <i class="fa fa-user" style="font-size:11px"></i> @lang('Personal Information')
-                        </div>
+                    <div class="ja-card" id="ja-info-card-{{ $application->id }}">
+                    <div class="ja-card-title" style="justify-content:space-between;">
+                        <span><i class="fa fa-user" style="font-size:11px"></i> @lang('Personal Information')</span>
+                        @if($user->cans('edit_job_applications'))
+                        <button type="button" onclick="jaToggleInfoEdit({{ $application->id }})"
+                                id="ja-info-edit-btn-{{ $application->id }}"
+                                style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:7px;
+                                    border:1px solid #E2DED8;background:#F8F7F4;cursor:pointer;font-size:11px;
+                                    color:#5A6478;font-family:inherit;transition:all .15s;"
+                                onmouseover="this.style.background='#EFF6FF';this.style.color='#2563EB';this.style.borderColor='#2563EB'"
+                                onmouseout="this.style.background='#F8F7F4';this.style.color='#5A6478';this.style.borderColor='#E2DED8'">
+                            <i class="fa fa-pencil" style="font-size:10px"></i> Edit
+                        </button>
+                        @endif
+                    </div>
 
+                    {{-- ── VIEW MODE ── --}}
+                    <div id="ja-info-view-{{ $application->id }}">
                         <div class="ja-info-row">
                             <span class="ja-info-label"><i class="fa fa-id-card-o" style="font-size:11px"></i> @lang('app.name')</span>
-                            <span class="ja-info-val">{{ ucwords($application->full_name) }}</span>
+                            <span class="ja-info-val" id="ja-display-name-{{ $application->id }}">{{ ucwords($application->full_name) }}</span>
                         </div>
-
                         <div class="ja-info-row">
                             <span class="ja-info-label"><i class="fa fa-envelope-o" style="font-size:11px"></i> @lang('app.email')</span>
-                            <span class="ja-info-val"><a href="mailto:{{ $application->email }}">{{ $application->email }}</a></span>
+                            <span class="ja-info-val" id="ja-display-email-{{ $application->id }}">
+                                <a href="mailto:{{ $application->email }}">{{ $application->email }}</a>
+                            </span>
                         </div>
-
                         <div class="ja-info-row">
                             <span class="ja-info-label"><i class="fa fa-phone" style="font-size:11px"></i> @lang('app.phone')</span>
-                            <span class="ja-info-val"><a href="tel:{{ $application->phone }}">{{ $application->phone }}</a></span>
+                            <span class="ja-info-val" id="ja-display-phone-{{ $application->id }}">
+                                <a href="tel:{{ $application->phone }}">{{ $application->phone }}</a>
+                            </span>
                         </div>
+                    </div>
+
+                    {{-- ── EDIT MODE ── --}}
+                    @if($user->cans('edit_job_applications'))
+                    <div id="ja-info-edit-{{ $application->id }}" style="display:none;margin-top:4px;">
+                        <div style="display:flex;flex-direction:column;gap:8px;">
+
+                            <div>
+                                <label style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;display:block;margin-bottom:4px;">
+                                    @lang('app.name')
+                                </label>
+                                <input type="text" id="ja-edit-name-{{ $application->id }}"
+                                    value="{{ $application->full_name }}"
+                                    class="ja-note-textarea"
+                                    style="resize:none;height:36px;padding:6px 10px;font-size:13px;">
+                            </div>
+
+                            <div>
+                                <label style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;display:block;margin-bottom:4px;">
+                                    @lang('app.email')
+                                </label>
+                                <input type="email" id="ja-edit-email-{{ $application->id }}"
+                                    value="{{ $application->email }}"
+                                    class="ja-note-textarea"
+                                    style="resize:none;height:36px;padding:6px 10px;font-size:13px;">
+                            </div>
+
+                            <div>
+                                <label style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;display:block;margin-bottom:4px;">
+                                    @lang('app.phone')
+                                </label>
+                                <input type="text" id="ja-edit-phone-{{ $application->id }}"
+                                    value="{{ $application->phone }}"
+                                    class="ja-note-textarea"
+                                    style="resize:none;height:36px;padding:6px 10px;font-size:13px;">
+                            </div>
+
+                            <div style="display:flex;gap:7px;margin-top:4px;">
+                                <button type="button" onclick="jaSaveInfoEdit({{ $application->id }})"
+                                        id="ja-info-save-btn-{{ $application->id }}"
+                                        style="display:inline-flex;align-items:center;gap:5px;padding:7px 14px;
+                                            border-radius:9px;border:none;background:#2563EB;color:#fff;
+                                            font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">
+                                    <i class="fa fa-check" id="ja-info-save-icon-{{ $application->id }}"></i> Save
+                                </button>
+                                <button type="button" onclick="jaToggleInfoEdit({{ $application->id }})"
+                                        style="display:inline-flex;align-items:center;gap:5px;padding:7px 12px;
+                                            border-radius:9px;border:1px solid #E2DED8;background:#fff;
+                                            font-size:12px;font-weight:600;cursor:pointer;color:#5A6478;font-family:inherit;">
+                                    Cancel
+                                </button>
+                            </div>
+
+                            <div id="ja-info-save-msg-{{ $application->id }}" style="display:none;font-size:11.5px;margin-top:2px;"></div>
+                        </div>
+                    </div>
+                    @endif
 
                         @if (!is_null($application->gender))
                         <div class="ja-info-row">
@@ -1639,6 +1711,94 @@ document.addEventListener('click', function(e) {
         if (drop) drop.style.display = 'none';
     }
 });
+// ── Inline info edit ─────────────────────────────────────
+function jaToggleInfoEdit(appId) {
+    var view    = document.getElementById('ja-info-view-' + appId);
+    var editBox = document.getElementById('ja-info-edit-' + appId);
+    var btn     = document.getElementById('ja-info-edit-btn-' + appId);
+    var isEdit  = editBox.style.display !== 'none';
+
+    if (isEdit) {
+        // Switch back to view
+        editBox.style.display = 'none';
+        view.style.display    = 'block';
+        btn.innerHTML = '<i class="fa fa-pencil" style="font-size:10px"></i> Edit';
+    } else {
+        // Switch to edit
+        view.style.display    = 'none';
+        editBox.style.display = 'block';
+        btn.innerHTML = '<i class="fa fa-times" style="font-size:10px"></i> Cancel';
+        document.getElementById('ja-edit-name-' + appId).focus();
+    }
+
+    // Clear any previous message
+    var msg = document.getElementById('ja-info-save-msg-' + appId);
+    if (msg) { msg.style.display = 'none'; msg.innerHTML = ''; }
+}
+
+function jaSaveInfoEdit(appId) {
+    var name  = document.getElementById('ja-edit-name-' + appId).value.trim();
+    var email = document.getElementById('ja-edit-email-' + appId).value.trim();
+    var phone = document.getElementById('ja-edit-phone-' + appId).value.trim();
+    var icon  = document.getElementById('ja-info-save-icon-' + appId);
+    var msg   = document.getElementById('ja-info-save-msg-' + appId);
+    var btn   = document.getElementById('ja-info-save-btn-' + appId);
+
+    if (!name || !email) {
+        msg.style.display = 'block';
+        msg.style.color   = '#EF4444';
+        msg.innerHTML     = '<i class="fa fa-exclamation-circle"></i> Name and email are required.';
+        return;
+    }
+
+    // Loading state
+    icon.className = 'fa fa-spinner fa-spin';
+    btn.disabled   = true;
+
+    var url = "{{ route('admin.job-applications.update-basic-info', ':id') }}".replace(':id', appId);
+
+    $.ajax({
+        type: 'POST',
+        url: url,
+        data: {
+            _token:    '{{ csrf_token() }}',
+            full_name: name,
+            email:     email,
+            phone:     phone
+        },
+        success: function (res) {
+            icon.className = 'fa fa-check';
+            btn.disabled   = false;
+
+            if (res.status === 'success') {
+                // Update view mode values
+                document.getElementById('ja-display-name-' + appId).textContent = res.data.full_name;
+                document.getElementById('ja-display-email-' + appId).innerHTML  =
+                    '<a href="mailto:' + res.data.email + '">' + res.data.email + '</a>';
+                document.getElementById('ja-display-phone-' + appId).innerHTML  =
+                    '<a href="tel:' + res.data.phone + '">' + res.data.phone + '</a>';
+
+                // Switch back to view mode
+                jaToggleInfoEdit(appId);
+
+                // Refresh table row
+                if (typeof table !== 'undefined') table.draw(false);
+
+            } else {
+                msg.style.display = 'block';
+                msg.style.color   = '#EF4444';
+                msg.innerHTML     = '<i class="fa fa-exclamation-circle"></i> ' + (res.message || 'Save failed.');
+            }
+        },
+        error: function () {
+            icon.className = 'fa fa-check';
+            btn.disabled   = false;
+            msg.style.display = 'block';
+            msg.style.color   = '#EF4444';
+            msg.innerHTML     = '<i class="fa fa-exclamation-circle"></i> Server error. Please try again.';
+        }
+    });
+}
 </script>
 
 @if(!is_null($application->skype_id))
