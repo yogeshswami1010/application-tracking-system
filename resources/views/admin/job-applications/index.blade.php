@@ -679,12 +679,23 @@
         });
     }
 
-    function jaToggleDrop(id) {
+    function jaToggleDrop(id, btnEl) {
         document.querySelectorAll('.ja-move-drop').forEach(function(el) {
             if (el.id !== id) el.style.display = 'none';
         });
         var el = document.getElementById(id);
-        if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        if (!el) return;
+
+        var isHidden = el.style.display === 'none';
+        el.style.display = isHidden ? 'block' : 'none';
+
+        if (isHidden && btnEl) {
+            var rect = btnEl.getBoundingClientRect();
+            el.style.top  = (rect.bottom + 4) + 'px';
+            el.style.left = 'auto';
+            el.style.right = 'auto';
+            el.style.left  = Math.max(0, rect.right - 160) + 'px'; // align right edge to button
+        }
     }
 
     function jaCloseDrop(id) {

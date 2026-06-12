@@ -469,8 +469,9 @@ class AdminJobApplicationController extends AdminBaseController
                 if (!in_array($statusSlug, ['rejected', 'hired'])) {
                     $dropdownId = 'ja-move-drop-' . $row->id;
                     $dropdownHtml = '<div class="ja-move-wrap" style="position:relative;display:inline-flex;">';
-                    $dropdownHtml .= '<button type="button" class="ja-act-btn" onclick="jaToggleDrop(\'' . $dropdownId . '\')" title="Move to stage" style="padding:5px 8px;border-radius:8px;"><i class="fa fa-chevron-down" style="font-size:10px;"></i></button>';
-                    $dropdownHtml .= '<div id="' . $dropdownId . '" class="ja-move-drop" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:#fff;border:1.5px solid #E2DED8;border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.13);z-index:999;min-width:150px;overflow:hidden;">';
+                    $dropdownHtml .= '<button type="button" class="ja-act-btn" onclick="jaToggleDrop(\'' . $dropdownId . '\', this)" title="Move to stage" style="padding:5px 8px;border-radius:8px;"><i class="fa fa-chevron-down" style="font-size:10px;"></i></button>';
+
+                    $dropdownHtml .= '<div id="' . $dropdownId . '" class="ja-move-drop" style="display:none;position:fixed;background:#fff;border:1.5px solid #E2DED8;border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.13);z-index:99999;min-width:160px;max-height:220px;overflow-y:auto;">';
 
                     foreach ($allStatuses as $s) {
                         if ($s->status === $statusSlug) continue;
