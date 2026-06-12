@@ -1525,7 +1525,7 @@ function jaAssignJob(appId) {
                     type: 'GET', url: showUrl,
                     success: function (res) {
                         if (res.status === 'success') {
-                            $('#right-sidebar-content').html(res.view);
+                            $('#right-sidebar-content').html(res.view);  // full reload already happens
                         }
                     }
                 });
