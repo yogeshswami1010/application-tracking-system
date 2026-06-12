@@ -1768,22 +1768,27 @@ function jaSaveInfoEdit(appId) {
             phone:     phone
         },
         success: function (res) {
-            icon.className = 'fa fa-check';
-            btn.disabled   = false;
+        icon.className = 'fa fa-check';
+        btn.disabled   = false;
 
-            if (res.status === 'success') {
-                // Update view mode values
-                document.getElementById('ja-display-name-' + appId).textContent = res.data.full_name;
-                document.getElementById('ja-display-email-' + appId).innerHTML  =
-                    '<a href="mailto:' + res.data.email + '">' + res.data.email + '</a>';
-                document.getElementById('ja-display-phone-' + appId).innerHTML  =
-                    '<a href="tel:' + res.data.phone + '">' + res.data.phone + '</a>';
+        if (res.status === 'success') {
+            // Update view mode values
+            document.getElementById('ja-display-name-' + appId).textContent = res.data.full_name;
+            document.getElementById('ja-display-email-' + appId).innerHTML  =
+                '<a href="mailto:' + res.data.email + '">' + res.data.email + '</a>';
+            document.getElementById('ja-display-phone-' + appId).innerHTML  =
+                '<a href="tel:' + res.data.phone + '">' + res.data.phone + '</a>';
 
-                // Switch back to view mode
-                jaToggleInfoEdit(appId);
+            // Force close edit mode directly (don't toggle)
+            var view    = document.getElementById('ja-info-view-' + appId);
+            var editBox = document.getElementById('ja-info-edit-' + appId);
+            var editBtn = document.getElementById('ja-info-edit-btn-' + appId);
+            editBox.style.display = 'none';
+            view.style.display    = 'block';
+            if (editBtn) editBtn.innerHTML = '<i class="fa fa-pencil" style="font-size:10px"></i> Edit';
 
-                // Refresh table row
-                if (typeof table !== 'undefined') table.draw(false);
+            // Refresh table row
+            if (typeof table !== 'undefined') table.draw(false);
 
             } else {
                 msg.style.display = 'block';
