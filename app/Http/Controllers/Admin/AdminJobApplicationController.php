@@ -405,8 +405,9 @@ class AdminJobApplicationController extends AdminBaseController
         }
 
         // Filter by location
+       
         if ($request->location != 'all' && $request->location != '') {
-            $jobApplications = $jobApplications->where('location_id', $request->location);
+            $jobApplications = $jobApplications->where('job_applications.location_id', $request->location);
         }
 
         if ($request->questions != 'all' && $request->questions != '' && ($request->question_value == '' || is_null($request->question_value))) {
