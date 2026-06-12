@@ -11,17 +11,24 @@
     </div>
     <p class="note-text ja-note-body">{{ ucfirst($note->note_text) }}</p>
     <div class="note-textarea"></div>
-    @if(auth()->user()->cans('edit_job_applications'))
+    @php $isAdmin = auth()->user()->role_id === 1; @endphp
+    @if($isAdmin || auth()->id() === $note->user_id)
     <div class="ja-note-actions">
+
+        {{-- Edit: only the note's own author --}}
+        @if(auth()->id() === $note->user_id)
         <button class="edit-note ja-note-btn" data-note-id="{{ $note->id }}">
             <i class="fa fa-pencil"></i> Edit
         </button>
-        
-        @if(auth()->user()->role_id === 1)
+        @endif
+
+        {{-- Delete: admin only --}}
+        @if($isAdmin)
         <button class="delete-note ja-note-btn" data-note-id="{{ $note->id }}" style="color:#EF4444;border-color:#fecaca;">
             <i class="fa fa-trash"></i> Delete
         </button>
         @endif
+
     </div>
     @endif
 </div>

@@ -28,38 +28,41 @@ class ApplicantNoteController extends AdminBaseController
     }
 
     public function update(Request $request, $id)
-    {
-        abort_if(auth()->user()->role_id !== 1 && auth()->id() !== ApplicantNote::findOrFail($id)->user_id, 403);
-        
-        $note = ApplicantNote::findOrFail($id);
-        $note->note_text = $request->note;
-        $note->save();
+{
+    $note = ApplicantNote::findOrFail($id);
 
-        $notes = ApplicantNote::with('user:id,name')
-            ->where('job_application_id', $note->job_application_id)
-            ->orderByDesc('created_at')
-            ->get();
+    // Only the note's own author can edit
+    abort_if(auth()->id() !== $note->user_id, 403);
 
-        $view = view('admin.job-applications.partials.applicant-notes-list', compact('notes'))->render();
+    $note->note_text = $request->note;
+    $note->save();
 
-        return Reply::dataOnly(['status' => 'success', 'view' => $view]);
-    }
+    $notes = ApplicantNote::with('user:id,name')
+        ->where('job_application_id', $note->job_application_id)
+        ->orderByDesc('created_at')
+        ->get();
 
-    public function destroy($id)
-    {
-        abort_if(auth()->user()->role_id !== 1, 403);
+    $view = view('admin.job-applications.partials.applicant-notes-list', compact('notes'))->render();
 
-        $note = ApplicantNote::findOrFail($id);
-        $jobApplicationId = $note->job_application_id;
-        $note->delete();
+    return Reply::dataOnly(['status' => 'success', 'view' => $view]);
+}
 
-        $notes = ApplicantNote::with('user:id,name')
-            ->where('job_application_id', $jobApplicationId)
-            ->orderByDesc('created_at')
-            ->get();
+public function destroy($id)
+{
+    // Admin only
+    abort_if(auth()->user()->role_id !== 1, 403);
 
-        $view = view('admin.job-applications.partials.applicant-notes-list', compact('notes'))->render();
+    $note = ApplicantNote::findOrFail($id);
+    $jobApplicationId = $note->job_application_id;
+    $note->delete();
 
-        return Reply::dataOnly(['status' => 'success', 'view' => $view]);
-    }
+    $notes = ApplicantNote::with('user:id,name')
+        ->where('job_application_id', $jobApplicationId)
+        ->orderByDesc('created_at')
+        ->get();
+
+    $view = view('admin.job-applications.partials.applicant-notes-list', compact('notes'))->render();
+
+    return Reply::dataOnly(['status' => 'success', 'view' => $view]);
+}
 }
