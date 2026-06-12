@@ -1053,5 +1053,50 @@
 
     // Set All tab as active on load
     document.getElementById('ja-tab-all').classList.add('active');
+
+
+    // ── Auto-open applicant sidebar from notification link ──
+(function () {
+    var params = new URLSearchParams(window.location.search);
+    var openId = params.get('open');
+    if (!openId) return;
+
+    // Wait for DataTable to finish drawing then open the sidebar
+    var attempts = 0;
+    var interval = setInterval(function () {
+        attempts++;
+        var $row = $('[data-id="' + openId + '"]');
+        if ($row.length || attempts > 20) {
+            clearInterval(interval);
+            if (!$row.length) return;
+
+            // Scroll row into view and highlight
+            $row[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            $row.addClass('table-active');
+            setTimeout(function () { $row.removeClass('table-active'); }, 2000);
+
+            // Open the sidebar
+            var url = "{{ route('admin.job-applications.show', ':id') }}".replace(':id', openId);
+            var $sidebar  = $('#right-sidebar');
+            var $backdrop = $('#right-sidebar-backdrop');
+            $sidebar.removeClass('translate-x-full').addClass('translate-x-0');
+            $backdrop.removeClass('hidden').css({ display: 'block', visibility: 'visible' });
+
+            $.easyAjax({
+                type: 'GET', url: url,
+                success: function (response) {
+                    if (response.status === 'success') {
+                        $('#right-sidebar-content').html(response.view);
+                        // Switch to notes tab automatically
+                        setTimeout(function () {
+                            var notesTab = document.querySelector('.ja-tab[data-tab="notes"]');
+                            if (notesTab) notesTab.click();
+                        }, 300);
+                    }
+                }
+            });
+        }
+    }, 300);
+})();
     </script>
 @endpush
