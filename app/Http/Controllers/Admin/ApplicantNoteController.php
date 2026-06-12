@@ -21,7 +21,7 @@ class ApplicantNoteController extends AdminBaseController
 
         // Extract @mentions
         $mentionedIds = $this->extractAndStoreMentions($request->note, $note);
-        $note->mentions = $mentionedIds ?: null;
+        $note->mentions = !empty($mentionedIds) ? json_encode(array_values($mentionedIds)) : null;
         $note->save();
 
         // Send notifications
@@ -48,7 +48,7 @@ class ApplicantNoteController extends AdminBaseController
 
         // Re-extract mentions on edit
         $mentionedIds = $this->extractAndStoreMentions($request->note, $note);
-        $note->mentions = $mentionedIds ?: null;
+        $note->mentions = !empty($mentionedIds) ? json_encode(array_values($mentionedIds)) : null;
         $note->save();
 
         // Send notifications for newly mentioned users
