@@ -16,9 +16,12 @@
         <button class="edit-note ja-note-btn" data-note-id="{{ $note->id }}">
             <i class="fa fa-pencil"></i> Edit
         </button>
-        <button class="delete-note ja-note-btn" data-note-id="{{ $note->id }}" style="color:#EF4444">
+        
+        @if(auth()->user()->role_id === 1)
+        <button class="delete-note ja-note-btn" data-note-id="{{ $note->id }}" style="color:#EF4444;border-color:#fecaca;">
             <i class="fa fa-trash"></i> Delete
         </button>
+        @endif
     </div>
     @endif
 </div>

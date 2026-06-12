@@ -29,6 +29,8 @@ class ApplicantNoteController extends AdminBaseController
 
     public function update(Request $request, $id)
     {
+        abort_if(auth()->user()->role_id !== 1 && auth()->id() !== ApplicantNote::findOrFail($id)->user_id, 403);
+        
         $note = ApplicantNote::findOrFail($id);
         $note->note_text = $request->note;
         $note->save();
@@ -45,6 +47,8 @@ class ApplicantNoteController extends AdminBaseController
 
     public function destroy($id)
     {
+        abort_if(auth()->user()->role_id !== 1, 403);
+
         $note = ApplicantNote::findOrFail($id);
         $jobApplicationId = $note->job_application_id;
         $note->delete();
