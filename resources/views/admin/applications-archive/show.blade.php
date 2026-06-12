@@ -703,23 +703,36 @@
                         {{-- ══════════════════════════════════════
                              JOB ROW — assign / change job
                              ══════════════════════════════════════ --}}
-                        <div class="ja-info-row" style="flex-direction:column; align-items:stretch; gap:0; border-bottom:1px solid #F0EEE9;">
-                            {{-- Top line: label + badge + edit button --}}
-                            <div style="display:flex; align-items:center; justify-content:space-between; padding:2px 0;">
-                                <span class="ja-info-label" style="flex-shrink:0; width:105px;">
-                                    <i class="fa fa-briefcase" style="font-size:11px"></i>
-                                    @lang('modules.jobApplication.appliedFor')
-                                </span>
+                        <div class="ja-info-row">
+                            <span class="ja-info-label"><i class="fa fa-briefcase" style="font-size:11px"></i>
+                                @lang('modules.jobApplication.appliedFor')
+                            </span>
 
-                                <div style="display:flex; align-items:center; gap:6px; flex:1; justify-content:flex-end;" id="ja-job-display-{{ $application->id }}">
-                                    @if(!is_null($application->job))
+                            <div style="display:flex; align-items:center; gap:6px; flex:1; justify-content:flex-end;" id="ja-job-display-{{ $application->id }}">
+                                @if(!is_null($application->job))
+                                    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+                                        {{-- Job title badge --}}
                                         <span class="ja-job-badge">
                                             <i class="fa fa-briefcase" style="font-size:9px"></i>
                                             {{ ucwords($application->job->title) }}
-                                            @if($application->location)
-                                                &ndash; {{ ucwords($application->location->location) }}
-                                            @endif
                                         </span>
+                                        {{-- Company name --}}
+                                        @if($application->job->company)
+                                        <span style="font-size:11.5px;font-weight:600;color:#3D4A5C;">
+                                            {{ ucwords($application->job->company->company_name) }}
+                                        </span>
+                                        @endif
+                                        {{-- Location --}}
+                                        @if($application->location)
+                                        <span style="font-size:11px;color:#B0B8C4;display:inline-flex;align-items:center;gap:3px;">
+                                            <svg style="width:11px;height:11px;flex-shrink:0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            </svg>
+                                            {{ ucwords($application->location->location) }}
+                                        </span>
+                                        @endif
+                                    </div>
                                         @if($user->cans('edit_job_applications'))
                                         <button type="button"
                                                 class="ja-job-edit-btn"

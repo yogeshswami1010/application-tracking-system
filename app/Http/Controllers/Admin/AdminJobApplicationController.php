@@ -1042,8 +1042,8 @@ class AdminJobApplicationController extends AdminBaseController
     public function show($id)
     {
         $this->application = JobApplication::withTrashed()
-            ->with(['schedule', 'notes', 'onboard', 'status', 'schedule.employee', 'schedule.comments.user', 'location'])
-            ->find($id);
+        ->with(['schedule', 'notes', 'onboard', 'status', 'schedule.employee', 'schedule.comments.user', 'location', 'job.company'])
+        ->find($id);
 
         if (!$this->application) {
             return Reply::error('Application not found.');
