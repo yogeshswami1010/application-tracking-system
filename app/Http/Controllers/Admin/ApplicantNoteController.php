@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Requests\ApplicantNote\StoreNote;
 use App\ApplicantNote;
 use App\Helper\Reply;
+use App\User;
+use App\Notifications\ApplicantNoteMention;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 
 class ApplicantNoteController extends AdminBaseController
 {
@@ -15,7 +18,14 @@ class ApplicantNoteController extends AdminBaseController
         $note->note_text = $request->note;
         $note->user_id   = auth()->id();
         $note->job_application_id = $request->id;
+
+        // Extract @mentions
+        $mentionedIds = $this->extractAndStoreMentions($request->note, $note);
+        $note->mentions = $mentionedIds ?: null;
         $note->save();
+
+        // Send notifications
+        $this->sendMentionNotifications($note, $mentionedIds);
 
         $notes = ApplicantNote::with('user:id,name')
             ->where('job_application_id', $request->id)
@@ -28,41 +38,77 @@ class ApplicantNoteController extends AdminBaseController
     }
 
     public function update(Request $request, $id)
-{
-    $note = ApplicantNote::findOrFail($id);
+    {
+        $note = ApplicantNote::findOrFail($id);
 
-    // Only the note's own author can edit
-    abort_if(auth()->id() !== $note->user_id, 403);
+        // Only the note's own author can edit
+        abort_if(auth()->id() !== $note->user_id, 403);
 
-    $note->note_text = $request->note;
-    $note->save();
+        $note->note_text = $request->note;
 
-    $notes = ApplicantNote::with('user:id,name')
-        ->where('job_application_id', $note->job_application_id)
-        ->orderByDesc('created_at')
-        ->get();
+        // Re-extract mentions on edit
+        $mentionedIds = $this->extractAndStoreMentions($request->note, $note);
+        $note->mentions = $mentionedIds ?: null;
+        $note->save();
 
-    $view = view('admin.job-applications.partials.applicant-notes-list', compact('notes'))->render();
+        // Send notifications for newly mentioned users
+        $this->sendMentionNotifications($note, $mentionedIds);
 
-    return Reply::dataOnly(['status' => 'success', 'view' => $view]);
-}
+        $notes = ApplicantNote::with('user:id,name')
+            ->where('job_application_id', $note->job_application_id)
+            ->orderByDesc('created_at')
+            ->get();
 
-public function destroy($id)
-{
-    // Admin only
-    abort_if(auth()->user()->role_id !== 1, 403);
+        $view = view('admin.job-applications.partials.applicant-notes-list', compact('notes'))->render();
 
-    $note = ApplicantNote::findOrFail($id);
-    $jobApplicationId = $note->job_application_id;
-    $note->delete();
+        return Reply::dataOnly(['status' => 'success', 'view' => $view]);
+    }
 
-    $notes = ApplicantNote::with('user:id,name')
-        ->where('job_application_id', $jobApplicationId)
-        ->orderByDesc('created_at')
-        ->get();
+    public function destroy($id)
+    {
+        abort_if(auth()->user()->role_id !== 1, 403);
 
-    $view = view('admin.job-applications.partials.applicant-notes-list', compact('notes'))->render();
+        $note = ApplicantNote::findOrFail($id);
+        $jobApplicationId = $note->job_application_id;
+        $note->delete();
 
-    return Reply::dataOnly(['status' => 'success', 'view' => $view]);
-}
+        $notes = ApplicantNote::with('user:id,name')
+            ->where('job_application_id', $jobApplicationId)
+            ->orderByDesc('created_at')
+            ->get();
+
+        $view = view('admin.job-applications.partials.applicant-notes-list', compact('notes'))->render();
+
+        return Reply::dataOnly(['status' => 'success', 'view' => $view]);
+    }
+
+    // ── Helpers ──────────────────────────────────────────────
+
+    private function extractAndStoreMentions(string $text, ApplicantNote $note): array
+    {
+        preg_match_all('/@([a-zA-Z0-9_]+)/', $text, $matches);
+        if (empty($matches[1])) return [];
+
+        $mentionedIds = [];
+        foreach ($matches[1] as $username) {
+            $user = User::where('name', 'LIKE', $username . '%')
+                ->orWhere('name', 'LIKE', '%' . $username . '%')
+                ->first();
+            if ($user && $user->id !== auth()->id()) {
+                $mentionedIds[] = $user->id;
+            }
+        }
+
+        return array_unique($mentionedIds);
+    }
+
+    private function sendMentionNotifications(ApplicantNote $note, array $userIds): void
+    {
+        if (empty($userIds)) return;
+
+        $users = User::whereIn('id', $userIds)->get();
+        foreach ($users as $user) {
+            $user->notify(new ApplicantNoteMention($note));
+        }
+    }
 }

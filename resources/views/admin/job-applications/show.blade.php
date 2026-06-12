@@ -1047,8 +1047,17 @@
                         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:8px">
                             @lang('modules.jobApplication.addNote')
                         </div>
-                        <textarea id="note_text" rows="3" class="ja-note-textarea"
-                                  placeholder="@lang('modules.jobApplication.addNote')"></textarea>
+                        <div style="position:relative">
+                            <textarea id="note_text" rows="3" class="ja-note-textarea"
+                                    placeholder="Type a note… use @ to mention a team member"
+                                    oninput="jaNoteHandleInput(this)"></textarea>
+                            <div id="ja-mention-drop"
+                                style="display:none;position:absolute;bottom:calc(100% + 4px);left:0;
+                                        background:#fff;border:1.5px solid #E2DED8;border-radius:10px;
+                                        box-shadow:0 8px 24px rgba(15,23,42,.13);z-index:9999;
+                                        min-width:200px;max-height:180px;overflow-y:auto;">
+                            </div>
+                        </div>
                         <button id="add-note" class="ja-save-note-btn">
                             <i class="fa fa-plus"></i> @lang('modules.jobApplication.addNote')
                         </button>
@@ -1694,6 +1703,81 @@ function jaHideJobDesc() {
 /* Close on Escape key */
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') jaHideJobDesc();
+});
+
+// ── @mention autocomplete ─────────────────────────────────
+var jaAllUsers = @json(\App\User::select('id','name')->get());
+var jaMentionQuery = '';
+var jaMentionStart = -1;
+
+function jaNoteHandleInput(el) {
+    var val   = el.value;
+    var caret = el.selectionStart;
+    var drop  = document.getElementById('ja-mention-drop');
+
+    // Find if we're inside an @mention
+    var textBefore = val.substring(0, caret);
+    var atMatch    = textBefore.match(/@([a-zA-Z0-9_]*)$/);
+
+    if (!atMatch) {
+        drop.style.display = 'none';
+        jaMentionStart = -1;
+        return;
+    }
+
+    jaMentionQuery = atMatch[1].toLowerCase();
+    jaMentionStart = caret - atMatch[0].length;
+
+    var matches = jaAllUsers.filter(function(u) {
+        return u.name.toLowerCase().includes(jaMentionQuery) && u.id !== {{ auth()->id() }};
+    }).slice(0, 6);
+
+    if (!matches.length) {
+        drop.style.display = 'none';
+        return;
+    }
+
+    drop.innerHTML = matches.map(function(u) {
+        var initials = u.name.split(' ').map(function(w){ return w[0]; }).join('').substring(0,2).toUpperCase();
+        return '<div onclick="jaInsertMention(\'' + u.name.replace(/'/g, "\\'") + '\')" '
+            + 'style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;font-size:13px;color:#1A1E2E;" '
+            + 'onmouseover="this.style.background=\'#EFF6FF\'" onmouseout="this.style.background=\'none\'">'
+            + '<span style="width:26px;height:26px;border-radius:50%;background:#2563EB;color:#fff;'
+            + 'display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">'
+            + initials + '</span>'
+            + '<span style="font-weight:500">' + u.name + '</span>'
+            + '</div>';
+    }).join('');
+
+    drop.style.display = 'block';
+}
+
+function jaInsertMention(name) {
+    var ta   = document.getElementById('note_text');
+    var val  = ta.value;
+    var caret = ta.selectionStart;
+
+    // Replace the @query with @FirstName (no spaces — use first word)
+    var firstName   = name.split(' ')[0];
+    var before      = val.substring(0, jaMentionStart);
+    var after       = val.substring(caret);
+    ta.value        = before + '@' + firstName + ' ' + after;
+
+    // Move caret after inserted mention
+    var newPos = jaMentionStart + firstName.length + 2;
+    ta.setSelectionRange(newPos, newPos);
+    ta.focus();
+
+    document.getElementById('ja-mention-drop').style.display = 'none';
+    jaMentionStart = -1;
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('#ja-mention-drop') && e.target.id !== 'note_text') {
+        var drop = document.getElementById('ja-mention-drop');
+        if (drop) drop.style.display = 'none';
+    }
 });
 </script>
 
