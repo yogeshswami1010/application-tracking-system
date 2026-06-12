@@ -227,10 +227,7 @@
 
                     {{-- Actions --}}
                     <div class="flex w-full flex-wrap items-center gap-2.5 pt-1">
-                        <button type="button" id="apply-filters"
-                            class="inline-flex items-center gap-2 rounded-[9px] bg-[#2563EB] px-5 py-2.5 text-[13px] font-bold text-white shadow-sm transition hover:bg-[#1d4ed8] focus:outline-none">
-                            <i class="fa fa-check"></i> @lang('app.apply')
-                        </button>
+                        
                         <button type="button" id="reset-filters"
                             class="inline-flex items-center gap-2 rounded-[9px] border-[1.5px] border-[#E2DED8] bg-white px-4 py-2.5 text-[13px] font-semibold text-[#8892A0] transition hover:border-[#EF4444] hover:text-[#EF4444] focus:outline-none">
                             <i class="fa fa-refresh"></i> @lang('app.reset')
@@ -280,6 +277,7 @@
         function syncHidden() {
             $hidden.val(tags.join(','));
             jaTableSyncFilterBadge();
+            if (typeof jaApplyFilters === 'function') jaApplyFilters();
         }
 
         function renderTags() {
@@ -433,8 +431,7 @@
         }
     });
 
-    // ── Filter badge counter ──────────────────────────────────────────────────
-    $('#filter-form').on('change', 'select', jaTableSyncFilterBadge);
+  
 
     function jaTableSyncFilterBadge() {
         var n = 0;
@@ -461,9 +458,22 @@
     tableLoad();
     jaTableSyncFilterBadge();
 
-    $('#apply-filters').on('click', function () {
-        tableLoad();
-        jaTableSyncFilterBadge();
+    // Auto-apply on any filter change
+    var jaFilterDebounce;
+    function jaApplyFilters() {
+        clearTimeout(jaFilterDebounce);
+        jaFilterDebounce = setTimeout(function () {
+            tableLoad();
+            jaTableSyncFilterBadge();
+        }, 250);
+    }
+
+    $('#filter-form').on('change', 'select', function () {
+        jaApplyFilters();
+    });
+
+    $('#question-value').on('input', function () {
+        jaApplyFilters();
     });
 
     $('#reset-filters').on('click', function () {
