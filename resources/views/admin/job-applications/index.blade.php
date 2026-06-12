@@ -1056,29 +1056,16 @@
 
 
     // ── Auto-open applicant sidebar from notification link ──
-(function () {
-    var params = new URLSearchParams(window.location.search);
-    var openId = params.get('open');
-    if (!openId) return;
+    (function () {
+        var params = new URLSearchParams(window.location.search);
+        var openId = params.get('open');
+        if (!openId) return;
 
-    // Wait for DataTable to finish drawing then open the sidebar
-    var attempts = 0;
-    var interval = setInterval(function () {
-        attempts++;
-        var $row = $('[data-id="' + openId + '"]');
-        if ($row.length || attempts > 20) {
-            clearInterval(interval);
-            if (!$row.length) return;
-
-            // Scroll row into view and highlight
-            $row[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-            $row.addClass('table-active');
-            setTimeout(function () { $row.removeClass('table-active'); }, 2000);
-
-            // Open the sidebar
+        function tryOpenSidebar() {
             var url = "{{ route('admin.job-applications.show', ':id') }}".replace(':id', openId);
             var $sidebar  = $('#right-sidebar');
             var $backdrop = $('#right-sidebar-backdrop');
+
             $sidebar.removeClass('translate-x-full').addClass('translate-x-0');
             $backdrop.removeClass('hidden').css({ display: 'block', visibility: 'visible' });
 
@@ -1091,12 +1078,55 @@
                         setTimeout(function () {
                             var notesTab = document.querySelector('.ja-tab[data-tab="notes"]');
                             if (notesTab) notesTab.click();
-                        }, 300);
+                        }, 400);
+
+                        // Highlight the row if visible
+                        var $chk = $('.ja-row-chk[data-id="' + openId + '"]');
+                        if ($chk.length) {
+                            var $tr = $chk.closest('tr');
+                            $tr.css('background', '#EFF6FF');
+                            setTimeout(function () { $tr.css('background', ''); }, 2500);
+                            $tr[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
                     }
                 }
             });
         }
-    }, 300);
-})();
+
+        // Hook into DataTable's draw event — fires reliably after data loads
+        // Also set a fallback timeout in case table variable isn't ready yet
+        var hooked = false;
+        var fallbackTimer = setTimeout(function () {
+            if (!hooked) tryOpenSidebar();
+        }, 2500);
+
+        // Poll until `table` variable is ready, then hook draw event
+        var pollTimer = setInterval(function () {
+            if (typeof table !== 'undefined' && table) {
+                clearInterval(pollTimer);
+                hooked = true;
+                clearTimeout(fallbackTimer);
+
+                // If table already drew, open immediately
+                // Otherwise wait for first draw
+                var drawn = false;
+                table.on('draw', function () {
+                    if (!drawn) {
+                        drawn = true;
+                        setTimeout(tryOpenSidebar, 200);
+                    }
+                });
+
+                // Safety: if draw already fired before we hooked
+                setTimeout(function () {
+                    if (!drawn) {
+                        drawn = true;
+                        tryOpenSidebar();
+                    }
+                }, 1500);
+            }
+        }, 100);
+
+    })();
     </script>
 @endpush
