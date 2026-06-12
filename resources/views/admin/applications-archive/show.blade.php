@@ -1513,7 +1513,7 @@ function jaAssignJob(appId) {
 
                 /* Reload the entire sidebar panel to reflect all changes
                    (header subtitle, badge, location, etc.) */
-                var showUrl = "{{ route('admin.job-applications.show', ':id') }}".replace(':id', appId);
+                var showUrl = "{{ route('admin.applications-archive.show', ':id') }}".replace(':id', appId);
                 $.easyAjax({
                     type: 'GET', url: showUrl,
                     success: function (res) {

@@ -1042,7 +1042,7 @@ class AdminJobApplicationController extends AdminBaseController
     public function show($id)
     {
         $this->application = JobApplication::withTrashed()
-        ->with([
+        ->with([ 
             'schedule',
             'schedule.employee',
             'schedule.comments.user',
