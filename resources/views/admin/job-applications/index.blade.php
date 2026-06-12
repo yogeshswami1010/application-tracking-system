@@ -320,9 +320,6 @@
                     </div>
 
                     <div class="flex w-full flex-wrap items-center gap-2.5 pt-1">
-                        <button type="button" id="apply-filters" class="inline-flex items-center gap-2 rounded-[9px] bg-[#2563EB] px-5 py-2.5 text-[13px] font-bold text-white shadow-sm transition hover:bg-[#1d4ed8] focus:outline-none">
-                            <i class="fa fa-check"></i> @lang('app.apply')
-                        </button>
                         <button type="button" id="reset-filters" class="inline-flex items-center gap-2 rounded-[9px] border-[1.5px] border-[#E2DED8] bg-white px-4 py-2.5 text-[13px] font-semibold text-[#8892A0] transition hover:border-[#EF4444] hover:text-[#EF4444] focus:outline-none">
                             <i class="fa fa-refresh"></i> @lang('app.reset')
                         </button>
@@ -865,9 +862,6 @@
     });
 }
 
-    // ── Filter badge counter ─────────────────────────────────────
-    $('#filter-form').on('change', 'select', function() { jaTableSyncFilterBadge(); });
-
     function jaTableSyncFilterBadge() {
         var n = 0;
         if (($('#status').val()    || 'all') !== 'all') n++;
@@ -897,18 +891,26 @@
         }
     });
 
-    // ── Apply / Reset filters ────────────────────────────────────
-    $('#apply-filters').on('click', function() {
-        jaSelectedIds = new Set();
-        jaRenderBulkBar();
-        tableLoad('filter');
-        jaTableSyncFilterBadge();
-        // Small delay ensures Select2 has committed values before we read them
-        setTimeout(function() {
+    // Auto-apply on any filter change (select or text input)
+    var jaFilterDebounce;
+    function jaApplyFilters() {
+        clearTimeout(jaFilterDebounce);
+        jaFilterDebounce = setTimeout(function() {
+            jaSelectedIds = new Set();
+            jaRenderBulkBar();
+            tableLoad('filter');
+            jaTableSyncFilterBadge();
             jaLoadTabCounts();
-        }, 100);
+        }, 250);
+    }
+
+    $('#filter-form').on('change', 'select', function() {
+        jaApplyFilters();
     });
 
+    $('#question-value').on('input', function() {
+        jaApplyFilters();
+    });
     $('#reset-filters').on('click', function() {
         window.location.reload();
     });
