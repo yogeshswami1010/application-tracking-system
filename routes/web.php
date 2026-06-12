@@ -244,7 +244,7 @@ Route::middleware('auth')->group(function () {
             Route::post('job-applications/{id}/parse-skills',             [AdminJobApplicationController::class, 'parseSkills'])->name('job-applications.parse-skills');
             Route::post('job-applications/{id}/assign-job',               [AdminJobApplicationController::class, 'assignJob'])->name('job-applications.assign-job');
             Route::post('job-applications/{id}/update-info', [AdminJobApplicationController::class, 'updateBasicInfo'])
-                ->name('admin.job-applications.update-basic-info');
+            ->name('job-applications.update-basic-info');
             // Applications Archive
             Route::get('applications-archive/data',            [AdminApplicationArchiveController::class, 'data'])->name('applications-archive.data');
             Route::get('applications-archive/export/{skill}',  [AdminApplicationArchiveController::class, 'export'])->name('applications-archive.export');

@@ -1757,6 +1757,7 @@ function jaSaveInfoEdit(appId) {
 
     var url = "{{ route('admin.job-applications.update-basic-info', ':id') }}".replace(':id', appId);
 
+
     $.ajax({
         type: 'POST',
         url: url,
