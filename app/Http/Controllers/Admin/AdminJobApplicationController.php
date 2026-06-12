@@ -451,7 +451,7 @@ class AdminJobApplicationController extends AdminBaseController
 
         $canEdit   = $this->user->cans('edit_job_applications');
         $canView   = $this->user->cans('view_job_applications');
-        $canDelete = $this->user->cans('delete_job_applications');
+        $canDelete = $this->user->role_id === 1; // admin only
 
         return DataTables::of($jobApplications)
                 ->addColumn('action', function ($row) use ($nextMap, $rejectedStatus, $appliedStatus, $allStatuses, $canEdit, $canView, $canDelete) {                $parts = [];
@@ -1025,7 +1025,7 @@ class AdminJobApplicationController extends AdminBaseController
 
     public function destroy($id)
     {
-        abort_if(! $this->user->cans('delete_job_applications'), 403);
+        abort_if($this->user->role_id !== 1, 403);
 
         $jobApplication = JobApplication::findOrFail($id);
 

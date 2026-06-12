@@ -667,6 +667,13 @@
                                 @lang('app.startOnboard')
                             </a>
                             @endif
+
+                            {{-- Delete — admin only --}}
+                            @if($user->role_id === 1)
+                            <button type="button" onclick="deleteApplication({{ $application->id }})" class="ja-btn ja-btn-red">
+                                <i class="fa fa-trash-o"></i> @lang('app.delete')
+                            </button>
+                            @endif
                         </div>
 
                         {{-- Stage mover --}}
@@ -1470,6 +1477,9 @@ $('body').on('click', '.delete-note', function() {
 });
 
 function deleteApplication(applicationId) {
+    @if($user->role_id !== 1)
+    return; // non-admin — block silently
+    @endif
     swal({
         title: "@lang('errors.areYouSure')", text: "@lang('errors.deleteWarning')", type: "warning",
         showCancelButton: true, confirmButtonColor: "#DD6B55", confirmButtonText: "@lang('app.delete')",
