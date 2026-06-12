@@ -1751,12 +1751,10 @@ function jaSaveInfoEdit(appId) {
         return;
     }
 
-    // Loading state
     icon.className = 'fa fa-spinner fa-spin';
     btn.disabled   = true;
 
     var url = "{{ route('admin.job-applications.update-basic-info', ':id') }}".replace(':id', appId);
-
 
     $.ajax({
         type: 'POST',
@@ -1768,27 +1766,38 @@ function jaSaveInfoEdit(appId) {
             phone:     phone
         },
         success: function (res) {
-        icon.className = 'fa fa-check';
-        btn.disabled   = false;
+            icon.className = 'fa fa-check';
+            btn.disabled   = false;
 
-        if (res.status === 'success') {
-            // Update view mode values
-            document.getElementById('ja-display-name-' + appId).textContent = res.data.full_name;
-            document.getElementById('ja-display-email-' + appId).innerHTML  =
-                '<a href="mailto:' + res.data.email + '">' + res.data.email + '</a>';
-            document.getElementById('ja-display-phone-' + appId).innerHTML  =
-                '<a href="tel:' + res.data.phone + '">' + res.data.phone + '</a>';
+            if (res.status === 'success') {
 
-            // Force close edit mode directly (don't toggle)
-            var view    = document.getElementById('ja-info-view-' + appId);
-            var editBox = document.getElementById('ja-info-edit-' + appId);
-            var editBtn = document.getElementById('ja-info-edit-btn-' + appId);
-            editBox.style.display = 'none';
-            view.style.display    = 'block';
-            if (editBtn) editBtn.innerHTML = '<i class="fa fa-pencil" style="font-size:10px"></i> Edit';
+                var updatedName  = res.data ? res.data.full_name : name;
+                var updatedEmail = res.data ? res.data.email     : email;
+                var updatedPhone = res.data ? res.data.phone     : phone;
 
-            // Refresh table row
-            if (typeof table !== 'undefined') table.draw(false);
+                // ── Update view-mode display ──
+                var nameEl  = document.getElementById('ja-display-name-' + appId);
+                var emailEl = document.getElementById('ja-display-email-' + appId);
+                var phoneEl = document.getElementById('ja-display-phone-' + appId);
+
+                if (nameEl)  nameEl.textContent = updatedName;
+                if (emailEl) emailEl.innerHTML  = '<a href="mailto:' + updatedEmail + '" style="color:#2563EB">' + updatedEmail + '</a>';
+                if (phoneEl) phoneEl.innerHTML  = '<a href="tel:' + updatedPhone + '" style="color:#2563EB">' + updatedPhone + '</a>';
+
+                // ── Force switch to view mode ──
+                var viewEl  = document.getElementById('ja-info-view-' + appId);
+                var editEl  = document.getElementById('ja-info-edit-' + appId);
+                var editBtn = document.getElementById('ja-info-edit-btn-' + appId);
+
+                if (editEl)  editEl.style.display = 'none';
+                if (viewEl)  viewEl.style.display = 'block';
+                if (editBtn) editBtn.innerHTML = '<i class="fa fa-pencil" style="font-size:10px"></i> Edit';
+
+                // Hide any error message
+                if (msg) msg.style.display = 'none';
+
+                // Refresh DataTable row if visible
+                if (typeof table !== 'undefined') table.draw(false);
 
             } else {
                 msg.style.display = 'block';
