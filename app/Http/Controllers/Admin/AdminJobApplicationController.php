@@ -683,13 +683,16 @@ class AdminJobApplicationController extends AdminBaseController
             $interviewSchedule->employees()->attach($request->employees);
 
             // Mail to employee for inform interview schedule
-            Notification::send($interviewSchedule->employees, new ScheduleInterview($jobApplication, $meetings));
+            //Notification::send($interviewSchedule->employees, new ScheduleInterview($jobApplication, $meetings));
+            if (false) Notification::send($interviewSchedule->employees, new ScheduleInterview($jobApplication, $meetings));
+
         }
         if (! $request->interview_type) {
             $meeting = '';
         }
         // mail to candidate for inform interview schedule
-        Notification::send($jobApplication, new CandidateScheduleInterview($jobApplication, $interviewSchedule, $meetings));
+        //Notification::send($jobApplication, new CandidateScheduleInterview($jobApplication, $interviewSchedule, $meetings));
+        if (false) Notification::send($jobApplication, new CandidateScheduleInterview($jobApplication, $interviewSchedule, $meetings));
 
         return Reply::redirect(route('admin.interview-schedule.index'), __('menu.interviewSchedule').' '.__('messages.createdSuccessfully'));
     }
@@ -985,7 +988,10 @@ class AdminJobApplicationController extends AdminBaseController
             }
         }
 
-        if ($mailSetting[$request->status_id]['status'] && $isStatusDirty) {
+        // if ($mailSetting[$request->status_id]['status'] && $isStatusDirty) {
+        //     Notification::send($jobApplication, new CandidateStatusChange($jobApplication));
+        // }
+        if (false && $mailSetting[$request->status_id]['status'] && $isStatusDirty) {
             Notification::send($jobApplication, new CandidateStatusChange($jobApplication));
         }
         // Auto-move to rejected column if any radio question answered 'no'
@@ -1078,8 +1084,11 @@ class AdminJobApplicationController extends AdminBaseController
             }
 
             // Send notification to candidate on update status
-            if ($mailSetting[$boardColumnIds[0]]['status'] && $request->draggedTaskId != 0) {
-                $jobApplication = JobApplication::findOrFail($request->draggedTaskId);
+            // if ($mailSetting[$boardColumnIds[0]]['status'] && $request->draggedTaskId != 0) {
+            //     $jobApplication = JobApplication::findOrFail($request->draggedTaskId);
+            //     Notification::send($jobApplication, new CandidateStatusChange($jobApplication));
+            // }
+            if (false && $mailSetting[$boardColumnIds[0]]['status'] && $request->draggedTaskId != 0) {
                 Notification::send($jobApplication, new CandidateStatusChange($jobApplication));
             }
         }
@@ -1412,7 +1421,10 @@ class AdminJobApplicationController extends AdminBaseController
         $mailSetting = ApplicationSetting::select('id', 'mail_setting')->first()?->mail_setting ?? [];
         $statusId = (int) $validated['status_id'];
 
-        if ($isStatusDirty && is_array($mailSetting) && isset($mailSetting[$statusId]['status']) && $mailSetting[$statusId]['status'] === true) {
+        // if ($isStatusDirty && is_array($mailSetting) && isset($mailSetting[$statusId]['status']) && $mailSetting[$statusId]['status'] === true) {
+        //     Notification::send($jobApplication, new CandidateStatusChange($jobApplication));
+        // }
+        if (false && $isStatusDirty && is_array($mailSetting) && isset($mailSetting[$statusId]['status']) && $mailSetting[$statusId]['status'] === true) {
             Notification::send($jobApplication, new CandidateStatusChange($jobApplication));
         }
 
