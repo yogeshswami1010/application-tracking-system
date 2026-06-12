@@ -6,8 +6,7 @@
         <div style="font-size:12.5px;font-weight:600;color:#1A1E2E;margin-bottom:2px;">
             {{ $notification->data['mentioned_by'] ?? 'Someone' }} mentioned you
         </div>
-        <div style="font-size:12px;color:#5A6478;line-height:1.5;
-                    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;">
+        <div style="font-size:12px;color:#5A6478;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;">
             "{{ $notification->data['note_text'] ?? '' }}"
         </div>
         <div style="font-size:10.5px;color:#B0B8C4;margin-top:3px;">
