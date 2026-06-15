@@ -471,21 +471,40 @@
 <script src="{{ asset('assets/node_modules_files/select2/dist/js/select2.full.min.js') }}"></script>
 <script>
     // ── Sidebar close handlers ──────────────────────────────
-    $(document).on('click', '#right-sidebar-backdrop', function () {
-        $('#right-sidebar').removeClass('translate-x-0').addClass('translate-x-full');
-        $(this).addClass('hidden').css({ display: 'none', visibility: 'hidden' });
+        // ── Watch for sidebar closing and clear backdrop ────────
+    var sidebarObserver = new MutationObserver(function () {
+        var sidebar = document.getElementById('right-sidebar');
+        if (!sidebar) return;
+        if (sidebar.classList.contains('translate-x-full')) {
+            var backdrop = document.getElementById('right-sidebar-backdrop');
+            if (backdrop) {
+                backdrop.classList.add('hidden');
+                backdrop.style.display    = 'none';
+                backdrop.style.visibility = 'hidden';
+            }
+        }
     });
 
-    $(document).on('click', '#right-sidebar-close', function () {
-        $('#right-sidebar').removeClass('translate-x-0').addClass('translate-x-full');
-        $('#right-sidebar-backdrop').addClass('hidden').css({ display: 'none', visibility: 'hidden' });
-    });
+    var sidebar = document.getElementById('right-sidebar');
+    if (sidebar) {
+        sidebarObserver.observe(sidebar, { attributes: true, attributeFilter: ['class'] });
+    }
 
-    // Close on Escape key
-    $(document).on('keydown', function (e) {
-        if (e.key === 'Escape') {
-            $('#right-sidebar').removeClass('translate-x-0').addClass('translate-x-full');
-            $('#right-sidebar-backdrop').addClass('hidden').css({ display: 'none', visibility: 'hidden' });
+    // Also force-clear backdrop on any click outside sidebar content
+    document.addEventListener('click', function (e) {
+        var sidebar  = document.getElementById('right-sidebar');
+        var backdrop = document.getElementById('right-sidebar-backdrop');
+        if (!sidebar || !backdrop) return;
+
+        var isInsideSidebar  = sidebar.contains(e.target);
+        var isResultCard     = e.target.closest('.ai-result-card') || e.target.closest('.ai-result-view-btn');
+
+        if (!isInsideSidebar && !isResultCard) {
+            sidebar.classList.remove('translate-x-0');
+            sidebar.classList.add('translate-x-full');
+            backdrop.classList.add('hidden');
+            backdrop.style.display    = 'none';
+            backdrop.style.visibility = 'hidden';
         }
     });
     var aiCurrentSort = 'score';
