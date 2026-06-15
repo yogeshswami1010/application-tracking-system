@@ -166,11 +166,7 @@
                                             <div id="bulk-notes-list" class="space-y-1 mb-2"></div>
                                             <textarea id="bulk-notes-input" rows="3"
                                                 class="bulk-input resize-none text-xs w-full"
-                                                placeholder="@lang('modules.jobApplication.addNote')"></textarea>
-                                            <button type="button" id="bulk-add-note"
-                                                class="mt-1.5 w-full px-2 py-1.5 bg-blue-600 text-white rounded text-xs font-medium hover:bg-blue-700 flex items-center justify-center gap-1">
-                                                <i class="fa fa-plus"></i> Add Note
-                                            </button>
+                                                placeholder="Type a note — auto-saved on next CV"></textarea>
                                             <div id="bulk-notes-hidden"></div>
                                         </div>
 
@@ -1273,6 +1269,14 @@
         function bulkSnapshotForm(i) {
             var item = bulkQueue[i];
             if (!item) return;
+
+            // Auto-save whatever is typed in the notes textarea
+            var pendingNote = document.getElementById('bulk-notes-input').value.trim();
+            if (pendingNote) {
+                bulkNotes.push(pendingNote);
+                document.getElementById('bulk-notes-input').value = '';
+            }
+
             // Always snapshot notes and filing regardless of parse status
             item.notes   = bulkNotes.slice();
             item.filing  = bulkFiling;
@@ -1385,13 +1389,6 @@
         /* ─────────────────────────────────────────────
            Notes
         ───────────────────────────────────────────── */
-        document.getElementById('bulk-add-note').addEventListener('click', function () {
-            var text = document.getElementById('bulk-notes-input').value.trim();
-            if (!text) return;
-            bulkNotes.push(text);
-            document.getElementById('bulk-notes-input').value = '';
-            bulkRenderNotes();
-        });
 
         function bulkRenderNotes() {
             var list   = document.getElementById('bulk-notes-list');
@@ -1418,6 +1415,15 @@
         ───────────────────────────────────────────── */
         function bulkSaveCurrent() {
             if (bulkActive < 0) return;
+
+            // Auto-save any note typed but not yet committed
+            var pendingNote = document.getElementById('bulk-notes-input').value.trim();
+            if (pendingNote) {
+                bulkNotes.push(pendingNote);
+                document.getElementById('bulk-notes-input').value = '';
+                bulkRenderNotes();
+            }
+
             bulkSnapshotForm(bulkActive);
             var item = bulkQueue[bulkActive];
             if (!item) return;
