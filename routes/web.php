@@ -123,8 +123,8 @@ Route::middleware('auth')->group(function () {
             Route::post('job-categories/ai-generate', [AdminJobCategoryController::class, 'aiGenerateCategories'])
                 ->name('job-categories.ai-generate');
             Route::resource('job-categories', AdminJobCategoryController::class);
-            Route::get('ai-search', [AdminJobApplicationController::class, 'aiSearchPage'])->name('admin.ai-search');
-            Route::get('ai-search/results', [AdminJobApplicationController::class, 'aiSearchResults'])->name('admin.ai-search.results');
+            Route::get('ai-search', [AdminJobApplicationController::class, 'aiSearchPage'])->name('ai-search');
+            Route::get('ai-search/results', [AdminJobApplicationController::class, 'aiSearchResults'])->name('ai-search.results');
 
             // Questions
             Route::get('questions/data',         [AdminQuestionController::class, 'data'])->name('questions.data');
