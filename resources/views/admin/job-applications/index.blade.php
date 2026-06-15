@@ -1046,13 +1046,24 @@
     // ── Select2 init ─────────────────────────────────────────────
     $('#filter-form select.select2').not('#skill').select2({ width: '100%' });
 
-    // ── Init ─────────────────────────────────────────────────────
-    tableLoad('load');   // drawCallback will call jaRebuildIds() automatically
+    // Always reset to All Applicants on page load — never inherit stale filter state
+    jaActiveStageId = 'all';
+    jaShowKO        = false;
+
+    // Force status select to 'all' before first table load
+    $('#status').val('all').trigger('change.select2');
+
+    // Ensure All tab is visually active, all others inactive
+    document.querySelectorAll('.ja-stage-tab').forEach(function(el) {
+        el.classList.remove('active');
+    });
+    document.getElementById('ja-tab-all').classList.add('active');
+    document.getElementById('ja-ko-tab-btn').classList.remove('active');
+    document.getElementById('ja-ko-banner').classList.remove('show');
+
+    tableLoad('load');
     jaLoadTabCounts();
     jaTableSyncFilterBadge();
-
-    // Set All tab as active on load
-    document.getElementById('ja-tab-all').classList.add('active');
 
 
     // ── Auto-open applicant sidebar from notification link ──
