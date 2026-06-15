@@ -1671,22 +1671,11 @@
                     bulkLastJobId  = response.jobJobLocation.job_id;
                     bulkLastLocId  = response.jobJobLocation.location_id;
 
-                    if (response.count > 0) {
-                        document.getElementById('bulk-question-section').style.display = '';
-                        document.getElementById('bulk-question-box').innerHTML = response.view;
-                    } else {
-                        document.getElementById('bulk-question-section').style.display = 'none';
-                        document.getElementById('bulk-question-box').innerHTML = '';
-                    }
-                    document.getElementById('bulk-show-columns').innerHTML  = response.requiredColumnsView || '';
-                    document.getElementById('bulk-show-sections').innerHTML = response.requiredSectionsView || '';
-
-                    if (response.requiredColumnsView) {
-                        $('.dob').datepicker({ autoclose: true, format: 'yyyy-mm-dd', endDate: (new Date()).toDateString() });
-                        $('.select2').select2({ width: '100%' });
-                        var loc = new locationInfo();
-                        loc.getCountries();
-                    }
+                    // Questions and required columns are hidden in bulk import — not needed
+                    document.getElementById('bulk-question-section').style.display = 'none';
+                    document.getElementById('bulk-question-box').innerHTML         = '';
+                    document.getElementById('bulk-show-columns').innerHTML         = '';
+                    document.getElementById('bulk-show-sections').innerHTML        = '';
                 }
             });
         }
@@ -1788,18 +1777,6 @@
             bulkNotes.filter(Boolean).forEach(function (n) { fd.append('notes[]', n); });
             // Resume file
             if (item.file) fd.append('resume', item.file);
-
-            // Question answers
-            var form         = document.getElementById('bulk-candidate-form');
-            var answerFields = form.querySelectorAll('[name^="answer"]');
-            answerFields.forEach(function (el) { fd.append(el.name, el.value); });
-
-            // Required columns (gender, dob, country, state, city, zip_code etc.)
-            var colFields = form.querySelectorAll(
-                '#bulk-show-columns input, #bulk-show-columns select, #bulk-show-columns textarea,' +
-                '#bulk-show-sections input, #bulk-show-sections select, #bulk-show-sections textarea'
-            );
-            colFields.forEach(function (el) { if (el.name) fd.append(el.name, el.value); });
 
             $.ajax({
                 url:         bulkStoreUrl,
