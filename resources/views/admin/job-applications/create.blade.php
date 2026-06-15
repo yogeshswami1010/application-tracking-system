@@ -602,17 +602,15 @@
         }
         .bulk-job-search-clear:hover { color: #dc2626; }
         .bulk-job-dropdown {
-            position: absolute;
-            top: calc(100% + 3px);
-            left: 0;
-            right: 0;
+            position: fixed;
             background: #fff;
             border: 0.5px solid #d1d5db;
             border-radius: 8px;
-            box-shadow: 0 6px 20px rgba(0,0,0,.1);
-            z-index: 999;
-            max-height: 200px;
+            box-shadow: 0 -6px 20px rgba(0,0,0,.1);
+            z-index: 99999;
+            max-height: 220px;
             overflow-y: auto;
+            min-width: 300px;
         }
         .bulk-job-dropdown::-webkit-scrollbar { width: 3px; }
         .bulk-job-dropdown::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
@@ -999,6 +997,25 @@
                 function openDropdown() {
                     renderOptions(searchInput.value);
                     dropdown.style.display = 'block';
+
+                    // Position the dropdown — open upward if near bottom of viewport
+                    var rect     = searchInput.getBoundingClientRect();
+                    var spaceBelow = window.innerHeight - rect.bottom;
+                    var spaceAbove = rect.top;
+                    var dropH    = Math.min(220, dropdown.scrollHeight || 220);
+
+                    dropdown.style.left  = rect.left + 'px';
+                    dropdown.style.width = rect.width + 'px';
+
+                    if (spaceBelow < dropH + 10 && spaceAbove > dropH) {
+                        // Open upward
+                        dropdown.style.top    = '';
+                        dropdown.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+                    } else {
+                        // Open downward
+                        dropdown.style.bottom = '';
+                        dropdown.style.top    = (rect.bottom + 4) + 'px';
+                    }
                 }
 
                 function closeDropdown() {
@@ -1014,6 +1031,7 @@
                     clearBtn.style.display = this.value ? 'flex' : 'none';
                     renderOptions(this.value);
                     dropdown.style.display = 'block';
+                    openDropdown(); // reposition after render
                 });
 
                 clearBtn.addEventListener('click', function () {
