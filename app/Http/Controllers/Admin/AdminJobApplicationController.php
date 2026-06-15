@@ -2143,7 +2143,7 @@ class AdminJobApplicationController extends AdminBaseController
                     'content-type'      => 'application/json',
                 ],
                 'json' => [
-                    'model'      => 'claude-sonnet-4-6',
+                    'model'      => 'claude-haiku-4-5-20251001',
                     'max_tokens' => 512,
                     'cache_control' => ['type' => 'ephemeral',],
                     'messages'   => [[
@@ -2238,7 +2238,7 @@ class AdminJobApplicationController extends AdminBaseController
                     'content-type'      => 'application/json',
                 ],
                 'json' => [
-                    'model'      => 'claude-sonnet-4-6',
+                    'model'      => 'claude-haiku-4-5-20251001',
                     'max_tokens' => 1024,
                     'cache_control' => ['type' => 'ephemeral',],
                     'messages'   => [[
