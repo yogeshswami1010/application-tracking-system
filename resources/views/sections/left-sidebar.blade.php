@@ -37,7 +37,7 @@
         @endif
         <li class="{{ Request::is('admin/ai-search*') ? 'active' : '' }}">
             <a href="{{ route('admin.ai-search') }}">
-                <i class="fa fa-search"></i>
+                <i class="fa fa-magic"></i>
                 <span>AI Search</span>
             </a>
         </li>
