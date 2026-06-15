@@ -470,6 +470,24 @@
 @push('footer-script')
 <script src="{{ asset('assets/node_modules_files/select2/dist/js/select2.full.min.js') }}"></script>
 <script>
+    // ── Sidebar close handlers ──────────────────────────────
+    $(document).on('click', '#right-sidebar-backdrop', function () {
+        $('#right-sidebar').removeClass('translate-x-0').addClass('translate-x-full');
+        $(this).addClass('hidden').css({ display: 'none', visibility: 'hidden' });
+    });
+
+    $(document).on('click', '#right-sidebar-close', function () {
+        $('#right-sidebar').removeClass('translate-x-0').addClass('translate-x-full');
+        $('#right-sidebar-backdrop').addClass('hidden').css({ display: 'none', visibility: 'hidden' });
+    });
+
+    // Close on Escape key
+    $(document).on('keydown', function (e) {
+        if (e.key === 'Escape') {
+            $('#right-sidebar').removeClass('translate-x-0').addClass('translate-x-full');
+            $('#right-sidebar-backdrop').addClass('hidden').css({ display: 'none', visibility: 'hidden' });
+        }
+    });
     var aiCurrentSort = 'score';
     var aiLastResults = [];
     var aiLastQuery   = '';
