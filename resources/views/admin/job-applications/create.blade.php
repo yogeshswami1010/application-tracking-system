@@ -220,8 +220,28 @@
                                 {{-- Job selector (visible when "assign job" is active) --}}
                                 <div id="bulk-job-selector" class="flex-1 min-w-0" style="display:none;">
                                     <label class="text-xs text-gray-400 mb-1 block">@lang('menu.jobs')</label>
-                                    <select id="bulk-job-select" class="bulk-input text-xs w-full"
-                                        onchange="bulkGetQuestions(this.value)">
+                                    <div class="bulk-job-search-wrap">
+                                        <div class="bulk-job-search-box">
+                                            <i class="fa fa-search bulk-job-search-icon"></i>
+                                            <input type="text" id="bulk-job-search-input"
+                                                class="bulk-job-search-input"
+                                                placeholder="Search jobs...">
+                                            <button type="button" id="bulk-job-search-clear" class="bulk-job-search-clear" style="display:none;">
+                                                <i class="fa fa-times"></i>
+                                            </button>
+                                        </div>
+                                        <div id="bulk-job-dropdown" class="bulk-job-dropdown" style="display:none;">
+                                            <div id="bulk-job-options"></div>
+                                        </div>
+                                        <div id="bulk-job-selected-display" class="bulk-job-selected" style="display:none;">
+                                            <span id="bulk-job-selected-label"></span>
+                                            <button type="button" onclick="bulkClearJobSelection()" class="bulk-job-clear-btn">
+                                                <i class="fa fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {{-- Hidden native select for compatibility --}}
+                                    <select id="bulk-job-select" style="display:none;" onchange="bulkGetQuestions(this.value)">
                                         <option value="">— choose a job —</option>
                                         @foreach ($locations as $location)
                                             <option value="{{ $location->id }}"
@@ -534,6 +554,116 @@
             font-weight: 500;
             margin-bottom: 2px;
         }
+
+        /* ── Job search ── */
+        .bulk-job-search-wrap {
+            position: relative;
+        }
+        .bulk-job-search-box {
+            display: flex;
+            align-items: center;
+            border: 0.5px solid #d1d5db;
+            border-radius: 6px;
+            background: #fff;
+            padding: 0 7px;
+            gap: 5px;
+            transition: border-color .15s;
+        }
+        .bulk-job-search-box:focus-within {
+            border-color: #2563eb;
+        }
+        .bulk-job-search-icon {
+            font-size: 10px;
+            color: #9ca3af;
+            flex-shrink: 0;
+        }
+        .bulk-job-search-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 11.5px;
+            padding: 5px 0;
+            background: transparent;
+            color: #111827;
+            min-width: 0;
+        }
+        .bulk-job-search-input::placeholder {
+            color: #9ca3af;
+        }
+        .bulk-job-search-clear {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #9ca3af;
+            font-size: 10px;
+            padding: 2px;
+            display: flex;
+            align-items: center;
+        }
+        .bulk-job-search-clear:hover { color: #dc2626; }
+        .bulk-job-dropdown {
+            position: absolute;
+            top: calc(100% + 3px);
+            left: 0;
+            right: 0;
+            background: #fff;
+            border: 0.5px solid #d1d5db;
+            border-radius: 8px;
+            box-shadow: 0 6px 20px rgba(0,0,0,.1);
+            z-index: 999;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .bulk-job-dropdown::-webkit-scrollbar { width: 3px; }
+        .bulk-job-dropdown::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+        .bulk-job-opt {
+            padding: 7px 10px;
+            font-size: 11.5px;
+            color: #374151;
+            cursor: pointer;
+            border-bottom: 0.5px solid #f3f4f6;
+            transition: background .1s;
+        }
+        .bulk-job-opt:last-child { border-bottom: none; }
+        .bulk-job-opt:hover { background: #eff6ff; color: #2563eb; }
+        .bulk-job-opt.selected { background: #eff6ff; color: #1d4ed8; font-weight: 500; }
+        .bulk-job-opt-empty {
+            padding: 10px;
+            font-size: 11px;
+            color: #9ca3af;
+            text-align: center;
+        }
+        .bulk-job-opt mark {
+            background: #fef08a;
+            color: inherit;
+            border-radius: 2px;
+            padding: 0 1px;
+        }
+        .bulk-job-selected {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            padding: 5px 8px;
+            border: 0.5px solid #059669;
+            border-radius: 6px;
+            background: #f0fdf4;
+            font-size: 11.5px;
+            color: #065f46;
+            font-weight: 500;
+            margin-top: 4px;
+        }
+        .bulk-job-clear-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #6b7280;
+            font-size: 10px;
+            padding: 1px 3px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+        .bulk-job-clear-btn:hover { color: #dc2626; background: #fee2e2; }
         .bulk-input {
             width: 100%;
             font-size: 11.5px;
@@ -782,7 +912,164 @@
                 bulkParseItem(i);
             }
         }
+            /* ─────────────────────────────────────────────
+            Job search dropdown
+            ───────────────────────────────────────────── */
+            (function () {
+                var searchInput  = document.getElementById('bulk-job-search-input');
+                var clearBtn     = document.getElementById('bulk-job-search-clear');
+                var dropdown     = document.getElementById('bulk-job-dropdown');
+                var optionsWrap  = document.getElementById('bulk-job-options');
+                var selectedDisp = document.getElementById('bulk-job-selected-display');
+                var selectedLbl  = document.getElementById('bulk-job-selected-label');
+                var nativeSelect = document.getElementById('bulk-job-select');
 
+                // Build options array from native select
+                function getJobOptions() {
+                    var opts = [];
+                    Array.from(nativeSelect.options).forEach(function (o) {
+                        if (!o.value) return;
+                        opts.push({
+                            value:  o.value,
+                            label:  o.text.trim(),
+                            jobId:  o.getAttribute('data-job-id'),
+                            locId:  o.getAttribute('data-loc-id'),
+                        });
+                    });
+                    return opts;
+                }
+
+                function highlight(text, query) {
+                    if (!query) return bulkEsc(text);
+                    var escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    return bulkEsc(text).replace(new RegExp('(' + escaped + ')', 'gi'), '<mark>$1</mark>');
+                }
+
+                function renderOptions(query) {
+                    var opts = getJobOptions();
+                    var q    = (query || '').trim().toLowerCase();
+                    var filtered = q
+                        ? opts.filter(function (o) { return o.label.toLowerCase().indexOf(q) >= 0; })
+                        : opts;
+
+                    if (!filtered.length) {
+                        optionsWrap.innerHTML = '<div class="bulk-job-opt-empty">No jobs found</div>';
+                        return;
+                    }
+
+                    optionsWrap.innerHTML = filtered.map(function (o) {
+                        var isActive = nativeSelect.value === o.value;
+                        return '<div class="bulk-job-opt' + (isActive ? ' selected' : '') + '" ' +
+                            'data-value="' + bulkEsc(o.value) + '" ' +
+                            'data-label="' + bulkEsc(o.label) + '" ' +
+                            'data-job-id="' + bulkEsc(o.jobId) + '" ' +
+                            'data-loc-id="' + bulkEsc(o.locId) + '">' +
+                            highlight(o.label, q) +
+                        '</div>';
+                    }).join('');
+
+                    // Click to select
+                    optionsWrap.querySelectorAll('.bulk-job-opt').forEach(function (el) {
+                        el.addEventListener('click', function () {
+                            selectJob(
+                                el.dataset.value,
+                                el.dataset.label,
+                                el.dataset.jobId,
+                                el.dataset.locId
+                            );
+                        });
+                    });
+                }
+
+                function selectJob(value, label, jobId, locId) {
+                    // Update native select
+                    nativeSelect.value = value;
+
+                    // Show selected pill, hide search box
+                    selectedLbl.textContent = label;
+                    selectedDisp.style.display = 'flex';
+                    searchInput.value = '';
+                    clearBtn.style.display = 'none';
+                    dropdown.style.display = 'none';
+
+                    // Fire the questions loader
+                    bulkGetQuestions(value);
+                }
+
+                function openDropdown() {
+                    renderOptions(searchInput.value);
+                    dropdown.style.display = 'block';
+                }
+
+                function closeDropdown() {
+                    dropdown.style.display = 'none';
+                }
+
+                // Input events
+                searchInput.addEventListener('focus', function () {
+                    openDropdown();
+                });
+
+                searchInput.addEventListener('input', function () {
+                    clearBtn.style.display = this.value ? 'flex' : 'none';
+                    renderOptions(this.value);
+                    dropdown.style.display = 'block';
+                });
+
+                clearBtn.addEventListener('click', function () {
+                    searchInput.value = '';
+                    clearBtn.style.display = 'none';
+                    renderOptions('');
+                });
+
+                // Close on outside click
+                document.addEventListener('click', function (e) {
+                    if (!e.target.closest('.bulk-job-search-wrap')) {
+                        closeDropdown();
+                    }
+                });
+
+                // Expose clear for the X button on the selected pill
+                window.bulkClearJobSelection = function () {
+                    nativeSelect.value = '';
+                    selectedDisp.style.display = 'none';
+                    searchInput.value = '';
+                    clearBtn.style.display = 'none';
+                    // Clear job state
+                    document.getElementById('bulk-job-id').value      = '';
+                    document.getElementById('bulk-location-id').value = '';
+                    document.getElementById('bulk-question-section').style.display = 'none';
+                    document.getElementById('bulk-question-box').innerHTML         = '';
+                    document.getElementById('bulk-show-columns').innerHTML         = '';
+                    document.getElementById('bulk-show-sections').innerHTML        = '';
+                    if (bulkActive >= 0) {
+                        bulkQueue[bulkActive].jobLocId = '';
+                        bulkQueue[bulkActive].jobId    = '';
+                        bulkQueue[bulkActive].locId    = '';
+                    }
+                    bulkLastJobLocId = '';
+                    bulkLastJobId    = '';
+                    bulkLastLocId    = '';
+                };
+
+                // Expose sync so bulkFillForm can restore the selected pill
+                window.bulkSyncJobSearchDisplay = function (value) {
+                    if (!value) {
+                        selectedDisp.style.display = 'none';
+                        searchInput.value = '';
+                        return;
+                    }
+                    var opts = getJobOptions();
+                    var match = opts.find(function (o) { return o.value === value; });
+                    if (match) {
+                        nativeSelect.value      = value;
+                        selectedLbl.textContent = match.label;
+                        selectedDisp.style.display = 'flex';
+                        searchInput.value = '';
+                        clearBtn.style.display = 'none';
+                    }
+                };
+            })();
         /* ─────────────────────────────────────────────
            Parse a single CV — text extraction + visual render
         ───────────────────────────────────────────── */
