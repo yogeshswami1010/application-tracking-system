@@ -1472,8 +1472,15 @@
             }
 
             // Notes
-            bulkNotes.filter(Boolean).forEach(function (n) { fd.append('notes[]', n); });
+            // Auto-save any note typed in the textarea before submitting
+            var pendingNote = document.getElementById('bulk-notes-input').value.trim();
+            if (pendingNote) {
+                bulkNotes.push(pendingNote);
+                document.getElementById('bulk-notes-input').value = '';
+            }
 
+            // Notes
+            bulkNotes.filter(Boolean).forEach(function (n) { fd.append('notes[]', n); });
             // Resume file
             if (item.file) fd.append('resume', item.file);
 
