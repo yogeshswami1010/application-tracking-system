@@ -652,7 +652,7 @@
                         parsed:  null,
                         saved:   false,
                         notes:   [],
-                        filing:  'db',
+                        filing:  bulkLastFiling,
                         jobLocId: '',
                         jobId:   '',
                         locId:   '',
@@ -731,7 +731,7 @@
             bulkUpdateCounter();
 
             // Restore filing mode for this item
-            bulkSetFiling(item.filing || 'db', false);
+            bulkSetFiling(item.filing || bulkLastFiling, false);
 
             if (item.status === 'done' || item.saved) {
                 bulkRenderCV(item);
