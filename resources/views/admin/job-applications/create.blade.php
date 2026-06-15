@@ -152,16 +152,6 @@
                                                 placeholder="@lang('app.phone')" required>
                                         </div>
 
-                                        {{-- Skills --}}
-                                        <div class="bulk-fg">
-                                            <label class="bulk-label">
-                                                Skills
-                                                <span class="bulk-conf bulk-conf-hi" id="bconf-skills">high</span>
-                                            </label>
-                                            <input type="text" name="skills" id="bf-skills" class="bulk-input bulk-parsed"
-                                                placeholder="Skills from CV">
-                                        </div>
-
                                         {{-- Address --}}
                                         <div class="bulk-fg">
                                             <label class="bulk-label">@lang('app.address')</label>
@@ -174,7 +164,7 @@
                                         <div class="bulk-fg">
                                             <label class="bulk-label">@lang('modules.jobApplication.applicantNotes')</label>
                                             <div id="bulk-notes-list" class="space-y-1 mb-2"></div>
-                                            <textarea id="bulk-notes-input" rows="4"
+                                            <textarea id="bulk-notes-input" rows="3"
                                                 class="bulk-input resize-none text-xs w-full"
                                                 placeholder="@lang('modules.jobApplication.addNote')"></textarea>
                                             <button type="button" id="bulk-add-note"
@@ -195,6 +185,19 @@
                                         {{-- Required columns (country/state/city injected here) --}}
                                         <div id="bulk-show-columns"></div>
                                         <div id="bulk-show-sections"></div>
+
+                                        {{-- ── Skills — scrollable, pinned at bottom ── --}}
+                                 
+                                        <div class="bulk-skills-section">
+                                            <label class="bulk-label">
+                                                Skills
+                                                <span class="bulk-conf bulk-conf-hi" id="bconf-skills">high</span>
+                                            </label>
+                                            <input type="text" name="skills" id="bf-skills"
+                                                class="bulk-input bulk-parsed bulk-skills-input"
+                                                placeholder="Skills from CV">
+                                            <div id="bulk-skill-chips-wrap" class="bulk-skill-chips-scroll"></div>
+                                        </div>
 
                                     </form>
                                 </div>
@@ -267,6 +270,41 @@
 
     <style>
         /* ── Layout ── */
+        /* ── Skills pinned section ── */
+        .bulk-skills-section {
+            border-top: 0.5px solid #e5e7eb;
+            margin-top: 10px;
+            padding-top: 8px;
+            background: #fff;
+        }
+        .bulk-skills-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        .bulk-skills-input {
+            margin-bottom: 6px;
+        }
+        .bulk-skill-chips-scroll {
+            max-height: 130px;
+            overflow-y: auto;
+            padding-right: 2px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .bulk-skill-chips-scroll::-webkit-scrollbar {
+            width: 3px;
+        }
+        .bulk-skill-chips-scroll::-webkit-scrollbar-track {
+            background: #f3f4f6;
+            border-radius: 3px;
+        }
+        .bulk-skill-chips-scroll::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 3px;
+        }
         .bulk-layout {
             display: grid;
             grid-template-columns: 230px 1fr;
@@ -1058,13 +1096,14 @@
             }
 
             // Fields
-            bulkSetInput('bf-name',    d.full_name,  !!d.full_name);
-            bulkSetInput('bf-email',   d.email,      !!d.email);
-            bulkSetInput('bf-phone',   d.phone,      !!d.phone);
+            bulkSetInput('bf-name',  d.full_name, !!d.full_name);
+            bulkSetInput('bf-email', d.email,     !!d.email);
+            bulkSetInput('bf-phone', d.phone,     !!d.phone);
+
             // Combine all detected skills into the text field automatically
             var allSkillNames = [];
             (d.matched_skills || []).forEach(function(s) { allSkillNames.push(s.name); });
-            (d.new_skills || []).forEach(function(n) { allSkillNames.push(n); });
+            (d.new_skills     || []).forEach(function(n) { allSkillNames.push(n); });
 
             // Merge with any existing skills string (deduplicate)
             var existingSkills = (d.skills || '').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
@@ -1081,6 +1120,7 @@
             if (bulkQueue[bulkActive] && bulkQueue[bulkActive].parsed) {
                 bulkQueue[bulkActive].parsed.skills = finalSkillsStr;
             }
+
             bulkSetTextarea('bf-address', d.address, !!d.address);
 
             // Confidence badges
@@ -1096,7 +1136,6 @@
             bulkNotes = item.notes ? item.notes.slice() : [];
             bulkRenderNotes();
 
-            // Job/location hidden fields
             // Job/location hidden fields — auto-inherit last selected job for new CVs
             var effectiveJobLocId = item.jobLocId || bulkLastJobLocId;
             var effectiveJobId    = item.jobId    || bulkLastJobId;
@@ -1106,17 +1145,15 @@
             document.getElementById('bulk-job-id').value      = effectiveJobId;
             document.getElementById('bulk-location-id').value = effectiveLocId;
 
-            // Apply inherited filing mode silently (without re-persisting to avoid overwriting)
+            // Apply inherited filing mode silently
             if (effectiveFiling !== bulkFiling) {
                 bulkSetFiling(effectiveFiling, false);
             }
 
             if (effectiveJobLocId) {
                 document.getElementById('bulk-job-select').value = effectiveJobLocId;
-                // Only fire the AJAX question loader if this CV didn't already have its own job stored
                 if (!item.jobLocId) {
                     bulkGetQuestions(effectiveJobLocId);
-                    // Pre-populate the item so snapshot works correctly
                     item.jobLocId = effectiveJobLocId;
                     item.jobId    = effectiveJobId;
                     item.locId    = effectiveLocId;
@@ -1125,113 +1162,86 @@
             } else {
                 document.getElementById('bulk-job-select').value = '';
                 document.getElementById('bulk-question-section').style.display = 'none';
-                document.getElementById('bulk-question-box').innerHTML = '';
-                document.getElementById('bulk-show-columns').innerHTML = '';
-                document.getElementById('bulk-show-sections').innerHTML = '';
+                document.getElementById('bulk-question-box').innerHTML          = '';
+                document.getElementById('bulk-show-columns').innerHTML          = '';
+                document.getElementById('bulk-show-sections').innerHTML         = '';
             }
 
-            // ── Skill chips ──
-            var skillsField = document.getElementById('bf-skills');
-            var existingWrap = document.getElementById('bulk-skill-chips-' + bulkActive);
-            if (existingWrap) existingWrap.remove();
+            // ── Skill chips — render into dedicated scrollable container ──
+            var chipsWrap = document.getElementById('bulk-skill-chips-wrap');
+            chipsWrap.innerHTML = '';
 
-            var matched = d.matched_skills || [];
-            var newSkills = d.new_skills || [];
+            var matched   = d.matched_skills || [];
+            var newSkills = d.new_skills     || [];
 
-            if (matched.length || newSkills.length) {
-                var wrap = document.createElement('div');
-                wrap.id = 'bulk-skill-chips-' + bulkActive;
-                wrap.style.cssText = 'margin-top:6px;';
+            if (matched.length) {
+                var mLabel = document.createElement('div');
+                mLabel.style.cssText = 'font-size:10px;color:#065f46;font-weight:600;margin-bottom:3px;';
+                mLabel.textContent   = '✓ Matched skills — click to add:';
+                chipsWrap.appendChild(mLabel);
 
-                if (matched.length) {
-                    var mLabel = document.createElement('div');
-                    mLabel.style.cssText = 'font-size:10px;color:#065f46;font-weight:600;margin-bottom:4px;';
-                    mLabel.textContent = '✓ Matched skills — click to add:';
-                    wrap.appendChild(mLabel);
+                var mChips = document.createElement('div');
+                mChips.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;';
 
-                    var mChips = document.createElement('div');
-                    mChips.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;';
+                matched.forEach(function (skill) {
+                    var chip = document.createElement('span');
+                    chip.style.cssText = 'display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:500;background:#ECFDF5;color:#065F46;border:1px dashed #6EE7B7;cursor:pointer;transition:all .15s;';
+                    chip.innerHTML     = '<i class="fa fa-plus" style="font-size:9px"></i> ' + bulkEsc(skill.name);
 
-                    matched.forEach(function (skill) {
-                        var chip = document.createElement('span');
-                        chip.style.cssText = 'display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:500;background:#ECFDF5;color:#065F46;border:1px dashed #6EE7B7;cursor:pointer;transition:all .15s;';
-                        chip.innerHTML = '<i class="fa fa-plus" style="font-size:9px"></i> ' + bulkEsc(skill.name);
-
-                        chip.addEventListener('click', function () {
-                            // Check if already added
-                            var current = document.getElementById('bf-skills').value;
-                            var parts   = current ? current.split(',').map(function(s){ return s.trim().toLowerCase(); }) : [];
-                            if (parts.indexOf(skill.name.toLowerCase()) > -1) return;
-
-                            // Add to skills input
-                            var skillsEl = document.getElementById('bf-skills');
-                            skillsEl.value = skillsEl.value
-                                ? skillsEl.value.trim() + ', ' + skill.name
-                                : skill.name;
-
-                            // Update snapshot so it persists when navigating
-                            if (bulkActive >= 0 && bulkQueue[bulkActive] && bulkQueue[bulkActive].parsed) {
-                                bulkQueue[bulkActive].parsed.skills = skillsEl.value;
-                            }
-
-                            // Mark chip as added
-                            chip.style.background    = '#D1FAE5';
-                            chip.style.borderStyle   = 'solid';
-                            chip.style.cursor        = 'default';
-                            chip.innerHTML = '<i class="fa fa-check" style="font-size:9px"></i> ' + bulkEsc(skill.name);
-                            chip.removeEventListener('click', arguments.callee);
-                        });
-
-                        mChips.appendChild(chip);
+                    chip.addEventListener('click', function () {
+                        var current = document.getElementById('bf-skills').value;
+                        var parts   = current ? current.split(',').map(function(s){ return s.trim().toLowerCase(); }) : [];
+                        if (parts.indexOf(skill.name.toLowerCase()) > -1) return;
+                        var skillsEl   = document.getElementById('bf-skills');
+                        skillsEl.value = skillsEl.value ? skillsEl.value.trim() + ', ' + skill.name : skill.name;
+                        if (bulkActive >= 0 && bulkQueue[bulkActive] && bulkQueue[bulkActive].parsed) {
+                            bulkQueue[bulkActive].parsed.skills = skillsEl.value;
+                        }
+                        chip.style.background  = '#D1FAE5';
+                        chip.style.borderStyle = 'solid';
+                        chip.style.cursor      = 'default';
+                        chip.innerHTML         = '<i class="fa fa-check" style="font-size:9px"></i> ' + bulkEsc(skill.name);
+                        chip.removeEventListener('click', arguments.callee);
                     });
-                    wrap.appendChild(mChips);
-                }
 
-                if (newSkills.length) {
-                    var nLabel = document.createElement('div');
-                    nLabel.style.cssText = 'font-size:10px;color:#92400e;font-weight:600;margin-bottom:4px;';
-                    nLabel.textContent = '+ New skills found — click to add:';
-                    wrap.appendChild(nLabel);
+                    mChips.appendChild(chip);
+                });
+                chipsWrap.appendChild(mChips);
+            }
 
-                    var nChips = document.createElement('div');
-                    nChips.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;';
+            if (newSkills.length) {
+                var nLabel = document.createElement('div');
+                nLabel.style.cssText = 'font-size:10px;color:#92400e;font-weight:600;margin-bottom:3px;';
+                nLabel.textContent   = '+ New skills found — click to add:';
+                chipsWrap.appendChild(nLabel);
 
-                    newSkills.forEach(function (name) {
-                        var chip = document.createElement('span');
-                        chip.style.cssText = 'display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:500;background:#FFFBEB;color:#92400E;border:1px dashed #FDE68A;cursor:pointer;transition:all .15s;';
-                        chip.innerHTML = '<i class="fa fa-plus" style="font-size:9px"></i> ' + bulkEsc(name);
+                var nChips = document.createElement('div');
+                nChips.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;';
 
-                        chip.addEventListener('click', function () {
-                            // Check if already added
-                            var current = document.getElementById('bf-skills').value;
-                            var parts   = current ? current.split(',').map(function(s){ return s.trim().toLowerCase(); }) : [];
-                            if (parts.indexOf(name.toLowerCase()) > -1) return;
+                newSkills.forEach(function (name) {
+                    var chip = document.createElement('span');
+                    chip.style.cssText = 'display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:500;background:#FFFBEB;color:#92400E;border:1px dashed #FDE68A;cursor:pointer;transition:all .15s;';
+                    chip.innerHTML     = '<i class="fa fa-plus" style="font-size:9px"></i> ' + bulkEsc(name);
 
-                            // Add to skills input
-                            var skillsEl = document.getElementById('bf-skills');
-                            skillsEl.value = skillsEl.value
-                                ? skillsEl.value.trim() + ', ' + name
-                                : name;
-
-                            // Update snapshot
-                            if (bulkActive >= 0 && bulkQueue[bulkActive] && bulkQueue[bulkActive].parsed) {
-                                bulkQueue[bulkActive].parsed.skills = skillsEl.value;
-                            }
-
-                            // Mark chip as added
-                            chip.style.background  = '#FEF3C7';
-                            chip.style.borderStyle = 'solid';
-                            chip.style.cursor      = 'default';
-                            chip.innerHTML = '<i class="fa fa-check" style="font-size:9px"></i> ' + bulkEsc(name);
-                            chip.removeEventListener('click', arguments.callee);
-                        });
-
-                        nChips.appendChild(chip);
+                    chip.addEventListener('click', function () {
+                        var current = document.getElementById('bf-skills').value;
+                        var parts   = current ? current.split(',').map(function(s){ return s.trim().toLowerCase(); }) : [];
+                        if (parts.indexOf(name.toLowerCase()) > -1) return;
+                        var skillsEl   = document.getElementById('bf-skills');
+                        skillsEl.value = skillsEl.value ? skillsEl.value.trim() + ', ' + name : name;
+                        if (bulkActive >= 0 && bulkQueue[bulkActive] && bulkQueue[bulkActive].parsed) {
+                            bulkQueue[bulkActive].parsed.skills = skillsEl.value;
+                        }
+                        chip.style.background  = '#FEF3C7';
+                        chip.style.borderStyle = 'solid';
+                        chip.style.cursor      = 'default';
+                        chip.innerHTML         = '<i class="fa fa-check" style="font-size:9px"></i> ' + bulkEsc(name);
+                        chip.removeEventListener('click', arguments.callee);
                     });
-                    wrap.appendChild(nChips);
-                }
 
-                skillsField.parentNode.insertBefore(wrap, skillsField.nextSibling);
+                    nChips.appendChild(chip);
+                });
+                chipsWrap.appendChild(nChips);
             }
         }
 
