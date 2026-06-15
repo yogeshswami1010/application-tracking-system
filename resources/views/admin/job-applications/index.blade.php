@@ -1046,20 +1046,37 @@
     // ── Select2 init ─────────────────────────────────────────────
     $('#filter-form select.select2').not('#skill').select2({ width: '100%' });
 
-    // Always reset to All Applicants on page load — never inherit stale filter state
-    jaActiveStageId = 'all';
-    jaShowKO        = false;
+    // ── Init — default to Applied stage on page load ─────────────
+    jaShowKO = false;
 
-    // Force status select to 'all' before first table load
-    $('#status').val('all').trigger('change.select2');
+    // Find the applied stage from jaStages array
+    var appliedStage = jaStages.find(function(s) { return s.slug === 'applied'; });
 
-    // Ensure All tab is visually active, all others inactive
-    document.querySelectorAll('.ja-stage-tab').forEach(function(el) {
-        el.classList.remove('active');
-    });
-    document.getElementById('ja-tab-all').classList.add('active');
-    document.getElementById('ja-ko-tab-btn').classList.remove('active');
-    document.getElementById('ja-ko-banner').classList.remove('show');
+    if (appliedStage) {
+        jaActiveStageId = appliedStage.id;
+
+        // Set status select to applied
+        $('#status').val(appliedStage.id).trigger('change.select2');
+
+        // Activate the applied tab visually
+        document.querySelectorAll('.ja-stage-tab').forEach(function(el) {
+            el.classList.remove('active');
+        });
+        document.getElementById('ja-tab-all').classList.remove('active');
+        document.getElementById('ja-ko-tab-btn').classList.remove('active');
+        document.getElementById('ja-ko-banner').classList.remove('show');
+
+        var appliedTab = document.querySelector('[data-stage-id="' + appliedStage.id + '"]');
+        if (appliedTab) {
+            appliedTab.classList.add('active');
+            appliedTab.style.setProperty('--tab-color', appliedStage.color);
+        }
+    } else {
+        // Fallback to all if applied stage not found
+        jaActiveStageId = 'all';
+        $('#status').val('all').trigger('change.select2');
+        document.getElementById('ja-tab-all').classList.add('active');
+    }
 
     tableLoad('load');
     jaLoadTabCounts();
