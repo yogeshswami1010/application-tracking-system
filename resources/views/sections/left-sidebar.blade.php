@@ -35,7 +35,12 @@
             </a>
            
         @endif
-
+        <li class="{{ Request::is('admin/ai-search*') ? 'active' : '' }}">
+            <a href="{{ route('admin.ai-search') }}">
+                <i class="fa fa-search"></i>
+                <span>AI Search</span>
+            </a>
+        </li>
         <div class="ra-sec-title">@lang('menu.recruitment')</div>
 
         @if(in_array("view_job_applications", $userPermissions))

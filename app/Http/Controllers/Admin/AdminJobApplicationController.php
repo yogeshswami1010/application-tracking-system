@@ -2315,4 +2315,106 @@ class AdminJobApplicationController extends AdminBaseController
             'phone'     => $application->phone,
         ]);
     }
+    public function aiSearchPage()
+    {
+        abort_if(!$this->user->cans('view_job_applications'), 403);
+        return view('admin.ai-search.index', $this->data);
+    }
+    public function aiSearchResults(Request $request)
+    {
+        abort_if(!$this->user->cans('view_job_applications'), 403);
+
+        $terms      = array_filter(array_map('trim', (array) $request->input('terms', [])));
+        $query      = trim($request->input('query', ''));
+
+        if (empty($terms) && empty($query)) {
+            return Reply::dataOnly(['results' => []]);
+        }
+
+        // Find matching skill IDs
+        $matchedSkillIds = \App\Skill::where(function ($q) use ($terms) {
+            foreach ($terms as $term) {
+                $q->orWhere('name', 'LIKE', '%' . $term . '%');
+            }
+        })->pluck('id')->map(fn($id) => (string)$id)->toArray();
+
+        // Search applicants
+        $applicants = \App\JobApplication::select(
+                'job_applications.id',
+                'job_applications.full_name',
+                'job_applications.skills',
+                'job_applications.status_id',
+                'job_applications.job_id',
+                'job_applications.location_id',
+                'job_applications.cover_letter',
+                'job_applications.address',
+                'job_applications.created_at'
+            )
+            ->with(['status:id,status,color', 'job:id,title', 'location:id,location'])
+            ->where('job_applications.is_candidate', 0)
+            ->where(function ($q) use ($terms, $matchedSkillIds) {
+                foreach ($matchedSkillIds as $sid) {
+                    $q->orWhereJsonContains('job_applications.skills', $sid);
+                }
+                foreach ($terms as $term) {
+                    $q->orWhere('job_applications.full_name',    'LIKE', '%'.$term.'%');
+                    $q->orWhere('job_applications.cover_letter', 'LIKE', '%'.$term.'%');
+                    $q->orWhere('job_applications.address',      'LIKE', '%'.$term.'%');
+                }
+            })
+            ->limit(80)
+            ->get();
+
+        // Load all skill names for matched applicants
+        $allSkillIds = collect($applicants->pluck('skills')->flatten())
+            ->map(fn($id) => (int)$id)->unique()->filter()->values()->toArray();
+        $allSkillsMap = \App\Skill::whereIn('id', $allSkillIds)
+            ->pluck('name', 'id');
+
+        // Score and build results
+        $results = $applicants->map(function ($app) use ($terms, $matchedSkillIds, $allSkillsMap) {
+            $score         = 0;
+            $matchedSkills = [];
+            $allSkills     = [];
+
+            foreach ((array)$app->skills as $sid) {
+                $name = $allSkillsMap[(int)$sid] ?? null;
+                if (!$name) continue;
+                $allSkills[] = $name;
+                foreach ($terms as $term) {
+                    if (stripos($name, $term) !== false) {
+                        $score += 18;
+                        if (!in_array($name, $matchedSkills)) $matchedSkills[] = $name;
+                        break;
+                    }
+                }
+            }
+
+            foreach ($terms as $term) {
+                if (stripos($app->full_name,    $term) !== false) $score += 8;
+                if (stripos((string)$app->cover_letter, $term) !== false) $score += 6;
+                if (stripos((string)$app->address,      $term) !== false) $score += 3;
+            }
+
+            $score = min(99, max(10, $score));
+
+            return [
+                'id'             => $app->id,
+                'full_name'      => $app->full_name,
+                'job_title'      => $app->job?->title ?? '—',
+                'location'       => $app->location?->location ?? '—',
+                'status'         => ucwords(str_replace('_', ' ', $app->status?->status ?? '—')),
+                'status_color'   => $app->status?->color ?? '#6b7280',
+                'score'          => $score,
+                'matched_skills' => $matchedSkills,
+                'all_skills'     => $allSkills,
+                'created_at'     => $app->created_at?->toDateString(),
+            ];
+        })
+        ->sortByDesc('score')
+        ->values()
+        ->toArray();
+
+        return Reply::dataOnly(['results' => $results]);
+    }
 }
