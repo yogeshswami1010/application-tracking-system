@@ -465,7 +465,6 @@
 </div>
 
 {{-- Applicant sidebar (reuse existing) --}}
-@include('admin.job-applications.partials.show-sidebar')
 @endsection
 
 @push('footer-script')
