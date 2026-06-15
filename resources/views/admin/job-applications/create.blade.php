@@ -166,7 +166,7 @@
                                             <div id="bulk-notes-list" class="space-y-1 mb-2"></div>
                                             <textarea id="bulk-notes-input" rows="3"
                                                 class="bulk-input resize-none text-xs w-full"
-                                                placeholder="Type a note — auto-saved on next CV"></textarea>
+                                                placeholder="Type a note — this is auto-saved"></textarea>
                                             <div id="bulk-notes-hidden"></div>
                                         </div>
 
