@@ -613,7 +613,10 @@
         var bulkActive   = -1;
         var bulkFiling   = 'db';
         var bulkNotes    = [];
-
+        var bulkLastFiling  = 'db';   // persists filing mode across CVs
+        var bulkLastJobLocId = '';    // persists the last selected job across CVs
+        var bulkLastJobId    = '';
+        var bulkLastLocId    = '';
         /* ─────────────────────────────────────────────
            File input / drop zone
         ───────────────────────────────────────────── */
@@ -1088,10 +1091,31 @@
             bulkRenderNotes();
 
             // Job/location hidden fields
-            document.getElementById('bulk-job-id').value      = item.jobId  || '';
-            document.getElementById('bulk-location-id').value = item.locId  || '';
-            if (item.jobLocId) {
-                document.getElementById('bulk-job-select').value = item.jobLocId;
+            // Job/location hidden fields — auto-inherit last selected job for new CVs
+            var effectiveJobLocId = item.jobLocId || bulkLastJobLocId;
+            var effectiveJobId    = item.jobId    || bulkLastJobId;
+            var effectiveLocId    = item.locId    || bulkLastLocId;
+            var effectiveFiling   = item.filing   || bulkLastFiling;
+
+            document.getElementById('bulk-job-id').value      = effectiveJobId;
+            document.getElementById('bulk-location-id').value = effectiveLocId;
+
+            // Apply inherited filing mode silently (without re-persisting to avoid overwriting)
+            if (effectiveFiling !== bulkFiling) {
+                bulkSetFiling(effectiveFiling, false);
+            }
+
+            if (effectiveJobLocId) {
+                document.getElementById('bulk-job-select').value = effectiveJobLocId;
+                // Only fire the AJAX question loader if this CV didn't already have its own job stored
+                if (!item.jobLocId) {
+                    bulkGetQuestions(effectiveJobLocId);
+                    // Pre-populate the item so snapshot works correctly
+                    item.jobLocId = effectiveJobLocId;
+                    item.jobId    = effectiveJobId;
+                    item.locId    = effectiveLocId;
+                    item.filing   = effectiveFiling;
+                }
             } else {
                 document.getElementById('bulk-job-select').value = '';
                 document.getElementById('bulk-question-section').style.display = 'none';
@@ -1265,6 +1289,8 @@
         ───────────────────────────────────────────── */
         function bulkSetFiling(mode, persist) {
             bulkFiling = mode;
+            // Always remember last filing mode globally
+            bulkLastFiling = mode;
             if (persist !== false && bulkActive >= 0) bulkQueue[bulkActive].filing = mode;
             document.getElementById('bulk-tog-db').classList.toggle('bulk-tog-on', mode === 'db');
             document.getElementById('bulk-tog-job').classList.toggle('bulk-tog-on', mode === 'job');
@@ -1289,6 +1315,10 @@
                 bulkQueue[bulkActive].jobId    = jobId;
                 bulkQueue[bulkActive].locId    = locId;
             }
+            // Always remember last selected job globally
+            bulkLastJobLocId = jobLocId;
+            bulkLastJobId    = jobId;
+            bulkLastLocId    = locId;
 
             if (!jobLocId) {
                 document.getElementById('bulk-question-section').style.display = 'none';
@@ -1311,6 +1341,8 @@
                         bulkQueue[bulkActive].jobId = response.jobJobLocation.job_id;
                         bulkQueue[bulkActive].locId = response.jobJobLocation.location_id;
                     }
+                    bulkLastJobId  = response.jobJobLocation.job_id;
+                    bulkLastLocId  = response.jobJobLocation.location_id;
 
                     if (response.count > 0) {
                         document.getElementById('bulk-question-section').style.display = '';
