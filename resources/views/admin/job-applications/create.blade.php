@@ -646,16 +646,17 @@
                 });
                 if (!alreadyAdded) {
                     bulkQueue.push({
-                        file:    f,
-                        name:    f.name.replace(/\.[^.]+$/, ''),
-                        status:  'pending',   // pending | parsing | done | error
-                        parsed:  null,
-                        saved:   false,
-                        notes:   [],
-                        filing:  bulkLastFiling,
-                        jobLocId: '',
-                        jobId:   '',
-                        locId:   '',
+                        file:       f,
+                        name:       f.name.replace(/\.[^.]+$/, ''),
+                        status:     'pending',
+                        parsed:     null,
+                        saved:      false,
+                        notes:      [],
+                        filing:     bulkLastFiling,  // inherit current, not hardcoded 'db'
+                        _filingSet: false,           // not manually chosen yet
+                        jobLocId:   '',
+                        jobId:      '',
+                        locId:      '',
                     });
                 }
             });
@@ -726,12 +727,17 @@
             var item = bulkQueue[i];
             if (!item) return;
 
+            // Inherit last filing mode if this item hasn't been explicitly chosen by user
+            if (!item._filingSet) {
+                item.filing = bulkLastFiling;
+            }
+
             document.getElementById('bulk-empty-state').style.display  = 'none';
             document.getElementById('bulk-review-pane').style.display  = 'flex';
             bulkUpdateCounter();
 
             // Restore filing mode for this item
-            bulkSetFiling(item.filing || bulkLastFiling, false);
+            bulkSetFiling(item.filing, false);
 
             if (item.status === 'done' || item.saved) {
                 bulkRenderCV(item);
@@ -1289,9 +1295,11 @@
         ───────────────────────────────────────────── */
         function bulkSetFiling(mode, persist) {
             bulkFiling = mode;
-            // Always remember last filing mode globally
             bulkLastFiling = mode;
-            if (persist !== false && bulkActive >= 0) bulkQueue[bulkActive].filing = mode;
+            if (persist !== false && bulkActive >= 0) {
+                bulkQueue[bulkActive].filing    = mode;
+                bulkQueue[bulkActive]._filingSet = true;  // user explicitly chose this
+            }
             document.getElementById('bulk-tog-db').classList.toggle('bulk-tog-on', mode === 'db');
             document.getElementById('bulk-tog-job').classList.toggle('bulk-tog-on', mode === 'job');
             document.getElementById('bulk-job-selector').style.display = mode === 'job' ? '' : 'none';
