@@ -1426,6 +1426,63 @@
         </div>{{-- /right-panel --}}
 
     </div>{{-- /body --}}
+    <div id="ja-jobdesc-overlay" onclick="if(event.target===this)jaHideJobDesc()"
+         style="display:none;position:fixed;inset:0;background:rgba(15,31,61,.55);z-index:9999;align-items:center;justify-content:center;padding:24px">
+        <div style="background:#fff;border-radius:18px;width:100%;max-width:680px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(15,31,61,.22);overflow:hidden">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid #E8E6E1;flex-shrink:0">
+                <div>
+                    <div style="font-size:15px;font-weight:700;color:#1A1E2E">{{ ucwords($application->job?->title ?? 'Job Description') }}</div>
+                    @if($application->job?->company)
+                    <div style="font-size:12px;color:#8A94A6;margin-top:2px">
+                        <i class="fa fa-building-o" style="font-size:11px;margin-right:4px"></i>{{ ucwords($application->job->company->company_name ?? '') }}
+                        @if($application->location) &nbsp;·&nbsp; <i class="fa fa-map-marker" style="font-size:11px;margin-right:3px"></i>{{ ucwords($application->location->location) }} @endif
+                    </div>
+                    @endif
+                </div>
+                <button type="button" onclick="jaHideJobDesc()" style="width:32px;height:32px;border-radius:8px;border:1px solid #E8E6E1;background:#F8F7F4;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#8A94A6;font-size:14px;flex-shrink:0"><i class="fa fa-times"></i></button>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 22px;border-bottom:1px solid #F0EEE9;flex-shrink:0">
+                @if($application->job?->job_type)
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:600;background:#EFF6FF;color:#1D4ED8"><i class="fa fa-briefcase" style="font-size:10px"></i>{{ ucwords($application->job->job_type) }}</span>
+                @endif
+                @if($application->job?->start_date)
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:600;background:#F1F3F7;color:#5A6478"><i class="fa fa-calendar-o" style="font-size:10px"></i>Posted {{ $application->job->start_date->format('d M Y') }}</span>
+                @endif
+                @if($application->job?->end_date)
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:600;background:#FFF7ED;color:#C2410C"><i class="fa fa-clock-o" style="font-size:10px"></i>Closes {{ $application->job->end_date->format('d M Y') }}</span>
+                @endif
+            </div>
+            <div style="flex:1;overflow-y:auto;padding:20px 22px">
+                @if($application->job?->job_description)
+                <div style="margin-bottom:20px">
+                    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#B0B8C4;margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fa fa-align-left" style="font-size:11px"></i> Description</div>
+                    <div style="font-size:13px;color:#374151;line-height:1.75">{!! $application->job->job_description !!}</div>
+                </div>
+                @endif
+                @if($application->job?->job_requirement)
+                <div style="border-top:1px solid #F0EEE9;padding-top:18px;margin-bottom:20px">
+                    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#B0B8C4;margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fa fa-list-ul" style="font-size:11px"></i> Requirements</div>
+                    <div style="font-size:13px;color:#374151;line-height:1.75">{!! $application->job->job_requirement !!}</div>
+                </div>
+                @endif
+                @php $jobSkillNames = $application->job?->skills()->with('skill')->get()->pluck('skill.name')->filter(); @endphp
+                @if($jobSkillNames && $jobSkillNames->isNotEmpty())
+                <div style="border-top:1px solid #F0EEE9;padding-top:18px">
+                    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#B0B8C4;margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fa fa-tags" style="font-size:11px"></i> Required Skills</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:7px">
+                        @foreach($jobSkillNames as $sName)<span style="display:inline-flex;align-items:center;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;background:#F1F3F7;color:#5A6478;border:1px solid #E2DED8">{{ $sName }}</span>@endforeach
+                    </div>
+                </div>
+                @endif
+                @if(!$application->job?->job_description && !$application->job?->job_requirement)
+                <div style="text-align:center;padding:40px 20px;color:#B0B8C4"><i class="fa fa-file-text-o" style="font-size:36px;display:block;margin-bottom:12px;opacity:.35"></i><p style="font-size:13px">No job description available.</p></div>
+                @endif
+            </div>
+            <div style="padding:12px 22px;border-top:1px solid #E8E6E1;flex-shrink:0;display:flex;justify-content:flex-end">
+                <button type="button" onclick="jaHideJobDesc()" style="padding:8px 20px;border-radius:9px;border:1px solid #E2DED8;background:#fff;font-size:12.5px;font-weight:600;color:#5A6478;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif">Close</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 {{-- ── Scripts ── --}}
