@@ -27,6 +27,16 @@
     // All jobs for the assign dropdown
     $allJobs = \App\Job::orderBy('title')->with('location')->get();
 
+    // Client notes — shared across all applicants on the same job
+    $clientNotes = $application->job_id
+        ? \App\JobClientNote::with('user:id,name')
+            ->where('job_id', $application->job_id)
+            ->orderByDesc('created_at')
+            ->get()
+        : collect();
+
+    // Resolve resume URL
+
     // Resolve resume URL
     $resumeUrl = null;
 
@@ -527,6 +537,13 @@
                     @lang('modules.jobApplication.applicantNotes')
                     @if($application->notes->count() > 0)
                         <span class="ja-tab-badge">{{ $application->notes->count() }}</span>
+                    @endif
+                </div>
+                <div class="ja-tab" data-tab="client-notes">
+                    <i class="fa fa-building" style="font-size:11px"></i>
+                    Client Notes
+                    @if($clientNotes->count() > 0)
+                        <span class="ja-tab-badge">{{ $clientNotes->count() }}</span>
                     @endif
                 </div>
                 @if(count($answers) > 0)
@@ -1179,7 +1196,36 @@
                     </div>
                     @endif
                 </div>{{-- /notes --}}
+                    {{-- ── CLIENT NOTES TAB ── --}}
+                    <div id="ja-tab-client-notes" class="ja-tab-pane" style="display:none">
+                        @if(is_null($application->job_id))
+                            <div style="text-align:center;padding:30px 20px;color:#B0B8C4">
+                                <i class="fa fa-link" style="font-size:30px;display:block;margin-bottom:10px;opacity:.35"></i>
+                                <p style="font-size:12.5px">Assign a job to this applicant to view or add client notes.</p>
+                            </div>
+                        @else
+                            <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:8px">
+                                <i class="fa fa-info-circle" style="color:#059669;font-size:13px;flex-shrink:0"></i>
+                                <span style="font-size:11.5px;color:#065F46;line-height:1.5">These notes are shared across <strong>all applicants</strong> for <strong>{{ ucwords($application->job?->title ?? 'this job') }}</strong>.</span>
+                            </div>
 
+                            @if($user->cans('edit_job_applications'))
+                            <div class="ja-add-note" style="margin-bottom:10px">
+                                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:8px">
+                                    <i class="fa fa-plus-circle" style="color:#059669"></i> Add Client Note
+                                </div>
+                                <textarea id="client_note_text" rows="4" class="ja-note-textarea" style="width:100%;min-height:90px" placeholder="Add a note visible to all applicants on this job…"></textarea>
+                                <button id="add-client-note" class="ja-save-note-btn" style="background:#059669;margin-top:8px" data-job-id="{{ $application->job_id }}">
+                                    <i class="fa fa-plus"></i> Add Client Note
+                                </button>
+                            </div>
+                            @endif
+
+                            <div id="client-notes-list">
+                                @include('admin.job-applications.partials.client-notes-list', ['clientNotes' => $clientNotes])
+                            </div>
+                        @endif
+                    </div>
                 {{-- ── Q&A TAB ── --}}
                 @if(count($answers) > 0)
                 <div id="ja-tab-qa" class="ja-tab-pane" style="display:none">
@@ -1415,7 +1461,53 @@ $('body').on('click', '.delete-note', function() {
         }
     });
 });
+/* ── Client Notes ── */
+$('#add-client-note').click(function() {
+    $.easyAjax({
+        type: 'POST', url: "{{ route('admin.job-client-notes.store') }}",
+        data: { '_token':'{{ csrf_token() }}', 'job_id':$(this).data('job-id'), 'note_text':$('#client_note_text').val() },
+        success: function(response) {
+            if (response.status === 'success') {
+                $('#client-notes-list').html(response.view);
+                $('#client_note_text').val('');
+            }
+        }
+    });
+});
 
+$('body').on('click', '.edit-client-note', function() {
+    $(this).hide();
+    var noteId = $(this).data('note-id'), $noteEl = $('#cn-note-' + noteId);
+    $noteEl.find('.cn-note-text').hide();
+    var noteText = $noteEl.find('.cn-note-text').text().trim();
+    $noteEl.find('.cn-note-textarea').html('<textarea id="cn-edit-text-' + noteId + '" class="ja-note-textarea" rows="3">' + noteText + '</textarea><button class="update-client-note ja-save-note-btn" data-note-id="' + noteId + '" style="margin-top:6px;background:#059669"><i class="fa fa-check"></i> Save</button>');
+});
+
+$('body').on('click', '.update-client-note', function() {
+    var noteId = $(this).data('note-id');
+    $.easyAjax({
+        type: 'POST', url: "{{ route('admin.job-client-notes.update', ':id') }}".replace(':id', noteId),
+        data: { '_token':'{{ csrf_token() }}', 'note':$('#cn-edit-text-' + noteId).val() },
+        success: function(response) { if (response.status === 'success') $('#client-notes-list').html(response.view); }
+    });
+});
+
+$('body').on('click', '.delete-client-note', function() {
+    var noteId = $(this).data('note-id');
+    swal({
+        title: "@lang('errors.areYouSure')", text: "@lang('errors.deleteWarning')", type: "warning",
+        showCancelButton: true, confirmButtonColor: "#DD6B55", confirmButtonText: "@lang('app.delete')",
+        cancelButtonText: "@lang('app.cancel')", closeOnConfirm: true, closeOnCancel: true
+    }, function(isConfirm) {
+        if (isConfirm) {
+            $.easyAjax({
+                type: 'POST', url: "{{ route('admin.job-client-notes.destroy', ':id') }}".replace(':id', noteId),
+                data: { '_token':'{{ csrf_token() }}' },
+                success: function(response) { if (response.status === 'success') $('#client-notes-list').html(response.view); }
+            });
+        }
+    });
+});
 function deleteApplication(applicationId) {
     swal({
         title: "@lang('errors.areYouSure')", text: "@lang('errors.deleteWarning')", type: "warning",
