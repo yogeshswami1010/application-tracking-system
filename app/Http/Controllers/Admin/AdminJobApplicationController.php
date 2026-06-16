@@ -365,6 +365,16 @@ class AdminJobApplicationController extends AdminBaseController
 
         $jobApplications = $jobApplications->where('job_applications.is_candidate', 0);
 
+        // Only show the newest application per email — older ones with the same
+        // email are merged into it and only visible via the History tab.
+        $jobApplications = $jobApplications->whereIn('job_applications.id', function ($sub) {
+            $sub->selectRaw('MAX(ja2.id)')
+                ->from('job_applications as ja2')
+                ->where('ja2.is_candidate', 0)
+                ->whereColumn('ja2.email', 'job_applications.email')
+                ->groupBy('ja2.email');
+        });
+
         // Knockout filter
         // Knockout filter — show applicants who answered a knockout question with knockout answer
         if ($request->knockout == 1) {
@@ -548,6 +558,13 @@ class AdminJobApplicationController extends AdminBaseController
             )
             ->where('job_applications.is_candidate', 0);
 
+        $countQuery->whereIn('job_applications.id', function ($sub) {
+            $sub->selectRaw('MAX(ja2.id)')->from('job_applications as ja2')
+                ->where('ja2.is_candidate', 0)
+                ->whereColumn('ja2.email', 'job_applications.email')
+                ->groupBy('ja2.email');
+        });
+
         if ($company !== 'all' && $company !== '') {
             $countQuery->join('jobs as j_co', 'j_co.id', '=', 'job_applications.job_id')
                     ->where('j_co.company_id', $company);
@@ -576,6 +593,12 @@ class AdminJobApplicationController extends AdminBaseController
 
         // ── KO count ──────────────────────────────────────────────────
         $koQuery = JobApplication::where('job_applications.is_candidate', 0)
+            ->whereIn('job_applications.id', function ($sub) {
+                $sub->selectRaw('MAX(ja2.id)')->from('job_applications as ja2')
+                    ->where('ja2.is_candidate', 0)
+                    ->whereColumn('ja2.email', 'job_applications.email')
+                    ->groupBy('ja2.email');
+            })
             ->whereHas('answers', function ($q) {
                 $q->whereHas('question', function ($qq) {
                     $qq->where('type', 'radio')
