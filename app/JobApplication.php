@@ -84,4 +84,8 @@ class JobApplication extends Model
     {
         return $this->belongsTo(JobLocation::class, 'location_id');
     }
+    public function statusHistories()
+    {
+        return $this->hasMany(JobApplicationStatusHistory::class)->orderByDesc('created_at');
+    }
 }

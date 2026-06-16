@@ -253,7 +253,34 @@
                 {{-- ── HISTORY TAB ── --}}
                 @if($previousApps->isNotEmpty())
                 <div id="ja-tab-history" class="ja-tab-pane" style="display:none">
-                    @foreach($previousApps as $prev)
+
+                @if($application->statusHistories->isNotEmpty())
+                <div class="ja-card" style="margin-bottom:10px">
+                    <div class="ja-card-title"><i class="fa fa-exchange" style="font-size:11px"></i> Stage Activity</div>
+                    @foreach($application->statusHistories as $hist)
+                    <div style="display:flex;align-items:flex-start;gap:9px;padding:9px 0;border-bottom:1px solid #F0EEE9">
+                        <div style="width:26px;height:26px;border-radius:50%;background:#EFF6FF;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">
+                            <i class="fa {{ is_null($hist->user_id) ? 'fa-cogs' : 'fa-user' }}" style="font-size:10px;color:#2563EB"></i>
+                        </div>
+                        <div style="flex:1;min-width:0">
+                            <div style="font-size:12.5px;color:#1A1E2E;line-height:1.5">
+                                <strong>{{ $hist->user ? ucwords($hist->user->name) : 'Auto (screening rule)' }}</strong>
+                                moved this applicant
+                                @if($hist->fromStatus)
+                                    from <strong>{{ ucwords(str_replace('_',' ',$hist->fromStatus->status)) }}</strong>
+                                @endif
+                                to <strong>{{ ucwords(str_replace('_',' ',$hist->toStatus->status)) }}</strong>
+                            </div>
+                            <div style="font-size:11px;color:#B0B8C4;margin-top:2px">
+                                {{ $hist->created_at->timezone('America/Toronto')->format('d M Y, h:i A') }} (Canada time)
+                            </div>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+                @endif
+
+                @foreach($previousApps as $prev)
                     <div class="ja-card" style="margin-bottom:10px">
                         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #F0EEE9">
                             <div style="flex:1;min-width:0">

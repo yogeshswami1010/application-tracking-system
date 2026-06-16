@@ -626,20 +626,31 @@ class AdminJobApplicationController extends AdminBaseController
         return Reply::dataOnly(['counts' => $counts, 'ko_count' => $koCount]);
     }
 
-    public function bulkStatusUpdate(Request $request)
+        public function bulkStatusUpdate(Request $request)
     {
         abort_if(!$this->user->cans('edit_job_applications'), 403);
+
+        $apps = JobApplication::whereIn('id', $request->ids)->get(['id', 'status_id']);
+        foreach ($apps as $app) {
+            $this->logStatusChange($app->id, $app->status_id, (int) $request->status_id, $this->user->id);
+        }
+
         JobApplication::whereIn('id', $request->ids)->update(['status_id' => $request->status_id]);
         return Reply::success(__('messages.updatedSuccessfully'));
     }
 
-   public function bulkRestoreKnockout(Request $request)
+    public function bulkRestoreKnockout(Request $request)
     {
         abort_if(!$this->user->cans('edit_job_applications'), 403);
 
         $appliedStatus = ApplicationStatus::where('status', 'applied')->first();
 
         if ($appliedStatus) {
+            $apps = JobApplication::whereIn('id', $request->ids)->get(['id', 'status_id']);
+            foreach ($apps as $app) {
+                $this->logStatusChange($app->id, $app->status_id, $appliedStatus->id, $this->user->id);
+            }
+
             JobApplication::whereIn('id', $request->ids)->update([
                 'status_id' => $appliedStatus->id
             ]);
@@ -860,10 +871,11 @@ class AdminJobApplicationController extends AdminBaseController
         if ($knockoutTriggered) {
             $rejectedStatus = ApplicationStatus::where('status', 'rejected')->first();
             if ($rejectedStatus) {
+                $oldStatusId = $jobApplication->status_id;
                 $jobApplication->status_id = $rejectedStatus->id;
                 $jobApplication->save();
+                $this->logStatusChange($jobApplication->id, $oldStatusId, $rejectedStatus->id, null);
             }
-            // DO NOT soft-delete — knockout is tracked by the answer, not deletion
         }
         // ── Process skills from bulk create form ──
         if ($request->filled('skills')) {
@@ -1065,7 +1077,7 @@ class AdminJobApplicationController extends AdminBaseController
     public function show($id)
     {
         $this->application = JobApplication::withTrashed()
-        ->with([ 
+        ->with([
             'schedule',
             'schedule.employee',
             'schedule.comments.user',
@@ -1076,6 +1088,9 @@ class AdminJobApplicationController extends AdminBaseController
             'job',
             'job.company',
             'job.location',
+            'statusHistories.fromStatus',
+            'statusHistories.toStatus',
+            'statusHistories.user',
         ])
         ->find($id);
 
@@ -1111,10 +1126,12 @@ class AdminJobApplicationController extends AdminBaseController
                 if (! is_null($taskId)) {
 
                     $task = JobApplication::find($taskId);
+                    $oldStatusId = $task->status_id;
                     $task->column_priority = $priorities[$key];
                     $task->status_id = $boardColumnIds[$key];
-
                     $task->save();
+
+                    $this->logStatusChange($task->id, $oldStatusId, (int) $boardColumnIds[$key], $this->user->id);
                 }
             }
 
@@ -1449,9 +1466,12 @@ class AdminJobApplicationController extends AdminBaseController
         ]);
 
         $jobApplication = JobApplication::withTrashed()->findOrFail((int) $validated['application_id']);
+        $oldStatusId = $jobApplication->status_id;
         $isStatusDirty = $jobApplication->isDirty('status_id');
         $jobApplication->status_id = (int) $validated['status_id'];
         $jobApplication->save();
+
+        $this->logStatusChange($jobApplication->id, $oldStatusId, (int) $validated['status_id'], $this->user->id);
 
         $mailSetting = ApplicationSetting::select('id', 'mail_setting')->first()?->mail_setting ?? [];
         $statusId = (int) $validated['status_id'];
@@ -2439,5 +2459,18 @@ class AdminJobApplicationController extends AdminBaseController
         ->toArray();
 
         return Reply::dataOnly(['results' => $results]);
+    }
+    private function logStatusChange(int $jobApplicationId, ?int $fromStatusId, int $toStatusId, ?int $userId = null): void
+    {
+        if ($fromStatusId === $toStatusId) {
+            return; // no-op move, don't log
+        }
+
+        \App\JobApplicationStatusHistory::create([
+            'job_application_id' => $jobApplicationId,
+            'from_status_id'     => $fromStatusId,
+            'to_status_id'       => $toStatusId,
+            'user_id'            => $userId,
+        ]);
     }
 }
