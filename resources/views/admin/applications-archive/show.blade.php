@@ -217,8 +217,14 @@
 .ja-pdf-content-scroll {
     flex: 1; overflow-y: auto; background: #F8F7F4; padding: 16px;
 }
-.ja-pdf-content-pane { display: none; }
-.ja-pdf-content-pane.active { display: block; }
+.ja-pdf-content-pane {
+    display: none;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    flex-direction: column;
+}
+.ja-pdf-content-pane.active { display: flex; }
 
 /* ── RIGHT: Tab panel ── */
 .ja-right-panel {
@@ -572,8 +578,8 @@
             </div>
 
             {{-- ── RESUME PANE ── --}}
-            <div class="ja-pdf-content-pane active" id="ja-pdftab-resume" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
-                @if($resumeUrl)
+            <div class="ja-pdf-content-pane active" id="ja-pdftab-resume">
+                    @if($resumeUrl)
                     <embed
                         src="{{ $resumeUrl }}"
                         type="application/pdf"
