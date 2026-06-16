@@ -198,9 +198,9 @@
                     
                     <div class="ja-tab" data-tab="history">
                         <i class="fa fa-history" style="font-size:11px"></i> History
-                        
+                        <span class="ja-tab-badge">{{ $previousApps->count() }}</span>
                     </div>
-                
+                    @endif
                       @if(!is_null($application->schedule))
                         <div class="ja-tab" data-tab="schedule">
                             <i class="fa fa-calendar" style="font-size:11px"></i> @lang('modules.interviewSchedule.scheduleDetail')
@@ -251,7 +251,7 @@
             <div class="ja-right-scroll">
 
                 {{-- ── HISTORY TAB ── --}}
-                
+                @if($previousApps->isNotEmpty())
                 <div id="ja-tab-history" class="ja-tab-pane" style="display:none">
 
                 @if($application->statusHistories->isNotEmpty())
@@ -278,7 +278,7 @@
                     </div>
                     @endforeach
                 </div>
-               
+                @endif
 
                 @foreach($previousApps as $prev)
                     <div class="ja-card" style="margin-bottom:10px">
