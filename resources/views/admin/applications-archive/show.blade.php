@@ -166,7 +166,7 @@
     border-right: 1px solid #E8E6E1; overflow: hidden; background: #525659;
 }
 .ja-pdf-toolbar {
-    display: flex; align-items: center; justify-content: space-between;
+    display: flex; align-items: center; justify-content: end;
     padding: 9px 14px; background: #fff; border-bottom: 1px solid #E8E6E1;
     flex-shrink: 0; flex-wrap: wrap; gap: 8px;
 }
