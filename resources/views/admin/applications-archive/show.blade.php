@@ -543,11 +543,10 @@
                         <i class="fa fa-question-circle-o" style="font-size:11px"></i> @lang('modules.front.additionalDetails')
                     </div>
                     @endif
-                    @if($previousApps->isNotEmpty())
-                    <div class="ja-tab" data-tab="history">
-                        <i class="fa fa-history" style="font-size:11px"></i> History
-                        <span class="ja-tab-badge">{{ $previousApps->count() }}</span>
-                    </div>
+                    @if($previousApps->isNotEmpty() || $application->statusHistories->isNotEmpty())
+                        <div class="ja-tab" data-tab="history">
+                            <i class="fa fa-history"></i> History
+                        </div>
                     @endif
                       @if(!is_null($application->schedule))
                         <div class="ja-tab" data-tab="schedule">
@@ -601,7 +600,7 @@
             </div>
 
             <div class="ja-right-scroll">
-                @if($previousApps->isNotEmpty())
+                @if($previousApps->isNotEmpty() || $application->statusHistories->isNotEmpty())
                 <div id="ja-tab-history" class="ja-tab-pane" style="display:none">
 
                 @if($application->statusHistories->isNotEmpty())
