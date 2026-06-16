@@ -198,7 +198,7 @@
                     
                     <div class="ja-tab" data-tab="history">
                         <i class="fa fa-history" style="font-size:11px"></i> History
-                        <span class="ja-tab-badge">{{ $previousApps->count() }}</span>
+                        
                     </div>
                 
                       @if(!is_null($application->schedule))
