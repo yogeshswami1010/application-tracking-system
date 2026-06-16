@@ -1632,7 +1632,9 @@ $('body').on('click', '.delete-client-note', function() {
         }
     });
 });
-
+function jaShowJobDesc() { var o = document.getElementById('ja-jobdesc-overlay'); o.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+function jaHideJobDesc() { var o = document.getElementById('ja-jobdesc-overlay'); o.style.display = 'none'; document.body.style.overflow = ''; }
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') jaHideJobDesc(); });
 function deleteApplication(applicationId) {
     swal({
         title: "@lang('errors.areYouSure')", text: "@lang('errors.deleteWarning')", type: "warning",
