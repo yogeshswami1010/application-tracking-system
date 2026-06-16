@@ -44,6 +44,14 @@
 @endphp
 
 <style>
+    .ja-pdf-toolbar-tabs { display:flex;align-items:center;gap:4px;flex-shrink:0; }
+.ja-pdf-toolbar-tabs .ja-tab {
+    padding:7px 11px;font-size:12px;font-weight:600;color:#8A94A6;cursor:pointer;
+    border-bottom:2.5px solid transparent;white-space:nowrap;display:flex;align-items:center;gap:5px;
+    transition:color .15s;
+}
+.ja-pdf-toolbar-tabs .ja-tab.active { color:#2563EB;border-bottom-color:#2563EB; }
+.ja-pdf-toolbar-tabs .ja-tab:hover:not(.active) { color:#1A1E2E; }
 .ja-two-col-wrap {
     display: flex; flex-direction: column;
     height: 100vh; background: #F8F7F4;
@@ -183,6 +191,27 @@
                     <i class="fa fa-file-pdf-o"></i>
                     <span>@lang('modules.jobApplication.resume')</span>
                 </div>
+
+                <div class="ja-pdf-toolbar-tabs">
+                    <div class="ja-tab" data-tab="client-notes">
+                        <i class="fa fa-building" style="font-size:11px"></i> Client Notes
+                        @if($clientNotes->count() > 0)
+                            <span class="ja-tab-badge">{{ $clientNotes->count() }}</span>
+                        @endif
+                    </div>
+                    @if(count($answers) > 0)
+                    <div class="ja-tab" data-tab="qa">
+                        <i class="fa fa-question-circle-o" style="font-size:11px"></i> @lang('modules.front.additionalDetails')
+                    </div>
+                    @endif
+                    @if($previousApps->isNotEmpty())
+                    <div class="ja-tab" data-tab="history">
+                        <i class="fa fa-history" style="font-size:11px"></i> History
+                        <span class="ja-tab-badge">{{ $previousApps->count() }}</span>
+                    </div>
+                    @endif
+                </div>
+
                 <div class="ja-pdf-toolbar-actions">
                     <button type="button" class="ja-pdf-btn" onclick="jaShowJobDesc()">
                         <i class="fa fa-file-text-o"></i> Job Description
