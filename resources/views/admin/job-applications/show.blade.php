@@ -187,7 +187,9 @@
         {{-- ── LEFT: PDF ── --}}
         <div class="ja-pdf-panel">
             <div class="ja-pdf-toolbar">
-                <div class="ja-pdf-toolbar-tabs">
+                
+
+                <div class="ja-pdf-toolbar-actions">
                     @if(count($answers) > 0)
                     <div class="ja-tab" data-tab="qa">
                         <i class="fa fa-question-circle-o" style="font-size:11px"></i> @lang('modules.front.additionalDetails')
@@ -199,9 +201,11 @@
                         <span class="ja-tab-badge">{{ $previousApps->count() }}</span>
                     </div>
                     @endif
-                </div>
-
-                <div class="ja-pdf-toolbar-actions">
+                      @if(!is_null($application->schedule))
+                        <div class="ja-tab" data-tab="schedule">
+                            <i class="fa fa-calendar" style="font-size:11px"></i> @lang('modules.interviewSchedule.scheduleDetail')
+                        </div>
+                    @endif
                     <button type="button" class="ja-pdf-btn" onclick="jaShowJobDesc()">
                         <i class="fa fa-file-text-o"></i> Job Description
                     </button>
@@ -240,11 +244,7 @@
                     @endif
                 </div>
                 
-                @if(!is_null($application->schedule))
-                <div class="ja-tab" data-tab="schedule">
-                    <i class="fa fa-calendar" style="font-size:11px"></i> @lang('modules.interviewSchedule.scheduleDetail')
-                </div>
-                @endif
+              
                
             </div>
 
