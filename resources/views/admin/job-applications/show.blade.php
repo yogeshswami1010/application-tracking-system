@@ -80,7 +80,7 @@
 .ja-nav-counter { font-size:11px;font-weight:600;color:rgba(255,255,255,.5);min-width:36px;text-align:center;white-space:nowrap; }
 .ja-body { flex:1;display:grid;grid-template-columns:1fr 380px;overflow:hidden;min-height:0; }
 .ja-pdf-panel { display:flex;flex-direction:column;border-right:1px solid #E8E6E1;overflow:hidden;background:#525659; }
-.ja-pdf-toolbar { display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:#fff;border-bottom:1px solid #E8E6E1;flex-shrink:0; }
+.ja-pdf-toolbar { display:flex;align-items:center;justify-content:end;padding:9px 14px;background:#fff;border-bottom:1px solid #E8E6E1;flex-shrink:0; }
 .ja-pdf-toolbar-label { display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:#5A6478; }
 .ja-pdf-toolbar-actions { display:flex;align-items:center;gap:6px; }
 .ja-pdf-btn { display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:8px;border:1px solid #E2DED8;background:#fff;cursor:pointer;font-size:12px;color:#5A6478;font-family:'Plus Jakarta Sans',sans-serif;transition:background .15s,color .15s; }
