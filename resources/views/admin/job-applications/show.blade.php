@@ -187,18 +187,7 @@
         {{-- ── LEFT: PDF ── --}}
         <div class="ja-pdf-panel">
             <div class="ja-pdf-toolbar">
-                <div class="ja-pdf-toolbar-label">
-                    <i class="fa fa-file-pdf-o"></i>
-                    <span>@lang('modules.jobApplication.resume')</span>
-                </div>
-
                 <div class="ja-pdf-toolbar-tabs">
-                    <div class="ja-tab" data-tab="client-notes">
-                        <i class="fa fa-building" style="font-size:11px"></i> Client Notes
-                        @if($clientNotes->count() > 0)
-                            <span class="ja-tab-badge">{{ $clientNotes->count() }}</span>
-                        @endif
-                    </div>
                     @if(count($answers) > 0)
                     <div class="ja-tab" data-tab="qa">
                         <i class="fa fa-question-circle-o" style="font-size:11px"></i> @lang('modules.front.additionalDetails')
@@ -250,22 +239,13 @@
                         <span class="ja-tab-badge">{{ $clientNotes->count() }}</span>
                     @endif
                 </div>
-                @if(count($answers) > 0)
-                <div class="ja-tab" data-tab="qa">
-                    <i class="fa fa-question-circle-o" style="font-size:11px"></i> @lang('modules.front.additionalDetails')
-                </div>
-                @endif
+                
                 @if(!is_null($application->schedule))
                 <div class="ja-tab" data-tab="schedule">
                     <i class="fa fa-calendar" style="font-size:11px"></i> @lang('modules.interviewSchedule.scheduleDetail')
                 </div>
                 @endif
-                @if($previousApps->isNotEmpty())
-                <div class="ja-tab" data-tab="history">
-                    <i class="fa fa-history" style="font-size:11px"></i> History
-                    <span class="ja-tab-badge">{{ $previousApps->count() }}</span>
-                </div>
-                @endif
+               
             </div>
 
             <div class="ja-right-scroll">
