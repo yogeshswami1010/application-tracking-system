@@ -195,7 +195,7 @@
                         <i class="fa fa-question-circle-o" style="font-size:11px"></i> @lang('modules.front.additionalDetails')
                     </div>
                     @endif
-                    
+                    @if($previousApps->isNotEmpty())
                     <div class="ja-tab" data-tab="history">
                         <i class="fa fa-history" style="font-size:11px"></i> History
                         <span class="ja-tab-badge">{{ $previousApps->count() }}</span>
