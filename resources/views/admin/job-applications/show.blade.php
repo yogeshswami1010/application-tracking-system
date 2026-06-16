@@ -272,7 +272,7 @@
                                 to <strong>{{ ucwords(str_replace('_',' ',$hist->toStatus->status)) }}</strong>
                             </div>
                             <div style="font-size:11px;color:#B0B8C4;margin-top:2px">
-                                {{ $hist->created_at->timezone('America/Toronto')->format('d M Y, h:i A') }} (Canada time)
+                                {{ $hist->created_at->timezone('America/Toronto')->format('d M Y, h:i A') }}
                             </div>
                         </div>
                     </div>
