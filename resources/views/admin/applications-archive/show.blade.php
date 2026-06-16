@@ -1355,7 +1355,73 @@
                         </div>
                     @endif
                 </div>
+{{-- ── Q&A TAB ── --}}
+                @if(count($answers) > 0)
+                <div id="ja-tab-qa" class="ja-tab-pane" style="display:none">
+                    @forelse($answers as $answer)
+                    <div class="ja-qa-item">
+                        <div class="ja-qa-q">{{ $answer->question->question }}</div>
+                        @if($answer->question->type == 'text')
+                            <span style="font-size:12.5px;color:#5A6478">{{ ucfirst($answer->answer) }}</span>
+                        @elseif($answer->question->type == 'radio')
+                            <span class="ja-qa-badge {{ strtolower($answer->answer) == 'yes' ? 'ja-qa-yes' : 'ja-qa-no' }}">
+                                <i class="fa fa-circle" style="font-size:8px;margin-right:4px"></i>{{ ucfirst($answer->answer) }}
+                            </span>
+                        @else
+                            @if(!is_null($answer->file))
+                            <a target="_blank" href="{{ $answer->file_url }}" class="ja-btn ja-btn-blue" style="display:inline-flex;flex:none;min-width:auto;margin-top:4px">
+                                <i class="fa fa-file-o"></i> @lang('app.view') @lang('app.file')
+                            </a>
+                            @endif
+                        @endif
+                    </div>
+                    @empty
+                    @endforelse
+                </div>
+                @endif
 
+                {{-- ── SCHEDULE TAB ── --}}
+                @if(!is_null($application->schedule))
+                <div id="ja-tab-schedule" class="ja-tab-pane" style="display:none">
+                    <div class="ja-card">
+                        <div class="ja-card-title"><i class="fa fa-calendar-check-o" style="font-size:11px"></i> @lang('modules.interviewSchedule.scheduleDetail')</div>
+                        <div class="ja-schedule-card" style="margin-bottom:14px">
+                            <div class="ja-schedule-date"><i class="fa fa-clock-o" style="font-size:13px"></i> {{ $application->schedule->schedule_date->format('d M, Y \a\t H:i') }}</div>
+                            @if($zoom_setting->enable_zoom == 1)
+                            <div class="ja-schedule-type">
+                                <i class="fa {{ $application->schedule->interview_type == 'online' ? 'fa-video-camera' : 'fa-building' }}" style="margin-right:5px"></i>
+                                {{ $application->schedule->interview_type == 'online' ? 'Online' : 'Offline' }}
+                            </div>
+                            @endif
+                        </div>
+                        @if(count($application->schedule->employee) > 0)
+                        <div class="ja-card-title" style="margin-bottom:10px"><i class="fa fa-users" style="font-size:11px"></i> @lang('modules.interviewSchedule.assignedEmployee')</div>
+                        @foreach($application->schedule->employee as $emp)
+                        <div class="ja-interviewer-row" style="margin-bottom:6px">
+                            <div style="display:flex;align-items:center;gap:9px">
+                                <div class="ja-interviewer-avatar">{{ strtoupper(substr($emp->user->name, 0, 2)) }}</div>
+                                <span style="font-size:12.5px;font-weight:600;color:#1A1E2E">{{ ucwords($emp->user->name) }}</span>
+                            </div>
+                            <span class="ja-small-badge {{ $emp->user_accept_status == 'accept' ? 'ja-badge-accept' : ($emp->user_accept_status == 'refuse' ? 'ja-badge-refuse' : 'ja-badge-pending') }}">
+                                {{ ucwords($emp->user_accept_status) }}
+                            </span>
+                        </div>
+                        @endforeach
+                        @endif
+                    </div>
+                    @if(isset($application->schedule->comments) && count($application->schedule->comments) > 0)
+                    <div class="ja-card">
+                        <div class="ja-card-title"><i class="fa fa-comments" style="font-size:11px"></i> @lang('modules.interviewSchedule.comments')</div>
+                        @foreach($application->schedule->comments as $comment)
+                        <div class="ja-note" style="border-left-color:#059669;margin-bottom:8px">
+                            <div class="ja-note-meta"><span class="ja-note-author">{{ $comment->user->name }}</span></div>
+                            <p class="ja-note-body">{{ $comment->comment }}</p>
+                        </div>
+                        @endforeach
+                    </div>
+                    @endif
+                </div>
+                @endif
             </div>{{-- /right-scroll --}}
         </div>{{-- /right-panel --}}
 
