@@ -300,15 +300,7 @@
                             <p style="font-size:12px;color:#5A6478;line-height:1.6;margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">{{ $prev->cover_letter }}</p>
                         </div>
                         @endif
-                        @php $prevSkillIds = is_array($prev->skills) ? $prev->skills : []; $prevSkillNames = \App\Skill::whereIn('id', $prevSkillIds)->pluck('name'); @endphp
-                        @if($prevSkillNames->isNotEmpty())
-                        <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #F0EEE9">
-                            <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:6px"><i class="fa fa-star" style="font-size:10px"></i> Skills</div>
-                            <div style="display:flex;flex-wrap:wrap;gap:5px">
-                                @foreach($prevSkillNames as $sn)<span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:500;background:#F1F3F7;color:#5A6478;border:1px solid #E2DED8">{{ $sn }}</span>@endforeach
-                            </div>
-                        </div>
-                        @endif
+                       
                         @php $prevAnswers = \App\JobApplicationAnswer::where('job_application_id', $prev->id)->with('question')->whereNotNull('answer')->get()->filter(fn($a) => !empty(trim($a->answer))); @endphp
                         @if($prevAnswers->isNotEmpty())
                         <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #F0EEE9">
@@ -340,7 +332,7 @@
                             @endforeach
                         </div>
                         @endif
-                        @if(!$prev->cover_letter && $prevSkillNames->isEmpty() && $prevAnswers->isEmpty() && $prevNotes->isEmpty())
+                        @if(!$prev->cover_letter && $prevAnswers->isEmpty() && $prevNotes->isEmpty())
                         <div style="font-size:12px;color:#B0B8C4;text-align:center;padding:8px 0"><i class="fa fa-info-circle" style="margin-right:5px"></i> No additional details recorded.</div>
                         @endif
                     </div>
