@@ -27,22 +27,6 @@
     // All jobs for the assign dropdown
     $allJobs = \App\Job::orderBy('title')->with('location')->get();
 
-    // ── Client notes — shared across all applicants on the same job ──
-    $clientNotes = $application->job_id
-        ? \App\JobClientNote::with('user:id,name')
-            ->where('job_id', $application->job_id)
-            ->orderByDesc('created_at')
-            ->get()
-        : collect();
-
-    // ── Previous applications (same email) — for the History tab ──
-    $previousApps = \App\JobApplication::where('email', $application->email)
-        ->where('is_candidate', 0)
-        ->where('id', '!=', $application->id)
-        ->with(['job:id,title', 'status:id,status,color'])
-        ->orderByDesc('created_at')
-        ->get();
-
     // Resolve resume URL
     $resumeUrl = null;
 
@@ -70,9 +54,7 @@
   ============================================================
   TWO-COLUMN APPLICANT DETAIL PANEL
   Left:  PDF resume viewer (pdf.js iframe or embed)
-         Toolbar above CV: Job Description / Client Notes /
-         Additional Details / History / Interview tabs + View/Download
-  Right: Tabbed detail panel (Details / Notes)
+  Right: Tabbed detail panel (Details / Notes / Q&A / Schedule)
   Width: Controlled by the parent drawer (set to 75vw in JS)
   ============================================================
 --}}
@@ -169,27 +151,13 @@
 .ja-pdf-toolbar {
     display: flex; align-items: center; justify-content: space-between;
     padding: 9px 14px; background: #fff; border-bottom: 1px solid #E8E6E1;
-    flex-shrink: 0; flex-wrap: wrap; gap: 8px;
+    flex-shrink: 0;
 }
 .ja-pdf-toolbar-label {
     display: flex; align-items: center; gap: 7px;
-    font-size: 12px; font-weight: 600; color: #5A6478; flex-shrink: 0;
+    font-size: 12px; font-weight: 600; color: #5A6478;
 }
-
-/* ── Toolbar tabs (Job Description / Client Notes / Additional Details / History / Interview) ── */
-.ja-pdf-toolbar-tabs {
-    display: flex; align-items: center; gap: 4px; flex-shrink: 0;
-    overflow-x: auto;
-}
-.ja-pdf-toolbar-tabs .ja-tab {
-    padding: 7px 11px; font-size: 12px; font-weight: 600; color: #8A94A6;
-    cursor: pointer; border-bottom: 2.5px solid transparent; white-space: nowrap;
-    display: flex; align-items: center; gap: 5px; transition: color .15s;
-}
-.ja-pdf-toolbar-tabs .ja-tab.active { color: #2563EB; border-bottom-color: #2563EB; }
-.ja-pdf-toolbar-tabs .ja-tab:hover:not(.active) { color: #1A1E2E; }
-
-.ja-pdf-toolbar-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.ja-pdf-toolbar-actions { display: flex; align-items: center; gap: 6px; }
 .ja-pdf-btn {
     display: inline-flex; align-items: center; gap: 5px;
     padding: 5px 11px; border-radius: 8px;
@@ -213,13 +181,6 @@
     flex: 1; border: none; width: 100%; height: 100%;
     display: block;
 }
-
-/* ── PDF panel content panes (rendered above/instead of the CV embed) ── */
-.ja-pdf-content-scroll {
-    flex: 1; overflow-y: auto; background: #F8F7F4; padding: 16px;
-}
-.ja-pdf-content-pane { display: none; }
-.ja-pdf-content-pane.active { display: block; }
 
 /* ── RIGHT: Tab panel ── */
 .ja-right-panel {
@@ -451,17 +412,6 @@
     font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px;
 }
 
-/* ── History tab cards ── */
-.ja-history-app-card { margin-bottom: 10px; }
-.ja-history-app-card .ja-history-head {
-    display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
-    margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #F0EEE9;
-}
-.ja-history-section-label {
-    font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
-    color:#B0B8C4;margin-bottom:6px;
-}
-
 /* ── Nav loading shimmer ── */
 .ja-nav-loading {
     opacity: .5;
@@ -526,45 +476,13 @@
     {{-- ── BODY: two columns ── --}}
     <div class="ja-body">
 
-        {{-- ──────── LEFT: RESUME VIEWER + TOOLBAR TABS ──────── --}}
+        {{-- ──────── LEFT: RESUME VIEWER ──────── --}}
         <div class="ja-pdf-panel">
 
             <div class="ja-pdf-toolbar">
                 <div class="ja-pdf-toolbar-label">
                     <i class="fa fa-file-pdf-o"></i>
                     <span>@lang('modules.jobApplication.resume')</span>
-                </div>
-
-                {{-- ── Toolbar tabs: Job Description / Client Notes / Additional Details / History / Interview ── --}}
-                <div class="ja-pdf-toolbar-tabs">
-                    <div class="ja-pdftab active" data-pdftab="resume">
-                        <i class="fa fa-file-pdf-o" style="font-size:11px"></i> @lang('modules.jobApplication.resume')
-                    </div>
-                    <div class="ja-pdftab" data-pdftab="jobdesc">
-                        <i class="fa fa-file-text-o" style="font-size:11px"></i> Job Description
-                    </div>
-                    <div class="ja-pdftab" data-pdftab="client-notes">
-                        <i class="fa fa-building" style="font-size:11px"></i> Client Notes
-                        @if($clientNotes->count() > 0)
-                            <span class="ja-tab-badge">{{ $clientNotes->count() }}</span>
-                        @endif
-                    </div>
-                    @if(count($answers) > 0)
-                    <div class="ja-pdftab" data-pdftab="qa">
-                        <i class="fa fa-question-circle-o" style="font-size:11px"></i> @lang('modules.front.additionalDetails')
-                    </div>
-                    @endif
-                    @if($previousApps->isNotEmpty())
-                    <div class="ja-pdftab" data-pdftab="history">
-                        <i class="fa fa-history" style="font-size:11px"></i> History
-                        <span class="ja-tab-badge">{{ $previousApps->count() }}</span>
-                    </div>
-                    @endif
-                    @if(!is_null($application->schedule))
-                    <div class="ja-pdftab" data-pdftab="interview">
-                        <i class="fa fa-calendar" style="font-size:11px"></i> Interview
-                    </div>
-                    @endif
                 </div>
 
                 @if($resumeUrl)
@@ -581,265 +499,16 @@
                 @endif
             </div>
 
-            {{-- ── RESUME PANE ── --}}
-            <div class="ja-pdf-content-pane active" id="ja-pdftab-resume" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
-                @if($resumeUrl)
-                    <embed
-                        src="{{ $resumeUrl }}"
-                        type="application/pdf"
-                        class="ja-pdf-frame">
-                @else
-                    <div class="ja-pdf-no-resume">
-                        <i class="fa fa-file-pdf-o"></i>
-                        <p>No resume uploaded.</p>
-                    </div>
-                @endif
-            </div>
-
-            {{-- ── JOB DESCRIPTION PANE ── --}}
-            <div class="ja-pdf-content-pane" id="ja-pdftab-jobdesc">
-                <div class="ja-pdf-content-scroll">
-                    @if($application->job)
-                        <div class="ja-card">
-                            <div class="ja-card-title"><i class="fa fa-briefcase" style="font-size:11px"></i> {{ ucwords($application->job->title) }}</div>
-                            @if($application->job->company)
-                            <div style="font-size:12px;color:#8A94A6;margin-bottom:10px">
-                                <i class="fa fa-building-o" style="font-size:11px;margin-right:4px"></i>{{ ucwords($application->job->company->company_name ?? '') }}
-                                @if($application->location) &nbsp;·&nbsp; <i class="fa fa-map-marker" style="font-size:11px;margin-right:3px"></i>{{ ucwords($application->location->location) }} @endif
-                            </div>
-                            @endif
-
-                            @if($application->job->job_description)
-                            <div style="margin-bottom:18px">
-                                <div class="ja-history-section-label"><i class="fa fa-align-left" style="font-size:10px"></i> Description</div>
-                                <div style="font-size:13px;color:#374151;line-height:1.75">{!! $application->job->job_description !!}</div>
-                            </div>
-                            @endif
-
-                            @if($application->job->job_requirement)
-                            <div style="border-top:1px solid #F0EEE9;padding-top:16px;margin-bottom:18px">
-                                <div class="ja-history-section-label"><i class="fa fa-list-ul" style="font-size:10px"></i> Requirements</div>
-                                <div style="font-size:13px;color:#374151;line-height:1.75">{!! $application->job->job_requirement !!}</div>
-                            </div>
-                            @endif
-
-                            @php $jdSkillNames = $application->job?->skills()->with('skill')->get()->pluck('skill.name')->filter(); @endphp
-                            @if($jdSkillNames && $jdSkillNames->isNotEmpty())
-                            <div style="border-top:1px solid #F0EEE9;padding-top:16px">
-                                <div class="ja-history-section-label"><i class="fa fa-tags" style="font-size:10px"></i> Required Skills</div>
-                                <div style="display:flex;flex-wrap:wrap;gap:7px">
-                                    @foreach($jdSkillNames as $sName)<span class="ja-skill-tag">{{ $sName }}</span>@endforeach
-                                </div>
-                            </div>
-                            @endif
-
-                            @if(!$application->job->job_description && !$application->job->job_requirement)
-                            <div style="text-align:center;padding:30px 10px;color:#B0B8C4">
-                                <i class="fa fa-file-text-o" style="font-size:32px;display:block;margin-bottom:10px;opacity:.35"></i>
-                                <p style="font-size:12.5px">No job description available.</p>
-                            </div>
-                            @endif
-                        </div>
-                    @else
-                        <div style="text-align:center;padding:30px 10px;color:#B0B8C4">
-                            <i class="fa fa-link" style="font-size:32px;display:block;margin-bottom:10px;opacity:.35"></i>
-                            <p style="font-size:12.5px">No job assigned to this applicant yet.</p>
-                        </div>
-                    @endif
+            @if($resumeUrl)
+                <embed
+                    src="{{ $resumeUrl }}"
+                    type="application/pdf"
+                    class="ja-pdf-frame">
+            @else
+                <div class="ja-pdf-no-resume">
+                    <i class="fa fa-file-pdf-o"></i>
+                    <p>No resume uploaded.</p>
                 </div>
-            </div>
-
-            {{-- ── CLIENT NOTES PANE ── --}}
-            <div class="ja-pdf-content-pane" id="ja-pdftab-client-notes">
-                <div class="ja-pdf-content-scroll">
-                    @if(is_null($application->job_id))
-                        <div style="text-align:center;padding:30px 10px;color:#B0B8C4">
-                            <i class="fa fa-link" style="font-size:32px;display:block;margin-bottom:10px;opacity:.35"></i>
-                            <p style="font-size:12.5px">Assign a job to this applicant to view or add client notes.</p>
-                        </div>
-                    @else
-                        <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:8px">
-                            <i class="fa fa-info-circle" style="color:#059669;font-size:13px;flex-shrink:0"></i>
-                            <span style="font-size:11.5px;color:#065F46;line-height:1.5">These notes are shared across <strong>all applicants</strong> for <strong>{{ ucwords($application->job?->title ?? 'this job') }}</strong>.</span>
-                        </div>
-
-                        @if($user->cans('edit_job_applications'))
-                        <div class="ja-add-note" style="margin-bottom:10px">
-                            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:8px">
-                                <i class="fa fa-plus-circle" style="color:#059669"></i> Add Client Note
-                            </div>
-                            <textarea id="client_note_text" rows="4" class="ja-note-textarea" style="width:100%;min-height:90px" placeholder="Add a note visible to all applicants on this job…"></textarea>
-                            <button id="add-client-note" class="ja-save-note-btn" style="background:#059669;margin-top:8px" data-job-id="{{ $application->job_id }}">
-                                <i class="fa fa-plus"></i> Add Client Note
-                            </button>
-                        </div>
-                        @endif
-
-                        <div id="client-notes-list">
-                            @include('admin.job-applications.partials.client-notes-list', ['clientNotes' => $clientNotes])
-                        </div>
-                    @endif
-                </div>
-            </div>
-
-            {{-- ── ADDITIONAL DETAILS (Q&A) PANE ── --}}
-            @if(count($answers) > 0)
-            <div class="ja-pdf-content-pane" id="ja-pdftab-qa">
-                <div class="ja-pdf-content-scroll">
-                    @forelse($answers as $answer)
-                    <div class="ja-qa-item">
-                        <div class="ja-qa-q">{{ $answer->question->question }}</div>
-                        @if($answer->question->type == 'text')
-                            <span style="font-size:12.5px;color:#5A6478">{{ ucfirst($answer->answer) }}</span>
-                        @elseif($answer->question->type == 'radio')
-                            <span class="ja-qa-badge {{ strtolower($answer->answer) == 'yes' ? 'ja-qa-yes' : (strtolower($answer->answer) == 'no' ? 'ja-qa-no' : 'ja-qa-yes') }}">
-                                <i class="fa fa-circle" style="font-size:8px;margin-right:4px"></i>
-                                {{ ucfirst($answer->answer) }}
-                            </span>
-                        @else
-                            @if(!is_null($answer->file))
-                            <a target="_blank" href="{{ $answer->file_url }}"
-                               class="ja-btn ja-btn-blue" style="display:inline-flex;flex:none;min-width:auto;margin-top:4px">
-                                <i class="fa fa-file-o"></i> @lang('app.view') @lang('app.file')
-                            </a>
-                            @endif
-                        @endif
-                    </div>
-                    @empty
-                    @endforelse
-                </div>
-            </div>
-            @endif
-
-            {{-- ── HISTORY PANE ── --}}
-            @if($previousApps->isNotEmpty())
-            <div class="ja-pdf-content-pane" id="ja-pdftab-history">
-                <div class="ja-pdf-content-scroll">
-                    @foreach($previousApps as $prev)
-                    <div class="ja-card ja-history-app-card">
-                        <div class="ja-history-head">
-                            <div style="flex:1;min-width:0">
-                                <div style="font-size:13.5px;font-weight:700;color:#1A1E2E;margin-bottom:3px">{{ ucwords($prev->job?->title ?? '—') }}</div>
-                                <div style="font-size:11px;color:#8A94A6;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                                    <span><i class="fa fa-calendar-o" style="font-size:10px;margin-right:3px"></i>{{ $prev->created_at?->format('d M Y') }}</span>
-                                    @if($prev->location)<span><i class="fa fa-map-marker" style="font-size:10px;margin-right:3px"></i>{{ ucwords($prev->location->location) }}</span>@endif
-                                </div>
-                            </div>
-                            <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;color:#fff;flex-shrink:0;background:{{ $prev->status?->color ?? '#6B7280' }}">
-                                {{ ucwords(str_replace('_', ' ', $prev->status?->status ?? '—')) }}
-                            </span>
-                        </div>
-
-                        @if($prev->cover_letter)
-                        <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #F0EEE9">
-                            <div class="ja-history-section-label"><i class="fa fa-file-text-o" style="font-size:10px"></i> Cover Letter</div>
-                            <p style="font-size:12px;color:#5A6478;line-height:1.6;margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">{{ $prev->cover_letter }}</p>
-                        </div>
-                        @endif
-
-                        @php $prevAnswers = \App\JobApplicationAnswer::where('job_application_id', $prev->id)->with('question')->whereNotNull('answer')->get()->filter(fn($a) => !empty(trim($a->answer))); @endphp
-                        @if($prevAnswers->isNotEmpty())
-                        <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #F0EEE9">
-                            <div class="ja-history-section-label"><i class="fa fa-question-circle-o" style="font-size:10px"></i> Screening Answers</div>
-                            @foreach($prevAnswers as $ans)
-                            <div style="margin-bottom:6px">
-                                <div style="font-size:11.5px;font-weight:600;color:#1A1E2E;margin-bottom:2px">{{ $ans->question?->question ?? '—' }}</div>
-                                <div style="font-size:12px;color:#5A6478">
-                                    @if(strtolower(trim($ans->answer)) === 'yes')<span class="ja-qa-badge ja-qa-yes"><i class="fa fa-check" style="font-size:9px;margin-right:4px"></i> Yes</span>
-                                    @elseif(strtolower(trim($ans->answer)) === 'no')<span class="ja-qa-badge ja-qa-no"><i class="fa fa-times" style="font-size:9px;margin-right:4px"></i> No</span>
-                                    @else{{ ucfirst($ans->answer) }}@endif
-                                </div>
-                            </div>
-                            @endforeach
-                        </div>
-                        @endif
-
-                        @php $prevNotes = \App\ApplicantNote::where('job_application_id', $prev->id)->with('user:id,name')->orderByDesc('created_at')->get(); @endphp
-                        @if($prevNotes->isNotEmpty())
-                        <div>
-                            <div class="ja-history-section-label">
-                                <i class="fa fa-sticky-note-o" style="font-size:10px"></i> Notes
-                                <span class="ja-tab-badge" style="margin-left:4px">{{ $prevNotes->count() }}</span>
-                            </div>
-                            @foreach($prevNotes as $pNote)
-                            <div class="ja-note" style="margin-bottom:6px;padding:8px 11px;background:#F8F7F4">
-                                <div class="ja-note-meta">
-                                    <span class="ja-note-author"><i class="fa fa-user-circle" style="font-size:12px;color:#2563EB"></i>{{ ucwords($pNote->user?->name ?? '—') }}</span>
-                                    <span class="ja-note-time">{{ $pNote->created_at?->format('d M Y') }}</span>
-                                </div>
-                                <p class="ja-note-body" style="margin:0">{{ ucfirst($pNote->note_text) }}</p>
-                            </div>
-                            @endforeach
-                        </div>
-                        @endif
-
-                        @if(!$prev->cover_letter && $prevAnswers->isEmpty() && $prevNotes->isEmpty())
-                        <div style="font-size:12px;color:#B0B8C4;text-align:center;padding:8px 0"><i class="fa fa-info-circle" style="margin-right:5px"></i> No additional details recorded.</div>
-                        @endif
-                    </div>
-                    @endforeach
-                </div>
-            </div>
-            @endif
-
-            {{-- ── INTERVIEW PANE ── --}}
-            @if(!is_null($application->schedule))
-            <div class="ja-pdf-content-pane" id="ja-pdftab-interview">
-                <div class="ja-pdf-content-scroll">
-                    <div class="ja-card">
-                        <div class="ja-card-title">
-                            <i class="fa fa-calendar-check-o" style="font-size:11px"></i> @lang('modules.interviewSchedule.scheduleDetail')
-                        </div>
-                        <div class="ja-schedule-card" style="margin-bottom:14px">
-                            <div class="ja-schedule-date">
-                                <i class="fa fa-clock-o" style="font-size:13px"></i>
-                                {{ $application->schedule->schedule_date->format('d M, Y \a\t H:i') }}
-                            </div>
-                            @if($zoom_setting->enable_zoom == 1)
-                            <div class="ja-schedule-type">
-                                <i class="fa {{ $application->schedule->interview_type == 'online' ? 'fa-video-camera' : 'fa-building' }}" style="margin-right:5px"></i>
-                                {{ $application->schedule->interview_type == 'online' ? 'Online' : 'Offline' }}
-                            </div>
-                            @endif
-                        </div>
-
-                        @if(count($application->schedule->employee) > 0)
-                        <div class="ja-card-title" style="margin-bottom:10px">
-                            <i class="fa fa-users" style="font-size:11px"></i> @lang('modules.interviewSchedule.assignedEmployee')
-                        </div>
-                        @foreach($application->schedule->employee as $emp)
-                        <div class="ja-interviewer-row" style="margin-bottom:6px">
-                            <div style="display:flex;align-items:center;gap:9px">
-                                <div class="ja-interviewer-avatar">
-                                    {{ strtoupper(substr($emp->user->name, 0, 2)) }}
-                                </div>
-                                <span style="font-size:12.5px;font-weight:600;color:#1A1E2E">{{ ucwords($emp->user->name) }}</span>
-                            </div>
-                            <span class="ja-small-badge
-                                {{ $emp->user_accept_status == 'accept' ? 'ja-badge-accept' :
-                                  ($emp->user_accept_status == 'refuse' ? 'ja-badge-refuse' : 'ja-badge-pending') }}">
-                                {{ ucwords($emp->user_accept_status) }}
-                            </span>
-                        </div>
-                        @endforeach
-                        @endif
-                    </div>
-
-                    @if(isset($application->schedule->comments) && count($application->schedule->comments) > 0)
-                    <div class="ja-card">
-                        <div class="ja-card-title"><i class="fa fa-comments" style="font-size:11px"></i> @lang('modules.interviewSchedule.comments')</div>
-                        @foreach($application->schedule->comments as $comment)
-                        <div class="ja-note" style="border-left-color:#059669;margin-bottom:8px">
-                            <div class="ja-note-meta">
-                                <span class="ja-note-author">{{ $comment->user->name }}</span>
-                            </div>
-                            <p class="ja-note-body">{{ $comment->comment }}</p>
-                        </div>
-                        @endforeach
-                    </div>
-                    @endif
-                </div>
-            </div>
             @endif
 
         </div>
@@ -860,6 +529,18 @@
                         <span class="ja-tab-badge">{{ $application->notes->count() }}</span>
                     @endif
                 </div>
+                @if(count($answers) > 0)
+                <div class="ja-tab" data-tab="qa">
+                    <i class="fa fa-question-circle-o" style="font-size:11px"></i>
+                    @lang('modules.front.additionalDetails')
+                </div>
+                @endif
+                @if(!is_null($application->schedule))
+                <div class="ja-tab" data-tab="schedule">
+                    <i class="fa fa-calendar" style="font-size:11px"></i>
+                    @lang('modules.interviewSchedule.scheduleDetail')
+                </div>
+                @endif
             </div>
 
             <div class="ja-right-scroll">
@@ -1470,9 +1151,14 @@
 
                 {{-- ── NOTES TAB ── --}}
                 <div id="ja-tab-notes" class="ja-tab-pane" style="display:none">
+                    <div id="applicant-notes">
+                        @include('admin.job-applications.partials.applicant-notes-list', [
+                            'notes' => $application->notes()->with('user:id,name')->orderByDesc('created_at')->get()
+                        ])
+                    </div>
 
                     @if($user->cans('edit_job_applications'))
-                    <div class="ja-add-note" style="margin-bottom:10px">
+                    <div class="ja-add-note" style="margin-top:4px">
                         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:8px">
                             @lang('modules.jobApplication.addNote')
                         </div>
@@ -1492,13 +1178,92 @@
                         </button>
                     </div>
                     @endif
-
-                    <div id="applicant-notes">
-                        @include('admin.job-applications.partials.applicant-notes-list', [
-                            'notes' => $application->notes()->with('user:id,name')->orderByDesc('created_at')->get()
-                        ])
-                    </div>
                 </div>{{-- /notes --}}
+
+                {{-- ── Q&A TAB ── --}}
+                @if(count($answers) > 0)
+                <div id="ja-tab-qa" class="ja-tab-pane" style="display:none">
+                    @forelse($answers as $answer)
+                    <div class="ja-qa-item">
+                        <div class="ja-qa-q">{{ $answer->question->question }}</div>
+                        @if($answer->question->type == 'text')
+                            <span style="font-size:12.5px;color:#5A6478">{{ ucfirst($answer->answer) }}</span>
+                        @elseif($answer->question->type == 'radio')
+                            <span class="ja-qa-badge {{ strtolower($answer->answer) == 'yes' ? 'ja-qa-yes' : (strtolower($answer->answer) == 'no' ? 'ja-qa-no' : 'ja-qa-yes') }}">
+                                <i class="fa fa-circle" style="font-size:8px;margin-right:4px"></i>
+                                {{ ucfirst($answer->answer) }}
+                            </span>
+                        @else
+                            @if(!is_null($answer->file))
+                            <a target="_blank" href="{{ $answer->file_url }}"
+                               class="ja-btn ja-btn-blue" style="display:inline-flex;flex:none;min-width:auto;margin-top:4px">
+                                <i class="fa fa-file-o"></i> @lang('app.view') @lang('app.file')
+                            </a>
+                            @endif
+                        @endif
+                    </div>
+                    @empty
+                    @endforelse
+                </div>
+                @endif
+
+                {{-- ── SCHEDULE TAB ── --}}
+                @if(!is_null($application->schedule))
+                <div id="ja-tab-schedule" class="ja-tab-pane" style="display:none">
+                    <div class="ja-card">
+                        <div class="ja-card-title">
+                            <i class="fa fa-calendar-check-o" style="font-size:11px"></i> @lang('modules.interviewSchedule.scheduleDetail')
+                        </div>
+                        <div class="ja-schedule-card" style="margin-bottom:14px">
+                            <div class="ja-schedule-date">
+                                <i class="fa fa-clock-o" style="font-size:13px"></i>
+                                {{ $application->schedule->schedule_date->format('d M, Y \a\t H:i') }}
+                            </div>
+                            @if($zoom_setting->enable_zoom == 1)
+                            <div class="ja-schedule-type">
+                                <i class="fa {{ $application->schedule->interview_type == 'online' ? 'fa-video-camera' : 'fa-building' }}" style="margin-right:5px"></i>
+                                {{ $application->schedule->interview_type == 'online' ? 'Online' : 'Offline' }}
+                            </div>
+                            @endif
+                        </div>
+
+                        @if(count($application->schedule->employee) > 0)
+                        <div class="ja-card-title" style="margin-bottom:10px">
+                            <i class="fa fa-users" style="font-size:11px"></i> @lang('modules.interviewSchedule.assignedEmployee')
+                        </div>
+                        @foreach($application->schedule->employee as $emp)
+                        <div class="ja-interviewer-row" style="margin-bottom:6px">
+                            <div style="display:flex;align-items:center;gap:9px">
+                                <div class="ja-interviewer-avatar">
+                                    {{ strtoupper(substr($emp->user->name, 0, 2)) }}
+                                </div>
+                                <span style="font-size:12.5px;font-weight:600;color:#1A1E2E">{{ ucwords($emp->user->name) }}</span>
+                            </div>
+                            <span class="ja-small-badge
+                                {{ $emp->user_accept_status == 'accept' ? 'ja-badge-accept' :
+                                  ($emp->user_accept_status == 'refuse' ? 'ja-badge-refuse' : 'ja-badge-pending') }}">
+                                {{ ucwords($emp->user_accept_status) }}
+                            </span>
+                        </div>
+                        @endforeach
+                        @endif
+                    </div>
+
+                    @if(isset($application->schedule->comments) && count($application->schedule->comments) > 0)
+                    <div class="ja-card">
+                        <div class="ja-card-title"><i class="fa fa-comments" style="font-size:11px"></i> @lang('modules.interviewSchedule.comments')</div>
+                        @foreach($application->schedule->comments as $comment)
+                        <div class="ja-note" style="border-left-color:#059669;margin-bottom:8px">
+                            <div class="ja-note-meta">
+                                <span class="ja-note-author">{{ $comment->user->name }}</span>
+                            </div>
+                            <p class="ja-note-body">{{ $comment->comment }}</p>
+                        </div>
+                        @endforeach
+                    </div>
+                    @endif
+                </div>
+                @endif
 
             </div>{{-- /right-scroll --}}
         </div>{{-- /right-panel --}}
@@ -1512,7 +1277,7 @@
 @endif
 
 <script>
-/* ── Right-panel tab switching (Details / Notes) ── */
+/* ── Tab switching ── */
 document.querySelectorAll('.ja-tab').forEach(function(tab) {
     tab.addEventListener('click', function() {
         var target = this.dataset.tab;
@@ -1521,18 +1286,6 @@ document.querySelectorAll('.ja-tab').forEach(function(tab) {
         this.classList.add('active');
         var pane = document.getElementById('ja-tab-' + target);
         if (pane) pane.style.display = 'block';
-    });
-});
-
-/* ── PDF-toolbar tab switching (Resume / Job Description / Client Notes / Additional Details / History / Interview) ── */
-document.querySelectorAll('.ja-pdftab').forEach(function(tab) {
-    tab.addEventListener('click', function() {
-        var target = this.dataset.pdftab;
-        document.querySelectorAll('.ja-pdftab').forEach(function(t) { t.classList.remove('active'); });
-        document.querySelectorAll('.ja-pdf-content-pane').forEach(function(p) { p.classList.remove('active'); });
-        this.classList.add('active');
-        var pane = document.getElementById('ja-pdftab-' + target);
-        if (pane) pane.classList.add('active');
     });
 });
 
@@ -1607,7 +1360,7 @@ function addSkills(applicationId, callback) {
     });
 }
 
-/* ── Applicant Notes ── */
+/* ── Notes ── */
 $('#add-note').click(function() {
     $.easyAjax({
         type: 'POST', url: "{{ route('admin.applicant-note.store') }}",
@@ -1658,54 +1411,6 @@ $('body').on('click', '.delete-note', function() {
                 success: function(response) {
                     if (response.status == 'success') $('#applicant-notes').html(response.view);
                 }
-            });
-        }
-    });
-});
-
-/* ── Client Notes ── */
-$('#add-client-note').click(function() {
-    $.easyAjax({
-        type: 'POST', url: "{{ route('admin.job-client-notes.store') }}",
-        data: { '_token':'{{ csrf_token() }}', 'job_id':$(this).data('job-id'), 'note_text':$('#client_note_text').val() },
-        success: function(response) {
-            if (response.status === 'success') {
-                $('#client-notes-list').html(response.view);
-                $('#client_note_text').val('');
-            }
-        }
-    });
-});
-
-$('body').on('click', '.edit-client-note', function() {
-    $(this).hide();
-    var noteId = $(this).data('note-id'), $noteEl = $('#cn-note-' + noteId);
-    $noteEl.find('.cn-note-text').hide();
-    var noteText = $noteEl.find('.cn-note-text').text().trim();
-    $noteEl.find('.cn-note-textarea').html('<textarea id="cn-edit-text-' + noteId + '" class="ja-note-textarea" rows="3">' + noteText + '</textarea><button class="update-client-note ja-save-note-btn" data-note-id="' + noteId + '" style="margin-top:6px;background:#059669"><i class="fa fa-check"></i> Save</button>');
-});
-
-$('body').on('click', '.update-client-note', function() {
-    var noteId = $(this).data('note-id');
-    $.easyAjax({
-        type: 'POST', url: "{{ route('admin.job-client-notes.update', ':id') }}".replace(':id', noteId),
-        data: { '_token':'{{ csrf_token() }}', 'note':$('#cn-edit-text-' + noteId).val() },
-        success: function(response) { if (response.status === 'success') $('#client-notes-list').html(response.view); }
-    });
-});
-
-$('body').on('click', '.delete-client-note', function() {
-    var noteId = $(this).data('note-id');
-    swal({
-        title: "@lang('errors.areYouSure')", text: "@lang('errors.deleteWarning')", type: "warning",
-        showCancelButton: true, confirmButtonColor: "#DD6B55", confirmButtonText: "@lang('app.delete')",
-        cancelButtonText: "@lang('app.cancel')", closeOnConfirm: true, closeOnCancel: true
-    }, function(isConfirm) {
-        if (isConfirm) {
-            $.easyAjax({
-                type: 'POST', url: "{{ route('admin.job-client-notes.destroy', ':id') }}".replace(':id', noteId),
-                data: { '_token':'{{ csrf_token() }}' },
-                success: function(response) { if (response.status === 'success') $('#client-notes-list').html(response.view); }
             });
         }
     });
