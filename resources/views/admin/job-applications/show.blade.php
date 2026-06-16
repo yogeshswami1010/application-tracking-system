@@ -92,7 +92,7 @@
 .ja-pdf-no-resume p { font-size:13px;opacity:.6; }
 .ja-pdf-frame { flex:1;border:none;width:100%;height:100%;display:block; }
 .ja-right-panel { display:flex;flex-direction:column;overflow:hidden;background:#F8F7F4; }
-.ja-tabs { display:flex;background:#fff;border-bottom:1px solid #E8E6E1;flex-shrink:0;padding:0 16px;overflow-x:auto; }
+.ja-tabs { display:flex;background:#fff;border-bottom:1px solid #E8E6E1;flex-shrink:0;padding:0 16px;}
 .ja-tab { padding:11px 13px;font-size:12.5px;font-weight:600;color:#8A94A6;cursor:pointer;border-bottom:2.5px solid transparent;white-space:nowrap;display:flex;align-items:center;gap:5px;transition:color .15s;flex-shrink:0; }
 .ja-tab.active { color:#2563EB;border-bottom-color:#2563EB; }
 .ja-tab:hover:not(.active) { color:#1A1E2E; }
