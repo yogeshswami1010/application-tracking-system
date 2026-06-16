@@ -594,7 +594,66 @@
 
             
 
+            
+            {{-- ── INTERVIEW PANE ── --}}
+            @if(!is_null($application->schedule))
+            <div class="ja-pdf-content-pane" id="ja-pdftab-interview">
+                <div class="ja-pdf-content-scroll">
+                    <div class="ja-card">
+                        <div class="ja-card-title">
+                            <i class="fa fa-calendar-check-o" style="font-size:11px"></i> @lang('modules.interviewSchedule.scheduleDetail')
+                        </div>
+                        <div class="ja-schedule-card" style="margin-bottom:14px">
+                            <div class="ja-schedule-date">
+                                <i class="fa fa-clock-o" style="font-size:13px"></i>
+                                {{ $application->schedule->schedule_date->format('d M, Y \a\t H:i') }}
+                            </div>
+                            @if($zoom_setting->enable_zoom == 1)
+                            <div class="ja-schedule-type">
+                                <i class="fa {{ $application->schedule->interview_type == 'online' ? 'fa-video-camera' : 'fa-building' }}" style="margin-right:5px"></i>
+                                {{ $application->schedule->interview_type == 'online' ? 'Online' : 'Offline' }}
+                            </div>
+                            @endif
+                        </div>
 
+                        @if(count($application->schedule->employee) > 0)
+                        <div class="ja-card-title" style="margin-bottom:10px">
+                            <i class="fa fa-users" style="font-size:11px"></i> @lang('modules.interviewSchedule.assignedEmployee')
+                        </div>
+                        @foreach($application->schedule->employee as $emp)
+                        <div class="ja-interviewer-row" style="margin-bottom:6px">
+                            <div style="display:flex;align-items:center;gap:9px">
+                                <div class="ja-interviewer-avatar">
+                                    {{ strtoupper(substr($emp->user->name, 0, 2)) }}
+                                </div>
+                                <span style="font-size:12.5px;font-weight:600;color:#1A1E2E">{{ ucwords($emp->user->name) }}</span>
+                            </div>
+                            <span class="ja-small-badge
+                                {{ $emp->user_accept_status == 'accept' ? 'ja-badge-accept' :
+                                  ($emp->user_accept_status == 'refuse' ? 'ja-badge-refuse' : 'ja-badge-pending') }}">
+                                {{ ucwords($emp->user_accept_status) }}
+                            </span>
+                        </div>
+                        @endforeach
+                        @endif
+                    </div>
+
+                    @if(isset($application->schedule->comments) && count($application->schedule->comments) > 0)
+                    <div class="ja-card">
+                        <div class="ja-card-title"><i class="fa fa-comments" style="font-size:11px"></i> @lang('modules.interviewSchedule.comments')</div>
+                        @foreach($application->schedule->comments as $comment)
+                        <div class="ja-note" style="border-left-color:#059669;margin-bottom:8px">
+                            <div class="ja-note-meta">
+                                <span class="ja-note-author">{{ $comment->user->name }}</span>
+                            </div>
+                            <p class="ja-note-body">{{ $comment->comment }}</p>
+                        </div>
+                        @endforeach
+                    </div>
+                    @endif
+                </div>
+            </div>
+            @endif
 
         </div>
 
