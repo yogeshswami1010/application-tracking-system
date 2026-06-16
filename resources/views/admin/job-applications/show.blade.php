@@ -663,18 +663,13 @@
 
                 {{-- ── NOTES TAB ── --}}
                 <div id="ja-tab-notes" class="ja-tab-pane" style="display:none">
-                    <div id="applicant-notes">
-                        @include('admin.job-applications.partials.applicant-notes-list', [
-                            'notes' => $application->notes()->with('user:id,name')->orderByDesc('created_at')->get()
-                        ])
-                    </div>
                     @if($user->cans('edit_job_applications'))
-                    <div class="ja-add-note" style="margin-top:4px">
+                    <div class="ja-add-note" style="margin-bottom:10px">
                         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:8px">@lang('modules.jobApplication.addNote')</div>
                         <div style="position:relative">
                             <textarea id="note_text" rows="3" class="ja-note-textarea"
-                                      placeholder="Type a note… use @ to mention a team member"
-                                      oninput="jaNoteHandleInput(this)"></textarea>
+                                    placeholder="Type a note… use @ to mention a team member"
+                                    oninput="jaNoteHandleInput(this)"></textarea>
                             <div id="ja-mention-drop" style="display:none;position:absolute;bottom:calc(100% + 4px);left:0;background:#fff;border:1.5px solid #E2DED8;border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.13);z-index:9999;min-width:200px;max-height:180px;overflow-y:auto;"></div>
                         </div>
                         <button id="add-note" class="ja-save-note-btn">
@@ -682,6 +677,11 @@
                         </button>
                     </div>
                     @endif
+                    <div id="applicant-notes">
+                        @include('admin.job-applications.partials.applicant-notes-list', [
+                            'notes' => $application->notes()->with('user:id,name')->orderByDesc('created_at')->get()
+                        ])
+                    </div>
                 </div>
 
                 {{-- ── CLIENT NOTES TAB ── --}}
@@ -690,10 +690,7 @@
                         <i class="fa fa-info-circle" style="color:#059669;font-size:13px;flex-shrink:0"></i>
                         <span style="font-size:11.5px;color:#065F46;line-height:1.5">These notes are shared across <strong>all applicants</strong> for <strong>{{ ucwords($application->job?->title ?? 'this job') }}</strong>.</span>
                     </div>
-                    <div id="client-notes-list">
-                        @include('admin.job-applications.partials.client-notes-list', ['clientNotes' => $clientNotes])
-                    </div>
-                    <div class="ja-add-note" style="margin-top:10px">
+                    <div class="ja-add-note" style="margin-bottom:10px">
                         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:8px">
                             <i class="fa fa-plus-circle" style="color:#059669"></i> Add Client Note
                         </div>
@@ -701,6 +698,9 @@
                         <button id="add-client-note" class="ja-save-note-btn" style="background:#059669;margin-top:8px" data-job-id="{{ $application->job_id }}">
                             <i class="fa fa-plus"></i> Add Client Note
                         </button>
+                    </div>
+                    <div id="client-notes-list">
+                        @include('admin.job-applications.partials.client-notes-list', ['clientNotes' => $clientNotes])
                     </div>
                 </div>
 
