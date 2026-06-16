@@ -721,20 +721,17 @@
                     {{-- Quick actions --}}
                     <div class="ja-card">
                         <div class="ja-action-btns">
-                            @if($user->cans('add_schedule') && $application->status->status == 'interview' && is_null($application->schedule))
+                            @if($user->cans('add_schedule') && $application->status?->status == 'interview' && is_null($application->schedule))
                             <a onclick="createSchedule('{{ $application->id }}')" href="javascript:;" class="ja-btn ja-btn-blue">
-                                <i class="fa fa-calendar-plus-o"></i> @lang('modules.interviewSchedule.scheduleInterview')
+                                <i class="fa fa-calendar-plus-o"></i>
+                                @lang('modules.interviewSchedule.scheduleInterview')
                             </a>
                             @endif
-                            @if($application->status->status == 'hired' && is_null($application->onboard))
+                                @if($application->status?->status == 'hired' && is_null($application->onboard))
                             <a href="{{ route('admin.job-onboard.create') }}?id={{ $application->id }}" class="ja-btn ja-btn-green">
-                                <i class="fa fa-rocket"></i> @lang('app.startOnboard')
+                                <i class="fa fa-rocket"></i>
+                                @lang('app.startOnboard')
                             </a>
-                            @endif
-                            @if($user->role_id === 1)
-                            <button type="button" onclick="deleteApplication({{ $application->id }})" class="ja-btn ja-btn-red">
-                                <i class="fa fa-trash-o"></i> @lang('app.delete')
-                            </button>
                             @endif
                         </div>
 
@@ -753,9 +750,11 @@
                                 <select class="ja-stage-select" id="stage-mover-select-{{ $application->id }}"
                                     onchange="jaMoveFromDetail({{ $application->id }}, this.value, this.options[this.selectedIndex].text, {{ $currentStatusId }})">
                                     <option value="">Select stage…</option>
-                                    @foreach($allStatuses as $stageOption)
-                                        @if($stageOption->id !== $currentStatusId)
-                                        <option value="{{ $stageOption->id }}">{{ ucwords(str_replace('_', ' ', $stageOption->status)) }}</option>
+                                   @foreach($allStatuses as $stageOption)
+                                        @if($stageOption->id != $currentStatusId)
+                                            <option value="{{ $stageOption->id }}">
+                                                {{ ucwords(str_replace('_', ' ', $stageOption->status)) }}
+                                            </option>
                                         @endif
                                     @endforeach
                                 </select>
@@ -764,120 +763,226 @@
                         @endif
                     </div>
 
-                    {{-- ── PERSONAL INFO CARD ── --}}
+                    {{-- Personal info --}}
                     <div class="ja-card" id="ja-info-card-{{ $application->id }}">
-                        <div class="ja-card-title" style="justify-content:space-between;">
-                            <span><i class="fa fa-user" style="font-size:11px"></i> @lang('Personal Information')</span>
-                            @if($user->cans('edit_job_applications'))
-                            <button type="button" onclick="jaToggleInfoEdit({{ $application->id }})"
-                                    id="ja-info-edit-btn-{{ $application->id }}"
-                                    style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:7px;
-                                           border:1px solid #E2DED8;background:#F8F7F4;cursor:pointer;font-size:11px;
-                                           color:#5A6478;font-family:inherit;transition:all .15s;"
-                                    onmouseover="this.style.background='#EFF6FF';this.style.color='#2563EB';this.style.borderColor='#2563EB'"
-                                    onmouseout="this.style.background='#F8F7F4';this.style.color='#5A6478';this.style.borderColor='#E2DED8'">
-                                <i class="fa fa-pencil" style="font-size:10px"></i> Edit
-                            </button>
-                            @endif
-                        </div>
-
-                        {{-- VIEW MODE --}}
-                        <div id="ja-info-view-{{ $application->id }}">
-                            <div class="ja-info-row">
-                                <span class="ja-info-label"><i class="fa fa-id-card-o" style="font-size:11px"></i> @lang('app.name')</span>
-                                <span class="ja-info-val" id="ja-display-name-{{ $application->id }}">{{ ucwords($application->full_name) }}</span>
-                            </div>
-                            <div class="ja-info-row">
-                                <span class="ja-info-label"><i class="fa fa-envelope-o" style="font-size:11px"></i> @lang('app.email')</span>
-                                <span class="ja-info-val" id="ja-display-email-{{ $application->id }}">
-                                    <a href="mailto:{{ $application->email }}">{{ $application->email }}</a>
-                                </span>
-                            </div>
-                            <div class="ja-info-row">
-                                <span class="ja-info-label"><i class="fa fa-phone" style="font-size:11px"></i> @lang('app.phone')</span>
-                                <span class="ja-info-val" id="ja-display-phone-{{ $application->id }}">
-                                    <a href="tel:{{ $application->phone }}">{{ $application->phone }}</a>
-                                </span>
-                            </div>
-                            @if (!is_null($application->gender))
-                            <div class="ja-info-row">
-                                <span class="ja-info-label"><i class="fa fa-venus-mars" style="font-size:11px"></i> @lang('app.gender')</span>
-                                <span class="ja-info-val">{{ ucfirst($application->gender) }}</span>
-                            </div>
-                            @endif
-                            @if (!is_null($application->dob))
-                            <div class="ja-info-row">
-                                <span class="ja-info-label"><i class="fa fa-birthday-cake" style="font-size:11px"></i> @lang('app.dob')</span>
-                                <span class="ja-info-val">{{ $application->dob->format('jS F, Y') }}</span>
-                            </div>
-                            @endif
-                            {{-- Applied For — read only, shows company + location --}}
-                            <div class="ja-info-row">
-                                <span class="ja-info-label"><i class="fa fa-briefcase" style="font-size:11px"></i> @lang('modules.jobApplication.appliedFor')</span>
-                                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
-                                    <span class="ja-info-val">{{ ucwords($application->job?->title ?? 'N/A') }}</span>
-                                    @if($application->job?->company)
-                                    <span style="font-size:11.5px;font-weight:600;color:#3D4A5C;">
-                                        {{ ucwords($application->job->company->company_name) }}
-                                    </span>
-                                    @endif
-                                    @if($application->location)
-                                    <span style="font-size:11px;color:#B0B8C4;display:inline-flex;align-items:center;gap:3px;">
-                                        <svg style="width:11px;height:11px;flex-shrink:0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                        </svg>
-                                        {{ ucwords($application->location->location) }}
-                                    </span>
-                                    @endif
-                                </div>
-                            </div>
-                            @if (!is_null($application->city))
-                            <div class="ja-info-row">
-                                <span class="ja-info-label"><i class="fa fa-map-marker" style="font-size:11px"></i> @lang('app.city')</span>
-                                <span class="ja-info-val">{{ $application->city }}{{ $application->state ? ', '.$application->state : '' }}{{ $application->country ? ', '.$application->country : '' }}</span>
-                            </div>
-                            @endif
-                            @if (!is_null($application->address))
-                            <div class="ja-info-row">
-                                <span class="ja-info-label"><i class="fa fa-home" style="font-size:11px"></i> @lang('app.address')</span>
-                                <span class="ja-info-val">{{ $application->address }}</span>
-                            </div>
-                            @endif
-                        </div>
-
-                        {{-- EDIT MODE --}}
+                    <div class="ja-card-title" style="justify-content:space-between;">
+                        <span><i class="fa fa-user" style="font-size:11px"></i> @lang('Personal Information')</span>
                         @if($user->cans('edit_job_applications'))
-                        <div id="ja-info-edit-{{ $application->id }}" style="display:none;margin-top:4px;">
-                            <div style="display:flex;flex-direction:column;gap:8px;">
-                                <div>
-                                    <label style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;display:block;margin-bottom:4px;">@lang('app.name')</label>
-                                    <input type="text" id="ja-edit-name-{{ $application->id }}" value="{{ $application->full_name }}"
-                                           class="ja-note-textarea" style="resize:none;height:36px;padding:6px 10px;font-size:13px;">
+                        <button type="button" onclick="jaToggleInfoEdit({{ $application->id }})"
+                                id="ja-info-edit-btn-{{ $application->id }}"
+                                style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:7px;
+                                    border:1px solid #E2DED8;background:#F8F7F4;cursor:pointer;font-size:11px;
+                                    color:#5A6478;font-family:inherit;transition:all .15s;"
+                                onmouseover="this.style.background='#EFF6FF';this.style.color='#2563EB';this.style.borderColor='#2563EB'"
+                                onmouseout="this.style.background='#F8F7F4';this.style.color='#5A6478';this.style.borderColor='#E2DED8'">
+                            <i class="fa fa-pencil" style="font-size:10px"></i> Edit
+                        </button>
+                        @endif
+                    </div>
+
+                    {{-- ── VIEW MODE ── --}}
+                    <div id="ja-info-view-{{ $application->id }}">
+                        <div class="ja-info-row">
+                            <span class="ja-info-label"><i class="fa fa-id-card-o" style="font-size:11px"></i> @lang('app.name')</span>
+                            <span class="ja-info-val" id="ja-display-name-{{ $application->id }}">{{ ucwords($application->full_name) }}</span>
+                        </div>
+                        <div class="ja-info-row">
+                            <span class="ja-info-label"><i class="fa fa-envelope-o" style="font-size:11px"></i> @lang('app.email')</span>
+                            <span class="ja-info-val" id="ja-display-email-{{ $application->id }}">
+                                <a href="mailto:{{ $application->email }}">{{ $application->email }}</a>
+                            </span>
+                        </div>
+                        <div class="ja-info-row">
+                            <span class="ja-info-label"><i class="fa fa-phone" style="font-size:11px"></i> @lang('app.phone')</span>
+                            <span class="ja-info-val" id="ja-display-phone-{{ $application->id }}">
+                                <a href="tel:{{ $application->phone }}">{{ $application->phone }}</a>
+                            </span>
+                        </div>
+                    </div>
+
+                    {{-- ── EDIT MODE ── --}}
+                    @if($user->cans('edit_job_applications'))
+                    <div id="ja-info-edit-{{ $application->id }}" style="display:none;margin-top:4px;">
+                        <div style="display:flex;flex-direction:column;gap:8px;">
+
+                            <div>
+                                <label style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;display:block;margin-bottom:4px;">
+                                    @lang('app.name')
+                                </label>
+                                <input type="text" id="ja-edit-name-{{ $application->id }}"
+                                    value="{{ $application->full_name }}"
+                                    class="ja-note-textarea"
+                                    style="resize:none;height:36px;padding:6px 10px;font-size:13px;">
+                            </div>
+
+                            <div>
+                                <label style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;display:block;margin-bottom:4px;">
+                                    @lang('app.email')
+                                </label>
+                                <input type="email" id="ja-edit-email-{{ $application->id }}"
+                                    value="{{ $application->email }}"
+                                    class="ja-note-textarea"
+                                    style="resize:none;height:36px;padding:6px 10px;font-size:13px;">
+                            </div>
+
+                            <div>
+                                <label style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;display:block;margin-bottom:4px;">
+                                    @lang('app.phone')
+                                </label>
+                                <input type="text" id="ja-edit-phone-{{ $application->id }}"
+                                    value="{{ $application->phone }}"
+                                    class="ja-note-textarea"
+                                    style="resize:none;height:36px;padding:6px 10px;font-size:13px;">
+                            </div>
+
+                            <div style="display:flex;gap:7px;margin-top:4px;">
+                                <button type="button" onclick="jaSaveInfoEdit({{ $application->id }})"
+                                        id="ja-info-save-btn-{{ $application->id }}"
+                                        style="display:inline-flex;align-items:center;gap:5px;padding:7px 14px;
+                                            border-radius:9px;border:none;background:#2563EB;color:#fff;
+                                            font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">
+                                    <i class="fa fa-check" id="ja-info-save-icon-{{ $application->id }}"></i> Save
+                                </button>
+                                <button type="button" onclick="jaToggleInfoEdit({{ $application->id }})"
+                                        style="display:inline-flex;align-items:center;gap:5px;padding:7px 12px;
+                                            border-radius:9px;border:1px solid #E2DED8;background:#fff;
+                                            font-size:12px;font-weight:600;cursor:pointer;color:#5A6478;font-family:inherit;">
+                                    Cancel
+                                </button>
+                            </div>
+
+                            <div id="ja-info-save-msg-{{ $application->id }}" style="display:none;font-size:11.5px;margin-top:2px;"></div>
+                        </div>
+                    </div>
+                    @endif
+
+                        @if (!is_null($application->gender))
+                        <div class="ja-info-row">
+                            <span class="ja-info-label"><i class="fa fa-venus-mars" style="font-size:11px"></i> @lang('app.gender')</span>
+                            <span class="ja-info-val">{{ ucfirst($application->gender) }}</span>
+                        </div>
+                        @endif
+
+                        @if (!is_null($application->dob))
+                        <div class="ja-info-row">
+                            <span class="ja-info-label"><i class="fa fa-birthday-cake" style="font-size:11px"></i> @lang('app.dob')</span>
+                            <span class="ja-info-val">{{ $application->dob->format('jS F, Y') }}</span>
+                        </div>
+                        @endif
+
+                       {{-- ══ JOB ROW ══ --}}
+                        <div class="ja-info-row" style="flex-direction:column;align-items:stretch;gap:0;border-bottom:1px solid #F0EEE9;">
+
+                            {{-- Label + badge + edit button --}}
+                            <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;">
+                                <span class="ja-info-label" style="flex-shrink:0;width:105px;">
+                                    <i class="fa fa-briefcase" style="font-size:11px"></i>
+                                    @lang('modules.jobApplication.appliedFor')
+                                </span>
+
+                                <div style="display:flex;align-items:center;gap:6px;flex:1;justify-content:flex-end;" id="ja-job-display-{{ $application->id }}">
+                                    @if(!is_null($application->job))
+                                        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+                                            <span class="ja-job-badge">
+                                                <i class="fa fa-briefcase" style="font-size:9px"></i>
+                                                {{ ucwords($application->job->title) }}
+                                            </span>
+                                            @if($application->job->company)
+                                            <span style="font-size:11.5px;font-weight:600;color:#3D4A5C;">
+                                                {{ ucwords($application->job->company->company_name) }}
+                                            </span>
+                                            @endif
+                                            @if($application->location)
+                                            <span style="font-size:11px;color:#B0B8C4;display:inline-flex;align-items:center;gap:3px;">
+                                                <svg style="width:11px;height:11px;flex-shrink:0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                </svg>
+                                                {{ ucwords($application->location->location) }}
+                                            </span>
+                                            @endif
+                                        </div>
+                                        @if($user->cans('edit_job_applications'))
+                                        <button type="button" class="ja-job-edit-btn"
+                                                onclick="jaToggleJobAssign({{ $application->id }})"
+                                                title="Change job">
+                                            <i class="fa fa-pencil" style="font-size:10px"></i>
+                                        </button>
+                                        @endif
+                                    @else
+                                        <span class="ja-job-none-badge">
+                                            <i class="fa fa-unlink" style="font-size:9px"></i>
+                                            No job assigned
+                                        </span>
+                                        @if($user->cans('edit_job_applications'))
+                                        <button type="button" class="ja-job-edit-btn"
+                                                onclick="jaToggleJobAssign({{ $application->id }})"
+                                                title="Assign a job">
+                                            <i class="fa fa-plus" style="font-size:10px"></i>
+                                        </button>
+                                        @endif
+                                    @endif
                                 </div>
-                                <div>
-                                    <label style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;display:block;margin-bottom:4px;">@lang('app.email')</label>
-                                    <input type="email" id="ja-edit-email-{{ $application->id }}" value="{{ $application->email }}"
-                                           class="ja-note-textarea" style="resize:none;height:36px;padding:6px 10px;font-size:13px;">
+                            </div>
+
+                            {{-- Assign / change dropdown --}}
+                            @if($user->cans('edit_job_applications'))
+                            <div class="ja-job-assign-box"
+                                id="ja-job-assign-box-{{ $application->id }}"
+                                style="display:{{ is_null($application->job) ? 'block' : 'none' }};">
+
+                                <div class="ja-job-assign-box-title">
+                                    <i class="fa fa-link" style="font-size:11px"></i>
+                                    {{ is_null($application->job) ? 'Assign to a job' : 'Change job' }}
                                 </div>
-                                <div>
-                                    <label style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;display:block;margin-bottom:4px;">@lang('app.phone')</label>
-                                    <input type="text" id="ja-edit-phone-{{ $application->id }}" value="{{ $application->phone }}"
-                                           class="ja-note-textarea" style="resize:none;height:36px;padding:6px 10px;font-size:13px;">
-                                </div>
-                                <div style="display:flex;gap:7px;margin-top:4px;">
-                                    <button type="button" onclick="jaSaveInfoEdit({{ $application->id }})"
-                                            id="ja-info-save-btn-{{ $application->id }}"
-                                            style="display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:9px;border:none;background:#2563EB;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">
-                                        <i class="fa fa-check" id="ja-info-save-icon-{{ $application->id }}"></i> Save
+
+                                <div class="ja-job-assign-row">
+                                    <select id="ja-job-select-{{ $application->id }}"
+                                            class="ja-stage-select select2" style="flex:1">
+                                        <option value="">Select a job posting…</option>
+                                        @foreach($allJobs as $jobOption)
+                                            <option value="{{ $jobOption->id }}"
+                                                    {{ $application->job_id == $jobOption->id ? 'selected' : '' }}>
+                                                {{ ucwords($jobOption->title) }}
+                                                @if($jobOption->location)
+                                                    – {{ ucwords($jobOption->location->location ?? '') }}
+                                                @endif
+                                            </option>
+                                        @endforeach
+                                    </select>
+
+                                    <button type="button" class="ja-job-save-btn"
+                                            onclick="jaAssignJob({{ $application->id }})">
+                                        <i class="fa fa-check" id="ja-job-save-icon-{{ $application->id }}"></i>
+                                        <span id="ja-job-save-label-{{ $application->id }}">Assign</span>
                                     </button>
-                                    <button type="button" onclick="jaToggleInfoEdit({{ $application->id }})"
-                                            style="display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:9px;border:1px solid #E2DED8;background:#fff;font-size:12px;font-weight:600;cursor:pointer;color:#5A6478;font-family:inherit;">
+
+                                    @if(!is_null($application->job))
+                                    <button type="button" class="ja-job-cancel-btn"
+                                            onclick="jaToggleJobAssign({{ $application->id }})">
                                         Cancel
                                     </button>
+                                    @endif
                                 </div>
-                                <div id="ja-info-save-msg-{{ $application->id }}" style="display:none;font-size:11.5px;margin-top:2px;"></div>
+
+                                <div id="ja-job-assign-msg-{{ $application->id }}"
+                                    style="display:none;font-size:11.5px;margin-top:6px;"></div>
                             </div>
+                            @endif
+
+                        </div>{{-- ══ end job row ══ --}}
+
+                        @if (!is_null($application->city))
+                        <div class="ja-info-row">
+                            <span class="ja-info-label"><i class="fa fa-map-marker" style="font-size:11px"></i> @lang('app.city')</span>
+                            <span class="ja-info-val">{{ $application->city }}{{ $application->state ? ', '.$application->state : '' }}{{ $application->country ? ', '.$application->country : '' }}</span>
+                        </div>
+                        @endif
+
+                        @if (!is_null($application->address))
+                        <div class="ja-info-row">
+                            <span class="ja-info-label"><i class="fa fa-home" style="font-size:11px"></i> @lang('app.address')</span>
+                            <span class="ja-info-val">{{ $application->address }}</span>
                         </div>
                         @endif
                     </div>
@@ -885,267 +990,397 @@
                     {{-- Cover letter --}}
                     @if (!is_null($application->cover_letter))
                     <div class="ja-card">
-                        <div class="ja-card-title"><i class="fa fa-file-text-o" style="font-size:11px"></i> @lang('modules.jobs.coverLetter')</div>
+                        <div class="ja-card-title">
+                            <i class="fa fa-file-text-o" style="font-size:11px"></i> @lang('modules.jobs.coverLetter')
+                        </div>
                         <p style="font-size:12.5px;color:#5A6478;line-height:1.7;white-space:pre-wrap;margin:0">{{ $application->cover_letter }}</p>
                     </div>
                     @endif
 
                     {{-- Skills --}}
                     @if ($user->cans('edit_job_applications'))
-                    <div class="ja-card" id="skills-container">
-                        <div class="ja-card-title"><i class="fa fa-star" style="font-size:11px"></i> @lang('modules.jobApplication.skills')</div>
+                    <div class="ja-card" id="skills-container-{{ $application->id }}">
+
+                        <div class="ja-card-title">
+                            <i class="fa fa-star" style="font-size:11px"></i> @lang('modules.jobApplication.skills')
+                        </div>
+
+                        {{-- Select2 multi-select --}}
                         <div class="mb-3">
                             <select name="skills[]" id="skills" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm select2" multiple>
                                 @forelse ($skills as $skill)
-                                    <option @if(!is_null($application->skills) && in_array($skill->id, $application->skills)) selected @endif value="{{ $skill->id }}">{{ $skill->name }}</option>
+                                    <option @if(!is_null($application->skills) && in_array((string)$skill->id, array_map('strval', (array)$application->skills))) selected @endif value="{{ $skill->id }}">{{ $skill->name }}</option>
                                 @empty
                                 @endforelse
                             </select>
                         </div>
-                        {{-- Parse from CV --}}
+
+                        {{-- ── Parse from CV ── --}}
                         <div style="border:1px solid #E8E6E1;border-radius:10px;padding:12px;margin-bottom:10px;background:#F8F7F4">
                             <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:8px">
                                 <i class="fa fa-magic" style="font-size:11px"></i> Auto-detect from CV
                             </div>
-                            <button type="button" id="parse-skills-btn-{{ $application->id }}" onclick="jaParseSkills({{ $application->id }})"
+
+                            <button type="button" id="parse-skills-btn-{{ $application->id }}"
+                                    onclick="jaParseSkills({{ $application->id }})"
                                     class="ja-btn ja-btn-blue" style="min-width:auto;flex:none;display:inline-flex;margin-bottom:8px">
                                 <i class="fa fa-search" id="parse-icon-{{ $application->id }}"></i>
                                 <span id="parse-label-{{ $application->id }}">Parse skills from CV</span>
                             </button>
+
+                            {{-- Results area --}}
                             <div id="parse-result-{{ $application->id }}" style="display:none">
+
+                                {{-- Matched chips --}}
                                 <div id="parse-matched-wrap-{{ $application->id }}" style="display:none;margin-bottom:8px">
-                                    <div style="font-size:11px;color:#065F46;font-weight:600;margin-bottom:5px"><i class="fa fa-check-circle" style="font-size:11px"></i> Matched — click to add:</div>
+                                    <div style="font-size:11px;color:#065F46;font-weight:600;margin-bottom:5px">
+                                        <i class="fa fa-check-circle" style="font-size:11px"></i> Matched in your skills list — click to add:
+                                    </div>
                                     <div id="parse-matched-chips-{{ $application->id }}" style="display:flex;flex-wrap:wrap;gap:5px"></div>
                                 </div>
+
+                                {{-- New chips --}}
                                 <div id="parse-new-wrap-{{ $application->id }}" style="display:none">
-                                    <div style="font-size:11px;color:#92400E;font-weight:600;margin-bottom:5px"><i class="fa fa-plus-circle" style="font-size:11px"></i> New skills — click to create & add:</div>
+                                    <div style="font-size:11px;color:#92400E;font-weight:600;margin-bottom:5px">
+                                        <i class="fa fa-plus-circle" style="font-size:11px"></i> New skills found — click to create & add:
+                                    </div>
                                     <div id="parse-new-chips-{{ $application->id }}" style="display:flex;flex-wrap:wrap;gap:5px"></div>
                                 </div>
+
                                 <div id="parse-status-{{ $application->id }}" style="font-size:11.5px;color:#059669;margin-top:6px"></div>
                             </div>
+
+                            {{-- Error --}}
                             <div id="parse-error-{{ $application->id }}" style="display:none;font-size:12px;color:#EF4444;margin-top:6px">
                                 <i class="fa fa-exclamation-circle"></i> <span></span>
                             </div>
                         </div>
-                        {{-- Add Manually --}}
+
+                        {{-- ── Add Manually ── --}}
                         <div style="border:1px solid #E8E6E1;border-radius:10px;padding:12px;margin-bottom:12px;background:#F8F7F4">
                             <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:8px">
                                 <i class="fa fa-keyboard-o" style="font-size:11px"></i> Add manually
                             </div>
                             <div style="display:flex;gap:7px;align-items:center">
-                                <input type="text" id="manual-skill-input-{{ $application->id }}" placeholder="Type a skill name…"
-                                    class="ja-note-textarea" style="flex:1;resize:none;height:36px;padding:6px 10px;font-size:12.5px"
+                                <input type="text"
+                                    id="manual-skill-input-{{ $application->id }}"
+                                    placeholder="Type a skill name…"
+                                    class="ja-note-textarea"
+                                    style="flex:1;resize:none;height:36px;padding:6px 10px;font-size:12.5px"
                                     onkeydown="if(event.key==='Enter'){event.preventDefault();jaAddManualSkill({{ $application->id }});}">
-                                <button type="button" onclick="jaAddManualSkill({{ $application->id }})" class="ja-btn ja-btn-blue"
+                                <button type="button"
+                                        onclick="jaAddManualSkill({{ $application->id }})"
+                                        class="ja-btn ja-btn-blue"
                                         style="min-width:auto;flex:none;display:inline-flex;white-space:nowrap;height:36px;padding:0 12px">
                                     <i class="fa fa-plus"></i> Add
                                 </button>
                             </div>
                         </div>
-                        <a href="javascript:addSkills({{ $application->id }});" id="add-skills" class="ja-btn ja-btn-blue" style="min-width:auto;flex:none;display:inline-flex">
+
+                        {{-- Save button --}}
+                        <a href="javascript:addSkills({{ $application->id }});" id="add-skills"
+                           class="ja-btn ja-btn-blue" style="min-width:auto;flex:none;display:inline-flex">
                             <i class="fa fa-plus"></i>
-                            @if (!is_null($application->skills) && sizeof($application->skills) > 0) @lang('modules.jobApplication.updateSkills') @else @lang('modules.jobApplication.addSkills') @endif
+                            @if (!is_null($application->skills) && sizeof($application->skills) > 0)
+                                @lang('modules.jobApplication.updateSkills')
+                            @else
+                                @lang('modules.jobApplication.addSkills')
+                            @endif
                         </a>
                     </div>
+
+                    {{-- ── Inline JS for skills panel ── --}}
                     <script>
-                    (function () {
-                        window.jaParseSkills = function (appId) {
-                            var btn = document.getElementById('parse-skills-btn-' + appId);
-                            var icon = document.getElementById('parse-icon-' + appId);
-                            var label = document.getElementById('parse-label-' + appId);
-                            var resArea = document.getElementById('parse-result-' + appId);
-                            var errArea = document.getElementById('parse-error-' + appId);
-                            var status = document.getElementById('parse-status-' + appId);
-                            btn.disabled = true; icon.className = 'fa fa-spinner fa-spin'; label.textContent = 'Parsing…';
-                            resArea.style.display = 'none'; errArea.style.display = 'none';
-                            $.ajax({
-                                type: 'POST',
-                                url: '{{ route("admin.job-applications.parse-skills", ":id") }}'.replace(':id', appId),
-                                data: { _token: '{{ csrf_token() }}' },
-                                success: function (res) {
-                                    btn.disabled = false; icon.className = 'fa fa-search'; label.textContent = 'Re-parse CV';
-                                    if (res.status !== 'success') { errArea.style.display = 'block'; errArea.querySelector('span').textContent = res.message || 'Parsing failed.'; return; }
-                                    resArea.style.display = 'block';
-                                    var matchedWrap = document.getElementById('parse-matched-wrap-' + appId);
-                                    var matchedChips = document.getElementById('parse-matched-chips-' + appId);
-                                    matchedChips.innerHTML = '';
-                                    if (res.matched_skills && res.matched_skills.length) {
-                                        matchedWrap.style.display = 'block';
-                                        res.matched_skills.forEach(function (skill) {
-                                            var chip = document.createElement('span');
-                                            chip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11.5px;font-weight:500;cursor:pointer;background:#ECFDF5;color:#065F46;border:1px dashed #6EE7B7;transition:all .15s';
-                                            chip.innerHTML = '<i class="fa fa-plus" style="font-size:9px"></i> ' + skill.name;
-                                            chip.onclick = function () {
-                                                var $sel = $('#skills');
-                                                if ($sel.val() && $sel.val().indexOf(String(skill.id)) > -1) return;
-                                                var opt = $sel.find('option[value="' + skill.id + '"]');
-                                                if (opt.length) { opt.prop('selected', true); $sel.trigger('change'); } else { $sel.append(new Option(skill.name, skill.id, true, true)).trigger('change'); }
-                                                chip.style.borderStyle = 'solid'; chip.style.background = '#D1FAE5';
-                                                chip.innerHTML = '<i class="fa fa-check" style="font-size:9px"></i> ' + skill.name;
-                                                chip.onclick = null; chip.style.cursor = 'default';
-                                                addSkills(appId, function() { status.textContent = 'Saved successfully'; });
-                                            };
-                                            matchedChips.appendChild(chip);
-                                        });
-                                    } else { matchedWrap.style.display = 'none'; }
-                                    var newWrap = document.getElementById('parse-new-wrap-' + appId);
-                                    var newChips = document.getElementById('parse-new-chips-' + appId);
-                                    newChips.innerHTML = '';
-                                    if (res.new_skills && res.new_skills.length) {
-                                        newWrap.style.display = 'block';
-                                        res.new_skills.forEach(function (name) {
-                                            var chip = document.createElement('span');
-                                            chip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11.5px;font-weight:500;cursor:pointer;background:#FFFBEB;color:#92400E;border:1px dashed #FDE68A;transition:all .15s';
-                                            chip.innerHTML = '<i class="fa fa-plus" style="font-size:9px"></i> ' + name;
-                                            chip.onclick = function () {
-                                                $.ajax({ type:'POST', url:'{{ route("admin.skills.quick-create") }}', data:{_token:'{{ csrf_token() }}',name:name},
-                                                    success: function(r) {
-                                                        if (r.status === 'success' && r.id) {
-                                                            $('#skills').append(new Option(name, r.id, true, true)).trigger('change');
-                                                            chip.style.background = '#FEF3C7'; chip.style.borderStyle = 'solid';
-                                                            chip.innerHTML = '<i class="fa fa-check" style="font-size:9px"></i> ' + name;
-                                                            chip.onclick = null; chip.style.cursor = 'default';
-                                                            addSkills(appId, function() { status.textContent = 'Saved successfully.'; });
-                                                        }
-                                                    }, error: function() { chip.style.opacity = '.4'; chip.title = 'Could not create skill.'; }
-                                                });
-                                            };
-                                            newChips.appendChild(chip);
-                                        });
-                                    } else { newWrap.style.display = 'none'; }
-                                    if (!res.matched_skills.length && !res.new_skills.length) { status.textContent = 'No skills detected in this CV.'; }
-                                },
-                                error: function () {
-                                    btn.disabled = false; icon.className = 'fa fa-search'; label.textContent = 'Parse skills from CV';
-                                    errArea.style.display = 'block'; errArea.querySelector('span').textContent = 'Server error. Please try again.';
+                        (function () {
+
+                            var appId = {{ $application->id }};
+
+                            /* ── Ensure Select2 is initialised on THIS panel's #skills ── */
+                            function getSkillSelect() {
+                                return $('#skills-container-' + appId + ' select#skills');
+                            }
+
+                            /* Re-init Select2 scoped to this skills container */
+                            (function initSelect2() {
+                                var $sel = getSkillSelect();
+                                if (!$sel.length) {
+                                    /* fallback: grab by ID directly */
+                                    $sel = $('#skills');
                                 }
-                            });
-                        };
-                        window.jaAddManualSkill = function (appId) {
-                            var input = document.getElementById('manual-skill-input-' + appId);
-                            var name = input.value.trim();
-                            if (!name) return;
-                            var $sel = $('#skills');
-                            var exists = $sel.find('option').filter(function() { return $(this).text().toLowerCase() === name.toLowerCase(); });
-                            if (exists.length) { exists.prop('selected', true); $sel.trigger('change'); input.value = ''; addSkills(appId); return; }
-                            $sel.append(new Option(name, 'new:' + name, true, true)).trigger('change');
-                            input.value = ''; addSkills(appId);
-                        };
-                    })();
-                    </script>
+                                if ($sel.length && !$sel.hasClass('select2-hidden-accessible')) {
+                                    $sel.select2({ width: '100%' });
+                                }
+                            })();
+
+                            /* ── Parse skills from CV ── */
+                            window.jaParseSkills = function (appId) {
+                                var btn      = document.getElementById('parse-skills-btn-' + appId);
+                                var icon     = document.getElementById('parse-icon-' + appId);
+                                var label    = document.getElementById('parse-label-' + appId);
+                                var resArea  = document.getElementById('parse-result-' + appId);
+                                var errArea  = document.getElementById('parse-error-' + appId);
+                                var status   = document.getElementById('parse-status-' + appId);
+
+                                btn.disabled      = true;
+                                icon.className    = 'fa fa-spinner fa-spin';
+                                label.textContent = 'Parsing…';
+                                resArea.style.display = 'none';
+                                errArea.style.display = 'none';
+
+                                $.ajax({
+                                    type: 'POST',
+                                    url: '{{ route("admin.job-applications.parse-skills", ":id") }}'.replace(':id', appId),
+                                    data: { _token: '{{ csrf_token() }}' },
+                                    success: function (res) {
+                                        btn.disabled      = false;
+                                        icon.className    = 'fa fa-search';
+                                        label.textContent = 'Re-parse CV';
+
+                                        if (res.status !== 'success') {
+                                            errArea.style.display = 'block';
+                                            errArea.querySelector('span').textContent = res.message || 'Parsing failed.';
+                                            return;
+                                        }
+
+                                        resArea.style.display = 'block';
+
+                                        /* ── Matched chips ── */
+                                        var matchedWrap  = document.getElementById('parse-matched-wrap-' + appId);
+                                        var matchedChips = document.getElementById('parse-matched-chips-' + appId);
+                                        matchedChips.innerHTML = '';
+
+                                        if (res.matched_skills && res.matched_skills.length) {
+                                            matchedWrap.style.display = 'block';
+                                            res.matched_skills.forEach(function (skill) {
+                                                var chip = document.createElement('span');
+                                                chip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11.5px;font-weight:500;cursor:pointer;background:#ECFDF5;color:#065F46;border:1px dashed #6EE7B7;transition:all .15s';
+                                                chip.innerHTML = '<i class="fa fa-plus" style="font-size:9px"></i> ' + skill.name;
+
+                                                chip.onclick = function () {
+                                                    var $sel = $('#skills');
+
+                                                    /* Check not already selected */
+                                                    var currentVals = $sel.val() || [];
+                                                    if (currentVals.indexOf(String(skill.id)) > -1) {
+                                                        chip.style.borderStyle = 'solid';
+                                                        chip.style.background  = '#D1FAE5';
+                                                        chip.innerHTML = '<i class="fa fa-check" style="font-size:9px"></i> ' + skill.name;
+                                                        chip.onclick = null; chip.style.cursor = 'default';
+                                                        return;
+                                                    }
+
+                                                    /* Select the option if it exists, otherwise create it */
+                                                    var opt = $sel.find('option[value="' + skill.id + '"]');
+                                                    if (opt.length) {
+                                                        opt.prop('selected', true);
+                                                    } else {
+                                                        $sel.append(new Option(skill.name, skill.id, true, true));
+                                                    }
+                                                    $sel.trigger('change');
+
+                                                    chip.style.borderStyle = 'solid';
+                                                    chip.style.background  = '#D1FAE5';
+                                                    chip.innerHTML = '<i class="fa fa-check" style="font-size:9px"></i> ' + skill.name;
+                                                    chip.onclick   = null;
+                                                    chip.style.cursor = 'default';
+
+                                                    status.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Saving…';
+                                                    jaDoSaveSkills(appId, status);
+                                                };
+                                                matchedChips.appendChild(chip);
+                                            });
+                                        } else {
+                                            matchedWrap.style.display = 'none';
+                                        }
+
+                                        /* ── New chips ── */
+                                        var newWrap  = document.getElementById('parse-new-wrap-' + appId);
+                                        var newChips = document.getElementById('parse-new-chips-' + appId);
+                                        newChips.innerHTML = '';
+
+                                        if (res.new_skills && res.new_skills.length) {
+                                            newWrap.style.display = 'block';
+                                            res.new_skills.forEach(function (name) {
+                                                var chip = document.createElement('span');
+                                                chip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11.5px;font-weight:500;cursor:pointer;background:#FFFBEB;color:#92400E;border:1px dashed #FDE68A;transition:all .15s';
+                                                chip.innerHTML = '<i class="fa fa-plus" style="font-size:9px"></i> ' + name;
+
+                                                chip.onclick = function () {
+                                                    chip.style.opacity = '.5';
+                                                    chip.style.cursor  = 'default';
+                                                    chip.onclick       = null;
+
+                                                    /* Create the skill in DB first, then add to Select2 */
+                                                    $.ajax({
+                                                        type: 'POST',
+                                                        url:  '{{ route("admin.skills.quick-create") }}',
+                                                        data: { _token: '{{ csrf_token() }}', name: name },
+                                                        success: function (r) {
+                                                            if (r.status === 'success' && r.id) {
+                                                                var $sel = $('#skills');
+                                                                var opt  = $sel.find('option[value="' + r.id + '"]');
+                                                                if (opt.length) {
+                                                                    opt.prop('selected', true);
+                                                                } else {
+                                                                    $sel.append(new Option(name, r.id, true, true));
+                                                                }
+                                                                $sel.trigger('change');
+
+                                                                chip.style.opacity    = '1';
+                                                                chip.style.background = '#FEF3C7';
+                                                                chip.style.borderStyle = 'solid';
+                                                                chip.innerHTML = '<i class="fa fa-check" style="font-size:9px"></i> ' + name;
+
+                                                                status.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Saving…';
+                                                                jaDoSaveSkills(appId, status);
+                                                            } else {
+                                                                chip.style.opacity = '.4';
+                                                                chip.title = 'Could not create skill.';
+                                                            }
+                                                        },
+                                                        error: function () {
+                                                            chip.style.opacity = '.4';
+                                                            chip.title = 'Server error — could not create skill.';
+                                                        }
+                                                    });
+                                                };
+                                                newChips.appendChild(chip);
+                                            });
+                                        } else {
+                                            newWrap.style.display = 'none';
+                                        }
+
+                                        if ((!res.matched_skills || !res.matched_skills.length) &&
+                                            (!res.new_skills     || !res.new_skills.length)) {
+                                            status.textContent = 'No skills detected in this CV.';
+                                        }
+                                    },
+                                    error: function () {
+                                        btn.disabled      = false;
+                                        icon.className    = 'fa fa-search';
+                                        label.textContent = 'Parse skills from CV';
+                                        errArea.style.display = 'block';
+                                        errArea.querySelector('span').textContent = 'Server error. Please try again.';
+                                    }
+                                });
+                            };
+
+                            /* ── Shared save helper — debounced so rapid clicks don't fire multiple POSTs ── */
+                            var _saveTimer = null;
+                            function jaDoSaveSkills(appId, statusEl) {
+                                clearTimeout(_saveTimer);
+                                _saveTimer = setTimeout(function () {
+                                    var url = "{{ route('admin.job-applications.addSkills', ':id') }}".replace(':id', appId);
+                                    $.easyAjax({
+                                        url: url, type: 'POST', container: '#skills-container-' + appId,
+                                        data: { _token: '{{ csrf_token() }}', skills: $('#skills').val() },
+                                        success: function (response) {
+                                            if (response.status === 'success') {
+                                                if (statusEl) statusEl.innerHTML = '<i class="fa fa-check-circle" style="color:#059669"></i> Saved successfully';
+                                                if (typeof table !== 'undefined') table.draw(false);
+                                            } else {
+                                                if (statusEl) statusEl.innerHTML = '<span style="color:#EF4444"><i class="fa fa-exclamation-circle"></i> Save failed</span>';
+                                            }
+                                        },
+                                        error: function () {
+                                            if (statusEl) statusEl.innerHTML = '<span style="color:#EF4444"><i class="fa fa-exclamation-circle"></i> Save failed</span>';
+                                        }
+                                    });
+                                }, 300);
+                            }
+
+                            /* ── Add skill manually ── */
+                            window.jaAddManualSkill = function (appId) {
+                                var input = document.getElementById('manual-skill-input-' + appId);
+                                var name  = input.value.trim();
+                                if (!name) return;
+
+                                var $sel   = $('#skills');
+                                var exists = $sel.find('option').filter(function () {
+                                    return $(this).text().toLowerCase() === name.toLowerCase();
+                                });
+
+                                if (exists.length) {
+                                    exists.prop('selected', true);
+                                    $sel.trigger('change');
+                                    input.value = '';
+                                    addSkills(appId);
+                                    return;
+                                }
+
+                                var newOpt = new Option(name, 'new:' + name, true, true);
+                                $sel.append(newOpt).trigger('change');
+                                input.value = '';
+                                addSkills(appId);
+                            };
+
+                        })();
+                        </script>
                     @endif
                 </div>{{-- /details --}}
 
                 {{-- ── NOTES TAB ── --}}
                 <div id="ja-tab-notes" class="ja-tab-pane" style="display:none">
+
                     @if($user->cans('edit_job_applications'))
                     <div class="ja-add-note" style="margin-bottom:10px">
-                        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:8px">@lang('modules.jobApplication.addNote')</div>
+                        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:8px">
+                            @lang('modules.jobApplication.addNote')
+                        </div>
                         <div style="position:relative">
                             <textarea id="note_text" rows="3" class="ja-note-textarea"
                                     placeholder="Type a note… use @ to mention a team member"
                                     oninput="jaNoteHandleInput(this)"></textarea>
-                            <div id="ja-mention-drop" style="display:none;position:absolute;bottom:calc(100% + 4px);left:0;background:#fff;border:1.5px solid #E2DED8;border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.13);z-index:9999;min-width:200px;max-height:180px;overflow-y:auto;"></div>
+                            <div id="ja-mention-drop"
+                                style="display:none;position:absolute;bottom:calc(100% + 4px);left:0;
+                                        background:#fff;border:1.5px solid #E2DED8;border-radius:10px;
+                                        box-shadow:0 8px 24px rgba(15,23,42,.13);z-index:9999;
+                                        min-width:200px;max-height:180px;overflow-y:auto;">
+                            </div>
                         </div>
                         <button id="add-note" class="ja-save-note-btn">
                             <i class="fa fa-plus"></i> @lang('modules.jobApplication.addNote')
                         </button>
                     </div>
                     @endif
+
                     <div id="applicant-notes">
                         @include('admin.job-applications.partials.applicant-notes-list', [
                             'notes' => $application->notes()->with('user:id,name')->orderByDesc('created_at')->get()
                         ])
                     </div>
-                </div>
+                </div>{{-- /notes --}}
 
                 {{-- ── CLIENT NOTES TAB ── --}}
                 <div id="ja-tab-client-notes" class="ja-tab-pane" style="display:none">
-                    <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:8px">
-                        <i class="fa fa-info-circle" style="color:#059669;font-size:13px;flex-shrink:0"></i>
-                        <span style="font-size:11.5px;color:#065F46;line-height:1.5">These notes are shared across <strong>all applicants</strong> for <strong>{{ ucwords($application->job?->title ?? 'this job') }}</strong>.</span>
-                    </div>
-                    <div class="ja-add-note" style="margin-bottom:10px">
-                        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:8px">
-                            <i class="fa fa-plus-circle" style="color:#059669"></i> Add Client Note
+                    @if(is_null($application->job_id))
+                        <div style="text-align:center;padding:30px 20px;color:#B0B8C4">
+                            <i class="fa fa-link" style="font-size:30px;display:block;margin-bottom:10px;opacity:.35"></i>
+                            <p style="font-size:12.5px">Assign a job to this applicant to view or add client notes.</p>
                         </div>
-                        <textarea id="client_note_text" rows="4" class="ja-note-textarea" style="width:100%;min-height:90px" placeholder="Add a note visible to all applicants on this job…"></textarea>
-                        <button id="add-client-note" class="ja-save-note-btn" style="background:#059669;margin-top:8px" data-job-id="{{ $application->job_id }}">
-                            <i class="fa fa-plus"></i> Add Client Note
-                        </button>
-                    </div>
-                    <div id="client-notes-list">
-                        @include('admin.job-applications.partials.client-notes-list', ['clientNotes' => $clientNotes])
-                    </div>
-                </div>
+                    @else
+                        <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:8px">
+                            <i class="fa fa-info-circle" style="color:#059669;font-size:13px;flex-shrink:0"></i>
+                            <span style="font-size:11.5px;color:#065F46;line-height:1.5">These notes are shared across <strong>all applicants</strong> for <strong>{{ ucwords($application->job?->title ?? 'this job') }}</strong>.</span>
+                        </div>
 
-                {{-- ── Q&A TAB ── --}}
-                @if(count($answers) > 0)
-                <div id="ja-tab-qa" class="ja-tab-pane" style="display:none">
-                    @forelse($answers as $answer)
-                    <div class="ja-qa-item">
-                        <div class="ja-qa-q">{{ $answer->question->question }}</div>
-                        @if($answer->question->type == 'text')
-                            <span style="font-size:12.5px;color:#5A6478">{{ ucfirst($answer->answer) }}</span>
-                        @elseif($answer->question->type == 'radio')
-                            <span class="ja-qa-badge {{ strtolower($answer->answer) == 'yes' ? 'ja-qa-yes' : 'ja-qa-no' }}">
-                                <i class="fa fa-circle" style="font-size:8px;margin-right:4px"></i>{{ ucfirst($answer->answer) }}
-                            </span>
-                        @else
-                            @if(!is_null($answer->file))
-                            <a target="_blank" href="{{ $answer->file_url }}" class="ja-btn ja-btn-blue" style="display:inline-flex;flex:none;min-width:auto;margin-top:4px">
-                                <i class="fa fa-file-o"></i> @lang('app.view') @lang('app.file')
-                            </a>
-                            @endif
+                        @if($user->cans('edit_job_applications'))
+                        <div class="ja-add-note" style="margin-bottom:10px">
+                            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:8px">
+                                <i class="fa fa-plus-circle" style="color:#059669"></i> Add Client Note
+                            </div>
+                            <textarea id="client_note_text" rows="4" class="ja-note-textarea" style="width:100%;min-height:90px" placeholder="Add a note visible to all applicants on this job…"></textarea>
+                            <button id="add-client-note" class="ja-save-note-btn" style="background:#059669;margin-top:8px" data-job-id="{{ $application->job_id }}">
+                                <i class="fa fa-plus"></i> Add Client Note
+                            </button>
+                        </div>
                         @endif
-                    </div>
-                    @empty
-                    @endforelse
-                </div>
-                @endif
 
-                {{-- ── SCHEDULE TAB ── --}}
-                @if(!is_null($application->schedule))
-                <div id="ja-tab-schedule" class="ja-tab-pane" style="display:none">
-                    <div class="ja-card">
-                        <div class="ja-card-title"><i class="fa fa-calendar-check-o" style="font-size:11px"></i> @lang('modules.interviewSchedule.scheduleDetail')</div>
-                        <div class="ja-schedule-card" style="margin-bottom:14px">
-                            <div class="ja-schedule-date"><i class="fa fa-clock-o" style="font-size:13px"></i> {{ $application->schedule->schedule_date->format('d M, Y \a\t H:i') }}</div>
-                            @if($zoom_setting->enable_zoom == 1)
-                            <div class="ja-schedule-type">
-                                <i class="fa {{ $application->schedule->interview_type == 'online' ? 'fa-video-camera' : 'fa-building' }}" style="margin-right:5px"></i>
-                                {{ $application->schedule->interview_type == 'online' ? 'Online' : 'Offline' }}
-                            </div>
-                            @endif
+                        <div id="client-notes-list">
+                            @include('admin.job-applications.partials.client-notes-list', ['clientNotes' => $clientNotes])
                         </div>
-                        @if(count($application->schedule->employee) > 0)
-                        <div class="ja-card-title" style="margin-bottom:10px"><i class="fa fa-users" style="font-size:11px"></i> @lang('modules.interviewSchedule.assignedEmployee')</div>
-                        @foreach($application->schedule->employee as $emp)
-                        <div class="ja-interviewer-row" style="margin-bottom:6px">
-                            <div style="display:flex;align-items:center;gap:9px">
-                                <div class="ja-interviewer-avatar">{{ strtoupper(substr($emp->user->name, 0, 2)) }}</div>
-                                <span style="font-size:12.5px;font-weight:600;color:#1A1E2E">{{ ucwords($emp->user->name) }}</span>
-                            </div>
-                            <span class="ja-small-badge {{ $emp->user_accept_status == 'accept' ? 'ja-badge-accept' : ($emp->user_accept_status == 'refuse' ? 'ja-badge-refuse' : 'ja-badge-pending') }}">
-                                {{ ucwords($emp->user_accept_status) }}
-                            </span>
-                        </div>
-                        @endforeach
-                        @endif
-                    </div>
-                    @if(isset($application->schedule->comments) && count($application->schedule->comments) > 0)
-                    <div class="ja-card">
-                        <div class="ja-card-title"><i class="fa fa-comments" style="font-size:11px"></i> @lang('modules.interviewSchedule.comments')</div>
-                        @foreach($application->schedule->comments as $comment)
-                        <div class="ja-note" style="border-left-color:#059669;margin-bottom:8px">
-                            <div class="ja-note-meta"><span class="ja-note-author">{{ $comment->user->name }}</span></div>
-                            <p class="ja-note-body">{{ $comment->comment }}</p>
-                        </div>
-                        @endforeach
-                    </div>
                     @endif
                 </div>
-                @endif
 
             </div>{{-- /right-scroll --}}
         </div>{{-- /right-panel --}}
