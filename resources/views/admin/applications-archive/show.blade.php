@@ -1273,4 +1273,4 @@ function jaSaveInfoEdit(appId) {
 <div style="padding:12px 16px">
     <span class="skype-button rounded" data-contact-id="live:{{ $application->skype_id }}" data-text="Call"></span>
 </div>
-@endif
+@endif 
