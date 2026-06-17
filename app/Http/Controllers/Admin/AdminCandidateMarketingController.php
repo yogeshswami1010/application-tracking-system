@@ -87,8 +87,12 @@ class AdminCandidateMarketingController extends AdminBaseController
                     : '<span style="color:#B0B8C4;font-size:12px">—</span>';
             })
             ->editColumn('status', function ($row) {
-                $color = $row->status?->color ?? '#6B7280';
-                $label = ucwords(str_replace('_', ' ', $row->status?->status ?? ''));
+                if (!$row->status_id || !$row->status) {
+                    return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold text-white" style="background:#6366F1">Internal</span>';
+                }
+
+                $color = $row->status->color ?? '#6B7280';
+                $label = ucwords(str_replace('_', ' ', $row->status->status ?? ''));
                 return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold text-white" style="background:' . $color . '">' . $label . '</span>';
             })
             ->editColumn('marketing_added_at', function ($row) {
