@@ -118,7 +118,8 @@ $(function () {
         $backdrop.removeClass('hidden');
 
         var id  = $(this).data('row-id');
-        var url = "{{ route('admin.job-applications.show', ':id') }}".replace(':id', id);
+        var url = "{{ route('admin.candidate-marketing.show', ':id') }}".replace(':id', id);
+
         $.easyAjax({
             type: 'GET', url: url,
             success: function (response) {

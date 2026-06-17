@@ -254,6 +254,7 @@ Route::middleware('auth')->group(function () {
             Route::get('candidate-marketing/data',          [AdminCandidateMarketingController::class, 'data'])->name('candidate-marketing.data');
             Route::post('candidate-marketing/{id}/remove',  [AdminCandidateMarketingController::class, 'remove'])->name('candidate-marketing.remove');
             Route::resource('candidate-marketing', AdminCandidateMarketingController::class)->only(['index']);
+            Route::get('candidate-marketing/{id}/show', [AdminCandidateMarketingController::class, 'show'])->name('candidate-marketing.show');
 
             // Applications Archive
             Route::get('applications-archive/data',            [AdminApplicationArchiveController::class, 'data'])->name('applications-archive.data');
