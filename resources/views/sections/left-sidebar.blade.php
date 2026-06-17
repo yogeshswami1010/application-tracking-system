@@ -36,13 +36,12 @@
            
         @endif
         @if($user->cans('view_job_applications'))
-        <li class="{{ request()->routeIs('admin.candidate-marketing.*') ? 'active' : '' }}">
-            <a href="{{ route('admin.candidate-marketing.index') }}">
-                <i class="fa fa-bullhorn"></i>
-                <span>Candidate Marketing</span>
+            <a href="{{ route('admin.candidate-marketing.index') }}" class="ra-nav-link {{ request()->is('admin/candidate-marketing*') ? 'on' : '' }}">
+                <span class="ra-ni" aria-hidden="true"><x-ra-sidebar-icon name="job-applications" /></span>
+                <span class="ra-nl">Candidate Marketing</span>
             </a>
-        </li>
         @endif
+ 
         @if(in_array("view_job_applications", $userPermissions))
             <a href="{{ route('admin.ai-search') }}" class="ra-nav-link {{ request()->is('admin/ai-search*') ? 'on' : '' }}">
                 <span class="ra-ni" aria-hidden="true">
