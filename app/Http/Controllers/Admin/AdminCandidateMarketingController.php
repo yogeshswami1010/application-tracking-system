@@ -57,9 +57,15 @@ class AdminCandidateMarketingController extends AdminBaseController
             $applications->where('job_applications.job_id', $request->jobs);
         }
 
+        // Filter by company without an explicit join — avoids ambiguous
+        // column errors (job_applications.id vs jobs.id) that a join would
+        // introduce alongside the already-selected columns above.
         if ($request->company != 'all' && $request->company != '') {
-            $applications->join('jobs', 'jobs.id', 'job_applications.job_id')
-                ->where('jobs.company_id', '=', $request->company);
+            $applications->whereIn('job_applications.job_id', function ($sub) use ($request) {
+                $sub->select('id')
+                    ->from('jobs')
+                    ->where('company_id', $request->company);
+            });
         }
 
         if ($request->search_label != null && $request->search_label != '') {
