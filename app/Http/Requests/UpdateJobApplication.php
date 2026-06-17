@@ -27,25 +27,25 @@ class UpdateJobApplication extends CoreRequest
      */
     public function rules()
     {
-        $job = Job::where('id', $this->job_id)->first();
+        $job = $this->job_id ? Job::where('id', $this->job_id)->first() : null;
         $application = JobApplication::select('id', 'job_id', 'photo')->with(['resumeDocument'])->where('id', $this->route('job_application'))->first();
-        $requiredColumns = $job->required_columns;
-        $sectionVisibility = $job->section_visibility;
-
+        $requiredColumns = $job?->required_columns;
+        $sectionVisibility = $job?->section_visibility;
+ 
         $rules = [
             'full_name' => 'required',
             'email' => 'required',
             'phone' => 'required',
-            'job_id' => 'required|exists:jobs,id'
+            'job_id' => 'nullable|exists:jobs,id'
         ];
-
-        if ($requiredColumns['gender']) {
+ 
+        if ($requiredColumns && $requiredColumns['gender']) {
             $rules = Arr::add($rules, 'gender', 'required|in:male,female,others');
         }
-        if ($requiredColumns['dob']) {
+        if ($requiredColumns && $requiredColumns['dob']) {
             $rules = Arr::add($rules, 'dob', 'required|date');
         }
-        if ($requiredColumns['country']) {
+        if ($requiredColumns && $requiredColumns['country']) {
             $rules = Arr::add($rules, 'country', 'required|integer|min:1');
             $rules = Arr::add($rules, 'state', 'required|integer|min:1');
             $rules = Arr::add($rules, 'city', 'required');
