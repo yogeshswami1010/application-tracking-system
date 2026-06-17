@@ -190,75 +190,89 @@
                 
 
                 <div class="ja-pdf-toolbar-actions">
-                    {{--
-                        Drop this block inside the `.ja-pdf-toolbar-actions` div in show.blade.php,
-                        right before the "Job Description" button (or right after it — order doesn't matter).
-                        It needs $application to be in scope (it already is, on this view).
-                    --}}
+                 {{--
+    Drop this block inside the `.ja-pdf-toolbar-actions` div in show.blade.php,
+    right before the "Job Description" button (or right after it — order doesn't matter).
+    It needs $application to be in scope (it already is, on this view).
+--}}
 
-                    @if($user->cans('edit_job_applications'))
-                    <div style="display:flex;align-items:center;gap:6px;" id="ja-marketing-wrap-{{ $application->id }}">
-                        <button type="button"
-                                id="ja-marketing-btn-{{ $application->id }}"
-                                onclick="jaToggleMarketing({{ $application->id }})"
-                                class="ja-pdf-btn"
-                                style="{{ $application->is_marketing ? 'background:#ECFDF5;color:#065F46;border-color:#A7F3D0;' : '' }}">
-                            <i class="fa fa-bullhorn" id="ja-marketing-icon-{{ $application->id }}"></i>
-                            <span id="ja-marketing-label-text-{{ $application->id }}">{{ $application->is_marketing ? 'In Candidate Marketing' : 'Candidate Marketing' }}</span>
-                        </button>
+@if($user->cans('edit_job_applications'))
+<div style="display:flex;align-items:center;gap:6px;" id="ja-marketing-wrap-{{ $application->id }}">
+    <button type="button"
+            id="ja-marketing-btn-{{ $application->id }}"
+            onclick="jaToggleMarketing({{ $application->id }})"
+            class="ja-pdf-btn"
+            style="{{ $application->is_marketing ? 'background:#ECFDF5;color:#065F46;border-color:#A7F3D0;' : '' }}">
+        <i class="fa fa-bullhorn" id="ja-marketing-icon-{{ $application->id }}"></i>
+        <span id="ja-marketing-label-text-{{ $application->id }}">{{ $application->is_marketing ? 'In Candidate Marketing' : 'Candidate Marketing' }}</span>
+    </button>
 
-                        {{-- Label input — only visible once marketing is ON --}}
-                        <input type="text"
-                            id="ja-marketing-label-input-{{ $application->id }}"
-                            value="{{ $application->marketing_label }}"
-                            placeholder="Marketing label…"
-                            onchange="jaSaveMarketingLabel({{ $application->id }})"
-                            style="display:{{ $application->is_marketing ? 'inline-block' : 'none' }};width:140px;padding:5px 9px;border-radius:8px;border:1px solid #E2DED8;font-size:12px;font-family:'Plus Jakarta Sans',sans-serif;">
-                    </div>
-                    @endif
+    {{-- Label input — only visible once marketing is ON --}}
+    <input type="text"
+           id="ja-marketing-label-input-{{ $application->id }}"
+           value="{{ $application->marketing_label }}"
+           placeholder="Marketing label…"
+           onchange="jaSaveMarketingLabel({{ $application->id }})"
+           style="display:{{ $application->is_marketing ? 'inline-block' : 'none' }};width:140px;padding:5px 9px;border-radius:8px;border:1px solid #E2DED8;font-size:12px;font-family:'Plus Jakarta Sans',sans-serif;">
+</div>
+@endif
 
-                    <script>
-                    function jaToggleMarketing(appId) {
-                        var btn   = document.getElementById('ja-marketing-btn-' + appId);
-                        var icon  = document.getElementById('ja-marketing-icon-' + appId);
-                        var label = document.getElementById('ja-marketing-label-text-' + appId);
-                        var input = document.getElementById('ja-marketing-label-input-' + appId);
+<script>
+function jaToggleMarketing(appId) {
+    var btn   = document.getElementById('ja-marketing-btn-' + appId);
+    var icon  = document.getElementById('ja-marketing-icon-' + appId);
+    var label = document.getElementById('ja-marketing-label-text-' + appId);
+    var input = document.getElementById('ja-marketing-label-input-' + appId);
 
-                        icon.className = 'fa fa-spinner fa-spin';
+    icon.className = 'fa fa-spinner fa-spin';
 
-                        $.ajax({
-                            type: 'POST',
-                            url: "{{ route('admin.job-applications.toggle-marketing', ':id') }}".replace(':id', appId),
-                            data: {
-                                _token: '{{ csrf_token() }}',
-                                marketing_label: input ? input.value : ''
-                            },
-                            success: function (res) {
-                                if (res.status === 'success') {
-                                    var isOn = res.data.is_marketing;
-                                    icon.className = 'fa fa-bullhorn';
-                                    label.textContent = isOn ? 'In Candidate Marketing' : 'Candidate Marketing';
-                                    btn.style.background   = isOn ? '#ECFDF5' : '';
-                                    btn.style.color        = isOn ? '#065F46' : '';
-                                    btn.style.borderColor  = isOn ? '#A7F3D0' : '';
-                                    if (input) input.style.display = isOn ? 'inline-block' : 'none';
-                                }
-                            },
-                            error: function () {
-                                icon.className = 'fa fa-bullhorn';
-                            }
-                        });
-                    }
+    $.ajax({
+        type: 'POST',
+        url: "{{ route('admin.job-applications.toggle-marketing', ':id') }}".replace(':id', appId),
+        data: {
+            _token: '{{ csrf_token() }}',
+            marketing_label: input ? input.value : ''
+        },
+        success: function (res) {
+            icon.className = 'fa fa-bullhorn';
 
-                    function jaSaveMarketingLabel(appId) {
-                        var input = document.getElementById('ja-marketing-label-input-' + appId);
-                        $.ajax({
-                            type: 'POST',
-                            url: "{{ route('admin.job-applications.update-marketing-label', ':id') }}".replace(':id', appId),
-                            data: { _token: '{{ csrf_token() }}', marketing_label: input.value }
-                        });
-                    }
-                    </script>
+            if (res.status !== 'success') return;
+
+            // Response shape can vary — payload may sit under res.data.*
+            // or directly on res.* depending on how Reply::successWithData
+            // serializes. Check both rather than assuming one.
+            var payload = (res.data && typeof res.data.is_marketing !== 'undefined')
+                ? res.data
+                : res;
+
+            var isOn = !!payload.is_marketing;
+
+            label.textContent = isOn ? 'In Candidate Marketing' : 'Candidate Marketing';
+            btn.style.background  = isOn ? '#ECFDF5' : '';
+            btn.style.color       = isOn ? '#065F46' : '';
+            btn.style.borderColor = isOn ? '#A7F3D0' : '';
+            if (input) {
+                input.style.display = isOn ? 'inline-block' : 'none';
+                if (typeof payload.marketing_label !== 'undefined' && payload.marketing_label !== null) {
+                    input.value = payload.marketing_label;
+                }
+            }
+        },
+        error: function () {
+            icon.className = 'fa fa-bullhorn';
+        }
+    });
+}
+
+function jaSaveMarketingLabel(appId) {
+    var input = document.getElementById('ja-marketing-label-input-' + appId);
+    $.ajax({
+        type: 'POST',
+        url: "{{ route('admin.job-applications.update-marketing-label', ':id') }}".replace(':id', appId),
+        data: { _token: '{{ csrf_token() }}', marketing_label: input.value }
+    });
+}
+</script>
                     @if(count($answers) > 0)
                     <div class="ja-tab" data-tab="qa">
                         <i class="fa fa-question-circle-o" style="font-size:11px"></i> @lang('modules.front.additionalDetails')

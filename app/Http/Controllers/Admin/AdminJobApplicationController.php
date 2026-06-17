@@ -2503,8 +2503,8 @@ class AdminJobApplicationController extends AdminBaseController
         return Reply::successWithData(
             $turningOn ? 'Added to Candidate Marketing.' : 'Removed from Candidate Marketing.',
             [
-                'is_marketing'    => (bool) $application->is_marketing,
-                'marketing_label' => $application->marketing_label,
+                'is_marketing'    => $turningOn ? 1 : 0,
+                'marketing_label' => (string) $application->marketing_label,
             ]
         );
     }
