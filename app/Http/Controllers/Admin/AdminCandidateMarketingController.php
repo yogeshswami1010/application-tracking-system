@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\JobApplication;
+use App\JobApplicationAnswer;
 use App\Job;
 use App\Company;
+use App\Skill;
+use App\ZoomSetting;
 use App\Helper\Reply;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
@@ -133,5 +136,41 @@ class AdminCandidateMarketingController extends AdminBaseController
         $application->save();
 
         return Reply::success('Removed from Candidate Marketing.');
+    }
+
+    /**
+     * Dedicated profile view for Candidate Marketing — separate from both
+     * job-applications.show and applications-archive.show so that stage-move
+     * / prev-next actions inside it can never silently fall back to either
+     * of those older views (which caused null-status crashes for
+     * candidate-database-origin applicants).
+     */
+    public function show($id)
+    {
+        $this->application = JobApplication::with([
+            'documents',
+            'schedule',
+            'notes',
+            'onboard',
+            'status',
+            'schedule.employee',
+            'schedule.comments.user',
+        ])->withTrashed()->find($id);
+
+        $this->skills = Skill::select('id', 'name')->get();
+
+        $this->answers = $this->application->job_id
+            ? JobApplicationAnswer::with(['question'])
+                ->where('job_id', $this->application->job_id)
+                ->where('job_application_id', $this->application->id)
+                ->get()
+            : collect();
+
+        $this->allJobs = Job::orderBy('title')->with('location')->get();
+        $this->zoom_setting = ZoomSetting::first();
+
+        $view = view('admin.candidate-marketing.show', $this->data)->render();
+
+        return Reply::dataOnly(['status' => 'success', 'view' => $view]);
     }
 }
