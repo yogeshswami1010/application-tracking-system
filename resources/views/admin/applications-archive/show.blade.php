@@ -1616,8 +1616,8 @@ function jaMoveFromDetail(appId, toStatusId, toStatusLabel, currentStatusId) {
         success: function(response) {
             if (response.status === 'success') {
 
-                var showUrl = "{{ route('admin.job-applications.show', ':id') }}"
-                    .replace(':id', appId);
+                var showUrl = "{{ route('admin.applications-archive.show', ':id') }}"
+                .replace(':id', appId);
 
                 $.easyAjax({
                     type: 'GET',
@@ -1913,7 +1913,7 @@ function jaAssignJob(appId) {
 (function () {
 
     var CURRENT_ID = {{ $application->id }};
-    var showUrlTpl = "{{ route('admin.job-applications.show', ':id') }}";
+    var showUrlTpl = "{{ route('admin.applications-archive.show', ':id') }}";
 
     function getIds() {
         return (typeof jaApplicantIds !== 'undefined' && Array.isArray(jaApplicantIds) && jaApplicantIds.length)
