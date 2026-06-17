@@ -83,7 +83,14 @@ $(function () {
             }
         },
         columns: [
-            { data: 'DT_RowIndex', orderable: false, searchable: false },
+            {
+                data: null,
+                orderable: false,
+                searchable: false,
+                render: function (data, type, row, meta) {
+                    return meta.row + meta.settings._iDisplayStart + 1;
+                }
+            },
             { data: 'full_name', name: 'full_name' },
             { data: 'title', name: 'title' },
             { data: 'marketing_label', name: 'marketing_label' },
