@@ -73,8 +73,9 @@
 <script>
 $(function () {
     var cmTable = $('#candidate-marketing-table').DataTable({
-        processing: true,
+        processing: false,
         serverSide: true,
+        language: (typeof languageOptions === 'function') ? languageOptions() : {},
         ajax: {
             url: "{{ route('admin.candidate-marketing.data') }}",
             data: function (d) {
