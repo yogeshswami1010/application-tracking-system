@@ -162,7 +162,7 @@
 
         <div class="ja-header-pills">
             <span class="ja-pill ja-pill-stage" style="background: {{ $stagePillBg }};">
-                {{ ucwords($application->status->status) }}
+                {{ $application->status ? ucwords($application->status->status) : 'Internal' }}
             </span>
             <span class="ja-pill ja-pill-cat {{ $detailCatClass }}">{{ ucfirst($detailCatName) }}</span>
         </div>
