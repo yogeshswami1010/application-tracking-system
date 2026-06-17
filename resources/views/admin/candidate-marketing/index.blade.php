@@ -113,7 +113,7 @@ $(function () {
         var $sidebar  = $('#right-sidebar');
         var $backdrop = $('#right-sidebar-backdrop');
         $sidebar.removeClass('translate-x-full').addClass('translate-x-0');
-        $backdrop.removeClass('hidden').css({ display: 'block', visibility: 'visible' });
+        $backdrop.removeClass('hidden');
 
         var id  = $(this).data('row-id');
         var url = "{{ route('admin.job-applications.show', ':id') }}".replace(':id', id);
