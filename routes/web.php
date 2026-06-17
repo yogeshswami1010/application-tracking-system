@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AdminAiSettingsController;
 use App\Http\Controllers\Admin\AdminApplicationArchiveController;
 use App\Http\Controllers\Admin\AdminApplicationStatusController;
+use App\Http\Controllers\Admin\AdminCandidateMarketingController;
 use App\Http\Controllers\Admin\AdminCompanyController;
 use App\Http\Controllers\Admin\AdminCurrencyController;
 use App\Http\Controllers\Admin\AdminDashboardController;
@@ -247,6 +248,13 @@ Route::middleware('auth')->group(function () {
             Route::post('job-applications/{id}/assign-job',               [AdminJobApplicationController::class, 'assignJob'])->name('job-applications.assign-job');
             Route::post('job-applications/{id}/update-info', [AdminJobApplicationController::class, 'updateBasicInfo'])
             ->name('job-applications.update-basic-info');
+            Route::post('job-applications/{id}/toggle-marketing',         [AdminJobApplicationController::class, 'toggleMarketing'])->name('job-applications.toggle-marketing');
+            Route::post('job-applications/{id}/update-marketing-label',   [AdminJobApplicationController::class, 'updateMarketingLabel'])->name('job-applications.update-marketing-label');
+            // Candidate Marketing
+            Route::get('candidate-marketing/data',          [AdminCandidateMarketingController::class, 'data'])->name('candidate-marketing.data');
+            Route::post('candidate-marketing/{id}/remove',  [AdminCandidateMarketingController::class, 'remove'])->name('candidate-marketing.remove');
+            Route::resource('candidate-marketing', AdminCandidateMarketingController::class)->only(['index']);
+
             // Applications Archive
             Route::get('applications-archive/data',            [AdminApplicationArchiveController::class, 'data'])->name('applications-archive.data');
             Route::get('applications-archive/export/{skill}',  [AdminApplicationArchiveController::class, 'export'])->name('applications-archive.export');

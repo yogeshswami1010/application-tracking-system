@@ -2473,4 +2473,54 @@ class AdminJobApplicationController extends AdminBaseController
             'user_id'            => $userId,
         ]);
     }
+    /**
+     * Toggle an applicant's "Candidate Marketing" flag on/off.
+     * Used by the button on the applicant profile (job-applications/show.blade.php).
+     */
+    public function toggleMarketing(Request $request, $id)
+    {
+        abort_if(!$this->user->cans('edit_job_applications'), 403);
+
+        $application = JobApplication::withTrashed()->findOrFail($id);
+
+        $turningOn = !$application->is_marketing;
+
+        $application->is_marketing = $turningOn ? 1 : 0;
+
+        if ($turningOn) {
+            $application->marketing_added_at = Carbon::now();
+            if ($request->filled('marketing_label')) {
+                $application->marketing_label = trim($request->marketing_label);
+            }
+        } else {
+            // Switching off clears the timestamp but keeps the label in case they
+            // re-enable later and want it pre-filled.
+            $application->marketing_added_at = null;
+        }
+
+        $application->save();
+
+        return Reply::successWithData(
+            $turningOn ? 'Added to Candidate Marketing.' : 'Removed from Candidate Marketing.',
+            [
+                'is_marketing'    => (bool) $application->is_marketing,
+                'marketing_label' => $application->marketing_label,
+            ]
+        );
+    }
+
+    /**
+     * Save/update just the marketing label without toggling the flag.
+     * Used when the label input is edited while marketing is already on.
+     */
+    public function updateMarketingLabel(Request $request, $id)
+    {
+        abort_if(!$this->user->cans('edit_job_applications'), 403);
+
+        $application = JobApplication::withTrashed()->findOrFail($id);
+        $application->marketing_label = trim((string) $request->marketing_label);
+        $application->save();
+
+        return Reply::success('Label updated.');
+    }
 }
