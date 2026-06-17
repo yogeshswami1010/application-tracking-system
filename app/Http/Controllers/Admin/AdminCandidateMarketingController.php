@@ -86,7 +86,17 @@ class AdminCandidateMarketingController extends AdminBaseController
                 return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold text-white" style="background:' . $color . '">' . $label . '</span>';
             })
             ->editColumn('marketing_added_at', function ($row) {
-                return $row->marketing_added_at ? $row->marketing_added_at->format('d M Y') : '—';
+                if (empty($row->marketing_added_at)) {
+                    return '—';
+                }
+
+                // marketing_added_at may arrive as a raw string (no $casts entry
+                // on the model) or already as a Carbon instance — handle both.
+                $date = $row->marketing_added_at instanceof \Carbon\Carbon
+                    ? $row->marketing_added_at
+                    : \Carbon\Carbon::parse($row->marketing_added_at);
+
+                return $date->format('d M Y');
             })
             ->addColumn('action', function ($row) {
                 return '<div class="ja-row-actions">
