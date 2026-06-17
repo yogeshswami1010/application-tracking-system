@@ -1782,7 +1782,17 @@
 
             var isResave  = !!item.applicationId;
             var saveUrl   = isResave ? bulkUpdateUrlTpl.replace(':id', item.applicationId) : bulkStoreUrl;
-            if (!isResave) fd.append('is_bulk', 1);
+            if (!isResave) {
+                fd.append('is_bulk', 1);
+            } else {
+                // admin.job-applications.update is a resource route registered
+                // under PUT, not POST. FormData + file uploads work most reliably
+                // with Laravel's method-spoofing field rather than a native PUT
+                // request, so we keep type: 'POST' below and spoof it here —
+                // same pattern already used elsewhere in this file for note
+                // updates/deletes ('_method': 'PUT' / 'DELETE').
+                fd.append('_method', 'PUT');
+            }
         
             $.ajax({
                 url:         saveUrl,
