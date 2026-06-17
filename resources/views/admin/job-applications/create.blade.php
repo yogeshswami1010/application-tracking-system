@@ -763,6 +763,7 @@
         ───────────────────────────────────────────── */
         const bulkCsrfToken          = "{{ csrf_token() }}";
         const bulkStoreUrl           = "{{ route('admin.job-applications.store') }}";
+        const bulkUpdateUrlTpl       = "{{ route('admin.job-applications.update', ':id') }}";
         const bulkIndexUrl           = "{{ route('admin.job-applications.index') }}";
         const archiveUrl             = "https://virtualtecsolutions.com/admin/applications-archive";
         const bulkQuestionRouteBase  = "{{ route('admin.job-applications.question', ':id') }}";
@@ -808,17 +809,18 @@
                 });
                 if (!alreadyAdded) {
                     bulkQueue.push({
-                        file:       f,
-                        name:       f.name.replace(/\.[^.]+$/, ''),
-                        status:     'pending',
-                        parsed:     null,
-                        saved:      false,
-                        notes:      [],
-                        filing:     bulkLastFiling,  // inherit current, not hardcoded 'db'
-                        _filingSet: false,           // not manually chosen yet
-                        jobLocId:   '',
-                        jobId:      '',
-                        locId:      '',
+                        file:          f,
+                        name:          f.name.replace(/\.[^.]+$/, ''),
+                        status:        'pending',
+                        parsed:        null,
+                        saved:         false,
+                        applicationId: null,   // set after first successful save; reused for updates
+                        notes:         [],
+                        filing:        bulkLastFiling,
+                        _filingSet:    false,
+                        jobLocId:      '',
+                        jobId:         '',
+                        locId:         '',
                     });
                 }
             });
@@ -1778,8 +1780,12 @@
             // Resume file
             if (item.file) fd.append('resume', item.file);
 
+            var isResave  = !!item.applicationId;
+            var saveUrl   = isResave ? bulkUpdateUrlTpl.replace(':id', item.applicationId) : bulkStoreUrl;
+            if (!isResave) fd.append('is_bulk', 1);
+        
             $.ajax({
-                url:         bulkStoreUrl,
+                url:         saveUrl,
                 type:        'POST',
                 data:        fd,
                 processData: false,
@@ -1791,10 +1797,20 @@
                     if (response && response.status === 'success') {
                         item.saved  = true;
                         item.status = 'done';
+        
+                        // Capture the new record's id so any future re-save of
+                        // this same item updates it instead of creating another.
+                        if (!isResave) {
+                            var newId = (response.data && response.data.id)
+                                ? response.data.id
+                                : (response.id || null);
+                            item.applicationId = newId;
+                        }
+        
                         bulkRenderQueue();
                         bulkUpdateProgress();
                         bulkUpdateBatchBar();
-
+        
                         var next = bulkFindNext();
                         if (next !== -1) {
                             bulkSelectItem(next);
