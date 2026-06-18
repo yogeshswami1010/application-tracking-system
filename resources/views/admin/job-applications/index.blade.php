@@ -1099,53 +1099,45 @@
 
     // ── Draggable stage tab reordering ──────────────────────────
     (function () {
-        var dragSrc  = null;
-        var LS_KEY   = 'ja-tab-order';
+        var dragSrc = null;
+        var LS_KEY  = 'ja-tab-order';
 
         function storedOrder() {
             try { return JSON.parse(localStorage.getItem(LS_KEY)) || null; }
             catch (e) { return null; }
         }
 
-        function persistOrder(container) {
+        function persistOrder() {
+            var row = document.getElementById('ja-stage-tabs-row');
+            if (!row) return;
             var ids = [];
-            container.querySelectorAll('.ja-stage-tab[draggable]').forEach(function (el) {
+            row.querySelectorAll('.ja-stage-tab[draggable="true"]').forEach(function (el) {
                 ids.push(parseInt(el.getAttribute('data-stage-id'), 10));
             });
             localStorage.setItem(LS_KEY, JSON.stringify(ids));
-
-            // Keep jaStages in sync with visual order
             var reordered = [];
             ids.forEach(function (id) {
                 var s = jaStages.find(function (x) { return x.id === id; });
                 if (s) reordered.push(s);
             });
-            // Append any stage not yet in list (future-safe)
             jaStages.forEach(function (s) {
                 if (ids.indexOf(s.id) === -1) reordered.push(s);
             });
             jaStages = reordered;
         }
 
-        function applyStoredOrder(container) {
+        function applyStoredOrder() {
             var saved = storedOrder();
             if (!saved || !saved.length) return;
-
-            // Index existing tab buttons by id
+            var wrap = document.getElementById('ja-stage-tabs-draggable');
+            if (!wrap) return;
             var tabMap = {};
-            container.querySelectorAll('.ja-stage-tab[draggable]').forEach(function (el) {
+            wrap.querySelectorAll('.ja-stage-tab[draggable="true"]').forEach(function (el) {
                 tabMap[parseInt(el.getAttribute('data-stage-id'), 10)] = el;
             });
-
-            // Only reorder if every saved id still exists (guard against stale cache)
             var allPresent = saved.every(function (id) { return !!tabMap[id]; });
             if (!allPresent) return;
-
-            saved.forEach(function (id) {
-                container.appendChild(tabMap[id]);
-            });
-
-            // Sync jaStages array
+            saved.forEach(function (id) { wrap.appendChild(tabMap[id]); });
             var reordered = [];
             saved.forEach(function (id) {
                 var s = jaStages.find(function (x) { return x.id === id; });
@@ -1158,75 +1150,91 @@
         }
 
         function initDragTabs() {
-            var container = document.getElementById('ja-stage-tabs-draggable');
-            if (!container) return;
+            // Attach to the real flex row div — display:contents span has no hit-test area
+            var row = document.getElementById('ja-stage-tabs-row');
+            if (!row) return;
 
-            // Apply any previously saved ordering on load
-            applyStoredOrder(container);
+            applyStoredOrder();
 
-            container.addEventListener('dragstart', function (e) {
-                var tab = e.target.closest('.ja-stage-tab[draggable]');
+            row.addEventListener('dragstart', function (e) {
+                var tab = e.target.closest('.ja-stage-tab[draggable="true"]');
                 if (!tab) return;
                 dragSrc = tab;
-                tab.classList.add('dragging');
                 e.dataTransfer.effectAllowed = 'move';
                 e.dataTransfer.setData('text/plain', tab.getAttribute('data-stage-id'));
+                // Delay adding class so ghost image captures normal state
+                setTimeout(function () { tab.classList.add('dragging'); }, 0);
             });
 
-            container.addEventListener('dragend', function () {
-                container.querySelectorAll('.ja-stage-tab').forEach(function (t) {
+            row.addEventListener('dragend', function () {
+                row.querySelectorAll('.ja-stage-tab').forEach(function (t) {
                     t.classList.remove('dragging', 'drag-over');
                 });
                 dragSrc = null;
             });
 
-            container.addEventListener('dragover', function (e) {
+            row.addEventListener('dragover', function (e) {
+                if (!dragSrc) return;
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
-                var tab = e.target.closest('.ja-stage-tab[draggable]');
-                container.querySelectorAll('.ja-stage-tab').forEach(function (t) {
+                var tab = e.target.closest('.ja-stage-tab[draggable="true"]');
+                row.querySelectorAll('.ja-stage-tab').forEach(function (t) {
                     t.classList.remove('drag-over');
                 });
                 if (tab && tab !== dragSrc) tab.classList.add('drag-over');
             });
 
-            container.addEventListener('dragleave', function (e) {
-                // Only clear when leaving the container entirely
-                if (!container.contains(e.relatedTarget)) {
-                    container.querySelectorAll('.ja-stage-tab').forEach(function (t) {
-                        t.classList.remove('drag-over');
-                    });
-                }
-            });
-
-            container.addEventListener('drop', function (e) {
+            row.addEventListener('drop', function (e) {
                 e.preventDefault();
-                var target = e.target.closest('.ja-stage-tab[draggable]');
-                container.querySelectorAll('.ja-stage-tab').forEach(function (t) {
+                if (!dragSrc) return;
+                var target = e.target.closest('.ja-stage-tab[draggable="true"]');
+                row.querySelectorAll('.ja-stage-tab').forEach(function (t) {
                     t.classList.remove('drag-over');
                 });
-                if (!target || !dragSrc || target === dragSrc) return;
-
-                // Insert before or after based on cursor position
+                if (!target || target === dragSrc) return;
                 var rect  = target.getBoundingClientRect();
                 var after = e.clientX > rect.left + rect.width / 2;
-                if (after) {
-                    target.after(dragSrc);
-                } else {
-                    container.insertBefore(dragSrc, target);
-                }
-
-                persistOrder(container);
+                if (after) { target.after(dragSrc); } else { target.before(dragSrc); }
+                persistOrder();
             });
         }
 
-        // Init as soon as DOM is ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', initDragTabs);
         } else {
             initDragTabs();
         }
     })();
+
+    // ── Status filter: reload options when job changes ───────────
+    function jaReloadStatusFilter(jobId) {
+        $.ajax({
+            url: '{{ route("admin.job-applications.job-statuses") }}',
+            type: 'GET',
+            data: { job_id: jobId || 0 },
+            success: function (res) {
+                var payload  = res.data ? res.data : res;
+                var statuses = payload.statuses || [];
+                var html     = '<option value="all">@lang("modules.jobApplication.allStatus")</option>';
+                statuses.forEach(function (s) {
+                    html += '<option value="' + s.id + '">' + s.label + '</option>';
+                });
+                var $sel = $('#status');
+                var wasVal = $sel.val();
+                $sel.select2('destroy').html(html).select2({ width: '100%' });
+                // Restore selection if still valid
+                if ($sel.find('option[value="' + wasVal + '"]').length) {
+                    $sel.val(wasVal).trigger('change.select2');
+                }
+            }
+        });
+    }
+
+    // Reload statuses when the jobs dropdown changes
+    $('#jobs').on('change', function () {
+        var jobId = $(this).val();
+        jaReloadStatusFilter(jobId === 'all' ? 0 : parseInt(jobId, 10));
+    });
 
     // ── Auto-open applicant sidebar from notification link ──
     (function () {

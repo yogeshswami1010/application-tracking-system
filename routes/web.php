@@ -242,6 +242,7 @@ Route::middleware('auth')->group(function () {
             Route::get('job-applications/stage-counts',                   [AdminJobApplicationController::class, 'stageCounts'])->name('job-applications.stage-counts');
             Route::post('job-applications/bulk-status-update',            [AdminJobApplicationController::class, 'bulkStatusUpdate'])->name('job-applications.bulk-status-update');
             Route::post('job-applications/bulk-restore-knockout',         [AdminJobApplicationController::class, 'bulkRestoreKnockout'])->name('job-applications.bulk-restore-knockout');
+            Route::get('job-applications/job-statuses',                   [AdminJobApplicationController::class, 'jobStatuses'])->name('job-applications.job-statuses');
             Route::post('job-applications/bulk-parse-resume',             [AdminJobApplicationController::class, 'bulkParseResume'])->name('job-applications.bulk-parse-resume');
             Route::resource('job-applications', AdminJobApplicationController::class);
             Route::post('job-applications/{id}/parse-skills',             [AdminJobApplicationController::class, 'parseSkills'])->name('job-applications.parse-skills');

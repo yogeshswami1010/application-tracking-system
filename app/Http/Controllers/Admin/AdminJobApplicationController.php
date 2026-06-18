@@ -543,6 +543,37 @@ class AdminJobApplicationController extends AdminBaseController
             ->addIndexColumn()
             ->make(true);
     }
+    public function jobStatuses(Request $request)
+    {
+        $jobId = (int) $request->input('job_id', 0);
+
+        $statuses = collect();
+
+        if ($jobId > 0) {
+            try {
+                $statuses = ApplicationStatus::where('job_id', $jobId)->orderBy('position')->get();
+            } catch (\Exception $e) {
+                // job_id column not yet migrated — fall through to global
+            }
+        }
+
+        if ($statuses->isEmpty()) {
+            try {
+                $statuses = ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
+            } catch (\Exception $e) {
+                $statuses = ApplicationStatus::orderBy('position')->get();
+            }
+        }
+
+        return Reply::dataOnly([
+            'statuses' => $statuses->map(fn ($s) => [
+                'id'    => $s->id,
+                'label' => ucfirst($s->status),
+                'color' => $s->color ?? '#2563eb',
+            ])->values(),
+        ]);
+    }
+
     public function stageCounts(Request $request)
     {
         $company        = $request->input('company', 'all');
