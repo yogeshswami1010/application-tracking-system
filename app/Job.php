@@ -117,5 +117,8 @@ class Job extends Model
     {
         return $this->belongsTo(Currency::class, 'currency_id');
     }
-
+    public function statuses()
+    {
+        return $this->hasMany(ApplicationStatus::class, 'job_id')->orderBy('position');
+    }
 }

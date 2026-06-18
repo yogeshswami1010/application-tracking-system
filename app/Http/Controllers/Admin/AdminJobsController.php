@@ -130,13 +130,16 @@ class AdminJobsController extends AdminBaseController
     public function create()
     {
         abort_if(! $this->user->cans('add_jobs'), 403);
-        $this->job = (request()['duplicate_job'] ? Job::with(['category', 'skills', 'questions'])->findOrFail(request()['duplicate_job']) : null);
+        $this->job = (request()['duplicate_job'] ? Job::with(['category', 'skills', 'questions', 'statuses'])->findOrFail(request()['duplicate_job']) : null);
         $selectedCategoryId = null;
         if (! is_null($this->job)) {
             $this->jobQuestion = $this->job->questions->pluck('id')->toArray();
             $this->skills = Skill::where('category_id', $this->job->category_id)->get();
             $this->jobLocation = $this->job->jobLocation->pluck('id')->toArray();
             $selectedCategoryId = (int) $this->job->category_id;
+            $this->jobStatuses = $this->job->statuses;
+        } else {
+            $this->jobStatuses = collect();
         }
         if (! $selectedCategoryId && request()->filled('category_id')) {
             $selectedCategoryId = (int) request('category_id');
@@ -276,6 +279,7 @@ class AdminJobsController extends AdminBaseController
             $jobLocation->location_id = $location;
             $jobLocation->save();
         }
+        $this->syncJobStatuses($job->id, $request);
 
         event(new JobAlertEvent($job));
 
@@ -315,7 +319,7 @@ class AdminJobsController extends AdminBaseController
         $this->companies = Company::all();
         $this->jobTypes = JobType::all();
         $this->workExperiences = WorkExperience::all();
-
+        $this->jobStatuses = $this->job->statuses;
         return view('admin.jobs.edit', $this->data);
     }
 
@@ -451,7 +455,7 @@ class AdminJobsController extends AdminBaseController
             $jobLocation->location_id = $location;
             $jobLocation->save();
         }
-
+        $this->syncJobStatuses($id, $request);
         return Reply::redirect(route('admin.jobs.index'), __('menu.jobs').' '.__('messages.updatedSuccessfully'));
     }
 
@@ -1221,5 +1225,43 @@ class AdminJobsController extends AdminBaseController
         }
 
         return substr($key, 0, 4).'...'.substr($key, -4);
+    }
+        private function syncJobStatuses(int $jobId, Request $request): void
+    {
+        $names  = $request->input('job_status_name', []);
+        $colors = $request->input('job_status_color', []);
+        $ids    = $request->input('job_status_id', []);
+
+        $submittedIds = array_filter($ids, fn ($v) => is_numeric($v) && (int) $v > 0);
+        ApplicationStatus::where('job_id', $jobId)
+            ->whereNotIn('id', $submittedIds)
+            ->delete();
+
+        foreach ($names as $index => $name) {
+            $name = trim((string) $name);
+            if ($name === '') {
+                continue;
+            }
+
+            $color    = $colors[$index] ?? '#6B7280';
+            $statusId = $ids[$index] ?? null;
+
+            if (is_numeric($statusId) && (int) $statusId > 0) {
+                ApplicationStatus::where('id', (int) $statusId)
+                    ->where('job_id', $jobId)
+                    ->update([
+                        'status'   => $name,
+                        'color'    => $color,
+                        'position' => $index + 1,
+                    ]);
+            } else {
+                ApplicationStatus::create([
+                    'job_id'   => $jobId,
+                    'status'   => $name,
+                    'color'    => $color,
+                    'position' => $index + 1,
+                ]);
+            }
+        }
     }
 }
