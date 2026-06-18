@@ -806,11 +806,11 @@
                                 <h3 class="text-[15px] font-bold text-[#0F1F3D]">Application Pipeline Statuses</h3>
                                 <p class="mt-0.5 text-[12px] text-[#8892A0]">Define custom stages for this job's hiring pipeline (e.g. Applied → Phone Screen → Interview → Offer)</p>
                             </div>
-                            <button type="button" id="add-job-status-btn"
-                                class="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-3.5 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500/30">
-                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-                                Add Status
-                            </button>
+                        <button type="button" id="add-job-status-btn"
+                            class="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30">
+                            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                            Add Status
+                        </button>
                         </div>
 
                         <div class="p-5">
