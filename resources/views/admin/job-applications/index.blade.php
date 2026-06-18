@@ -355,20 +355,7 @@
             </button>
 
             <span id="ja-stage-tabs-draggable">
-            @forelse($boardColumns as $col)
-            <button
-                class="ja-stage-tab"
-                draggable="true"
-                data-stage-id="{{ $col->id }}"
-                data-stage-color="{{ $col->color ?? '#2563eb' }}"
-                data-stage-slug="{{ $col->status }}"
-                onclick="jaStageTab({{ $col->id }}, '{{ addslashes($col->color ?? '#2563eb') }}', '{{ addslashes($col->status) }}')"
-                style="--tab-color: {{ $col->color ?? '#2563eb' }}">
-                {{ ucfirst($col->status) }}
-                <span class="ja-stage-badge" id="ja-tab-count-{{ $col->id }}">0</span>
-            </button>
-            @empty
-            @endforelse
+            {{-- pipeline stage tabs injected here by JS when a job is selected --}}
             </span>
 
             {{-- Knockouts tab --}}
@@ -452,7 +439,7 @@
     <script src="{{ asset('assets/node_modules_files/bootstrap-datepicker/bootstrap-datepicker.min.js') }}" type="text/javascript"></script>
 
     <script>
-    var jaStages = {!! $jaStagesJson !!};
+    var jaStages = []; // populated dynamically when a job is selected
 
     // ── State ────────────────────────────────────────────────────
     var jaActiveStageId  = 'all';   // 'all' | stage id
@@ -1060,37 +1047,11 @@
     // ── Select2 init ─────────────────────────────────────────────
     $('#filter-form select.select2').not('#skill').select2({ width: '100%' });
 
-    // ── Init — default to Applied stage on page load ─────────────
-    jaShowKO = false;
-
-    // Find the applied stage from jaStages array
-    var appliedStage = jaStages.find(function(s) { return s.slug === 'applied'; });
-
-    if (appliedStage) {
-        jaActiveStageId = appliedStage.id;
-
-        // Set status select to applied
-        $('#status').val(appliedStage.id).trigger('change.select2');
-
-        // Activate the applied tab visually
-        document.querySelectorAll('.ja-stage-tab').forEach(function(el) {
-            el.classList.remove('active');
-        });
-        document.getElementById('ja-tab-all').classList.remove('active');
-        document.getElementById('ja-ko-tab-btn').classList.remove('active');
-        document.getElementById('ja-ko-banner').classList.remove('show');
-
-        var appliedTab = document.querySelector('[data-stage-id="' + appliedStage.id + '"]');
-        if (appliedTab) {
-            appliedTab.classList.add('active');
-            appliedTab.style.setProperty('--tab-color', appliedStage.color);
-        }
-    } else {
-        // Fallback to all if applied stage not found
-        jaActiveStageId = 'all';
-        $('#status').val('all').trigger('change.select2');
-        document.getElementById('ja-tab-all').classList.add('active');
-    }
+    // ── Init — no job selected, show all applicants ──────────────
+    jaShowKO        = false;
+    jaActiveStageId = 'all';
+    $('#status').val('all').trigger('change.select2');
+    document.getElementById('ja-tab-all').classList.add('active');
 
     tableLoad('load');
     jaLoadTabCounts();
@@ -1206,34 +1167,85 @@
         }
     })();
 
-    // ── Status filter: reload options when job changes ───────────
-    function jaReloadStatusFilter(jobId) {
+    // ── Build/rebuild pipeline stage tab buttons ─────────────────
+    function jaRebuildStageTabs(statuses) {
+        var wrap = document.getElementById('ja-stage-tabs-draggable');
+        if (!wrap) return;
+
+        // Clear existing dynamic tabs
+        wrap.innerHTML = '';
+
+        // Update global jaStages
+        jaStages = statuses.map(function (s) {
+            return { id: s.id, slug: s.slug, label: s.label, color: s.color || '#2563eb' };
+        });
+
+        if (!statuses.length) return;
+
+        statuses.forEach(function (s) {
+            var btn = document.createElement('button');
+            btn.className = 'ja-stage-tab';
+            btn.setAttribute('draggable', 'true');
+            btn.setAttribute('data-stage-id', s.id);
+            btn.setAttribute('data-stage-color', s.color || '#2563eb');
+            btn.setAttribute('data-stage-slug', s.slug);
+            btn.style.setProperty('--tab-color', s.color || '#2563eb');
+            btn.innerHTML = s.label
+                + ' <span class="ja-stage-badge" id="ja-tab-count-' + s.id + '">0</span>';
+            btn.addEventListener('click', function () {
+                jaStageTab(s.id, s.color || '#2563eb', s.slug);
+            });
+            wrap.appendChild(btn);
+        });
+
+        jaLoadTabCounts();
+    }
+
+    // ── Load job statuses → rebuild both status dropdown + tab bar ─
+    function jaLoadJobStatuses(jobId) {
+        if (!jobId || jobId === 'all' || parseInt(jobId, 10) === 0) {
+            // No job selected: clear stage tabs, reset status dropdown to global
+            jaRebuildStageTabs([]);
+            jaStageTabAll();
+            // Restore default status options
+            var defaultHtml = '<option value="all">@lang("modules.jobApplication.allStatus")</option>';
+            @foreach($boardColumns as $col)
+            defaultHtml += '<option value="{{ $col->id }}">{{ ucfirst($col->status) }}</option>';
+            @endforeach
+            $('#status').select2('destroy').html(defaultHtml).select2({ width: '100%' });
+            return;
+        }
+
         $.ajax({
             url: '{{ route("admin.job-applications.job-statuses") }}',
             type: 'GET',
-            data: { job_id: jobId || 0 },
+            data: { job_id: parseInt(jobId, 10) },
             success: function (res) {
                 var payload  = res.data ? res.data : res;
                 var statuses = payload.statuses || [];
-                var html     = '<option value="all">@lang("modules.jobApplication.allStatus")</option>';
+
+                // Rebuild status filter dropdown
+                var html = '<option value="all">@lang("modules.jobApplication.allStatus")</option>';
                 statuses.forEach(function (s) {
                     html += '<option value="' + s.id + '">' + s.label + '</option>';
                 });
-                var $sel = $('#status');
-                var wasVal = $sel.val();
-                $sel.select2('destroy').html(html).select2({ width: '100%' });
-                // Restore selection if still valid
-                if ($sel.find('option[value="' + wasVal + '"]').length) {
-                    $sel.val(wasVal).trigger('change.select2');
+                $('#status').select2('destroy').html(html).select2({ width: '100%' });
+
+                // Rebuild stage tab bar
+                jaRebuildStageTabs(statuses);
+
+                // Auto-activate first stage tab if present
+                if (statuses.length) {
+                    var first = statuses[0];
+                    jaStageTab(first.id, first.color || '#2563eb', first.slug);
                 }
             }
         });
     }
 
-    // Reload statuses when the jobs dropdown changes
+    // When jobs dropdown changes → reload statuses
     $('#jobs').on('change', function () {
-        var jobId = $(this).val();
-        jaReloadStatusFilter(jobId === 'all' ? 0 : parseInt(jobId, 10));
+        jaLoadJobStatuses($(this).val());
     });
 
     // ── Auto-open applicant sidebar from notification link ──

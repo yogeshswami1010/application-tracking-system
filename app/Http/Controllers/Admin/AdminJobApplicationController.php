@@ -568,6 +568,7 @@ class AdminJobApplicationController extends AdminBaseController
         return Reply::dataOnly([
             'statuses' => $statuses->map(fn ($s) => [
                 'id'    => $s->id,
+                'slug'  => $s->status,
                 'label' => ucfirst($s->status),
                 'color' => $s->color ?? '#2563eb',
             ])->values(),
