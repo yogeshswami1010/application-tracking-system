@@ -15,8 +15,23 @@ class ApplicationStatus extends Model
         return $this->hasMany(JobApplication::class, 'status_id');
     }
 
+    public function job()
+    {
+        return $this->belongsTo(Job::class, 'job_id');
+    }
+
     public function scopeStatus($query, $type)
     {
         return $query->where('status', $type)->first();
+    }
+
+    public function scopeGlobal($query)
+    {
+        return $query->whereNull('job_id');
+    }
+
+    public function scopeForJob($query, int $jobId)
+    {
+        return $query->where('job_id', $jobId);
     }
 }

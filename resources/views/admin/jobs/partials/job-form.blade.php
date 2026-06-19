@@ -1105,7 +1105,7 @@
                 </div>
 
                 {{-- ── Pipeline Statuses (sticky sidebar card) ── --}}
-                <div class="sticky top-4 rounded-2xl border border-[#E8E6E1] bg-white">
+                <div class="rounded-2xl border border-[#E8E6E1] bg-white">
                     <div class="flex items-center justify-between gap-2 border-b border-[#F0EEE9] px-4 py-3">
                         <div class="flex items-center gap-2">
                             <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
@@ -1391,6 +1391,59 @@ $(document).ready(function () {
                 });
             });
         }).observe(list, { childList: true });
+    }
+})();
+
+// ── Inject sidebar pipeline inputs into the form before submit ───
+(function () {
+    var form = document.getElementById('createForm');
+    if (!form) return;
+
+    function injectStatusInputs() {
+        // Remove any previously injected hidden inputs
+        form.querySelectorAll('.js-pipeline-hidden').forEach(function (el) { el.remove(); });
+
+        var list = document.getElementById('job-status-list');
+        if (!list) return;
+
+        list.querySelectorAll('.job-status-row').forEach(function (row) {
+            var nameEl  = row.querySelector('input[name="job_status_name[]"]');
+            var colorEl = row.querySelector('input[name="job_status_color[]"]');
+            var idEl    = row.querySelector('input[name="job_status_id[]"]');
+
+            var name  = nameEl  ? nameEl.value.trim()  : '';
+            var color = colorEl ? colorEl.value        : '#2563EB';
+            var id    = idEl    ? idEl.value           : '';
+
+            if (!name) return;
+
+            function hi(n, v) {
+                var el = document.createElement('input');
+                el.type = 'hidden';
+                el.name = n;
+                el.value = v;
+                el.className = 'js-pipeline-hidden';
+                form.appendChild(el);
+            }
+
+            hi('job_status_name[]',  name);
+            hi('job_status_color[]', color);
+            hi('job_status_id[]',    id);
+        });
+    }
+
+    // Hook both native submit and the ajax-form submit event
+    form.addEventListener('submit', injectStatusInputs);
+
+    // Also hook the Save button directly in case the form uses $.easyAjax
+    var saveBtn = form.querySelector('button[type="submit"]');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', injectStatusInputs);
+    }
+
+    // If the project uses a global ajaxForm trigger, hook it too
+    if (typeof $ !== 'undefined') {
+        $(document).on('ajaxFormSubmit submit', '#createForm', injectStatusInputs);
     }
 })();
 </script>
