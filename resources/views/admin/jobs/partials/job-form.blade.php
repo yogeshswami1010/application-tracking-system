@@ -1298,3 +1298,133 @@ $(document).ready(function () {
 
 </script>
 
+<script>
+// ── Pipeline status rows (Add / Remove / Drag-to-reorder) ────────
+(function () {
+    var palette = ['#2563EB','#10B981','#F59E0B','#EF4444','#8B5CF6','#EC4899','#06B6D4','#64748B'];
+    var paletteIdx = 0;
+
+    function syncEmpty() {
+        var list  = document.getElementById('job-status-list');
+        var empty = document.getElementById('js-status-empty');
+        if (!list) return;
+        var rows = list.querySelectorAll('.job-status-row');
+        if (empty) empty.style.display = rows.length ? 'none' : '';
+    }
+
+    function makeRow(name, color) {
+        name  = name  || '';
+        color = color || palette[paletteIdx++ % palette.length];
+
+        var div = document.createElement('div');
+        div.className = 'job-status-row flex items-center gap-2 py-2';
+
+        div.innerHTML =
+            '<span class="js-drag-handle cursor-grab text-[#C4CBD4] hover:text-[#8892A0] touch-none select-none">' +
+                '<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>' +
+            '</span>' +
+            '<input type="hidden" name="job_status_id[]" value="">' +
+            '<input type="color" name="job_status_color[]" value="' + color + '" ' +
+                'class="h-6 w-6 shrink-0 cursor-pointer rounded border-0 p-0 shadow-none" style="padding:1px;">' +
+            '<input type="text" name="job_status_name[]" value="' + name + '" placeholder="Stage name" ' +
+                'class="min-w-0 flex-1 rounded-lg border border-[#E2DED8] bg-[#FAFAF8] px-2.5 py-1.5 text-[12px] text-[#1A1E2E] focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400/30">' +
+            '<button type="button" class="js-remove-status flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[#C4CBD4] transition hover:bg-red-50 hover:text-red-500">' +
+                '<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>' +
+            '</button>';
+
+        return div;
+    }
+
+    // Add button
+    var addBtn = document.getElementById('add-job-status-btn');
+    if (addBtn) {
+        addBtn.addEventListener('click', function () {
+            var list = document.getElementById('job-status-list');
+            if (!list) return;
+            var row = makeRow();
+            list.appendChild(row);
+            syncEmpty();
+            // Focus the new text input
+            var inp = row.querySelector('input[type="text"]');
+            if (inp) inp.focus();
+        });
+    }
+
+    // Remove button (delegated)
+    var list = document.getElementById('job-status-list');
+    if (list) {
+        list.addEventListener('click', function (e) {
+            var btn = e.target.closest('.js-remove-status');
+            if (!btn) return;
+            btn.closest('.job-status-row').remove();
+            syncEmpty();
+        });
+    }
+
+    syncEmpty();
+
+    // ── Drag-to-reorder via drag handle ──────────────────────────
+    var dragSrc = null;
+
+    document.addEventListener('dragstart', function (e) {
+        var row = e.target.closest('.job-status-row');
+        if (!row) return;
+        // Only allow drag when originating from the handle
+        if (!e.target.closest('.js-drag-handle')) { e.preventDefault(); return; }
+        dragSrc = row;
+        setTimeout(function () { row.style.opacity = '0.4'; }, 0);
+        e.dataTransfer.effectAllowed = 'move';
+    });
+
+    document.addEventListener('dragend', function (e) {
+        var row = e.target.closest('.job-status-row');
+        if (row) row.style.opacity = '';
+        document.querySelectorAll('.job-status-row').forEach(function (r) {
+            r.style.borderTop = '';
+        });
+        dragSrc = null;
+    });
+
+    document.addEventListener('dragover', function (e) {
+        if (!dragSrc) return;
+        var target = e.target.closest('.job-status-row');
+        if (!target || target === dragSrc) return;
+        e.preventDefault();
+        // Visual indicator
+        document.querySelectorAll('.job-status-row').forEach(function (r) { r.style.borderTop = ''; });
+        var rect  = target.getBoundingClientRect();
+        var after = e.clientY > rect.top + rect.height / 2;
+        if (!after) target.style.borderTop = '2px solid #2563EB';
+    });
+
+    document.addEventListener('drop', function (e) {
+        if (!dragSrc) return;
+        var target = e.target.closest('.job-status-row');
+        if (!target || target === dragSrc) return;
+        e.preventDefault();
+        document.querySelectorAll('.job-status-row').forEach(function (r) { r.style.borderTop = ''; });
+        var rect  = target.getBoundingClientRect();
+        var after = e.clientY > rect.top + rect.height / 2;
+        if (after) { target.after(dragSrc); } else { target.before(dragSrc); }
+    });
+
+    // Make existing rows draggable
+    document.querySelectorAll('.job-status-row').forEach(function (row) {
+        row.setAttribute('draggable', 'true');
+    });
+
+    // MutationObserver so newly added rows also get draggable
+    if (list) {
+        new MutationObserver(function (mutations) {
+            mutations.forEach(function (m) {
+                m.addedNodes.forEach(function (node) {
+                    if (node.classList && node.classList.contains('job-status-row')) {
+                        node.setAttribute('draggable', 'true');
+                    }
+                });
+            });
+        }).observe(list, { childList: true });
+    }
+})();
+</script>
+
