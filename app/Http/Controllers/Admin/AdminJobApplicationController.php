@@ -548,27 +548,28 @@ class AdminJobApplicationController extends AdminBaseController
     {
         $jobId = (int) $request->input('job_id', 0);
 
-        // Always load global (default) statuses
+        // Load global (default) statuses
         try {
             $global = ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
         } catch (\Exception $e) {
             $global = ApplicationStatus::orderBy('position')->get();
         }
 
-        // If a job is selected, also load its custom statuses and append
-        $jobSpecific = collect();
+        // If a job is selected and has its own custom pipeline, use those instead of global
         if ($jobId > 0) {
             try {
                 $jobSpecific = ApplicationStatus::where('job_id', $jobId)->orderBy('position')->get();
+                if ($jobSpecific->isNotEmpty()) {
+                    $statuses = $jobSpecific;
+                } else {
+                    $statuses = $global;
+                }
             } catch (\Exception $e) {
-                // job_id column not yet migrated — only global statuses returned
+                $statuses = $global;
             }
+        } else {
+            $statuses = $global;
         }
-
-        // Merge: global first, then any job-specific ones that aren't already in global
-        $existingIds = $global->pluck('id')->toArray();
-        $extra       = $jobSpecific->filter(fn ($s) => ! in_array($s->id, $existingIds));
-        $statuses    = $global->concat($extra);
 
         return Reply::dataOnly([
             'statuses' => $statuses->map(fn ($s) => [
