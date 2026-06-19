@@ -1105,7 +1105,7 @@
                 </div>
 
                 {{-- ── Pipeline Statuses (sticky sidebar card) ── --}}
-                <div class="rounded-2xl border border-[#E8E6E1] bg-white">
+                <div class="sticky top-4 rounded-2xl border border-[#E8E6E1] bg-white">
                     <div class="flex items-center justify-between gap-2 border-b border-[#F0EEE9] px-4 py-3">
                         <div class="flex items-center gap-2">
                             <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
