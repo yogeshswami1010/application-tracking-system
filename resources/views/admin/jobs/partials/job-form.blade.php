@@ -794,161 +794,7 @@
                             <option @if ($job && $job->pay_according == 'Year') selected @endif value="Year">@lang('modules.jobs.year')</option>
                         </select>
                     </div>
-                    {{-- Application Pipeline Statuses --}}
-                    <div class="overflow-hidden rounded-2xl border border-[#E8E6E1] bg-white" id="job-statuses-section">
-                        <div class="flex items-center gap-3 border-b border-gray-100 px-5 py-4">
-                            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-50">
-                                <svg class="h-[18px] w-[18px] text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
-                                </svg>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <h3 class="text-[15px] font-bold text-[#0F1F3D]">Application Pipeline Statuses</h3>
-                                <p class="mt-0.5 text-[12px] text-[#8892A0]">Define custom stages for this job's hiring pipeline (e.g. Applied → Phone Screen → Interview → Offer)</p>
-                            </div>
-                        <button type="button" id="add-job-status-btn"
-                            class="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30">
-                            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-                            Add Status
-                        </button>
-                        </div>
 
-                        <div class="p-5">
-                            <div id="job-status-list" class="flex flex-col gap-2.5">
-                                @php $existingStatuses = $jobStatuses ?? collect(); @endphp
-                                @if($existingStatuses->count() > 0)
-                                    @foreach($existingStatuses as $idx => $st)
-                                    <div class="job-status-row flex items-center gap-2.5 rounded-xl border border-gray-200 bg-[#FAFAF8] px-3.5 py-2.5" data-index="{{ $idx }}">
-                                        <span class="job-status-drag cursor-grab text-gray-300 hover:text-gray-500 touch-none select-none" title="Drag to reorder">
-                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
-                                        </span>
-                                        <input type="hidden" name="job_status_id[]" value="{{ $st->id }}">
-                                        <input type="color"
-                                            name="job_status_color[]"
-                                            value="{{ $st->color ?? '#6B7280' }}"
-                                            class="job-status-color h-8 w-8 shrink-0 cursor-pointer rounded-lg border border-gray-200 p-0.5"
-                                            title="Pick status colour">
-                                        <input type="text"
-                                            name="job_status_name[]"
-                                            value="{{ $st->status }}"
-                                            placeholder="e.g. Phone Screen"
-                                            maxlength="100"
-                                            class="job-status-name flex-1 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[13px] text-[#0F1F3D] placeholder:text-gray-300 outline-none transition-all focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10">
-                                        <button type="button"
-                                            class="remove-job-status flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-red-400 transition hover:bg-red-50 hover:text-red-600 focus:outline-none"
-                                            title="Remove status">
-                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                                        </button>
-                                    </div>
-                                    @endforeach
-                                @endif
-                            </div>
-
-                            <div id="job-status-empty" class="{{ $existingStatuses->count() > 0 ? 'hidden' : '' }} mt-2 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-gray-200 bg-gray-50/60 py-8 text-center">
-                                <svg class="h-8 w-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>
-                                <p class="text-[12px] text-gray-400">No custom statuses yet. Click <strong>Add Status</strong> to create stages for this job.</p>
-                                <p class="text-[11px] text-gray-300">If left empty, the global statuses will be used for this job.</p>
-                            </div>
-
-                            <p class="mt-3 text-[11px] text-gray-400">
-                                <svg class="mr-1 inline h-3 w-3 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                Drag rows to reorder. Leave empty to use the global application statuses.
-                            </p>
-                        </div>
-                    </div>
-
-                    <script>
-                    (function () {
-                        var list    = document.getElementById('job-status-list');
-                        var empty   = document.getElementById('job-status-empty');
-                        var addBtn  = document.getElementById('add-job-status-btn');
-
-                        var COLORS = ['#6366F1','#8B5CF6','#EC4899','#F59E0B','#10B981','#3B82F6','#EF4444','#14B8A6'];
-                        var colorIdx = 0;
-
-                        function syncEmpty() {
-                            var rows = list.querySelectorAll('.job-status-row');
-                            empty.classList.toggle('hidden', rows.length > 0);
-                        }
-
-                        function makeRow(name, color, id) {
-                            color = color || COLORS[colorIdx % COLORS.length];
-                            colorIdx++;
-                            id    = id || '';
-
-                            var div = document.createElement('div');
-                            div.className = 'job-status-row flex items-center gap-2.5 rounded-xl border border-gray-200 bg-[#FAFAF8] px-3.5 py-2.5';
-                            div.innerHTML =
-                                '<span class="job-status-drag cursor-grab text-gray-300 hover:text-gray-500 touch-none select-none" title="Drag to reorder">' +
-                                    '<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>' +
-                                '</span>' +
-                                '<input type="hidden" name="job_status_id[]" value="' + id + '">' +
-                                '<input type="color" name="job_status_color[]" value="' + color + '" class="job-status-color h-8 w-8 shrink-0 cursor-pointer rounded-lg border border-gray-200 p-0.5" title="Pick status colour">' +
-                                '<input type="text" name="job_status_name[]" value="' + name + '" placeholder="e.g. Phone Screen" maxlength="100" ' +
-                                    'class="job-status-name flex-1 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[13px] text-[#0F1F3D] placeholder:text-gray-300 outline-none transition-all focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10">' +
-                                '<button type="button" class="remove-job-status flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-red-400 transition hover:bg-red-50 hover:text-red-600 focus:outline-none" title="Remove status">' +
-                                    '<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>' +
-                                '</button>';
-                            return div;
-                        }
-
-                        addBtn.addEventListener('click', function () {
-                            var row = makeRow('', '', '');
-                            list.appendChild(row);
-                            row.querySelector('.job-status-name').focus();
-                            syncEmpty();
-                        });
-
-                        list.addEventListener('click', function (e) {
-                            var btn = e.target.closest('.remove-job-status');
-                            if (!btn) return;
-                            btn.closest('.job-status-row').remove();
-                            syncEmpty();
-                        });
-
-                        var dragging = null;
-
-                        list.addEventListener('mousedown', startDrag);
-                        list.addEventListener('touchstart', startDrag, { passive: true });
-
-                        function startDrag(e) {
-                            var handle = e.target.closest('.job-status-drag');
-                            if (!handle) return;
-                            dragging = handle.closest('.job-status-row');
-                            dragging.style.opacity = '0.5';
-                            dragging.style.cursor  = 'grabbing';
-                        }
-
-                        document.addEventListener('mousemove', onMove);
-                        document.addEventListener('touchmove', onMove, { passive: true });
-
-                        function onMove(e) {
-                            if (!dragging) return;
-                            var clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                            var rows = Array.from(list.querySelectorAll('.job-status-row')).filter(r => r !== dragging);
-                            var inserted = false;
-                            for (var i = 0; i < rows.length; i++) {
-                                var rect = rows[i].getBoundingClientRect();
-                                if (clientY < rect.top + rect.height / 2) {
-                                    list.insertBefore(dragging, rows[i]);
-                                    inserted = true;
-                                    break;
-                                }
-                            }
-                            if (!inserted) list.appendChild(dragging);
-                        }
-
-                        document.addEventListener('mouseup', stopDrag);
-                        document.addEventListener('touchend', stopDrag);
-
-                        function stopDrag() {
-                            if (!dragging) return;
-                            dragging.style.opacity = '';
-                            dragging.style.cursor  = '';
-                            dragging = null;
-                        }
-                    })();
-                    </script>
                     {{-- SEO --}}
                     <div class="overflow-hidden rounded-2xl border border-[#E8E6E1] bg-white">
                         <div class="flex items-center gap-3 border-b border-gray-100 px-5 py-4">
@@ -1256,6 +1102,51 @@
                             <span id="job-preview-skills" class="ml-2 truncate text-[11.5px] text-gray-400">—</span>
                         </div>
                     </div>
+                </div>
+
+                {{-- ── Pipeline Statuses (sticky sidebar card) ── --}}
+                <div class="sticky top-4 rounded-2xl border border-[#E8E6E1] bg-white">
+                    <div class="flex items-center justify-between gap-2 border-b border-[#F0EEE9] px-4 py-3">
+                        <div class="flex items-center gap-2">
+                            <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7"/></svg>
+                            </div>
+                            <p class="text-[12.5px] font-bold text-[#0F1F3D]">Pipeline Statuses</p>
+                        </div>
+                        <button type="button" id="add-job-status-btn"
+                            class="inline-flex items-center gap-1 rounded-lg bg-[#2563EB] px-2.5 py-1.5 text-[11px] font-semibold text-white shadow-sm transition hover:bg-[#1d4ed8] focus:outline-none focus:ring-2 focus:ring-blue-500/30">
+                            <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                            Add Status
+                        </button>
+                    </div>
+
+                    {{-- Status rows --}}
+                    <div id="job-status-list" class="flex flex-col gap-0 divide-y divide-[#F5F4F0] px-3 py-2 max-h-[340px] overflow-y-auto">
+                        @forelse($jobStatuses ?? collect() as $idx => $st)
+                        <div class="job-status-row flex items-center gap-2 py-2" data-index="{{ $idx }}">
+                            <span class="js-drag-handle cursor-grab text-[#C4CBD4] hover:text-[#8892A0] touch-none select-none">
+                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
+                            </span>
+                            <input type="hidden" name="job_status_id[]" value="{{ $st->id }}">
+                            <input type="color" name="job_status_color[]" value="{{ $st->color ?? '#2563EB' }}"
+                                class="h-6 w-6 shrink-0 cursor-pointer rounded border-0 p-0 shadow-none" style="padding:1px;">
+                            <input type="text" name="job_status_name[]" value="{{ $st->status }}" placeholder="Stage name"
+                                class="min-w-0 flex-1 rounded-lg border border-[#E2DED8] bg-[#FAFAF8] px-2.5 py-1.5 text-[12px] text-[#1A1E2E] focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400/30">
+                            <button type="button" class="js-remove-status flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[#C4CBD4] transition hover:bg-red-50 hover:text-red-500">
+                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                        @empty
+                        <div id="js-status-empty" class="py-5 text-center">
+                            <p class="text-[12px] text-[#8892A0]">No custom statuses yet.</p>
+                            <p class="mt-0.5 text-[11px] text-[#B0B8C4]">Global statuses will be used.</p>
+                        </div>
+                        @endforelse
+                    </div>
+
+                    <p class="border-t border-[#F5F4F0] px-4 py-2.5 text-[10.5px] text-[#B0B8C4]">
+                        Drag to reorder &middot; leave empty to use global statuses
+                    </p>
                 </div>
 
                 <div class="rounded-2xl border border-[#E8E6E1] bg-white p-5">
