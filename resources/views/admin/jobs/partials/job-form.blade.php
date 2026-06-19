@@ -1121,7 +1121,7 @@
                     </div>
 
                     {{-- Status rows --}}
-                    <div id="job-status-list" class="flex flex-col gap-0 divide-y divide-[#F5F4F0] px-3 py-2 max-h-[340px] overflow-y-auto">
+                    <div id="job-status-list" class="flex flex-col gap-0 divide-y divide-[#F5F4F0] px-3 py-2 min-h-[150px] max-h-[340px] overflow-y-auto">
                         @forelse($jobStatuses ?? collect() as $idx => $st)
                         <div class="job-status-row flex items-center gap-2 py-2" data-index="{{ $idx }}">
                             <span class="js-drag-handle cursor-grab text-[#C4CBD4] hover:text-[#8892A0] touch-none select-none">
