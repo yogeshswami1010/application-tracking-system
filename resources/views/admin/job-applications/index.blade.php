@@ -439,7 +439,13 @@
     <script src="{{ asset('assets/node_modules_files/bootstrap-datepicker/bootstrap-datepicker.min.js') }}" type="text/javascript"></script>
 
     <script>
-    var jaStages = []; // populated dynamically when a job is selected
+    // Seeded with global statuses so slug lookups (e.g. "rejected") work
+    // even before a specific job is selected in the filter.
+    var jaStages = [
+        @foreach($boardColumns as $col)
+        { id: {{ $col->id }}, slug: '{{ $col->status }}', label: '{{ ucfirst($col->status) }}', color: '{{ $col->color ?? '#6B7280' }}' },
+        @endforeach
+    ];
 
     // ── State ────────────────────────────────────────────────────
     var jaActiveStageId  = 'all';   // 'all' | stage id
