@@ -2336,18 +2336,19 @@ class AdminJobApplicationController extends AdminBaseController
         $processed = 0;
         $failed    = 0;
 
-        $client = new \GuzzleHttp\Client(['verify' => false, 'timeout' => 30]);
-
         foreach ($apps as $stub) {
             $app = JobApplication::find($stub->id);
-            if (!$app || !$app->resume_url) { $failed++; continue; }
+            if (!$app) { $failed++; continue; }
             try {
-                $resp    = $client->get($app->resume_url);
-                $bytes   = $resp->getBody()->getContents();
-                $ext     = strtolower(pathinfo(parse_url($app->resume_url, PHP_URL_PATH), PATHINFO_EXTENSION)) ?: 'pdf';
+                $doc = $app->documents()->where('name', 'Resume')->first();
+                if (!$doc || empty($doc->hashname)) { $failed++; continue; }
+                $filePath = public_path('user-uploads/documents/' . $app->id . '/' . $doc->hashname);
+                if (!is_readable($filePath)) { $failed++; continue; }
+                $ext = strtolower(pathinfo($doc->hashname, PATHINFO_EXTENSION)) ?: 'pdf';
                 if (!in_array($ext, ['pdf','docx','xlsx','xls','rtf','txt'])) $ext = 'pdf';
+                $bytes = file_get_contents($filePath);
+                if ($bytes === false || $bytes === '') { $failed++; continue; }
                 $this->saveCvTextFromBytes($app, $bytes, $ext);
-                // verify it was saved
                 if (JobApplication::where('id', $app->id)->whereNotNull('cv_text')->exists()) {
                     $processed++;
                 } else {
