@@ -1073,7 +1073,7 @@
             </div>
 
             {{-- Sidebar preview + tips --}}
-            <div class="flex w-full shrink-0 flex-col gap-4 xl:w-[260px]">
+            <div class="flex w-full shrink-0 flex-col gap-4 xl:w-[260px] xl:sticky xl:top-4 xl:self-start">
                 <div class="sticky top-4 overflow-hidden rounded-2xl border border-[#E8E6E1] bg-white">
                     <div class="bg-gradient-to-br from-[#0F1F3D] to-[#1B3560] px-4 py-4">
                         <p class="mb-1 text-[10px] font-bold uppercase tracking-widest text-white/30">@lang('app.preview')</p>
@@ -1105,7 +1105,7 @@
                 </div>
 
                 {{-- ── Pipeline Statuses (sticky sidebar card) ── --}}
-                <div class="sticky top-4 rounded-2xl border border-[#E8E6E1] bg-white">
+                <div class="rounded-2xl border border-[#E8E6E1] bg-white">
                     <div class="flex items-center justify-between gap-2 border-b border-[#F0EEE9] px-4 py-3">
                         <div class="flex items-center gap-2">
                             <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
@@ -1149,39 +1149,6 @@
                     </p>
                 </div>
 
-                <div class="rounded-2xl border border-[#E8E6E1] bg-white p-5">
-                    <p class="mb-3 text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#8892A0]">@lang('modules.jobs.writingTipsTitle')</p>
-                    <div class="flex flex-col gap-3">
-                        <div class="flex items-start gap-2">
-                            <div class="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-blue-50"><span class="text-[8px] font-extrabold leading-none text-[#2563EB]">1</span></div>
-                            <p class="text-[12px] leading-relaxed text-slate-500">@lang('modules.jobs.writingTip1')</p>
-                        </div>
-                        <div class="flex items-start gap-2">
-                            <div class="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-blue-50"><span class="text-[8px] font-extrabold leading-none text-[#2563EB]">2</span></div>
-                            <p class="text-[12px] leading-relaxed text-slate-500">@lang('modules.jobs.writingTip2')</p>
-                        </div>
-                        <div class="flex items-start gap-2">
-                            <div class="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-blue-50"><span class="text-[8px] font-extrabold leading-none text-[#2563EB]">3</span></div>
-                            <p class="text-[12px] leading-relaxed text-slate-500">@lang('modules.jobs.writingTip3')</p>
-                        </div>
-                        <div class="flex items-start gap-2">
-                            <div class="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-orange-50"><span class="text-[8px] font-extrabold leading-none text-orange-500">!</span></div>
-                            <p class="text-[12px] leading-relaxed text-slate-500">@lang('modules.jobs.writingTipSalary')</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="rounded-2xl border border-[#E8E6E1] bg-white p-5">
-                    <p class="mb-3 text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#8892A0]">@lang('modules.jobs.requiredFieldsTitle')</p>
-                    <div class="flex flex-col gap-2">
-                        <div class="flex items-center gap-2"><span class="h-1.5 w-1.5 shrink-0 rounded-full bg-red-400"></span><span class="text-[12px] text-slate-500">@lang('app.company')</span></div>
-                        <div class="flex items-center gap-2"><span class="h-1.5 w-1.5 shrink-0 rounded-full bg-red-400"></span><span class="text-[12px] text-slate-500">@lang('modules.jobs.jobTitle')</span></div>
-                        <div class="flex items-center gap-2"><span class="h-1.5 w-1.5 shrink-0 rounded-full bg-red-400"></span><span class="text-[12px] text-slate-500">@lang('menu.jobCategories')</span></div>
-                        <div class="flex items-center gap-2"><span class="h-1.5 w-1.5 shrink-0 rounded-full bg-red-400"></span><span class="text-[12px] text-slate-500">@lang('modules.jobs.jobDescription')</span></div>
-                        <div class="flex items-center gap-2"><span class="h-1.5 w-1.5 shrink-0 rounded-full bg-red-400"></span><span class="text-[12px] text-slate-500">@lang('modules.jobs.totalPositions')</span></div>
-                        <div class="flex items-center gap-2"><span class="h-1.5 w-1.5 shrink-0 rounded-full bg-red-400"></span><span class="text-[12px] text-slate-500">@lang('menu.locations')</span></div>
-                    </div>
-                </div>
             </div>
         </div>
 
