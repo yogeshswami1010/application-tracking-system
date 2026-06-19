@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class JobApplicationStatusHistory extends Model
 {
-    protected $fillable = ['job_application_id', 'from_status_id', 'to_status_id', 'user_id'];
+    protected $fillable = ['job_application_id', 'from_status_id', 'to_status_id', 'user_id', 'notes'];
 
     public function fromStatus()
     {

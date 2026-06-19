@@ -2537,6 +2537,20 @@ class AdminJobApplicationController extends AdminBaseController
 
         $application->save();
 
+        // Record in the history tab.
+        // Reuse the applicant's current status for both from/to so the FK
+        // on to_status_id is satisfied without altering the schema.
+        // The notes column carries the description shown in the history view.
+        if ($application->status_id) {
+            \App\JobApplicationStatusHistory::create([
+                'job_application_id' => $application->id,
+                'from_status_id'     => $application->status_id,
+                'to_status_id'       => $application->status_id,
+                'user_id'            => $this->user->id,
+                'notes'              => $turningOn ? 'Added to Candidate Marketing' : 'Removed from Candidate Marketing',
+            ]);
+        }
+
         return Reply::successWithData(
             $turningOn ? 'Added to Candidate Marketing.' : 'Removed from Candidate Marketing.',
             [
