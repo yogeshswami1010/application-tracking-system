@@ -313,10 +313,11 @@ class AdminJobsController extends AdminBaseController
         $this->skills = Skill::where('category_id', $this->job->category_id)->get();
         $this->jobQuestion = $this->job->questions->pluck('id')->toArray();
         $this->questions = $this->getQuestionsForCategory((int) $this->job->category_id);
-        $this->jobUsageCounts = $this->getQuestionJobUsageCounts($this->questions->pluck('id')->toArray()); 
+        $this->jobUsageCounts = $this->getQuestionJobUsageCounts($this->questions->pluck('id')->toArray());
         $this->companies = Company::all();
         $this->jobTypes = JobType::all();
         $this->workExperiences = WorkExperience::all();
+        $this->jobStatuses = ApplicationStatus::where('job_id', $id)->orderBy('position')->get();
 
         return view('admin.jobs.edit', $this->data);
     }
