@@ -1074,7 +1074,7 @@
 
             {{-- Sidebar preview + tips --}}
             <div class="flex w-full shrink-0 flex-col gap-4 xl:w-[260px] xl:sticky xl:top-4 xl:self-start">
-                <div class="sticky top-4 overflow-hidden rounded-2xl border border-[#E8E6E1] bg-white">
+                <div class="overflow-hidden rounded-2xl border border-[#E8E6E1] bg-white">
                     <div class="bg-gradient-to-br from-[#0F1F3D] to-[#1B3560] px-4 py-4">
                         <p class="mb-1 text-[10px] font-bold uppercase tracking-widest text-white/30">@lang('app.preview')</p>
                         <h4 id="job-preview-title" class="text-[15px] font-bold leading-snug text-white">{{ $job ? $job->title : __('modules.jobs.jobTitle') }}</h4>
