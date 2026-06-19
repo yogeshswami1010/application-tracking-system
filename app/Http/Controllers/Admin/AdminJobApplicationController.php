@@ -2220,6 +2220,13 @@ class AdminJobApplicationController extends AdminBaseController
 
             $base64Pdf = base64_encode($pdfContents);
 
+            // Extract and index plain text for AI search (reuses already-downloaded bytes)
+            if (empty($application->cv_text)) {
+                $ext = strtolower(pathinfo(parse_url($resumeUrl, PHP_URL_PATH), PATHINFO_EXTENSION)) ?: 'pdf';
+                if (!in_array($ext, ['pdf','docx','xlsx','xls','rtf','txt'])) $ext = 'pdf';
+                $this->saveCvTextFromBytes($application, $pdfContents, $ext);
+            }
+
             // Get all skill names from DB for matching
             $allSkillNames = \App\Skill::pluck('name')->implode(', ');
 
@@ -2284,6 +2291,83 @@ class AdminJobApplicationController extends AdminBaseController
                 'message' => $e->getMessage() . ' (line ' . $e->getLine() . ')',
             ]);
         }
+    }
+
+    /**
+     * Extract plain text from a downloaded resume file and save it to cv_text.
+     * Called after parseSkills so the file bytes are already in memory.
+     */
+    private function saveCvTextFromBytes(JobApplication $application, string $fileBytes, string $ext): void
+    {
+        try {
+            $tmpPath = sys_get_temp_dir() . '/cv_idx_' . $application->id . '_' . time() . '.' . $ext;
+            file_put_contents($tmpPath, $fileBytes);
+            try {
+                $extractor = new \App\Services\ResumeTextExtractor();
+                $text = $extractor->extractFromPath($tmpPath, $ext);
+                if ($text !== '') {
+                    JobApplication::where('id', $application->id)
+                        ->update(['cv_text' => mb_substr($text, 0, 65000)]);
+                }
+            } finally {
+                if (file_exists($tmpPath)) @unlink($tmpPath);
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('saveCvTextFromBytes failed for app ' . $application->id . ': ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Bulk index CV text for all applicants that have a resume but no cv_text yet.
+     * Processes up to 20 at a time to avoid timeout.
+     */
+    public function indexCvs(Request $request)
+    {
+        abort_if(!$this->user->cans('view_job_applications'), 403);
+
+        $limit = min((int) $request->input('limit', 20), 50);
+
+        $apps = JobApplication::whereNull('cv_text')
+            ->whereHas('documents', fn($q) => $q->where('name', 'Resume'))
+            ->select('id')
+            ->limit($limit)
+            ->get();
+
+        $processed = 0;
+        $failed    = 0;
+
+        $client = new \GuzzleHttp\Client(['verify' => false, 'timeout' => 30]);
+
+        foreach ($apps as $stub) {
+            $app = JobApplication::find($stub->id);
+            if (!$app || !$app->resume_url) { $failed++; continue; }
+            try {
+                $resp    = $client->get($app->resume_url);
+                $bytes   = $resp->getBody()->getContents();
+                $ext     = strtolower(pathinfo(parse_url($app->resume_url, PHP_URL_PATH), PATHINFO_EXTENSION)) ?: 'pdf';
+                if (!in_array($ext, ['pdf','docx','xlsx','xls','rtf','txt'])) $ext = 'pdf';
+                $this->saveCvTextFromBytes($app, $bytes, $ext);
+                // verify it was saved
+                if (JobApplication::where('id', $app->id)->whereNotNull('cv_text')->exists()) {
+                    $processed++;
+                } else {
+                    $failed++;
+                }
+            } catch (\Throwable $e) {
+                \Log::warning('indexCvs failed for app ' . $app->id . ': ' . $e->getMessage());
+                $failed++;
+            }
+        }
+
+        $remaining = JobApplication::whereNull('cv_text')
+            ->whereHas('documents', fn($q) => $q->where('name', 'Resume'))
+            ->count();
+
+        return Reply::dataOnly([
+            'processed' => $processed,
+            'failed'    => $failed,
+            'remaining' => $remaining,
+        ]);
     }
     public function assignJob(Request $request, $id)
     {
@@ -2414,8 +2498,10 @@ class AdminJobApplicationController extends AdminBaseController
     {
         abort_if(!$this->user->cans('view_job_applications'), 403);
 
-        $terms      = array_filter(array_map('trim', (array) $request->input('terms', [])));
-        $query      = trim($request->input('query', ''));
+        $terms     = array_filter(array_map('trim', (array) $request->input('terms', [])));
+        $query     = trim($request->input('query', ''));
+        $location  = trim($request->input('location', ''));
+        $minExp    = (int) $request->input('min_experience', 0);
 
         if (empty($terms) && empty($query)) {
             return Reply::dataOnly(['results' => []]);
@@ -2428,7 +2514,7 @@ class AdminJobApplicationController extends AdminBaseController
             }
         })->pluck('id')->map(fn($id) => (string)$id)->toArray();
 
-        // Search applicants
+        // Search applicants across skills, text fields, AND indexed CV text
         $applicants = \App\JobApplication::select(
                 'job_applications.id',
                 'job_applications.full_name',
@@ -2438,11 +2524,12 @@ class AdminJobApplicationController extends AdminBaseController
                 'job_applications.location_id',
                 'job_applications.cover_letter',
                 'job_applications.address',
+                'job_applications.cv_text',
                 'job_applications.created_at'
             )
             ->with(['status:id,status,color', 'job:id,title', 'location:id,location'])
             ->where('job_applications.is_candidate', 0)
-            ->where(function ($q) use ($terms, $matchedSkillIds) {
+            ->where(function ($q) use ($terms, $matchedSkillIds, $location) {
                 foreach ($matchedSkillIds as $sid) {
                     $q->orWhereJsonContains('job_applications.skills', $sid);
                 }
@@ -2450,25 +2537,33 @@ class AdminJobApplicationController extends AdminBaseController
                     $q->orWhere('job_applications.full_name',    'LIKE', '%'.$term.'%');
                     $q->orWhere('job_applications.cover_letter', 'LIKE', '%'.$term.'%');
                     $q->orWhere('job_applications.address',      'LIKE', '%'.$term.'%');
+                    $q->orWhere('job_applications.cv_text',      'LIKE', '%'.$term.'%');
+                }
+                if ($location) {
+                    $q->orWhereHas('location', fn($lq) => $lq->where('location', 'LIKE', '%'.$location.'%'));
+                    $q->orWhere('job_applications.cv_text', 'LIKE', '%'.$location.'%');
+                    $q->orWhere('job_applications.address', 'LIKE', '%'.$location.'%');
                 }
             })
-            ->limit(80)
+            ->limit(100)
             ->get();
 
-        // Load all skill names for matched applicants
+        // Load all skill names
         $allSkillIds = collect($applicants->pluck('skills')->flatten())
             ->map(fn($id) => (int)$id)->unique()->filter()->values()->toArray();
-        $allSkillsMap = \App\Skill::whereIn('id', $allSkillIds)
-            ->pluck('name', 'id');
+        $allSkillsMap = \App\Skill::whereIn('id', $allSkillIds)->pluck('name', 'id');
 
-        // Score and build results
-        $results = $applicants->map(function ($app) use ($terms, $matchedSkillIds, $allSkillsMap) {
+        // Score results
+        $results = $applicants->map(function ($app) use ($terms, $allSkillsMap, $location, $minExp) {
             $score         = 0;
             $matchedSkills = [];
             $allSkills     = [];
+            $cvText        = (string) ($app->cv_text ?? '');
+            $appLocation   = strtolower($app->location?->location ?? '');
 
-            foreach ((array)$app->skills as $sid) {
-                $name = $allSkillsMap[(int)$sid] ?? null;
+            // Skills scoring — highest weight, applicant explicitly has the skill
+            foreach ((array) $app->skills as $sid) {
+                $name = $allSkillsMap[(int) $sid] ?? null;
                 if (!$name) continue;
                 $allSkills[] = $name;
                 foreach ($terms as $term) {
@@ -2480,12 +2575,40 @@ class AdminJobApplicationController extends AdminBaseController
                 }
             }
 
+            // Text field scoring
             foreach ($terms as $term) {
-                if (stripos($app->full_name,    $term) !== false) $score += 8;
-                if (stripos((string)$app->cover_letter, $term) !== false) $score += 6;
-                if (stripos((string)$app->address,      $term) !== false) $score += 3;
+                if (stripos($app->full_name,               $term) !== false) $score += 8;
+                if (stripos((string) $app->cover_letter,   $term) !== false) $score += 6;
+                if (stripos((string) $app->address,        $term) !== false) $score += 4;
+                // CV text: count how many times the term appears (capped at 3 hits each)
+                if ($cvText !== '') {
+                    $hits = min(3, substr_count(strtolower($cvText), strtolower($term)));
+                    $score += $hits * 8;
+                }
             }
 
+            // Location scoring
+            if ($location !== '') {
+                $locLower = strtolower($location);
+                if (stripos($appLocation, $locLower) !== false) {
+                    $score += 20;
+                } elseif ($cvText !== '' && stripos(strtolower($cvText), $locLower) !== false) {
+                    $score += 10;
+                } elseif (stripos(strtolower((string) $app->address), $locLower) !== false) {
+                    $score += 8;
+                }
+            }
+
+            // Experience scoring — find highest "X years" mention in CV text
+            if ($minExp > 0 && $cvText !== '') {
+                if (preg_match_all('/(\d+)\s*\+?\s*(?:year|yr)/i', $cvText, $m)) {
+                    $maxFound = max(array_map('intval', $m[1]));
+                    if ($maxFound >= $minExp) $score += 15;
+                    elseif ($maxFound >= $minExp - 1) $score += 5; // close match
+                }
+            }
+
+            if ($score <= 0) return null;
             $score = min(99, max(10, $score));
 
             return [
@@ -2498,9 +2621,11 @@ class AdminJobApplicationController extends AdminBaseController
                 'score'          => $score,
                 'matched_skills' => $matchedSkills,
                 'all_skills'     => $allSkills,
+                'has_cv'         => $cvText !== '',
                 'created_at'     => $app->created_at?->toDateString(),
             ];
         })
+        ->filter()
         ->sortByDesc('score')
         ->values()
         ->toArray();

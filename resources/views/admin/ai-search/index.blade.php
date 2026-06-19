@@ -441,15 +441,24 @@
 
         {{-- Suggestions --}}
         <div class="ai-search-suggestions" id="ai-suggestions">
-            <span class="ai-search-suggestion" onclick="aiQuick('Web Developer')">Web Developer</span>
-            <span class="ai-search-suggestion" onclick="aiQuick('Laravel PHP')">Laravel PHP</span>
-            <span class="ai-search-suggestion" onclick="aiQuick('Python Backend')">Python Backend</span>
+            <span class="ai-search-suggestion" onclick="aiQuick('Web Developer in Toronto')">Web Developer in Toronto</span>
+            <span class="ai-search-suggestion" onclick="aiQuick('Welder with 5 years experience')">Welder 5 yrs exp</span>
+            <span class="ai-search-suggestion" onclick="aiQuick('Laravel PHP Developer')">Laravel PHP</span>
             <span class="ai-search-suggestion" onclick="aiQuick('Sales Manager')">Sales Manager</span>
-            <span class="ai-search-suggestion" onclick="aiQuick('React Frontend')">React Frontend</span>
-            <span class="ai-search-suggestion" onclick="aiQuick('Digital Marketing')">Digital Marketing</span>
-            <span class="ai-search-suggestion" onclick="aiQuick('Data Analyst')">Data Analyst</span>
+            <span class="ai-search-suggestion" onclick="aiQuick('React Frontend Developer')">React Frontend</span>
+            <span class="ai-search-suggestion" onclick="aiQuick('Data Analyst in Vancouver')">Data Analyst Vancouver</span>
+            <span class="ai-search-suggestion" onclick="aiQuick('Python Backend 3 years experience')">Python 3yr exp</span>
             <span class="ai-search-suggestion" onclick="aiQuick('Graphic Designer')">Graphic Designer</span>
         </div>
+    </div>
+
+    {{-- Index CVs admin panel --}}
+    <div style="max-width:680px;margin:0 auto 20px;display:flex;align-items:center;justify-content:flex-end;gap:10px;" id="ai-index-bar">
+        <span style="font-size:11.5px;color:#b0b8c4" id="ai-index-status"></span>
+        <button type="button" onclick="aiIndexCvs()" id="ai-index-btn"
+            style="font-size:12px;font-weight:600;padding:6px 14px;border-radius:9px;border:1px solid #e2ded8;background:#fff;color:#5a6478;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px;">
+            <i class="fa fa-database"></i> Index CVs for search
+        </button>
     </div>
 
     {{-- Output area --}}
@@ -458,7 +467,7 @@
         <div class="ai-search-empty" id="ai-empty-state">
             <div class="ai-search-empty-icon"><i class="fa fa-search"></i></div>
             <h3>Search your candidate database</h3>
-            <p>Type a role, skill, or description — AI will find the best matches from all applicants</p>
+            <p>Search by role, location, experience — AI reads uploaded CVs to find the best matches</p>
         </div>
     </div>
 
@@ -510,6 +519,7 @@
     var aiCurrentSort = 'score';
     var aiLastResults = [];
     var aiLastQuery   = '';
+    var aiLastMeta    = { location: '', min_experience: 0 };
 
     // ── Quick suggestion click ──────────────────────────────────
     function aiQuick(text) {
@@ -530,7 +540,7 @@
         btn.disabled = true;
         btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Thinking…';
 
-        // Step 1: AI extracts search terms
+        // Step 1: AI extracts structured search parameters including location & experience
         fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: {
@@ -540,14 +550,19 @@
             },
             body: JSON.stringify({
                 model: 'claude-haiku-4-5-20251001',
-                max_tokens: 400,
+                max_tokens: 500,
                 messages: [{
                     role: 'user',
-                    content: 'Given the job search query: "' + query + '"\n\n' +
-                        'Extract ALL relevant skills, job titles, keywords and technologies a matching candidate would have on their CV.\n' +
-                        'Be comprehensive — include synonyms and related skills.\n' +
+                    content: 'Parse this job candidate search query: "' + query + '"\n\n' +
+                        'Extract:\n' +
+                        '- skills: technical skills, tools, technologies the candidate would have\n' +
+                        '- keywords: other relevant keywords from their CV\n' +
+                        '- roles: job titles / roles\n' +
+                        '- location: city or region mentioned (empty string if none)\n' +
+                        '- min_experience: minimum years of experience as a number (0 if not mentioned)\n\n' +
+                        'Be comprehensive with skills/keywords — include synonyms.\n' +
                         'Return ONLY minified JSON, no explanation:\n' +
-                        '{"skills":["skill1","skill2"],"keywords":["kw1","kw2"],"roles":["role1"]}'
+                        '{"skills":["skill1"],"keywords":["kw1"],"roles":["role1"],"location":"toronto","min_experience":5}'
                 }]
             })
         })
@@ -557,27 +572,32 @@
             text = text.replace(/```json|```/g, '').trim();
             var parsed;
             try { parsed = JSON.parse(text); }
-            catch(e) { parsed = { skills: [], keywords: [query], roles: [query] }; }
+            catch(e) { parsed = { skills: [], keywords: [query], roles: [query], location: '', min_experience: 0 }; }
 
             var allTerms = []
                 .concat(parsed.skills   || [])
                 .concat(parsed.keywords || [])
                 .concat(parsed.roles    || []);
 
-            // Step 2: Search server
-            aiSearchServer(query, allTerms, parsed.skills || []);
+            aiLastMeta = {
+                location:       parsed.location       || '',
+                min_experience: parseInt(parsed.min_experience) || 0
+            };
+
+            // Step 2: Search server with full context
+            aiSearchServer(query, allTerms, parsed.location || '', parseInt(parsed.min_experience) || 0);
         })
         .catch(function() {
-            aiSearchServer(query, [query], []);
+            aiSearchServer(query, [query], '', 0);
         });
     }
 
     // ── Server search ────────────────────────────────────────────
-    function aiSearchServer(query, terms, skillTerms) {
+    function aiSearchServer(query, terms, location, minExp) {
         $.ajax({
             url: '{{ route("admin.ai-search.results") }}',
             type: 'GET',
-            data: { query: query, terms: terms, skill_terms: skillTerms },
+            data: { query: query, terms: terms, location: location, min_experience: minExp },
             success: function(res) {
                 var btn = document.getElementById('ai-search-btn');
                 btn.disabled = false;
@@ -592,6 +612,42 @@
                 aiRenderResults([], query);
             }
         });
+    }
+
+    // ── Bulk CV text indexing ────────────────────────────────────
+    function aiIndexCvs() {
+        var btn    = document.getElementById('ai-index-btn');
+        var status = document.getElementById('ai-index-status');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Indexing…';
+        status.textContent = '';
+
+        function runBatch() {
+            $.ajax({
+                url: '{{ route("admin.ai-search.index-cvs") }}',
+                type: 'POST',
+                data: { _token: '{{ csrf_token() }}', limit: 20 },
+                success: function(res) {
+                    var d = res.data || res;
+                    status.textContent = d.processed + ' indexed, ' + d.failed + ' skipped, ' + d.remaining + ' remaining';
+                    if (d.remaining > 0) {
+                        setTimeout(runBatch, 800);
+                    } else {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa fa-check"></i> All CVs indexed';
+                        setTimeout(function() {
+                            btn.innerHTML = '<i class="fa fa-database"></i> Index CVs for search';
+                        }, 4000);
+                    }
+                },
+                error: function() {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa fa-database"></i> Index CVs for search';
+                    status.textContent = 'Indexing failed — check server log.';
+                }
+            });
+        }
+        runBatch();
     }
 
     // ── Render results ───────────────────────────────────────────
@@ -609,11 +665,20 @@
             return;
         }
 
+        var filterBadges = '';
+        if (aiLastMeta.location) {
+            filterBadges += '<span style="font-size:11px;font-weight:600;color:#2563eb;background:#eff6ff;padding:3px 9px;border-radius:12px;"><i class="fa fa-map-marker" style="font-size:10px"></i> ' + aiEsc(aiLastMeta.location) + '</span>';
+        }
+        if (aiLastMeta.min_experience > 0) {
+            filterBadges += '<span style="font-size:11px;font-weight:600;color:#7c3aed;background:#f5f3ff;padding:3px 9px;border-radius:12px;"><i class="fa fa-clock-o" style="font-size:10px"></i> ' + aiLastMeta.min_experience + '+ yrs exp</span>';
+        }
+
         var html =
             '<div class="ai-search-status-bar">' +
-                '<div class="ai-search-status-label">' +
+                '<div class="ai-search-status-label" style="flex-wrap:wrap;">' +
                     '<span class="ai-thinking-badge"><i class="fa fa-magic"></i> AI matched</span>' +
                     '<span>' + results.length + ' candidate' + (results.length !== 1 ? 's' : '') + '</span> for "' + aiEsc(query) + '"' +
+                    (filterBadges ? '<span style="display:inline-flex;gap:5px;margin-left:4px;">' + filterBadges + '</span>' : '') +
                 '</div>' +
                 '<div style="display:flex;align-items:center;gap:10px;">' +
                     '<div class="ai-search-sort-bar">' +
@@ -656,16 +721,20 @@
                 '</div>';
             }
 
+            var cvBadge = r.has_cv
+                ? '<span style="font-size:10px;font-weight:600;color:#059669;background:#d1fae5;padding:2px 7px;border-radius:10px;margin-left:6px;"><i class="fa fa-file-text-o" style="font-size:9px"></i> CV indexed</span>'
+                : '<span style="font-size:10px;color:#b0b8c4;background:#f1f3f7;padding:2px 7px;border-radius:10px;margin-left:6px;">No CV</span>';
+
             html +=
                 '<div class="ai-result-card" onclick="aiOpenApplicant(' + r.id + ')">' +
                     '<div class="ai-result-rank ' + (isTop ? 'top' : '') + '">' + (isTop ? '★' : (idx+1)) + '</div>' +
                     '<div class="ai-result-avatar" style="background:' + ac[0] + ';color:' + ac[1] + '">' + aiEsc(initial) + '</div>' +
                     '<div class="ai-result-body">' +
-                        '<div class="ai-result-name">' + aiEsc(r.full_name) + '</div>' +
+                        '<div class="ai-result-name">' + aiEsc(r.full_name) + cvBadge + '</div>' +
                         '<div class="ai-result-meta">' +
                             aiEsc(r.job_title || '—') +
                             '<span class="ai-result-meta-sep"></span>' +
-                            aiEsc(r.location || '—') +
+                            '<i class="fa fa-map-marker" style="font-size:10px;color:#8892a0;margin-right:2px"></i>' + aiEsc(r.location || '—') +
                             '<span class="ai-result-meta-sep"></span>' +
                             '<span class="ai-result-status" style="background:' + aiEsc(r.status_color || '#6b7280') + '">' + aiEsc(r.status || '—') + '</span>' +
                         '</div>' +

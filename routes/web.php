@@ -126,6 +126,7 @@ Route::middleware('auth')->group(function () {
             Route::resource('job-categories', AdminJobCategoryController::class);
             Route::get('ai-search', [AdminJobApplicationController::class, 'aiSearchPage'])->name('ai-search');
             Route::get('ai-search/results', [AdminJobApplicationController::class, 'aiSearchResults'])->name('ai-search.results');
+            Route::post('ai-search/index-cvs', [AdminJobApplicationController::class, 'indexCvs'])->name('ai-search.index-cvs');
 
             // Questions
             Route::get('questions/data',         [AdminQuestionController::class, 'data'])->name('questions.data');

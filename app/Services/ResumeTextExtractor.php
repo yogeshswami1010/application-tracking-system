@@ -10,6 +10,32 @@ use ZipArchive;
 class ResumeTextExtractor
 {
     /**
+     * Extract text from an already-saved file given its path and extension.
+     * Used when the file has been downloaded to a temp location.
+     */
+    public function extractFromPath(string $path, string $ext): string
+    {
+        if (!is_readable($path)) {
+            return '';
+        }
+
+        try {
+            $text = match (strtolower($ext)) {
+                'pdf'        => $this->fromPdf($path),
+                'docx'       => $this->fromDocx($path),
+                'xlsx', 'xls'=> $this->fromSpreadsheet($path),
+                'rtf'        => $this->fromRtf(file_get_contents($path) ?: ''),
+                'txt'        => (string)(file_get_contents($path) ?: ''),
+                default      => '',
+            };
+        } catch (\Throwable) {
+            return '';
+        }
+
+        return $this->normalizeWhitespace($text);
+    }
+
+    /**
      * Extract plain text from common resume file types (PDF, DOCX, XLS/XLSX, RTF).
      * Images and legacy .doc are not supported.
      */
