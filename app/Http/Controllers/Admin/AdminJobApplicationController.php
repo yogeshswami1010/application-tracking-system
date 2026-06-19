@@ -442,17 +442,17 @@ class AdminJobApplicationController extends AdminBaseController
             $jobApplications = $jobApplications->whereDate('job_applications.created_at', '<=', $request->endDate);
         }
 
-        // Load statuses for the action column: use job-specific pipeline when a job
-        // is selected and has custom statuses, otherwise fall back to global statuses.
+        // Load statuses for the action column: global defaults always first,
+        // then any job-specific custom statuses appended after.
         $jobFilterId    = (int) $request->input('jobs', 0);
-        $actionStatuses = collect();
+        $actionStatuses = ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
         if ($jobFilterId > 0) {
             try {
-                $actionStatuses = ApplicationStatus::where('job_id', $jobFilterId)->orderBy('position')->get();
+                $jobSpecific = ApplicationStatus::where('job_id', $jobFilterId)->orderBy('position')->get();
+                $globalIds   = $actionStatuses->pluck('id');
+                $extra       = $jobSpecific->filter(fn($s) => !$globalIds->contains($s->id));
+                $actionStatuses = $actionStatuses->concat($extra);
             } catch (\Exception $e) {}
-        }
-        if ($actionStatuses->isEmpty()) {
-            $actionStatuses = ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
         }
 
         // Build next-stage map from action statuses
@@ -559,27 +559,25 @@ class AdminJobApplicationController extends AdminBaseController
     {
         $jobId = (int) $request->input('job_id', 0);
 
-        // Load global (default) statuses
+        // Always load global (default) statuses
         try {
             $global = ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
         } catch (\Exception $e) {
             $global = ApplicationStatus::orderBy('position')->get();
         }
 
-        // If a job is selected and has its own custom pipeline, use those instead of global
+        // If a job is selected, append its custom statuses after the global ones
+        $statuses = $global;
         if ($jobId > 0) {
             try {
                 $jobSpecific = ApplicationStatus::where('job_id', $jobId)->orderBy('position')->get();
-                if ($jobSpecific->isNotEmpty()) {
-                    $statuses = $jobSpecific;
-                } else {
-                    $statuses = $global;
-                }
+                // Only append job-specific ones that are not already in global (by ID)
+                $globalIds = $global->pluck('id');
+                $extra     = $jobSpecific->filter(fn($s) => !$globalIds->contains($s->id));
+                $statuses  = $global->concat($extra);
             } catch (\Exception $e) {
-                $statuses = $global;
+                // job_id column missing — just use global
             }
-        } else {
-            $statuses = $global;
         }
 
         return Reply::dataOnly([
