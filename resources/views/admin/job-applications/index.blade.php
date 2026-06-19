@@ -1059,23 +1059,28 @@
 
 
     // ── Draggable stage tab reordering ──────────────────────────
+    // currentJobId tracks which job's order is active so each job
+    // gets its own localStorage key (ja-tab-order-{jobId}).
+    window.jaCurrentJobId = 'global';
+
     (function () {
         var dragSrc = null;
-        var LS_KEY  = 'ja-tab-order';
+
+        function lsKey() { return 'ja-tab-order-' + window.jaCurrentJobId; }
 
         function storedOrder() {
-            try { return JSON.parse(localStorage.getItem(LS_KEY)) || null; }
+            try { return JSON.parse(localStorage.getItem(lsKey())) || null; }
             catch (e) { return null; }
         }
 
-        function persistOrder() {
+        window.jaPersistOrder = function () {
             var row = document.getElementById('ja-stage-tabs-row');
             if (!row) return;
             var ids = [];
             row.querySelectorAll('.ja-stage-tab[draggable="true"]').forEach(function (el) {
                 ids.push(parseInt(el.getAttribute('data-stage-id'), 10));
             });
-            localStorage.setItem(LS_KEY, JSON.stringify(ids));
+            localStorage.setItem(lsKey(), JSON.stringify(ids));
             var reordered = [];
             ids.forEach(function (id) {
                 var s = jaStages.find(function (x) { return x.id === id; });
@@ -1085,9 +1090,10 @@
                 if (ids.indexOf(s.id) === -1) reordered.push(s);
             });
             jaStages = reordered;
-        }
+        };
 
-        function applyStoredOrder() {
+        // Called after jaRebuildStageTabs to apply the saved order for the current job
+        window.jaApplyStoredOrder = function () {
             var saved = storedOrder();
             if (!saved || !saved.length) return;
             var wrap = document.getElementById('ja-stage-tabs-draggable');
@@ -1096,6 +1102,7 @@
             wrap.querySelectorAll('.ja-stage-tab[draggable="true"]').forEach(function (el) {
                 tabMap[parseInt(el.getAttribute('data-stage-id'), 10)] = el;
             });
+            // Only apply if every saved id still exists (guard against status deletions)
             var allPresent = saved.every(function (id) { return !!tabMap[id]; });
             if (!allPresent) return;
             saved.forEach(function (id) { wrap.appendChild(tabMap[id]); });
@@ -1108,14 +1115,12 @@
                 if (saved.indexOf(s.id) === -1) reordered.push(s);
             });
             jaStages = reordered;
-        }
+        };
 
         function initDragTabs() {
             // Attach to the real flex row div — display:contents span has no hit-test area
             var row = document.getElementById('ja-stage-tabs-row');
             if (!row) return;
-
-            applyStoredOrder();
 
             row.addEventListener('dragstart', function (e) {
                 var tab = e.target.closest('.ja-stage-tab[draggable="true"]');
@@ -1156,7 +1161,7 @@
                 var rect  = target.getBoundingClientRect();
                 var after = e.clientX > rect.left + rect.width / 2;
                 if (after) { target.after(dragSrc); } else { target.before(dragSrc); }
-                persistOrder();
+                window.jaPersistOrder();
             });
         }
 
@@ -1198,6 +1203,11 @@
             wrap.appendChild(btn);
         });
 
+        // Restore the saved drag order for this job (must run after tabs are in DOM)
+        if (typeof window.jaApplyStoredOrder === 'function') {
+            window.jaApplyStoredOrder();
+        }
+
         jaLoadTabCounts();
     }
 
@@ -1216,10 +1226,13 @@
             return;
         }
 
+        // Set the current job id so localStorage key is per-job
+        window.jaCurrentJobId = parseInt(jobId, 10);
+
         $.ajax({
             url: '{{ route("admin.job-applications.job-statuses") }}',
             type: 'GET',
-            data: { job_id: parseInt(jobId, 10) },
+            data: { job_id: window.jaCurrentJobId },
             success: function (res) {
                 var payload  = res.data ? res.data : res;
                 var statuses = payload.statuses || [];
@@ -1231,13 +1244,17 @@
                 });
                 $('#status').select2('destroy').html(html).select2({ width: '100%' });
 
-                // Rebuild stage tab bar
+                // Rebuild stage tab bar (jaApplyStoredOrder is called inside)
                 jaRebuildStageTabs(statuses);
 
-                // Auto-activate first stage tab if present
-                if (statuses.length) {
-                    var first = statuses[0];
-                    jaStageTab(first.id, first.color || '#2563eb', first.slug);
+                // Auto-activate first tab respecting the saved order
+                var firstTab = document.querySelector('#ja-stage-tabs-draggable .ja-stage-tab[draggable="true"]');
+                if (firstTab) {
+                    jaStageTab(
+                        parseInt(firstTab.getAttribute('data-stage-id'), 10),
+                        firstTab.getAttribute('data-stage-color') || '#2563eb',
+                        firstTab.getAttribute('data-stage-slug')
+                    );
                 }
             }
         });
