@@ -155,6 +155,9 @@ class AdminCandidateMarketingController extends AdminBaseController
             'status',
             'schedule.employee',
             'schedule.comments.user',
+            'statusHistories.fromStatus',
+            'statusHistories.toStatus',
+            'statusHistories.user',
         ])->withTrashed()->find($id);
 
         $this->skills = Skill::select('id', 'name')->get();

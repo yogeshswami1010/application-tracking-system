@@ -204,7 +204,10 @@ class AdminApplicationArchiveController extends AdminBaseController
             'onboard',
             'status',
             'schedule.employee',
-            'schedule.comments.user'
+            'schedule.comments.user',
+            'statusHistories.fromStatus',
+            'statusHistories.toStatus',
+            'statusHistories.user',
         ])->withTrashed()->find($id);
 
         $this->skills = Skill::select('id', 'name')->get();

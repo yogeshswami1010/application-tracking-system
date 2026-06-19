@@ -692,17 +692,23 @@
                     <div class="ja-card-title"><i class="fa fa-exchange" style="font-size:11px"></i> Stage Activity</div>
                     @foreach($application->statusHistories as $hist)
                     <div style="display:flex;align-items:flex-start;gap:9px;padding:9px 0;border-bottom:1px solid #F0EEE9">
-                        <div style="width:26px;height:26px;border-radius:50%;background:#EFF6FF;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">
-                            <i class="fa {{ is_null($hist->user_id) ? 'fa-cogs' : 'fa-user' }}" style="font-size:10px;color:#2563EB"></i>
+                        <div style="width:26px;height:26px;border-radius:50%;background:{{ $hist->notes ? '#FFF7ED' : '#EFF6FF' }};display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">
+                            <i class="fa {{ $hist->notes ? 'fa-star' : (is_null($hist->user_id) ? 'fa-cogs' : 'fa-user') }}" style="font-size:10px;color:{{ $hist->notes ? '#EA580C' : '#2563EB' }}"></i>
                         </div>
                         <div style="flex:1;min-width:0">
                             <div style="font-size:12.5px;color:#1A1E2E;line-height:1.5">
                                 <strong>{{ $hist->user ? ucwords($hist->user->name) : 'Auto (screening rule)' }}</strong>
-                                moved this applicant
-                                @if($hist->fromStatus)
-                                    from <strong>{{ ucwords(str_replace('_',' ',$hist->fromStatus->status)) }}</strong>
+                                @if($hist->notes)
+                                    &mdash; <strong>{{ $hist->notes }}</strong>
+                                @else
+                                    moved this applicant
+                                    @if($hist->fromStatus && $hist->toStatus && $hist->fromStatus->id !== $hist->toStatus->id)
+                                        from <strong>{{ ucwords(str_replace('_',' ',$hist->fromStatus->status)) }}</strong>
+                                        to <strong>{{ ucwords(str_replace('_',' ',$hist->toStatus->status)) }}</strong>
+                                    @elseif($hist->toStatus)
+                                        to <strong>{{ ucwords(str_replace('_',' ',$hist->toStatus->status)) }}</strong>
+                                    @endif
                                 @endif
-                                to <strong>{{ ucwords(str_replace('_',' ',$hist->toStatus->status)) }}</strong>
                             </div>
                             <div style="font-size:11px;color:#B0B8C4;margin-top:2px">
                                 {{ $hist->created_at->timezone('America/Toronto')->format('d M Y, h:i A') }}
