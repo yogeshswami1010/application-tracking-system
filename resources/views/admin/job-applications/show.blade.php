@@ -999,7 +999,7 @@ $('body').on('click', '.edit-note', function() {
     $(this).hide();
     var noteId = $(this).data('note-id');
     $('body').find('#note-' + noteId + ' .note-text').hide();
-    var noteText = $('body').find('#note-' + noteId + ' .note-text').html();
+    var noteText = $('body').find('#note-' + noteId + ' .note-text').data('raw') || '';
     var textArea = '<textarea id="edit-note-text-' + noteId + '" class="ja-note-textarea" rows="3">' + noteText + '</textarea>' +
         '<button class="update-note ja-save-note-btn" data-note-id="' + noteId + '" style="margin-top:6px"><i class="fa fa-check"></i> @lang("app.save")</button>';
     $('body').find('#note-' + noteId + ' .note-textarea').html(textArea);

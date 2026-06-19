@@ -9,7 +9,7 @@
             {{ $note->created_at->timezone('America/Toronto')->format('d M Y, h:i A') }}
         </span>
     </div>
-    <p class="note-text ja-note-body">
+    <p class="note-text ja-note-body" data-raw="{{ $note->note_text }}">
         {!! preg_replace('/@([a-zA-Z0-9_]+)/', '<span style="color:#2563EB;font-weight:600;background:#EFF6FF;padding:1px 5px;border-radius:4px;">@$1</span>', nl2br(e(ucfirst($note->note_text)))) !!}
     </p>
     <div class="note-textarea"></div>
