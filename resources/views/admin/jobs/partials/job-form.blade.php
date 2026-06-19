@@ -1395,12 +1395,14 @@ $(document).ready(function () {
 })();
 
 // ── Inject sidebar pipeline inputs into the form before submit ───
+// The #save-form button submits via $.easyAjax using $('#createForm').serialize(),
+// so we inject hidden inputs into #createForm before that serialize() call runs.
+// We hook #save-form click with a capturing listener (runs before jQuery handlers).
 (function () {
     var form = document.getElementById('createForm');
     if (!form) return;
 
     function injectStatusInputs() {
-        // Remove any previously injected hidden inputs
         form.querySelectorAll('.js-pipeline-hidden').forEach(function (el) { el.remove(); });
 
         var list = document.getElementById('job-status-list');
@@ -1432,19 +1434,15 @@ $(document).ready(function () {
         });
     }
 
-    // Hook both native submit and the ajax-form submit event
+    // Use capture phase so this fires BEFORE jQuery's bubble-phase click handler
+    // that calls $('#createForm').serialize() inside the $.easyAjax call.
+    document.addEventListener('click', function (e) {
+        var btn = e.target && e.target.closest ? e.target.closest('#save-form') : null;
+        if (btn) { injectStatusInputs(); }
+    }, true); // true = capture phase
+
+    // Also cover native form submit fallback
     form.addEventListener('submit', injectStatusInputs);
-
-    // Also hook the Save button directly in case the form uses $.easyAjax
-    var saveBtn = form.querySelector('button[type="submit"]');
-    if (saveBtn) {
-        saveBtn.addEventListener('click', injectStatusInputs);
-    }
-
-    // If the project uses a global ajaxForm trigger, hook it too
-    if (typeof $ !== 'undefined') {
-        $(document).on('ajaxFormSubmit submit', '#createForm', injectStatusInputs);
-    }
 })();
 </script>
 
