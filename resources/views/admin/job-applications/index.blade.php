@@ -694,14 +694,36 @@
         if (!el) return;
 
         var isHidden = el.style.display === 'none';
-        el.style.display = isHidden ? 'block' : 'none';
 
-        if (isHidden && btnEl) {
-            var rect = btnEl.getBoundingClientRect();
-            el.style.top  = (rect.bottom + 4) + 'px';
-            el.style.left = 'auto';
-            el.style.right = 'auto';
-            el.style.left  = Math.max(0, rect.right - 160) + 'px'; // align right edge to button
+        if (isHidden) {
+            // Populate dropdown from jaStages (reflects the current job's pipeline)
+            var appId         = el.getAttribute('data-app-id');
+            var currentStatus = el.getAttribute('data-current-status') || '';
+            var html = '';
+            jaStages.forEach(function(s) {
+                if (s.slug === currentStatus) return;
+                var dot   = s.color || '#6B7280';
+                var label = s.label || s.slug;
+                html += '<button type="button"'
+                    + ' onclick="jaMoveOne(' + appId + ',' + s.id + ');jaCloseDrop(\'' + id + '\')"'
+                    + ' style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;border:none;background:none;font-size:13px;font-weight:500;color:#1A1E2E;cursor:pointer;font-family:inherit;text-align:left;"'
+                    + ' onmouseover="this.style.background=\'#F1F3F7\'" onmouseout="this.style.background=\'none\'">'
+                    + '<span style="width:8px;height:8px;border-radius:50%;background:' + dot + ';flex-shrink:0;display:inline-block;"></span>'
+                    + label
+                    + '</button>';
+            });
+            el.innerHTML = html || '<div style="padding:10px 14px;color:#8892A0;font-size:12px;">No stages available</div>';
+
+            el.style.display = 'block';
+
+            if (btnEl) {
+                var rect = btnEl.getBoundingClientRect();
+                el.style.top   = (rect.bottom + 4) + 'px';
+                el.style.left  = Math.max(0, rect.right - 160) + 'px';
+                el.style.right = 'auto';
+            }
+        } else {
+            el.style.display = 'none';
         }
     }
 
@@ -1266,8 +1288,8 @@
         });
     }
 
-    // When jobs dropdown changes → reload statuses
-    $('#jobs').on('change', function () {
+    // Use event delegation so the handler survives Select2 destroy/recreate (company filter)
+    $(document).on('change', '#jobs', function () {
         jaLoadJobStatuses($(this).val());
     });
 

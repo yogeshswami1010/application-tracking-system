@@ -442,64 +442,75 @@ class AdminJobApplicationController extends AdminBaseController
             $jobApplications = $jobApplications->whereDate('job_applications.created_at', '<=', $request->endDate);
         }
 
-        // Build next-stage map from global statuses only (job_id IS NULL).
-        // Job-specific statuses must not pollute this map or the "move to" dropdown.
-        $allStatuses = ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
+        // Load statuses for the action column: use job-specific pipeline when a job
+        // is selected and has custom statuses, otherwise fall back to global statuses.
+        $jobFilterId    = (int) $request->input('jobs', 0);
+        $actionStatuses = collect();
+        if ($jobFilterId > 0) {
+            try {
+                $actionStatuses = ApplicationStatus::where('job_id', $jobFilterId)->orderBy('position')->get();
+            } catch (\Exception $e) {}
+        }
+        if ($actionStatuses->isEmpty()) {
+            $actionStatuses = ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
+        }
+
+        // Build next-stage map from action statuses
         $nextMap = [];
-        foreach ($allStatuses as $i => $s) {
-            $nextStatus = $allStatuses->get($i + 1);
+        foreach ($actionStatuses as $i => $s) {
+            $nextStatus = $actionStatuses->get($i + 1);
             if ($nextStatus) {
                 $nextMap[$s->status] = [
                     'label' => ucwords(str_replace('_', ' ', $nextStatus->status)),
+                    'id'    => $nextStatus->id,
                     'slug'  => $nextStatus->status,
                 ];
             }
         }
 
-        // Find rejected & applied status ids for restore button
-        $rejectedStatus = $allStatuses->firstWhere('status', 'rejected');
-        $appliedStatus  = $allStatuses->firstWhere('status', 'applied');
+        // Find rejected & applied — check action statuses first, then fall back to global
+        $globalStatuses = ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
+        $rejectedStatus = $actionStatuses->firstWhere('status', 'rejected')
+            ?? $globalStatuses->firstWhere('status', 'rejected');
+        $appliedStatus  = $actionStatuses->firstWhere('status', 'applied')
+            ?? $globalStatuses->firstWhere('status', 'applied');
 
         $canEdit   = $this->user->cans('edit_job_applications');
         $canView   = $this->user->cans('view_job_applications');
         $canDelete = $this->user->role_id === 1; // admin only
 
         return DataTables::of($jobApplications)
-                ->addColumn('action', function ($row) use ($nextMap, $rejectedStatus, $appliedStatus, $allStatuses, $canEdit, $canView, $canDelete) {                $parts = [];
+                ->addColumn('action', function ($row) use ($nextMap, $rejectedStatus, $appliedStatus, $canEdit, $canView, $canDelete) {
+                $parts = [];
                 $statusSlug = strtolower($row->status?->status ?? '');
 
                 if ($canEdit) {
-             
+
+                // "Next stage" quick button — derived from the job's pipeline order
                 if (isset($nextMap[$statusSlug]) && $statusSlug !== 'rejected') {
                     $nextLabel = $nextMap[$statusSlug]['label'];
-                    $nextSlug  = $nextMap[$statusSlug]['slug'];
-                    $parts[] = '<button type="button" onclick="jaMoveOneBySlug(' . $row->id . ',\'' . $nextSlug . '\')" class="ja-act-btn move" title="Move to ' . $nextLabel . '">' . $nextLabel . ' <i class="fa fa-arrow-right" style="font-size:10px;margin-left:2px;"></i></button>';
+                    $nextId    = $nextMap[$statusSlug]['id'];
+                    $parts[] = '<button type="button" onclick="jaMoveOne(' . $row->id . ',' . $nextId . ')" class="ja-act-btn move" title="Move to ' . $nextLabel . '">' . $nextLabel . ' <i class="fa fa-arrow-right" style="font-size:10px;margin-left:2px;"></i></button>';
                 }
 
-                // Move to ANY stage dropdown
+                // "Move to any stage" dropdown — content is populated client-side
+                // from jaStages so it always reflects the currently-selected job's pipeline.
                 if (!in_array($statusSlug, ['rejected', 'hired'])) {
-                    $dropdownId = 'ja-move-drop-' . $row->id;
+                    $dropdownId   = 'ja-move-drop-' . $row->id;
                     $dropdownHtml = '<div class="ja-move-wrap" style="position:relative;display:inline-flex;">';
                     $dropdownHtml .= '<button type="button" class="ja-act-btn" onclick="jaToggleDrop(\'' . $dropdownId . '\', this)" title="Move to stage" style="padding:5px 8px;border-radius:8px;"><i class="fa fa-chevron-down" style="font-size:10px;"></i></button>';
-
-                    $dropdownHtml .= '<div id="' . $dropdownId . '" class="ja-move-drop" style="display:none;position:fixed;background:#fff;border:1.5px solid #E2DED8;border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.13);z-index:99999;min-width:160px;max-height:220px;overflow-y:auto;">';
-
-                    foreach ($allStatuses as $s) {
-                        if ($s->status === $statusSlug) continue;
-                        $stageLabel = ucwords(str_replace('_', ' ', $s->status));
-                        $stageDot   = $s->color ?? '#6B7280';
-                        $dropdownHtml .= '<button type="button" onclick="jaMoveOneBySlug(' . $row->id . ',\'' . $s->status . '\');jaCloseDrop(\'' . $dropdownId . '\')" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;border:none;background:none;font-size:13px;font-weight:500;color:#1A1E2E;cursor:pointer;font-family:inherit;text-align:left;" onmouseover="this.style.background=\'#F1F3F7\'" onmouseout="this.style.background=\'none\'">';
-                        $dropdownHtml .= '<span style="width:8px;height:8px;border-radius:50%;background:' . $stageDot . ';flex-shrink:0;display:inline-block;"></span>' . $stageLabel;
-                        $dropdownHtml .= '</button>';
-                    }
-
-                    $dropdownHtml .= '</div></div>';
+                    // Empty container — jaToggleDrop fills it from jaStages on open
+                    $dropdownHtml .= '<div id="' . $dropdownId . '" class="ja-move-drop"'
+                        . ' data-app-id="' . $row->id . '"'
+                        . ' data-current-status="' . e($statusSlug) . '"'
+                        . ' style="display:none;position:fixed;background:#fff;border:1.5px solid #E2DED8;border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.13);z-index:99999;min-width:160px;max-height:220px;overflow-y:auto;">'
+                        . '</div></div>';
                     $parts[] = $dropdownHtml;
                 }
 
                 // Reject button
-                if (!in_array($statusSlug, ['rejected', 'hired'])) {
-                    $parts[] = '<button type="button" onclick="jaMoveOneBySlug(' . $row->id . ',\'rejected\')" class="ja-act-btn reject" title="Reject"><i class="fa fa-times"></i></button>';
+                if (!in_array($statusSlug, ['rejected', 'hired']) && $rejectedStatus) {
+                    $parts[] = '<button type="button" onclick="jaMoveOne(' . $row->id . ',' . $rejectedStatus->id . ')" class="ja-act-btn reject" title="Reject"><i class="fa fa-times"></i></button>';
                 }
 
                 // Restore button for rejected
@@ -548,27 +559,28 @@ class AdminJobApplicationController extends AdminBaseController
     {
         $jobId = (int) $request->input('job_id', 0);
 
-        // Always load global (default) statuses
+        // Load global (default) statuses
         try {
             $global = ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
         } catch (\Exception $e) {
             $global = ApplicationStatus::orderBy('position')->get();
         }
 
-        // If a job is selected, also load its custom statuses and append
-        $jobSpecific = collect();
+        // If a job is selected and has its own custom pipeline, use those instead of global
         if ($jobId > 0) {
             try {
                 $jobSpecific = ApplicationStatus::where('job_id', $jobId)->orderBy('position')->get();
+                if ($jobSpecific->isNotEmpty()) {
+                    $statuses = $jobSpecific;
+                } else {
+                    $statuses = $global;
+                }
             } catch (\Exception $e) {
-                // job_id column not yet migrated — only global statuses returned
+                $statuses = $global;
             }
+        } else {
+            $statuses = $global;
         }
-
-        // Merge: global first, then any job-specific ones that aren't already in global
-        $existingIds = $global->pluck('id')->toArray();
-        $extra       = $jobSpecific->filter(fn ($s) => ! in_array($s->id, $existingIds));
-        $statuses    = $global->concat($extra);
 
         return Reply::dataOnly([
             'statuses' => $statuses->map(fn ($s) => [
