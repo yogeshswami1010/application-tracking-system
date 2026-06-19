@@ -1266,8 +1266,8 @@
         });
     }
 
-    // Use event delegation so the handler survives Select2 destroy/recreate (company filter)
-    $(document).on('change', '#jobs', function () {
+    // When jobs dropdown changes → reload statuses
+    $('#jobs').on('change', function () {
         jaLoadJobStatuses($(this).val());
     });
 
