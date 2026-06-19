@@ -76,8 +76,8 @@ class AdminJobApplicationController extends AdminBaseController
         $this->companies = Company::all();
         $this->skills = Skill::all();
         $this->questions = Question::all();
-        $boardColumns = ApplicationStatus::withCount(['applications as application_count' => function ($q) use ($request) {
-         $q->where('job_applications.is_candidate', 0); // ADD THIS
+        $boardColumns = ApplicationStatus::whereNull('job_id')->withCount(['applications as application_count' => function ($q) use ($request) {
+         $q->where('job_applications.is_candidate', 0);
             if ($request->startDate !== null && $request->startDate != 'null' && $request->startDate != '') {
                 $q = $q->where(DB::raw('DATE(job_applications.`created_at`)'), '>=', $request->startDate);
             } else {
@@ -442,8 +442,9 @@ class AdminJobApplicationController extends AdminBaseController
             $jobApplications = $jobApplications->whereDate('job_applications.created_at', '<=', $request->endDate);
         }
 
-        // Build next-stage map once from DB ordered by position
-        $allStatuses = ApplicationStatus::orderBy('position')->get();
+        // Build next-stage map from global statuses only (job_id IS NULL).
+        // Job-specific statuses must not pollute this map or the "move to" dropdown.
+        $allStatuses = ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
         $nextMap = [];
         foreach ($allStatuses as $i => $s) {
             $nextStatus = $allStatuses->get($i + 1);
