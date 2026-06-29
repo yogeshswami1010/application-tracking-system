@@ -2495,6 +2495,75 @@ class AdminJobApplicationController extends AdminBaseController
         abort_if(!$this->user->cans('view_job_applications'), 403);
         return view('admin.ai-search.index', $this->data);
     }
+
+    /**
+     * Parse a natural-language search query using Ollama (local AI).
+     * Falls back to keyword passthrough if Ollama is unavailable.
+     */
+    public function aiParseQuery(Request $request)
+    {
+        abort_if(!$this->user->cans('view_job_applications'), 403);
+
+        $query = trim($request->input('query', ''));
+        if (!$query) {
+            return Reply::dataOnly(['skills' => [], 'keywords' => [], 'roles' => [], 'location' => '', 'min_experience' => 0]);
+        }
+
+        $ollamaUrl   = rtrim(config('services.ollama.url', 'http://localhost:11434'), '/');
+        $ollamaModel = config('services.ollama.model', 'llama3.2:3b');
+
+        $prompt = 'Parse this job candidate search query: "' . $query . "\"\n\n"
+            . "Extract:\n"
+            . "- skills: technical skills, tools, technologies the candidate would have\n"
+            . "- keywords: other relevant keywords from their CV\n"
+            . "- roles: job titles / roles\n"
+            . "- location: city or region mentioned (empty string if none)\n"
+            . "- min_experience: minimum years of experience as a number (0 if not mentioned)\n\n"
+            . "Be comprehensive with skills/keywords — include synonyms.\n"
+            . "Return ONLY minified JSON, no explanation:\n"
+            . '{"skills":["skill1"],"keywords":["kw1"],"roles":["role1"],"location":"toronto","min_experience":5}';
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::timeout(30)->post($ollamaUrl . '/api/generate', [
+                'model'  => $ollamaModel,
+                'prompt' => $prompt,
+                'stream' => false,
+                'format' => 'json',
+            ]);
+
+            if (!$response->successful()) {
+                throw new \RuntimeException('Ollama returned HTTP ' . $response->status());
+            }
+
+            $text = $response->json('response') ?? '';
+            $text = trim(preg_replace('/```json|```/', '', $text) ?? '');
+            $parsed = json_decode($text, true);
+
+            if (!is_array($parsed)) {
+                throw new \RuntimeException('Invalid JSON from Ollama');
+            }
+
+            return Reply::dataOnly([
+                'skills'         => (array) ($parsed['skills']         ?? []),
+                'keywords'       => (array) ($parsed['keywords']       ?? []),
+                'roles'          => (array) ($parsed['roles']          ?? []),
+                'location'       => (string) ($parsed['location']      ?? ''),
+                'min_experience' => (int) ($parsed['min_experience']   ?? 0),
+            ]);
+        } catch (\Throwable $e) {
+            \Log::warning('Ollama aiParseQuery failed: ' . $e->getMessage());
+            // Graceful fallback — treat raw query as keyword
+            return Reply::dataOnly([
+                'skills'         => [],
+                'keywords'       => [$query],
+                'roles'          => [$query],
+                'location'       => '',
+                'min_experience' => 0,
+                'fallback'       => true,
+            ]);
+        }
+    }
+
     public function aiSearchResults(Request $request)
     {
         abort_if(!$this->user->cans('view_job_applications'), 403);

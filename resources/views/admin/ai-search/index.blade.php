@@ -540,55 +540,31 @@
         btn.disabled = true;
         btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Thinking…';
 
-        // Step 1: AI extracts structured search parameters including location & experience
-        fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': '{{ config("services.anthropic.key") }}',
-                'anthropic-version': '2023-06-01',
+        // Step 1: Ollama (local AI) parses the query server-side — no API key in browser
+        $.ajax({
+            url: '{{ route("admin.ai-search.parse-query") }}',
+            type: 'POST',
+            data: { _token: '{{ csrf_token() }}', query: query },
+            success: function(res) {
+                var parsed = res.data || res;
+
+                var allTerms = []
+                    .concat(parsed.skills   || [])
+                    .concat(parsed.keywords || [])
+                    .concat(parsed.roles    || []);
+
+                aiLastMeta = {
+                    location:       parsed.location       || '',
+                    min_experience: parseInt(parsed.min_experience) || 0
+                };
+
+                // Step 2: Search server with full context
+                aiSearchServer(query, allTerms, parsed.location || '', parseInt(parsed.min_experience) || 0);
             },
-            body: JSON.stringify({
-                model: 'claude-haiku-4-5-20251001',
-                max_tokens: 500,
-                messages: [{
-                    role: 'user',
-                    content: 'Parse this job candidate search query: "' + query + '"\n\n' +
-                        'Extract:\n' +
-                        '- skills: technical skills, tools, technologies the candidate would have\n' +
-                        '- keywords: other relevant keywords from their CV\n' +
-                        '- roles: job titles / roles\n' +
-                        '- location: city or region mentioned (empty string if none)\n' +
-                        '- min_experience: minimum years of experience as a number (0 if not mentioned)\n\n' +
-                        'Be comprehensive with skills/keywords — include synonyms.\n' +
-                        'Return ONLY minified JSON, no explanation:\n' +
-                        '{"skills":["skill1"],"keywords":["kw1"],"roles":["role1"],"location":"toronto","min_experience":5}'
-                }]
-            })
-        })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            var text = (data.content || []).map(function(c){ return c.text || ''; }).join('');
-            text = text.replace(/```json|```/g, '').trim();
-            var parsed;
-            try { parsed = JSON.parse(text); }
-            catch(e) { parsed = { skills: [], keywords: [query], roles: [query], location: '', min_experience: 0 }; }
-
-            var allTerms = []
-                .concat(parsed.skills   || [])
-                .concat(parsed.keywords || [])
-                .concat(parsed.roles    || []);
-
-            aiLastMeta = {
-                location:       parsed.location       || '',
-                min_experience: parseInt(parsed.min_experience) || 0
-            };
-
-            // Step 2: Search server with full context
-            aiSearchServer(query, allTerms, parsed.location || '', parseInt(parsed.min_experience) || 0);
-        })
-        .catch(function() {
-            aiSearchServer(query, [query], '', 0);
+            error: function() {
+                // Fallback: treat raw query as keyword
+                aiSearchServer(query, [query], '', 0);
+            }
         });
     }
 

@@ -47,6 +47,11 @@ return [
         'sms_from' => env('NEXMO_FROM'),
     ],
     'anthropic' => [
-    'key' => env('ANTHROPIC_API_KEY'),
-    ]
+        'key' => env('ANTHROPIC_API_KEY'),
+    ],
+
+    'ollama' => [
+        'url'   => env('OLLAMA_URL',   'http://localhost:11434'),
+        'model' => env('OLLAMA_MODEL', 'llama3.2:3b'),
+    ],
 ];
