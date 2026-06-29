@@ -2186,94 +2186,47 @@ class AdminJobApplicationController extends AdminBaseController
 
         $application = JobApplication::with('job')->findOrFail($id);
 
-        // Resolve the resume URL
-        $resumeUrl = null;
-        if (!empty($application->resume_url)) {
-            $resumeUrl = $application->resume_url;
-        }
-        if (!$resumeUrl) {
-            $answers = $application->answers()->with('question')->get();
-            foreach ($answers as $answer) {
-                if (!empty($answer->file)) {
-                    $resumeUrl = $answer->file_url ?? url('user-uploads/documents/' . basename($answer->file));
-                    break;
-                }
-            }
-        }
-
-        \Log::info('parseSkills resumeUrl: ' . $resumeUrl);
-
-        if (!$resumeUrl) {
-            return response()->json(['status' => 'error', 'message' => 'No resume found for this applicant.']);
-        }
-
         try {
-            $client = new \GuzzleHttp\Client(['verify' => false]);
-
-            // Fetch the PDF via Guzzle
-            $pdfResponse = $client->get($resumeUrl);
-            $pdfContents = $pdfResponse->getBody()->getContents();
-
-            if (!$pdfContents) {
-                return response()->json(['status' => 'error', 'message' => 'Could not fetch the resume file.']);
+            // Read resume file directly from disk
+            $doc = $application->documents()->where('name', 'Resume')->first();
+            if (!$doc || empty($doc->hashname)) {
+                return response()->json(['status' => 'error', 'message' => 'No resume found for this applicant.']);
             }
 
-            $base64Pdf = base64_encode($pdfContents);
+            $filePath = public_path('user-uploads/documents/' . $application->id . '/' . $doc->hashname);
+            if (!is_readable($filePath)) {
+                return response()->json(['status' => 'error', 'message' => 'Resume file not found on disk.']);
+            }
 
-            // Extract and index plain text for AI search (reuses already-downloaded bytes)
+            $ext = strtolower(pathinfo($doc->hashname, PATHINFO_EXTENSION)) ?: 'pdf';
+
+            // Extract text from file
+            $extractor = new \App\Services\ResumeTextExtractor();
+            $cvText    = $extractor->extractFromPath($filePath, $ext);
+
+            if (empty($cvText)) {
+                return response()->json(['status' => 'error', 'message' => 'Could not extract text from resume.']);
+            }
+
+            // Save to cv_text for AI search indexing
             if (empty($application->cv_text)) {
-                $ext = strtolower(pathinfo(parse_url($resumeUrl, PHP_URL_PATH), PATHINFO_EXTENSION)) ?: 'pdf';
-                if (!in_array($ext, ['pdf','docx','xlsx','xls','rtf','txt'])) $ext = 'pdf';
-                $this->saveCvTextFromBytes($application, $pdfContents, $ext);
+                $application->cv_text = mb_substr($cvText, 0, 65000);
+                $application->save();
             }
 
-            // Get all skill names from DB for matching
             $allSkillNames = \App\Skill::pluck('name')->implode(', ');
 
-            \Log::info('parseSkills calling Anthropic API');
+            $prompt = "You are a skill extractor. Read this resume and extract ALL skills mentioned anywhere including technical skills, software, tools, programming languages, soft skills.\n\n"
+                . "Compare each skill against this list: [{$allSkillNames}]\n\n"
+                . "Resume text:\n" . mb_substr($cvText, 0, 8000) . "\n\n"
+                . "You MUST respond with ONLY a raw JSON object, no explanation, no markdown, no backticks:\n"
+                . "{\"matched\": [\"exact name from list\"], \"new\": [\"skills not in list\"]}\n\n"
+                . "If no skills found still return: {\"matched\": [], \"new\": []}";
 
-            // Call Anthropic API
-            $apiResponse = $client->post('https://api.anthropic.com/v1/messages', [
-                'headers' => [
-                    'x-api-key'         => config('services.anthropic.key'),
-                    'anthropic-version' => '2023-06-01',
-                    'content-type'      => 'application/json',
-                ],
-                'json' => [
-                    'model'      => 'claude-haiku-4-5-20251001',
-                    'max_tokens' => 512,
-                    'cache_control' => ['type' => 'ephemeral',],
-                    'messages'   => [[
-                        'role'    => 'user',
-                        'content' => [
-                            [
-                                'type'   => 'document',
-                                'source' => [
-                                    'type'       => 'base64',
-                                    'media_type' => 'application/pdf',
-                                    'data'       => $base64Pdf,
-                                ],
-                            ],
-                            [
-                                'type' => 'text',
-                                'text' => "You are a skill extractor. Read this resume PDF and extract ALL skills mentioned anywhere in the document including technical skills, software, tools, programming languages, soft skills.\n\nCompare each skill against this list: [{$allSkillNames}]\n\nYou MUST respond with ONLY a raw JSON object, no explanation, no markdown, no backticks:\n{\"matched\": [\"exact name from list\"], \"new\": [\"skills not in list\"]}\n\nIf no skills found still return: {\"matched\": [], \"new\": []}",
-                            ],
-                        ],
-                    ]],
-                ],
-            ]);
+            \Log::info('parseSkills calling Ollama');
+            $text   = $this->callOllama($prompt);
+            $parsed = json_decode($text, true);
 
-            $body = json_decode($apiResponse->getBody()->getContents(), true);
-            \Log::info('parseSkills raw response: ' . json_encode($body));
-
-            $text = collect($body['content'] ?? [])->where('type', 'text')->pluck('text')->first() ?? '{}';
-            \Log::info('parseSkills extracted text: ' . $text);
-
-            // Strip markdown fences if Claude wrapped the JSON
-            $text = preg_replace('/^```json\s*/i', '', trim($text));
-            $text = preg_replace('/```$/', '', trim($text));
-
-            $parsed = json_decode(trim($text), true);
             \Log::info('parseSkills parsed: ' . json_encode($parsed));
 
             $matchedSkills = \App\Skill::whereIn('name', $parsed['matched'] ?? [])->get(['id', 'name']);
@@ -2291,6 +2244,32 @@ class AdminJobApplicationController extends AdminBaseController
                 'message' => $e->getMessage() . ' (line ' . $e->getLine() . ')',
             ]);
         }
+    }
+
+    /**
+     * Send a prompt to the local Ollama instance and return the response text.
+     * Strips markdown fences from the output automatically.
+     */
+    private function callOllama(string $prompt): string
+    {
+        $url   = rtrim(config('services.ollama.url', 'http://localhost:11434'), '/') . '/api/generate';
+        $model = config('services.ollama.model', 'llama3.2:3b');
+
+        $response = \Illuminate\Support\Facades\Http::timeout(60)->post($url, [
+            'model'  => $model,
+            'prompt' => $prompt,
+            'stream' => false,
+            'format' => 'json',
+        ]);
+
+        if (!$response->successful()) {
+            throw new \RuntimeException('Ollama error: HTTP ' . $response->status());
+        }
+
+        $text = $response->json('response') ?? '';
+        $text = trim(preg_replace('/```json|```/', '', $text) ?? '');
+
+        return $text;
     }
 
     /**
@@ -2391,75 +2370,49 @@ class AdminJobApplicationController extends AdminBaseController
         }
 
         try {
-            $file     = $request->file('resume');
-            $contents = file_get_contents($file->getRealPath());
+            $file = $request->file('resume');
 
-            if (!$contents) {
-                return response()->json(['status' => 'error', 'message' => 'Could not read file.']);
+            // Extract text from the uploaded file
+            $extractor = new \App\Services\ResumeTextExtractor();
+            $cvText    = $extractor->extract($file);
+
+            if (empty($cvText)) {
+                return response()->json(['status' => 'error', 'message' => 'Could not extract text from the CV.']);
             }
-
-            $base64   = base64_encode($contents);
-            $ext      = strtolower($file->getClientOriginalExtension());
-            $mimeType = $ext === 'pdf' ? 'application/pdf' : 'application/octet-stream';
 
             $allSkillNames = \App\Skill::pluck('name')->implode(', ');
 
-            $client = new \GuzzleHttp\Client(['verify' => false]);
+            $prompt = "You are a CV parser. Extract the following fields from this resume text and extract skills.\n\n"
+                . "Skills list to match against: [{$allSkillNames}]\n\n"
+                . "Resume text:\n" . mb_substr($cvText, 0, 8000) . "\n\n"
+                . "Respond ONLY with a raw JSON object, no explanation, no markdown, no backticks:\n"
+                . "{\"full_name\": \"\", \"email\": \"\", \"phone\": \"\", \"address\": \"\", \"matched_skills\": [\"exact name from list\"], \"new_skills\": [\"skills not in list\"]}\n\n"
+                . "Rules:\n"
+                . "- full_name: person's full name in Title Case\n"
+                . "- email: email address or empty string\n"
+                . "- phone: phone number or empty string\n"
+                . "- address: city/state/country or full address if found, or empty string\n"
+                . "- matched_skills: skills that exactly match the provided list\n"
+                . "- new_skills: skills found in CV but NOT in the list\n"
+                . "- If a field is not found, use empty string or empty array";
 
-            $apiResponse = $client->post('https://api.anthropic.com/v1/messages', [
-                'headers' => [
-                    'x-api-key'         => config('services.anthropic.key'),
-                    'anthropic-version' => '2023-06-01',
-                    'content-type'      => 'application/json',
-                ],
-                'json' => [
-                    'model'      => 'claude-haiku-4-5-20251001',
-                    'max_tokens' => 1024,
-                    'cache_control' => ['type' => 'ephemeral',],
-                    'messages'   => [[
-                        'role'    => 'user',
-                        'content' => [
-                            [
-                                'type'   => 'document',
-                                'source' => [
-                                    'type'       => 'base64',
-                                    'media_type' => $mimeType,
-                                    'data'       => $base64,
-                                ],
-                            ],
-                            [
-                                'type' => 'text',
-                                'text' => "Extract the following fields from this CV and also extract skills.\n\nSkills list to match against: [{$allSkillNames}]\n\nRespond ONLY with a raw JSON object, no explanation, no markdown, no backticks:\n{\"full_name\": \"\", \"email\": \"\", \"phone\": \"\", \"address\": \"\", \"matched_skills\": [\"exact name from list\"], \"new_skills\": [\"skills not in list\"]}\n\nRules:\n- full_name: person's full name in Title Case\n- email: email address or empty string\n- phone: phone number digits only, no spaces or dashes\n- address: city/state/country or full address if found, or empty string\n- matched_skills: skills that exactly match the provided list\n- new_skills: skills found in CV but NOT in the list\n- If a field is not found, use empty string or empty array",
-                            ],
-                        ],
-                    ]],
-                ],
-            ]);
-
-            $body = json_decode($apiResponse->getBody()->getContents(), true);
-            $text = collect($body['content'] ?? [])->where('type', 'text')->pluck('text')->first() ?? '{}';
-
-            // Strip markdown fences if present
-            $text = preg_replace('/^```json\s*/i', '', trim($text));
-            $text = preg_replace('/```$/', '', trim($text));
-            $parsed = json_decode(trim($text), true);
+            $text   = $this->callOllama($prompt);
+            $parsed = json_decode($text, true);
 
             if (!$parsed) {
                 return response()->json(['status' => 'error', 'message' => 'AI could not parse the CV.']);
             }
 
-            // Get matched skill objects from DB
-            $matchedSkills = \App\Skill::whereIn('name', $parsed['matched_skills'] ?? [])
-                ->get(['id', 'name']);
+            $matchedSkills = \App\Skill::whereIn('name', $parsed['matched_skills'] ?? [])->get(['id', 'name']);
 
             return response()->json([
-                'status'          => 'success',
-                'full_name'       => $parsed['full_name']  ?? '',
-                'email'           => $parsed['email']      ?? '',
-                'phone'           => $parsed['phone']      ?? '',
-                'address'         => $parsed['address']    ?? '',
-                'matched_skills'  => $matchedSkills,
-                'new_skills'      => $parsed['new_skills'] ?? [],
+                'status'         => 'success',
+                'full_name'      => $parsed['full_name']     ?? '',
+                'email'          => $parsed['email']         ?? '',
+                'phone'          => $parsed['phone']         ?? '',
+                'address'        => $parsed['address']       ?? '',
+                'matched_skills' => $matchedSkills,
+                'new_skills'     => $parsed['new_skills']    ?? [],
             ]);
 
         } catch (\Throwable $e) {
@@ -2509,9 +2462,6 @@ class AdminJobApplicationController extends AdminBaseController
             return Reply::dataOnly(['skills' => [], 'keywords' => [], 'roles' => [], 'location' => '', 'min_experience' => 0]);
         }
 
-        $ollamaUrl   = rtrim(config('services.ollama.url', 'http://localhost:11434'), '/');
-        $ollamaModel = config('services.ollama.model', 'llama3.2:3b');
-
         $prompt = 'Parse this job candidate search query: "' . $query . "\"\n\n"
             . "Extract:\n"
             . "- skills: technical skills, tools, technologies the candidate would have\n"
@@ -2524,19 +2474,7 @@ class AdminJobApplicationController extends AdminBaseController
             . '{"skills":["skill1"],"keywords":["kw1"],"roles":["role1"],"location":"toronto","min_experience":5}';
 
         try {
-            $response = \Illuminate\Support\Facades\Http::timeout(30)->post($ollamaUrl . '/api/generate', [
-                'model'  => $ollamaModel,
-                'prompt' => $prompt,
-                'stream' => false,
-                'format' => 'json',
-            ]);
-
-            if (!$response->successful()) {
-                throw new \RuntimeException('Ollama returned HTTP ' . $response->status());
-            }
-
-            $text = $response->json('response') ?? '';
-            $text = trim(preg_replace('/```json|```/', '', $text) ?? '');
+            $text   = $this->callOllama($prompt);
             $parsed = json_decode($text, true);
 
             if (!is_array($parsed)) {
