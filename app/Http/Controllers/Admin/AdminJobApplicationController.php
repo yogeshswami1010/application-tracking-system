@@ -2223,8 +2223,8 @@ class AdminJobApplicationController extends AdminBaseController
                 . "{\"matched\": [\"exact name from list\"], \"new\": [\"skills not in list\"]}\n\n"
                 . "If no skills found still return: {\"matched\": [], \"new\": []}";
 
-            \Log::info('parseSkills calling Ollama');
-            $text   = $this->callOllama($prompt);
+            \Log::info('parseSkills calling DeepSeek');
+            $text   = $this->callDeepSeek($prompt);
             $parsed = json_decode($text, true);
 
             \Log::info('parseSkills parsed: ' . json_encode($parsed));
@@ -2247,27 +2247,36 @@ class AdminJobApplicationController extends AdminBaseController
     }
 
     /**
-     * Send a prompt to the local Ollama instance and return the response text.
-     * Strips markdown fences from the output automatically.
+     * Send a prompt to DeepSeek API and return the response text.
+     * Uses the OpenAI-compatible chat completions endpoint.
      */
-    private function callOllama(string $prompt): string
+    private function callDeepSeek(string $prompt): string
     {
-        $url   = rtrim(config('services.ollama.url', 'http://localhost:11434'), '/') . '/api/generate';
-        $model = config('services.ollama.model', 'llama3.2:3b');
+        $key   = config('services.deepseek.key');
+        $model = config('services.deepseek.model', 'deepseek-chat');
 
-        $response = \Illuminate\Support\Facades\Http::timeout(180)->post($url, [
-            'model'      => $model,
-            'prompt'     => $prompt,
-            'stream'     => false,
-            'format'     => 'json',
-            'keep_alive' => '10m', // keep model loaded in RAM between requests
-        ]);
-
-        if (!$response->successful()) {
-            throw new \RuntimeException('Ollama error: HTTP ' . $response->status());
+        if (!$key) {
+            throw new \RuntimeException('DEEPSEEK_API_KEY is not configured.');
         }
 
-        $text = $response->json('response') ?? '';
+        $response = \Illuminate\Support\Facades\Http::timeout(30)
+            ->withHeaders([
+                'Authorization' => 'Bearer ' . $key,
+                'Content-Type'  => 'application/json',
+            ])
+            ->post('https://api.deepseek.com/chat/completions', [
+                'model'       => $model,
+                'max_tokens'  => 1024,
+                'messages'    => [
+                    ['role' => 'user', 'content' => $prompt],
+                ],
+            ]);
+
+        if (!$response->successful()) {
+            throw new \RuntimeException('DeepSeek error: HTTP ' . $response->status() . ' — ' . $response->body());
+        }
+
+        $text = $response->json('choices.0.message.content') ?? '';
         $text = trim(preg_replace('/```json|```/', '', $text) ?? '');
 
         return $text;
@@ -2397,7 +2406,7 @@ class AdminJobApplicationController extends AdminBaseController
                 . "- new_skills: skills found in CV but NOT in the list\n"
                 . "- If a field is not found, use empty string or empty array";
 
-            $text   = $this->callOllama($prompt);
+            $text   = $this->callDeepSeek($prompt);
             $parsed = json_decode($text, true);
 
             if (!$parsed) {
@@ -2475,7 +2484,7 @@ class AdminJobApplicationController extends AdminBaseController
             . '{"skills":["skill1"],"keywords":["kw1"],"roles":["role1"],"location":"toronto","min_experience":5}';
 
         try {
-            $text   = $this->callOllama($prompt);
+            $text   = $this->callDeepSeek($prompt);
             $parsed = json_decode($text, true);
 
             if (!is_array($parsed)) {
@@ -2490,7 +2499,7 @@ class AdminJobApplicationController extends AdminBaseController
                 'min_experience' => (int) ($parsed['min_experience']   ?? 0),
             ]);
         } catch (\Throwable $e) {
-            \Log::warning('Ollama aiParseQuery failed: ' . $e->getMessage());
+            \Log::warning('DeepSeek aiParseQuery failed: ' . $e->getMessage());
             // Graceful fallback — treat raw query as keyword
             return Reply::dataOnly([
                 'skills'         => [],

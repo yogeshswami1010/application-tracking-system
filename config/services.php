@@ -54,4 +54,9 @@ return [
         'url'   => env('OLLAMA_URL',   'http://localhost:11434'),
         'model' => env('OLLAMA_MODEL', 'llama3.2:3b'),
     ],
+
+    'deepseek' => [
+        'key'   => env('DEEPSEEK_API_KEY'),
+        'model' => env('DEEPSEEK_MODEL', 'deepseek-chat'),
+    ],
 ];
