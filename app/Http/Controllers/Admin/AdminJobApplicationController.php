@@ -2214,11 +2214,11 @@ class AdminJobApplicationController extends AdminBaseController
                 $application->save();
             }
 
-            $allSkillNames = \App\Skill::pluck('name')->implode(', ');
+            $allSkillNames = mb_substr(\App\Skill::pluck('name')->implode(', '), 0, 2000);
 
             $prompt = "You are a skill extractor. Read this resume and extract ALL skills mentioned anywhere including technical skills, software, tools, programming languages, soft skills.\n\n"
                 . "Compare each skill against this list: [{$allSkillNames}]\n\n"
-                . "Resume text:\n" . mb_substr($cvText, 0, 8000) . "\n\n"
+                . "Resume text:\n" . mb_substr($cvText, 0, 4000) . "\n\n"
                 . "You MUST respond with ONLY a raw JSON object, no explanation, no markdown, no backticks:\n"
                 . "{\"matched\": [\"exact name from list\"], \"new\": [\"skills not in list\"]}\n\n"
                 . "If no skills found still return: {\"matched\": [], \"new\": []}";
@@ -2255,11 +2255,12 @@ class AdminJobApplicationController extends AdminBaseController
         $url   = rtrim(config('services.ollama.url', 'http://localhost:11434'), '/') . '/api/generate';
         $model = config('services.ollama.model', 'llama3.2:3b');
 
-        $response = \Illuminate\Support\Facades\Http::timeout(60)->post($url, [
-            'model'  => $model,
-            'prompt' => $prompt,
-            'stream' => false,
-            'format' => 'json',
+        $response = \Illuminate\Support\Facades\Http::timeout(180)->post($url, [
+            'model'      => $model,
+            'prompt'     => $prompt,
+            'stream'     => false,
+            'format'     => 'json',
+            'keep_alive' => '10m', // keep model loaded in RAM between requests
         ]);
 
         if (!$response->successful()) {
@@ -2380,11 +2381,11 @@ class AdminJobApplicationController extends AdminBaseController
                 return response()->json(['status' => 'error', 'message' => 'Could not extract text from the CV.']);
             }
 
-            $allSkillNames = \App\Skill::pluck('name')->implode(', ');
+            $allSkillNames = mb_substr(\App\Skill::pluck('name')->implode(', '), 0, 2000);
 
             $prompt = "You are a CV parser. Extract the following fields from this resume text and extract skills.\n\n"
                 . "Skills list to match against: [{$allSkillNames}]\n\n"
-                . "Resume text:\n" . mb_substr($cvText, 0, 8000) . "\n\n"
+                . "Resume text:\n" . mb_substr($cvText, 0, 4000) . "\n\n"
                 . "Respond ONLY with a raw JSON object, no explanation, no markdown, no backticks:\n"
                 . "{\"full_name\": \"\", \"email\": \"\", \"phone\": \"\", \"address\": \"\", \"matched_skills\": [\"exact name from list\"], \"new_skills\": [\"skills not in list\"]}\n\n"
                 . "Rules:\n"
