@@ -37,7 +37,8 @@ class ResumeTextExtractor
 
     /**
      * Extract plain text from common resume file types (PDF, DOCX, XLS/XLSX, RTF).
-     * Images and legacy .doc are not supported.
+     * Returns empty string on parse errors instead of throwing, so callers can
+     * decide how to handle unreadable files gracefully.
      */
     public function extract(UploadedFile $file): string
     {
@@ -47,33 +48,39 @@ class ResumeTextExtractor
             throw new \InvalidArgumentException(__('messages.resumeReadFailed'));
         }
 
-        $text = match ($ext) {
-            'pdf' => $this->fromPdf($path),
-            'docx' => $this->fromDocx($path),
-            'xlsx', 'xls' => $this->fromSpreadsheet($path),
-            'rtf' => $this->fromRtf(file_get_contents($path) ?: ''),
-            'txt' => (string) (file_get_contents($path) ?: ''),
-            'doc' => throw new \InvalidArgumentException(__('messages.resumeDocBinaryNotSupported')),
-            'png', 'jpg', 'jpeg', 'gif', 'webp' => throw new \InvalidArgumentException(__('messages.resumeImageNotSupported')),
-            default => throw new \InvalidArgumentException(__('messages.resumeFormatNotSupported')),
-        };
-
-        $text = $this->normalizeWhitespace($text);
-
-        if ($text === '') {
-            throw new \InvalidArgumentException(__('messages.resumeNoTextExtracted'));
+        try {
+            $text = match ($ext) {
+                'pdf'              => $this->fromPdf($path),
+                'docx'             => $this->fromDocx($path),
+                'xlsx', 'xls'      => $this->fromSpreadsheet($path),
+                'rtf'              => $this->fromRtf(file_get_contents($path) ?: ''),
+                'txt'              => (string) (file_get_contents($path) ?: ''),
+                'doc'              => throw new \InvalidArgumentException(__('messages.resumeDocBinaryNotSupported')),
+                'png', 'jpg', 'jpeg', 'gif', 'webp' => throw new \InvalidArgumentException(__('messages.resumeImageNotSupported')),
+                default            => throw new \InvalidArgumentException(__('messages.resumeFormatNotSupported')),
+            };
+        } catch (\InvalidArgumentException $e) {
+            throw $e; // re-throw unsupported format errors
+        } catch (\Throwable) {
+            return ''; // silently return empty for parse errors (malformed PDF etc.)
         }
 
-        return $text;
+        return $this->normalizeWhitespace($text);
     }
 
     private function fromPdf(string $path): string
     {
-        $parser = new PdfParser;
-        $pdf = $parser->parseFile($path);
-        $text = $pdf->getText();
-
-        return is_string($text) ? $text : '';
+        try {
+            $config = new \Smalot\PdfParser\Config();
+            $config->setRetainImageContent(false); // skip embedded images, reduces errors
+            $parser = new PdfParser([], $config);
+            $pdf    = $parser->parseFile($path);
+            $text   = $pdf->getText();
+            return is_string($text) ? $text : '';
+        } catch (\Throwable) {
+            // Malformed PDF (e.g. "Invalid object reference for $obj") — return empty
+            return '';
+        }
     }
 
     private function fromDocx(string $path): string

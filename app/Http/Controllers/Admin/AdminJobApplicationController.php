@@ -2205,7 +2205,12 @@ class AdminJobApplicationController extends AdminBaseController
             $cvText    = $extractor->extractFromPath($filePath, $ext);
 
             if (empty($cvText)) {
-                return response()->json(['status' => 'error', 'message' => 'Could not extract text from resume.']);
+                return response()->json([
+                    'status'         => 'success',
+                    'matched_skills' => [],
+                    'new_skills'     => [],
+                    'warning'        => 'Could not read text from this resume (it may be a scanned or image-based PDF).',
+                ]);
             }
 
             // Save to cv_text for AI search indexing
@@ -2382,12 +2387,27 @@ class AdminJobApplicationController extends AdminBaseController
         try {
             $file = $request->file('resume');
 
-            // Extract text from the uploaded file
+            // Extract text from the uploaded file (returns empty string on parse errors)
             $extractor = new \App\Services\ResumeTextExtractor();
-            $cvText    = $extractor->extract($file);
+            try {
+                $cvText = $extractor->extract($file);
+            } catch (\InvalidArgumentException $e) {
+                return response()->json(['status' => 'error', 'message' => $e->getMessage()]);
+            }
 
+            // If text extraction failed (malformed/scanned PDF), return empty result
+            // so the user can fill in the form manually
             if (empty($cvText)) {
-                return response()->json(['status' => 'error', 'message' => 'Could not extract text from the CV.']);
+                return response()->json([
+                    'status'         => 'success',
+                    'full_name'      => '',
+                    'email'          => '',
+                    'phone'          => '',
+                    'address'        => '',
+                    'matched_skills' => [],
+                    'new_skills'     => [],
+                    'warning'        => 'Could not read text from this file (it may be a scanned or image-based PDF). Please fill in the details manually.',
+                ]);
             }
 
             $allSkillNames = mb_substr(\App\Skill::pluck('name')->implode(', '), 0, 2000);
