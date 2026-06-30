@@ -44,7 +44,7 @@ class FrontJobApplication extends CoreRequest
                     //     return $query->where('job_id', $this->job_id);
                     // })
                 ],
-                'phone' => 'required|numeric',
+                'phone' => 'nullable|string|max:30',
     
             ];
     
@@ -52,7 +52,7 @@ class FrontJobApplication extends CoreRequest
             $rules = [
                 'full_name' => 'required',
                 'email' => 'required|email',
-                'phone' => 'required|numeric',
+                'phone' => 'nullable|string|max:30',
     
             ];
         }

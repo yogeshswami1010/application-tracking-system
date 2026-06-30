@@ -34,7 +34,7 @@ class StoreJobApplication extends CoreRequest
         $rules = [
             'full_name' => 'required',
             'email' => 'email|required',
-            'phone' => 'numeric|required',
+            'phone' => 'nullable|string|max:30',
             'job_id' => 'nullable|exists:jobs,id',
             'job_job_location_id' => 'nullable|exists:job_job_locations,id',
             'location_id' => 'nullable|integer',

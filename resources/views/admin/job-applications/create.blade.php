@@ -149,7 +149,7 @@
                                                 <span class="bulk-conf" id="bconf-phone">—</span>
                                             </label>
                                             <input type="tel" name="phone" id="bf-phone" class="bulk-input bulk-parsed"
-                                                placeholder="@lang('app.phone')" required>
+                                                placeholder="@lang('app.phone')">
                                         </div>
 
                                         {{-- Address --}}

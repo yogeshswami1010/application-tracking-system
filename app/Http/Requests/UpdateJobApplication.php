@@ -35,7 +35,7 @@ class UpdateJobApplication extends CoreRequest
         $rules = [
             'full_name' => 'required',
             'email' => 'required',
-            'phone' => 'required',
+            'phone' => 'nullable|string|max:30',
             'job_id' => 'nullable|exists:jobs,id'
         ];
  
