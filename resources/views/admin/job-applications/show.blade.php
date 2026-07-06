@@ -890,40 +890,40 @@ function jaSaveMarketingLabel(appId) {
                 <button type="button" onclick="jaHideJobDesc()" style="width:32px;height:32px;border-radius:8px;border:1px solid #E8E6E1;background:#F8F7F4;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#8A94A6;font-size:14px;flex-shrink:0"><i class="fa fa-times"></i></button>
             </div>
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 22px;border-bottom:1px solid #F0EEE9;flex-shrink:0">
-            @if($application->job?->job_type)
-            <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:600;background:#EFF6FF;color:#1D4ED8"><i class="fa fa-briefcase" style="font-size:10px"></i>{{ ucwords($application->job->job_type) }}</span>
-            @endif
+                @if($application->job?->job_type)
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:600;background:#EFF6FF;color:#1D4ED8"><i class="fa fa-briefcase" style="font-size:10px"></i>{{ ucwords($application->job->job_type) }}</span>
+                @endif
 
-            @if($application->job?->show_salary)
+                {{-- ── SALARY BADGE ── --}}
                 @php
                     $modalJob = $application->job;
-                    $modalCurrencySymbol = $modalJob->currency->currency_symbol ?? '$';
                     $modalSalaryText = null;
-
-                    if ($modalJob->pay_type == 'Range') {
-                        $modalSalaryText = $modalCurrencySymbol . number_format($modalJob->starting_salary)
-                            . ' - ' . $modalCurrencySymbol . number_format($modalJob->maximum_salary)
-                            . ' /' . $modalJob->pay_according;
-                    } elseif ($modalJob->pay_type == 'Starting') {
-                        $modalSalaryText = $modalCurrencySymbol . number_format($modalJob->starting_salary) . ' /' . $modalJob->pay_according;
-                    } elseif ($modalJob->pay_type == 'Maximum') {
-                        $modalSalaryText = $modalCurrencySymbol . number_format($modalJob->maximum_salary) . ' /' . $modalJob->pay_according;
-                    } elseif ($modalJob->pay_type == 'Exact Amount') {
-                        $modalSalaryText = $modalCurrencySymbol . number_format($modalJob->starting_salary) . ' /' . $modalJob->pay_according;
+                    if ($modalJob) {
+                        $modalCurrencySymbol = $modalJob->currency->currency_symbol ?? '$';
+                        if ($modalJob->pay_type == 'Range') {
+                            $modalSalaryText = $modalCurrencySymbol . number_format($modalJob->starting_salary)
+                                . ' - ' . $modalCurrencySymbol . number_format($modalJob->maximum_salary)
+                                . ' /' . $modalJob->pay_according;
+                        } elseif ($modalJob->pay_type == 'Starting') {
+                            $modalSalaryText = $modalCurrencySymbol . number_format($modalJob->starting_salary) . ' /' . $modalJob->pay_according;
+                        } elseif ($modalJob->pay_type == 'Maximum') {
+                            $modalSalaryText = $modalCurrencySymbol . number_format($modalJob->maximum_salary) . ' /' . $modalJob->pay_according;
+                        } elseif ($modalJob->pay_type == 'Exact Amount') {
+                            $modalSalaryText = $modalCurrencySymbol . number_format($modalJob->starting_salary) . ' /' . $modalJob->pay_according;
+                        }
                     }
                 @endphp
                 @if($modalSalaryText)
                 <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:600;background:#ECFDF5;color:#065F46"><i class="fa fa-money" style="font-size:10px"></i>{{ $modalSalaryText }}</span>
                 @endif
-            @endif
 
-            @if($application->job?->start_date)
-            <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:600;background:#F1F3F7;color:#5A6478"><i class="fa fa-calendar-o" style="font-size:10px"></i>Posted {{ $application->job->start_date->format('d M Y') }}</span>
-            @endif
-            @if($application->job?->end_date)
-            <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:600;background:#FFF7ED;color:#C2410C"><i class="fa fa-clock-o" style="font-size:10px"></i>Closes {{ $application->job->end_date->format('d M Y') }}</span>
-            @endif
-        </div>
+                @if($application->job?->start_date)
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:600;background:#F1F3F7;color:#5A6478"><i class="fa fa-calendar-o" style="font-size:10px"></i>Posted {{ $application->job->start_date->format('d M Y') }}</span>
+                @endif
+                @if($application->job?->end_date)
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:600;background:#FFF7ED;color:#C2410C"><i class="fa fa-clock-o" style="font-size:10px"></i>Closes {{ $application->job->end_date->format('d M Y') }}</span>
+                @endif
+            </div>
             <div style="flex:1;overflow-y:auto;padding:20px 22px">
                 @if($application->job?->job_description)
                 <div style="margin-bottom:20px">
