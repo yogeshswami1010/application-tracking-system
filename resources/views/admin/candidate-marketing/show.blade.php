@@ -1542,6 +1542,30 @@
                 @if($application->job?->job_type)
                 <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:600;background:#EFF6FF;color:#1D4ED8"><i class="fa fa-briefcase" style="font-size:10px"></i>{{ ucwords($application->job->job_type) }}</span>
                 @endif
+
+                {{-- ── SALARY BADGE ── --}}
+                @php
+                    $modalJob = $application->job;
+                    $modalSalaryText = null;
+                    if ($modalJob) {
+                        $modalCurrencySymbol = $modalJob->currency->currency_symbol ?? '$';
+                        if ($modalJob->pay_type == 'Range') {
+                            $modalSalaryText = $modalCurrencySymbol . number_format($modalJob->starting_salary)
+                                . ' - ' . $modalCurrencySymbol . number_format($modalJob->maximum_salary)
+                                . ' /' . $modalJob->pay_according;
+                        } elseif ($modalJob->pay_type == 'Starting') {
+                            $modalSalaryText = $modalCurrencySymbol . number_format($modalJob->starting_salary) . ' /' . $modalJob->pay_according;
+                        } elseif ($modalJob->pay_type == 'Maximum') {
+                            $modalSalaryText = $modalCurrencySymbol . number_format($modalJob->maximum_salary) . ' /' . $modalJob->pay_according;
+                        } elseif ($modalJob->pay_type == 'Exact Amount') {
+                            $modalSalaryText = $modalCurrencySymbol . number_format($modalJob->starting_salary) . ' /' . $modalJob->pay_according;
+                        }
+                    }
+                @endphp
+                @if($modalSalaryText)
+                <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:600;background:#ECFDF5;color:#065F46"><i class="fa fa-money" style="font-size:10px"></i>{{ $modalSalaryText }}</span>
+                @endif
+
                 @if($application->job?->start_date)
                 <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:600;background:#F1F3F7;color:#5A6478"><i class="fa fa-calendar-o" style="font-size:10px"></i>Posted {{ $application->job->start_date->format('d M Y') }}</span>
                 @endif
