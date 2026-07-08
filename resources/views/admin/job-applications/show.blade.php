@@ -533,13 +533,25 @@ function jaSaveMarketingLabel(appId) {
                                 <span class="ja-info-val">{{ $application->dob->format('jS F, Y') }}</span>
                             </div>
                             @endif
-                            {{-- Applied For — read only, shows company + location --}}
-                            <div class="ja-info-row">
+                            {{-- Applied For — editable via pencil --}}
+                            <div class="ja-info-row" style="flex-wrap:wrap;">
                                 <span class="ja-info-label"><i class="fa fa-briefcase" style="font-size:11px"></i> @lang('modules.jobApplication.appliedFor')</span>
-                                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
-                                    <span class="ja-info-val">{{ ucwords($application->job?->title ?? 'N/A') }}</span>
+
+                                {{-- VIEW MODE --}}
+                                <div id="ja-job-view-{{ $application->id }}" style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+                                    <span class="ja-info-val" style="display:inline-flex;align-items:center;gap:6px;">
+                                        <span id="ja-display-job-{{ $application->id }}">{{ ucwords($application->job?->title ?? 'N/A') }}</span>
+                                        @if($user->cans('edit_job_applications'))
+                                        <button type="button" onclick="jaToggleJobEdit({{ $application->id }})" title="Change job"
+                                                style="width:20px;height:20px;border-radius:6px;border:1px solid #E2DED8;background:#F8F7F4;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:#8A94A6;flex-shrink:0;padding:0;transition:all .15s;"
+                                                onmouseover="this.style.background='#EFF6FF';this.style.color='#2563EB';this.style.borderColor='#2563EB'"
+                                                onmouseout="this.style.background='#F8F7F4';this.style.color='#8A94A6';this.style.borderColor='#E2DED8'">
+                                            <i class="fa fa-pencil" style="font-size:9px"></i>
+                                        </button>
+                                        @endif
+                                    </span>
                                     @if($application->job?->company)
-                                    <span style="font-size:11.5px;font-weight:600;color:#3D4A5C;">
+                                    <span id="ja-display-job-company-{{ $application->id }}" style="font-size:11.5px;font-weight:600;color:#3D4A5C;">
                                         {{ ucwords($application->job->company->company_name) }}
                                     </span>
                                     @endif
@@ -553,6 +565,28 @@ function jaSaveMarketingLabel(appId) {
                                     </span>
                                     @endif
                                 </div>
+
+                                {{-- EDIT MODE --}}
+                                @if($user->cans('edit_job_applications'))
+                                <div id="ja-job-edit-{{ $application->id }}" style="display:none;width:100%;margin-top:8px;">
+                                    <select id="ja-job-select-{{ $application->id }}" class="ja-stage-select" style="width:100%;">
+                                        @foreach(\App\Job::select('id','title')->orderBy('title')->get() as $jobOption)
+                                            <option value="{{ $jobOption->id }}" @selected($jobOption->id === $application->job_id)>{{ ucwords($jobOption->title) }}</option>
+                                        @endforeach
+                                    </select>
+                                    <div style="display:flex;gap:6px;margin-top:7px;justify-content:flex-end;">
+                                        <button type="button" onclick="jaSaveJobEdit({{ $application->id }})" id="ja-job-save-btn-{{ $application->id }}"
+                                                style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;border:none;background:#2563EB;color:#fff;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;">
+                                            <i class="fa fa-check" id="ja-job-save-icon-{{ $application->id }}"></i> Save
+                                        </button>
+                                        <button type="button" onclick="jaToggleJobEdit({{ $application->id }})"
+                                                style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;border:1px solid #E2DED8;background:#fff;font-size:11.5px;font-weight:600;cursor:pointer;color:#5A6478;font-family:inherit;">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                    <div id="ja-job-save-msg-{{ $application->id }}" style="display:none;font-size:11px;margin-top:5px;text-align:right;"></div>
+                                </div>
+                                @endif
                             </div>
                             @if (!is_null($application->city))
                             <div class="ja-info-row">
@@ -1248,6 +1282,62 @@ function jaSaveInfoEdit(appId) {
         },
         error: function() {
             icon.className = 'fa fa-check'; btn.disabled = false;
+            msg.style.display = 'block'; msg.style.color = '#EF4444';
+            msg.innerHTML = '<i class="fa fa-exclamation-circle"></i> Server error. Please try again.';
+        }
+    });
+}
+/* ── Applied For (job) inline edit ── */
+function jaToggleJobEdit(appId) {
+    var view = document.getElementById('ja-job-view-' + appId);
+    var edit = document.getElementById('ja-job-edit-' + appId);
+    var isEdit = edit.style.display !== 'none';
+    edit.style.display = isEdit ? 'none' : 'block';
+    var msg = document.getElementById('ja-job-save-msg-' + appId);
+    if (msg) { msg.style.display = 'none'; msg.innerHTML = ''; }
+}
+
+function jaSaveJobEdit(appId) {
+    var select = document.getElementById('ja-job-select-' + appId);
+    var jobId  = select.value;
+    var icon   = document.getElementById('ja-job-save-icon-' + appId);
+    var btn    = document.getElementById('ja-job-save-btn-' + appId);
+    var msg    = document.getElementById('ja-job-save-msg-' + appId);
+
+    if (!jobId) return;
+
+    icon.className = 'fa fa-spinner fa-spin';
+    btn.disabled = true;
+
+    $.ajax({
+        type: 'POST',
+        url: "{{ route('admin.job-applications.assign-job', ':id') }}".replace(':id', appId),
+        data: { _token: '{{ csrf_token() }}', job_id: jobId },
+        success: function(res) {
+            icon.className = 'fa fa-check';
+            btn.disabled = false;
+
+            if (res.status === 'success') {
+                // Reload the whole detail panel so job title, company,
+                // location, salary, and skills-required all refresh together.
+                $.easyAjax({
+                    type: 'GET',
+                    url: "{{ route('admin.job-applications.show', ':id') }}".replace(':id', appId),
+                    success: function(r) {
+                        if (r.status === 'success') {
+                            $('#right-sidebar-content').html(r.view);
+                        }
+                    }
+                });
+                if (typeof table !== 'undefined') table.draw(false);
+            } else {
+                msg.style.display = 'block'; msg.style.color = '#EF4444';
+                msg.innerHTML = '<i class="fa fa-exclamation-circle"></i> ' + (res.message || 'Save failed.');
+            }
+        },
+        error: function() {
+            icon.className = 'fa fa-check';
+            btn.disabled = false;
             msg.style.display = 'block'; msg.style.color = '#EF4444';
             msg.innerHTML = '<i class="fa fa-exclamation-circle"></i> Server error. Please try again.';
         }
