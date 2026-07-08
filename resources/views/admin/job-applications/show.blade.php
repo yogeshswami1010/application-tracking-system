@@ -1086,7 +1086,7 @@ $('body').on('click', '.delete-note', function() {
 
 /* ── Delete application ── */
 function deleteApplication(applicationId) {
-    @if($user->role_id !== 1)
+    @if(!$user->hasRole('admin'))
     return;
     @endif
     swal({ title:"@lang('errors.areYouSure')", text:"@lang('errors.deleteWarning')", type:"warning", showCancelButton:true, confirmButtonColor:"#DD6B55", confirmButtonText:"@lang('app.delete')", cancelButtonText:"@lang('app.cancel')", closeOnConfirm:true, closeOnCancel:true },
