@@ -459,7 +459,7 @@ function jaSaveMarketingLabel(appId) {
                                 <i class="fa fa-rocket"></i> @lang('app.startOnboard')
                             </a>
                             @endif
-                            @if($user->role_id === 1)
+                            @if(auth()->user()->hasRole('admin'))
                             <button type="button" onclick="deleteApplication({{ $application->id }})" class="ja-btn ja-btn-red">
                                 <i class="fa fa-trash-o"></i> @lang('app.delete')
                             </button>
