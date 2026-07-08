@@ -1108,7 +1108,7 @@ class AdminJobApplicationController extends AdminBaseController
 
     public function destroy($id)
     {
-        abort_if($this->user->role_id !== 1, 403);
+        abort_if(!$this->user->hasRole('admin'), 403);
 
         $jobApplication = JobApplication::findOrFail($id);
 
