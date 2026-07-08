@@ -439,6 +439,7 @@ function jaSaveMarketingLabel(appId) {
 
                 {{-- ── DETAILS TAB ── --}}
                 <div id="ja-tab-details" class="ja-tab-pane">
+<div style="font-size:10px;color:red">DEBUG role_id: {{ $user->role_id }}</div>
 
                     {{-- Quick actions --}}
                     <div class="ja-card">
