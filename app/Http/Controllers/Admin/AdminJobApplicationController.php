@@ -2370,9 +2370,34 @@ class AdminJobApplicationController extends AdminBaseController
 
         $request->validate(['job_id' => 'required|exists:jobs,id']);
 
-        $application = JobApplication::findOrFail($id);
-        $application->job_id = $request->job_id;
+        $application = JobApplication::with('job:id,title')->findOrFail($id);
+
+        $newJobId = (int) $request->job_id;
+        $oldJobId = (int) $application->job_id;
+
+        // No-op — nothing to log or save
+        if ($oldJobId === $newJobId) {
+            return Reply::success('Job assigned successfully.');
+        }
+
+        $oldJobTitle = $application->job?->title ?? 'Unassigned';
+        $newJobTitle = Job::find($newJobId)?->title ?? 'Unknown job';
+
+        $application->job_id = $newJobId;
         $application->save();
+
+        // Log into the History tab. Uses the applicant's current status for
+        // both from/to (same trick as toggleMarketing) so the FK is satisfied
+        // without needing a schema change — the notes field carries the message.
+        if ($application->status_id) {
+            \App\JobApplicationStatusHistory::create([
+                'job_application_id' => $application->id,
+                'from_status_id'     => $application->status_id,
+                'to_status_id'       => $application->status_id,
+                'user_id'            => $this->user->id,
+                'notes'              => 'Switched job from "' . ucwords($oldJobTitle) . '" to "' . ucwords($newJobTitle) . '"',
+            ]);
+        }
 
         return Reply::success('Job assigned successfully.');
     }
