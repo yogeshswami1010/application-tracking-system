@@ -530,6 +530,10 @@
     // ── Main search ─────────────────────────────────────────────
     function aiDoSearch() {
         var query = document.getElementById('ai-search-input').value.trim();
+        var allTerms = [].concat(parsed.skills || []).concat(parsed.keywords || []);
+      
+
+        var roles    = parsed.roles || [];
         if (!query) return;
 
         aiLastQuery = query;
@@ -559,7 +563,7 @@
                 };
 
                 // Step 2: Search server with full context
-                aiSearchServer(query, allTerms, parsed.location || '', parseInt(parsed.min_experience) || 0);
+                aiSearchServer(query, allTerms, roles, parsed.location || '', parseInt(parsed.min_experience) || 0);
             },
             error: function() {
                 // Fallback: treat raw query as keyword
@@ -569,11 +573,12 @@
     }
 
     // ── Server search ────────────────────────────────────────────
-    function aiSearchServer(query, terms, location, minExp) {
+    function aiSearchServer(query, terms, roles, location, minExp) {
+
         $.ajax({
             url: '{{ route("admin.ai-search.results") }}',
             type: 'GET',
-            data: { query: query, terms: terms, location: location, min_experience: minExp },
+             data: { query: query, terms: terms, roles: roles, location: location, min_experience: minExp }
             success: function(res) {
                 var btn = document.getElementById('ai-search-btn');
                 btn.disabled = false;
