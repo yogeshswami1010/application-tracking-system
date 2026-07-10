@@ -529,48 +529,64 @@
 
     // ── Main search ─────────────────────────────────────────────
     function aiDoSearch() {
-        var query = document.getElementById('ai-search-input').value.trim();
-        var allTerms = [].concat(parsed.skills || []).concat(parsed.keywords || []);
-      
 
-        var roles    = parsed.roles || [];
-        if (!query) return;
+    var query = document.getElementById('ai-search-input').value.trim();
 
-        aiLastQuery = query;
-        document.getElementById('ai-suggestions').style.display = 'none';
-        aiShowLoading();
+    if (!query) return;
 
-        var btn = document.getElementById('ai-search-btn');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Thinking…';
+    aiLastQuery = query;
+    document.getElementById('ai-suggestions').style.display = 'none';
+    aiShowLoading();
 
-        // Step 1: Ollama (local AI) parses the query server-side — no API key in browser
-        $.ajax({
-            url: '{{ route("admin.ai-search.parse-query") }}',
-            type: 'POST',
-            data: { _token: '{{ csrf_token() }}', query: query },
-            success: function(res) {
-                var parsed = res.data || res;
+    var btn = document.getElementById('ai-search-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Thinking…';
 
-                var allTerms = []
-                    .concat(parsed.skills   || [])
-                    .concat(parsed.keywords || [])
-                    .concat(parsed.roles    || []);
+    $.ajax({
+        url: '{{ route("admin.ai-search.parse-query") }}',
+        type: 'POST',
+        data: {
+            _token: '{{ csrf_token() }}',
+            query: query
+        },
 
-                aiLastMeta = {
-                    location:       parsed.location       || '',
-                    min_experience: parseInt(parsed.min_experience) || 0
-                };
+        success: function(res) {
 
-                // Step 2: Search server with full context
-                aiSearchServer(query, allTerms, roles, parsed.location || '', parseInt(parsed.min_experience) || 0);
-            },
-            error: function() {
-                // Fallback: treat raw query as keyword
-                aiSearchServer(query, [query], '', 0);
-            }
-        });
-    }
+            var parsed = res.data || res;
+
+            var roles = parsed.roles || [];
+
+            var allTerms = []
+                .concat(parsed.skills || [])
+                .concat(parsed.keywords || [])
+                .concat(roles);
+
+            aiLastMeta = {
+                location: parsed.location || '',
+                min_experience: parseInt(parsed.min_experience || 0)
+            };
+
+            aiSearchServer(
+                query,
+                allTerms,
+                roles,
+                parsed.location || '',
+                parseInt(parsed.min_experience || 0)
+            );
+        },
+
+        error: function() {
+
+            aiSearchServer(
+                query,
+                [query],
+                [],
+                '',
+                0
+            );
+        }
+    });
+}
 
     // ── Server search ────────────────────────────────────────────
     function aiSearchServer(query, terms, roles, location, minExp) {
