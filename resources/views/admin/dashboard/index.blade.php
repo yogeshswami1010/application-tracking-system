@@ -101,12 +101,12 @@
                 @if($user->cans('view_jobs'))
                     <a href="{{ route('admin.jobs.index') }}?status=ats" class="rd-sc rd-c-violet rd-a rd-a4">
                 @else
-                    <div class="rd-sc rd-sc-static rd-c-violet rd-a rd-a4">
+                    <div class="rd-sc rd-sc-static rd-c-blue rd-a rd-a4">
                 @endif
 
                 <div class="flex items-center justify-between">
                     <div class="rd-sico">
-                        <!-- Same SVG -->
+                       <svg class="h-[18px] w-[18px]" fill="none" stroke="rgba(255,255,255,0.75)" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                     </div>
 
                     <span class="rd-stag bg-white/15 text-white/60">
