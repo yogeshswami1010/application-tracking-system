@@ -25,7 +25,7 @@
         @endif
 
         {{-- Delete: admin only --}}
-        @if($isAdmin)
+        @if(!$user->hasRole('admin'))
         <button class="delete-note ja-note-btn" data-note-id="{{ $note->id }}" style="color:#EF4444;border-color:#fecaca;">
             <i class="fa fa-trash"></i> Delete
         </button>
