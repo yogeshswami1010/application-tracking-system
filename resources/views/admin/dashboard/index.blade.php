@@ -99,7 +99,7 @@
                     </div>
                 @endif
                 @if($user->cans('view_jobs'))
-                    <a href="{{ route('admin.jobs.index') }}?status=ats" class="rd-sc rd-c-violet rd-a rd-a4">
+                    <a href="{{ route('admin.jobs.index') }}?status=ats" class="rd-sc rd-c-blue rd-a rd-a4">
                 @else
                     <div class="rd-sc rd-sc-static rd-c-blue rd-a rd-a4">
                 @endif
