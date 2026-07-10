@@ -69,22 +69,24 @@ class ApplicantNoteController extends AdminBaseController
     }
 
     public function destroy($id)
-{
-    abort_if(!auth()->user()->hasRole('admin'), 403);
+    {
+        abort_if(!auth()->user()->hasRole('admin'), 403);
 
-    $note = ApplicantNote::findOrFail($id);
-    $jobApplicationId = $note->job_application_id;
-    $note->delete();
+        $note = ApplicantNote::findOrFail($id);
+        $jobApplicationId = $note->job_application_id;
+        $note->delete();
 
-    $notes = ApplicantNote::with('user:id,name')
-        ->where('job_application_id', $jobApplicationId)
-        ->orderByDesc('created_at')
-        ->get();
+        $notes = ApplicantNote::with('user:id,name')
+            ->where('job_application_id', $jobApplicationId)
+            ->orderByDesc('created_at')
+            ->get();
 
-    $view = view('admin.job-applications.partials.applicant-notes-list', compact('notes'))->render();
+        $user = auth()->user();
 
-    return Reply::dataOnly(['status' => 'success', 'view' => $view]);
-}
+        $view = view('admin.job-applications.partials.applicant-notes-list', compact('notes', 'user'))->render();
+
+        return Reply::dataOnly(['status' => 'success', 'view' => $view]);
+    }
 
     // ── Helpers ──────────────────────────────────────────────
 
