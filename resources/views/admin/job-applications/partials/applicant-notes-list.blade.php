@@ -13,8 +13,7 @@
         {!! preg_replace('/@([a-zA-Z0-9_]+)/', '<span style="color:#2563EB;font-weight:600;background:#EFF6FF;padding:1px 5px;border-radius:4px;">@$1</span>', nl2br(e(ucfirst($note->note_text)))) !!}
     </p>
     <div class="note-textarea"></div>
-    @php $isAdmin = auth()->user()->role_id === 1; @endphp
-    @if($isAdmin || auth()->id() === $note->user_id)
+    @if($user->hasRole('admin') || auth()->id() === $note->user_id)
     <div class="ja-note-actions">
 
         {{-- Edit: only the note's own author --}}
@@ -25,7 +24,7 @@
         @endif
 
         {{-- Delete: admin only --}}
-        @if(!$user->hasRole('admin'))
+        @if($user->hasRole('admin'))
         <button class="delete-note ja-note-btn" data-note-id="{{ $note->id }}" style="color:#EF4444;border-color:#fecaca;">
             <i class="fa fa-trash"></i> Delete
         </button>
