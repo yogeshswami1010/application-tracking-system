@@ -32,7 +32,9 @@ class ApplicantNoteController extends AdminBaseController
             ->orderByDesc('created_at')
             ->get();
 
-        $view = view('admin.job-applications.partials.applicant-notes-list', compact('notes'))->render();
+        $user = auth()->user();
+
+        $view = view('admin.job-applications.partials.applicant-notes-list', compact('notes', 'user'))->render();
 
         return Reply::dataOnly(['status' => 'success', 'view' => $view]);
     }
@@ -59,7 +61,9 @@ class ApplicantNoteController extends AdminBaseController
             ->orderByDesc('created_at')
             ->get();
 
-        $view = view('admin.job-applications.partials.applicant-notes-list', compact('notes'))->render();
+        $user = auth()->user();
+
+        $view = view('admin.job-applications.partials.applicant-notes-list', compact('notes', 'user'))->render();
 
         return Reply::dataOnly(['status' => 'success', 'view' => $view]);
     }
