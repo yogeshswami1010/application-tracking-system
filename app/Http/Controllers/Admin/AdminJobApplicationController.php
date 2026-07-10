@@ -2350,106 +2350,190 @@ class AdminJobApplicationController extends AdminBaseController
      * Processes up to 20 at a time to avoid timeout.
      */
     public function indexCvs(Request $request)
-    {
-        abort_if(!$this->user->cans('view_job_applications'), 403);
+{
+    abort_if(!$this->user->cans('view_job_applications'), 403);
 
-        $limit = min((int) $request->input('limit', 15), 30); // lower limit — now 2 AI calls per applicant
+    $limit = min((int) $request->input('limit', 20), 50);
 
-        // Step 1: text extraction for anyone missing cv_text (unchanged behavior)
-        $needsText = JobApplication::whereNull('cv_text')
-            ->whereHas('documents', fn($q) => $q->where('name', 'Resume'))
-            ->select('id')
-            ->limit($limit)
-            ->get();
+    $processed = 0;
+    $failed = 0;
+    $parsedCount = 0;
+    $parseFailed = 0;
 
-        $processed = 0;
-        $failed    = 0;
-
-        foreach ($needsText as $stub) {
-            $app = JobApplication::find($stub->id);
-            if (!$app) { $failed++; continue; }
-            try {
-                $doc = $app->documents()->where('name', 'Resume')->first();
-                if (!$doc || empty($doc->hashname)) { $failed++; continue; }
-                $filePath = public_path('user-uploads/documents/' . $app->id . '/' . $doc->hashname);
-                if (!is_readable($filePath)) { $failed++; continue; }
-                $ext = strtolower(pathinfo($doc->hashname, PATHINFO_EXTENSION)) ?: 'pdf';
-                if (!in_array($ext, ['pdf','docx','xlsx','xls','rtf','txt'])) $ext = 'pdf';
-                $bytes = file_get_contents($filePath);
-                if ($bytes === false || $bytes === '') { $failed++; continue; }
-                $this->saveCvTextFromBytes($app, $bytes, $ext);
-                if (JobApplication::where('id', $app->id)->whereNotNull('cv_text')->exists()) {
-                    $processed++;
-                } else {
-                    $failed++;
-                }
-            } catch (\Throwable $e) {
-                \Log::warning('indexCvs text extraction failed for app ' . $app->id . ': ' . $e->getMessage());
-                $failed++;
-            }
-        }
-
-        // Step 2: structured parse for anyone with cv_text but no parsed_cv_data yet
-        $needsParse = JobApplication::whereNotNull('cv_text')
-        ->where('cv_text', '!=', '')
-        ->whereNull('cv_indexed_at')
-        ->where('cv_index_failed', 0)
+    /*
+    |--------------------------------------------------------------------------
+    | STEP 1 - Extract CV Text
+    |--------------------------------------------------------------------------
+    */
+    $needsText = JobApplication::where(function ($q) {
+            $q->whereNull('cv_text')
+              ->orWhere('cv_text', '');
+        })
+        ->whereHas('documents', function ($q) {
+            $q->where('name', 'Resume');
+        })
         ->limit($limit)
         ->get();
 
-        $parsedCount = 0;
-        $parseFailed = 0;
+    foreach ($needsText as $app) {
 
-        foreach ($needsParse as $app) {
+        try {
+
+            $doc = $app->documents()
+                ->where('name', 'Resume')
+                ->first();
+
+            if (!$doc || empty($doc->hashname)) {
+                $failed++;
+                continue;
+            }
+
+            $file = public_path('user-uploads/documents/'.$app->id.'/'.$doc->hashname);
+
+            if (!is_readable($file)) {
+                $failed++;
+                continue;
+            }
+
+            $ext = strtolower(pathinfo($doc->hashname, PATHINFO_EXTENSION));
+
+            if (!in_array($ext, ['pdf','doc','docx','txt','rtf','xls','xlsx'])) {
+                $ext = 'pdf';
+            }
+
+            $bytes = file_get_contents($file);
+
+            if (!$bytes) {
+                $failed++;
+                continue;
+            }
+
+            $this->saveCvTextFromBytes($app, $bytes, $ext);
+
+            $processed++;
+
+        } catch (\Throwable $e) {
+
+            \Log::warning(
+                'CV text extraction failed for '.$app->id.' : '.$e->getMessage()
+            );
+
+            $failed++;
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | STEP 2 - Parse CV using AI
+    |--------------------------------------------------------------------------
+    */
+    $needsParse = JobApplication::whereNotNull('cv_text')
+        ->where('cv_text','!=','')
+        ->whereNull('parsed_cv_data')
+        ->where('cv_index_failed',0)
+        ->limit($limit)
+        ->get();
+
+    foreach ($needsParse as $app) {
+
+        try {
+
             $data = $this->parseCvStructured($app->cv_text);
 
             if (!$data) {
-                JobApplication::where('id', $app->id)->update([
+
+                $app->update([
                     'cv_index_failed' => true,
-                    'cv_indexed_at'   => Carbon::now(),
+                    'cv_indexed_at'   => now(),
                 ]);
+
                 $parseFailed++;
                 continue;
             }
 
-            $years = (float) ($data['total_experience']['years'] ?? 0)
-                + ((float) ($data['total_experience']['months'] ?? 0) / 12);
+            $years =
+                (float)($data['total_experience']['years'] ?? 0)
+                +
+                (
+                    (float)($data['total_experience']['months'] ?? 0)
+                    / 12
+                );
 
-            $locationParts = array_filter([
-                $data['personal']['location']['city']     ?? null,
+            $location = array_filter([
+                $data['personal']['location']['city'] ?? null,
                 $data['personal']['location']['province'] ?? null,
-                $data['personal']['location']['country']  ?? null,
+                $data['personal']['location']['country'] ?? null,
             ]);
 
-            JobApplication::where('id', $app->id)->update([
-                'parsed_cv_data'      => json_encode($data),
-                'cv_experience_years' => round($years, 1),
-                'cv_job_titles'       => implode(', ', (array) ($data['job_titles'] ?? [])),
-                'cv_skills_text'      => implode(', ', (array) ($data['skills'] ?? [])),
-                'cv_location_text'    => implode(', ', $locationParts),
-                'cv_indexed_at'       => Carbon::now(),
-                'cv_index_failed'     => false,
+            $app->update([
+
+                'parsed_cv_data' => json_encode($data),
+
+                'cv_experience_years' => round($years,1),
+
+                'cv_job_titles' => implode(', ',
+                    (array)($data['job_titles'] ?? [])
+                ),
+
+                'cv_skills_text' => implode(', ',
+                    (array)($data['skills'] ?? [])
+                ),
+
+                'cv_location_text' => implode(', ', $location),
+
+                'cv_indexed_at' => now(),
+
+                'cv_index_failed' => false,
+
             ]);
 
             $parsedCount++;
+
+        } catch (\Throwable $e) {
+
+            \Log::warning(
+                'CV parse failed for '.$app->id.' : '.$e->getMessage()
+            );
+
+            $app->update([
+                'cv_index_failed' => true,
+                'cv_indexed_at'   => now(),
+            ]);
+
+            $parseFailed++;
         }
+    }
 
-        $remainingText  = JobApplication::whereNull('cv_text')
-            ->whereHas('documents', fn($q) => $q->where('name', 'Resume'))
-            ->count();
-
-        $remainingParse = JobApplication::whereNotNull('cv_text')
-        ->where('cv_text', '!=', '')
-        ->whereNull('parsed_cv_data')
-        ->where('cv_index_failed', false)
+    /*
+    |--------------------------------------------------------------------------
+    | Remaining
+    |--------------------------------------------------------------------------
+    */
+    $remainingText = JobApplication::where(function ($q) {
+            $q->whereNull('cv_text')
+              ->orWhere('cv_text','');
+        })
+        ->whereHas('documents', function ($q) {
+            $q->where('name','Resume');
+        })
         ->count();
 
-        return Reply::dataOnly([
-            'processed' => $processed + $parsedCount,
-            'failed'    => $failed + $parseFailed,
-            'remaining' => $remainingText + $remainingParse,
-        ]);
-    }
+    $remainingParse = JobApplication::whereNotNull('cv_text')
+        ->where('cv_text','!=','')
+        ->whereNull('parsed_cv_data')
+        ->where('cv_index_failed',0)
+        ->count();
+
+    return Reply::dataOnly([
+
+        'processed' => $processed + $parsedCount,
+
+        'failed' => $failed + $parseFailed,
+
+        'remaining' => $remainingText + $remainingParse,
+
+    ]);
+}
     public function assignJob(Request $request, $id)
     {
         abort_if(! $this->user->cans('edit_job_applications'), 403);
