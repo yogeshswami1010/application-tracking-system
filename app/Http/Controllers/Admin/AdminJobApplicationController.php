@@ -2428,8 +2428,8 @@ class AdminJobApplicationController extends AdminBaseController
                 'cv_job_titles'       => implode(', ', (array) ($data['job_titles'] ?? [])),
                 'cv_skills_text'      => implode(', ', (array) ($data['skills'] ?? [])),
                 'cv_location_text'    => implode(', ', $locationParts),
-                'cv_parsed_at'        => Carbon::now(),
-                'cv_parse_failed'     => false,
+                'cv_indexed_at'       => Carbon::now(),
+                'cv_index_failed'     => false,
             ]);
 
             $parsedCount++;
@@ -2682,7 +2682,7 @@ class AdminJobApplicationController extends AdminBaseController
                 'job_applications.cv_job_titles',
                 'job_applications.cv_skills_text',
                 'job_applications.cv_location_text',
-                'job_applications.cv_parsed_at',
+                'job_applications.cv_indexed_at',
                 'job_applications.created_at'
             )
             ->with(['status:id,status,color', 'job:id,title', 'location:id,location'])
@@ -2717,7 +2717,7 @@ class AdminJobApplicationController extends AdminBaseController
             $allSkills      = [];
             $cvJobTitles    = array_filter(array_map('trim', explode(',', (string) $app->cv_job_titles)));
             $cvSkillsList   = array_filter(array_map('trim', explode(',', (string) $app->cv_skills_text)));
-            $hasStructured  = !empty($app->cv_parsed_at);
+            $hasStructured  = !empty($app->cv_indexed_at);
 
             // ── Manually-tagged skills (existing Skill model) — 25 pts ──
             foreach ((array) $app->skills as $sid) {
