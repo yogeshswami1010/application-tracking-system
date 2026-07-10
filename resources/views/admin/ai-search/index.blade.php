@@ -578,7 +578,7 @@
         $.ajax({
             url: '{{ route("admin.ai-search.results") }}',
             type: 'GET',
-             data: { query: query, terms: terms, roles: roles, location: location, min_experience: minExp }
+             data: { query: query, terms: terms, roles: roles, location: location, min_experience: minExp },
             success: function(res) {
                 var btn = document.getElementById('ai-search-btn');
                 btn.disabled = false;
