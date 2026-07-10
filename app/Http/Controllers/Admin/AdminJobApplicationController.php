@@ -2391,7 +2391,7 @@ class AdminJobApplicationController extends AdminBaseController
         }
 
         // Step 2: structured parse for anyone with cv_text but no parsed_cv_data yet
-        JobApplication::whereNotNull('cv_text')
+        $needsParse = JobApplication::whereNotNull('cv_text')
         ->where('cv_text', '!=', '')
         ->whereNull('cv_indexed_at')
         ->where('cv_index_failed', 0)
@@ -2406,8 +2406,8 @@ class AdminJobApplicationController extends AdminBaseController
 
             if (!$data) {
                 JobApplication::where('id', $app->id)->update([
-                    'cv_parse_failed' => true,
-                    'cv_parsed_at'    => Carbon::now(),
+                    'cv_index_failed' => true,
+                    'cv_indexed_at'   => Carbon::now(),
                 ]);
                 $parseFailed++;
                 continue;
@@ -2440,10 +2440,10 @@ class AdminJobApplicationController extends AdminBaseController
             ->count();
 
         $remainingParse = JobApplication::whereNotNull('cv_text')
-            ->where('cv_text', '!=', '')
-            ->whereNull('cv_parsed_at')
-            ->where('cv_parse_failed', false)
-            ->count();
+        ->where('cv_text', '!=', '')
+        ->whereNull('cv_indexed_at')
+        ->where('cv_index_failed', false)
+        ->count();
 
         return Reply::dataOnly([
             'processed' => $processed + $parsedCount,
