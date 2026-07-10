@@ -98,29 +98,16 @@
             <p class="mt-1.5 text-[22px] font-extrabold leading-none tracking-tight text-[#1A1E2E]" id="statInactive">{{ number_format($inactiveJobs) }}</p>
             <p class="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#8892A0]">@lang('modules.dashboard.inactiveJobs')</p>
         </div>
-       <div class="relative cursor-default overflow-hidden rounded-xl bg-[#7C3AED] px-3.5 py-3 text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+        <div class="relative cursor-default overflow-hidden rounded-xl bg-[#2563EB] px-3.5 py-3 text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
             <div class="pointer-events-none absolute -right-3 -top-3 h-12 w-12 rounded-full bg-white opacity-[0.07]"></div>
-
             <div class="flex items-center justify-between">
                 <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10">
-                    <svg class="h-4 w-4" fill="none" stroke="rgba(255,255,255,0.75)" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-                    </svg>
+                    <svg class="h-4 w-4" fill="none" stroke="rgba(255,255,255,0.75)" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                 </div>
-
-                <span class="rounded-full bg-white/[0.14] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white/55">
-                    ATS Jobs
-                </span>
+                <span class="rounded-full bg-white/[0.14] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white/55">@lang('modules.dashboard.totalOpenings')</span>
             </div>
-
-            <p class="mt-1.5 text-[22px] font-extrabold leading-none tracking-tight" id="statAtsJobs">
-                {{ number_format($totalAtsJobs) }}
-            </p>
-
-            <p class="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/55">
-                ATS Total Jobs
-            </p>
+            <p class="mt-1.5 text-[22px] font-extrabold leading-none tracking-tight" id="statOpenings">{{ number_format($totalOpenings) }}</p>
+            <p class="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/55">@lang('modules.dashboard.totalOpenings')</p>
         </div>
     </div>
 
