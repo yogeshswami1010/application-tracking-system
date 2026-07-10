@@ -2391,13 +2391,12 @@ class AdminJobApplicationController extends AdminBaseController
         }
 
         // Step 2: structured parse for anyone with cv_text but no parsed_cv_data yet
-        $needsParse = JobApplication::whereNotNull('cv_text')
-            ->where('cv_text', '!=', '')
-            ->whereNull('cv_parsed_at')
-            ->where('cv_parse_failed', false)
-            ->select('id', 'cv_text')
-            ->limit($limit)
-            ->get();
+        JobApplication::whereNotNull('cv_text')
+        ->where('cv_text', '!=', '')
+        ->whereNull('cv_indexed_at')
+        ->where('cv_index_failed', 0)
+        ->limit($limit)
+        ->get();
 
         $parsedCount = 0;
         $parseFailed = 0;
