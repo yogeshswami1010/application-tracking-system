@@ -164,7 +164,7 @@
                 @endif
 
                 @if($user->cans('view_job_applications'))
-                    <a href="{{ route('admin.job-applications.index') }}" class="rd-sc rd-c-white rd-c-amber rd-a rd-a3">
+                    <a href="{{ route('admin.job-applications.table', ['status' => 5]) }}" class="rd-sc rd-c-white rd-c-amber rd-a rd-a3">
                 @else
                     <div class="rd-sc rd-sc-static rd-c-white rd-c-amber rd-a rd-a3">
                 @endif
