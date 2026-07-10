@@ -2290,38 +2290,37 @@ class AdminJobApplicationController extends AdminBaseController
      * Parse extracted CV text into the structured applicant schema using DeepSeek.
      * Returns null on failure — caller marks cv_parse_failed so it isn't retried every batch.
      */
-    private function parseCvStructured(string $cvText): ?array
-    {
-        $schema = '{"personal":{"name":"","email":"","phone":"","location":{"city":"","province":"","country":""}},'
-            . '"headline":"","total_experience":{"years":0,"months":0},"job_titles":[],"skills":[],'
-            . '"certifications":[],"education":[{"degree":"","field":"","school":""}],'
-            . '"employment":[{"company":"","title":"","start":"","end":"","duration_years":0}],'
-            . '"languages":[],"availability":{"notice_period":""},"resume_summary":""}';
+   private function parseCvStructured(string $cvText): ?array
+{
+    $schema = '{"personal":{"name":"","email":"","phone":"","location":{"city":"","province":"","country":""}},'
+        . '"headline":"","total_experience":{"years":0,"months":0},"job_titles":[],"skills":[],'
+        . '"certifications":[],"education":[{"degree":"","field":"","school":""}],'
+        . '"employment":[{"company":"","title":"","start":"","end":"","duration_years":0}],'
+        . '"languages":[],"availability":{"notice_period":""},"resume_summary":""}';
 
-        $prompt = "Extract structured data from this resume/CV text. Return ONLY minified JSON matching this exact schema, no markdown, no backticks, no explanation:\n\n"
-            . $schema . "\n\n"
-            . "Rules:\n"
-            . "- job_titles: the person's actual title(s) PLUS close synonyms a recruiter might search for (e.g. \"Welder\" -> also \"Metal Fabricator\", \"Production Welder\" if the CV supports it)\n"
-            . "- total_experience: compute from employment history dates, don't guess\n"
-            . "- If a field is not present in the CV, use empty string / empty array / 0 — never invent data\n"
-            . "- skills: normalized short names (e.g. \"MIG Welding\" not \"mig-welding exp.\")\n\n"
-            . "CV TEXT:\n" . mb_substr($cvText, 0, 10000);
+    $prompt = "Extract structured data from this resume/CV text..."
+        . "CV TEXT:\n" . mb_substr($cvText, 0, 10000);
 
-        try {
-            $text   = $this->callDeepSeek($prompt);
-            $parsed = json_decode($text, true);
+    try {
+        $text   = $this->callDeepSeek($prompt);
 
-            if (!is_array($parsed) || !isset($parsed['personal'])) {
-                \Log::warning('parseCvStructured: invalid JSON shape: ' . $text);
-                return null;
-            }
+        // ADD THESE TWO LINES HERE
+        \Log::info('===== DeepSeek Raw Response =====');
+        \Log::info($text);
 
-            return $parsed;
-        } catch (\Throwable $e) {
-            \Log::warning('parseCvStructured failed: ' . $e->getMessage());
+        $parsed = json_decode($text, true);
+
+        if (!is_array($parsed) || !isset($parsed['personal'])) {
+            \Log::warning('parseCvStructured: invalid JSON shape: ' . $text);
             return null;
         }
+
+        return $parsed;
+    } catch (\Throwable $e) {
+        \Log::warning('parseCvStructured failed: ' . $e->getMessage());
+        return null;
     }
+}
     /**
      * Extract plain text from a downloaded resume file and save it to cv_text.
      * Called after parseSkills so the file bytes are already in memory.
@@ -2441,7 +2440,7 @@ class AdminJobApplicationController extends AdminBaseController
 
         $remainingParse = JobApplication::whereNotNull('cv_text')
         ->where('cv_text', '!=', '')
-        ->whereNull('cv_indexed_at')
+        ->whereNull('parsed_cv_data')
         ->where('cv_index_failed', false)
         ->count();
 
