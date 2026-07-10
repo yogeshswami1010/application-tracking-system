@@ -2410,11 +2410,6 @@ class AdminJobApplicationController extends AdminBaseController
 
         foreach ($chunk as $app) {
 
-            // Skip if already parsed
-            if (!empty($app->parsed_cv_data)) {
-                continue;
-            }
-
             $data = $this->parseCvStructured($app->cv_text);
 
             if (!$data) {
