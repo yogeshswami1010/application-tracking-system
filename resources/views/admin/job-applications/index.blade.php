@@ -1076,14 +1076,30 @@
     $('#filter-form select.select2').not('#skill').select2({ width: '100%' });
 
     // ── Init — no job selected, show all applicants ──────────────
-    jaShowKO        = false;
-    jaActiveStageId = 'all';
-    $('#status').val('all').trigger('change.select2');
-    document.getElementById('ja-tab-all').classList.add('active');
+    // Read status from URL
+const params = new URLSearchParams(window.location.search);
+const statusFromUrl = params.get('status') || 'all';
 
-    tableLoad('load');
-    jaLoadTabCounts();
-    jaTableSyncFilterBadge();
+jaShowKO = false;
+jaActiveStageId = statusFromUrl;
+
+$('#status').val(statusFromUrl).trigger('change.select2');
+
+if (statusFromUrl === 'all') {
+    document.getElementById('ja-tab-all').classList.add('active');
+} else {
+    setTimeout(function () {
+        var btn = document.querySelector('[data-stage-id="' + statusFromUrl + '"]');
+        if (btn) {
+            btn.classList.add('active');
+        }
+    }, 300);
+}
+
+tableLoad('load');
+jaLoadTabCounts();
+jaTableSyncFilterBadge();
+ 
 
 
     // ── Draggable stage tab reordering ──────────────────────────
