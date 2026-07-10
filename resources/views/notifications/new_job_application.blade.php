@@ -2,7 +2,10 @@
     <div class="flex items-center justify-between">
         <div class="flex items-center flex-1 min-w-0">
             <i class="fa fa-users mr-2"></i>
-            <span class="text-truncate-notify truncate" style="overflow-y: hidden" title="full name"> {{ __('messages.notifications.newJobApplication', ['name' => $notification->data['data']['full_name'], 'job_title' => $notification->data['data']['job']['title']]) }}</span>
+            <span class="text-truncate-notify truncate" style="overflow-y: hidden" title="full name"> {{ __('messages.notifications.newJobApplication', [
+    'name' => data_get($notification->data, 'data.full_name', 'Unknown Candidate'),
+    'job_title' => data_get($notification->data, 'data.job.title', 'Unknown Job')
+]) }}</span>
         </div>
         <span class="text-gray-500 text-sm ml-2 flex-shrink-0">{{ \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $notification->created_at)->diffForHumans() }}</span>
     </div>
