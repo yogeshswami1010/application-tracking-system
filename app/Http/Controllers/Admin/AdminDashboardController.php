@@ -24,8 +24,9 @@ class AdminDashboardController extends AdminBaseController
     public function index()
     {        
         $this->smsSettings = SmsSetting::first();
-        $this->totalOpenings = Job::whereIn('status', ['active', 'ats'])->count();
+        $this->totalOpenings = Job::where('status', 'active')->count();
         $this->totalAtsJobs = Job::where('status', 'ats')->count();
+        
         $this->totalCompanies = Company::count();
         $this->totalApplications = JobApplication::count();
         $this->totalHired = JobApplication::join('application_status', 'application_status.id', '=', 'job_applications.status_id')
