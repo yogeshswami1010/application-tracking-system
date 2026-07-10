@@ -21,7 +21,7 @@ class UpdateRequest extends FormRequest
         return [
             'name' => 'required|unique:footer_settings,name,'.$this->route('footer_setting'),
             'description' => 'required|string|max:50000',
-            'status' => 'required|in:active,inactive',
+            'status' => 'required|in:active,ats,inactive',
             'external_url' => 'nullable|string|max:2048',
             'link_target' => 'nullable|in:_self,_blank',
         ];

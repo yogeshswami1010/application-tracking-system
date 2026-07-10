@@ -654,10 +654,20 @@
                                     });
                                 </script>
                                 <div class="form-group mb-0">
-                                    <label for="status" class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">@lang('app.status')</label>
-                                    <select name="status" id="status" class="job-form-sel form-control w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-[13px] text-[#0F1F3D] outline-none transition-all focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10">
-                                        <option @if ($job && $job->status == 'active') selected @endif value="active">@lang('app.active')</option>
-                                        <option @if ($job && $job->status == 'inactive') selected @endif value="inactive">@lang('app.inactive')</option>
+                                    <label for="status" class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">
+                                        @lang('app.status')
+                                    </label>
+                                    <select name="status" id="status"
+                                        class="job-form-sel form-control w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-[13px] text-[#0F1F3D] outline-none transition-all focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10">
+                                        <option value="active" {{ $job && $job->status == 'active' ? 'selected' : '' }}>
+                                            Active
+                                        </option>
+                                        <option value="ats" {{ $job && $job->status == 'ats' ? 'selected' : '' }}>
+                                            ATS Only
+                                        </option>
+                                        <option value="inactive" {{ $job && $job->status == 'inactive' ? 'selected' : '' }}>
+                                            Inactive
+                                        </option>
                                     </select>
                                 </div>
                             </div>
