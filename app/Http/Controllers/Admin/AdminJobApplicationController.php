@@ -2354,7 +2354,7 @@ class AdminJobApplicationController extends AdminBaseController
     {
         abort_if(!$this->user->cans('view_job_applications'), 403);
 
-        $limit = min((int) $request->input('limit', 15), 30); // lower limit — now 2 AI calls per applicant
+       $limit = min((int)$request->input('limit',100),200);
 
         // Step 1: text extraction for anyone missing cv_text (unchanged behavior)
         $needsText = JobApplication::whereNull('cv_text')
@@ -2391,24 +2391,38 @@ class AdminJobApplicationController extends AdminBaseController
         }
 
         // Step 2: structured parse for anyone with cv_text but no parsed_cv_data yet
-        $needsParse = JobApplication::whereNotNull('cv_text')
+        $needsParse = JobApplication::select(
+            'id',
+            'cv_text'
+        )
+        ->whereNotNull('cv_text')
         ->where('cv_text', '!=', '')
-        ->whereNull('cv_indexed_at')
+        ->whereNull('parsed_cv_data')     // skip already parsed
         ->where('cv_index_failed', 0)
+        ->orderBy('id')
         ->limit($limit)
         ->get();
 
         $parsedCount = 0;
         $parseFailed = 0;
 
-        foreach ($needsParse as $app) {
+       $needsParse->chunk(10)->each(function ($chunk) use (&$parsedCount, &$parseFailed) {
+
+        foreach ($chunk as $app) {
+
+            // Skip if already parsed
+            if (!empty($app->parsed_cv_data)) {
+                continue;
+            }
+
             $data = $this->parseCvStructured($app->cv_text);
 
             if (!$data) {
                 JobApplication::where('id', $app->id)->update([
                     'cv_index_failed' => true,
-                    'cv_indexed_at'   => Carbon::now(),
+                    'cv_indexed_at'   => now(),
                 ]);
+
                 $parseFailed++;
                 continue;
             }
@@ -2417,23 +2431,25 @@ class AdminJobApplicationController extends AdminBaseController
                 + ((float) ($data['total_experience']['months'] ?? 0) / 12);
 
             $locationParts = array_filter([
-                $data['personal']['location']['city']     ?? null,
+                $data['personal']['location']['city'] ?? null,
                 $data['personal']['location']['province'] ?? null,
-                $data['personal']['location']['country']  ?? null,
+                $data['personal']['location']['country'] ?? null,
             ]);
 
             JobApplication::where('id', $app->id)->update([
                 'parsed_cv_data'      => json_encode($data),
                 'cv_experience_years' => round($years, 1),
-                'cv_job_titles'       => implode(', ', (array) ($data['job_titles'] ?? [])),
-                'cv_skills_text'      => implode(', ', (array) ($data['skills'] ?? [])),
+                'cv_job_titles'       => implode(', ', (array)($data['job_titles'] ?? [])),
+                'cv_skills_text'      => implode(', ', (array)($data['skills'] ?? [])),
                 'cv_location_text'    => implode(', ', $locationParts),
-                'cv_indexed_at'       => Carbon::now(),
+                'cv_indexed_at'       => now(),
                 'cv_index_failed'     => false,
             ]);
 
             $parsedCount++;
         }
+
+    });
 
         $remainingText  = JobApplication::whereNull('cv_text')
             ->whereHas('documents', fn($q) => $q->where('name', 'Resume'))
