@@ -3052,60 +3052,81 @@ class AdminJobApplicationController extends AdminBaseController
  * Bulk backfill: parse ALL existing applicants' resumes via DeepSeek AI.
  * Processes in batches to avoid timeout. Call repeatedly until remaining=0.
  */
+/**
+ * Process ONE application at a time for CV text extraction + AI parsing.
+ * Designed to stay under Cloudflare's 120s timeout.
+ */
 public function bulkParseAllCvs(Request $request)
 {
     abort_if(!$this->user->cans('edit_job_applications'), 403);
 
-    $batchSize = min((int) $request->input('batch_size', 50), 100);
-    $dryRun    = (bool) $request->input('dry_run', false);
+    $mode = $request->input('mode', 'auto'); // 'text' | 'parse' | 'auto'
+    $dryRun = (bool) $request->input('dry_run', false);
 
-    // ── Find applications that need processing ──
-    // Priority 1: Has resume document but no cv_text at all
-    // Priority 2: Has cv_text but no parsed_cv_data
-    $needsText = JobApplication::where(function ($q) {
-            $q->whereNull('cv_text')
-              ->orWhere('cv_text', '');
-        })
-        ->where('cv_index_failed', 0)
-        ->whereHas('documents', function ($q) {
-            $q->where('name', 'Resume');
-        })
-        ->orderBy('id')
-        ->limit($batchSize)
-        ->get();
+    // ── Find ONE application that needs work ──
+    $app = null;
+    $phase = '';
 
-    $needsParse = collect();
-    if ($needsText->count() < $batchSize) {
-        $remainingSlots = $batchSize - $needsText->count();
-        $needsParse = JobApplication::whereNotNull('cv_text')
+    // Phase 1: Find one that needs text extraction
+    if (in_array($mode, ['auto', 'text'])) {
+        $app = JobApplication::where(function ($q) {
+                $q->whereNull('cv_text')
+                  ->orWhere('cv_text', '');
+            })
+            ->where('cv_index_failed', 0)
+            ->whereHas('documents', function ($q) {
+                $q->where('name', 'Resume');
+            })
+            ->orderBy('id')
+            ->first();
+        if ($app) $phase = 'text_extract';
+    }
+
+    // Phase 2: If no text needed, find one that needs AI parsing
+    if (!$app && in_array($mode, ['auto', 'parse'])) {
+        $app = JobApplication::whereNotNull('cv_text')
             ->where('cv_text', '!=', '')
             ->whereNull('parsed_cv_data')
             ->where('cv_index_failed', 0)
             ->orderBy('id')
-            ->limit($remainingSlots)
-            ->get();
+            ->first();
+        if ($app) $phase = 'ai_parse';
     }
 
-    $processedText  = 0;
-    $processedParse = 0;
-    $failedText     = 0;
-    $failedParse    = 0;
-    $skipped        = 0;
-    $results        = [];
+    if (!$app) {
+        return Reply::dataOnly([
+            'done'            => true,
+            'message'         => 'All applications processed!',
+            'total_done'      => JobApplication::whereNotNull('parsed_cv_data')->count(),
+            'total_failed'    => JobApplication::where('cv_index_failed', 1)->count(),
+            'remaining_text'  => JobApplication::where(function ($q) {
+                                    $q->whereNull('cv_text')->orWhere('cv_text', '');
+                                })->where('cv_index_failed', 0)->whereHas('documents', fn($q) => $q->where('name', 'Resume'))->count(),
+            'remaining_parse' => JobApplication::whereNotNull('cv_text')->where('cv_text', '!=', '')->whereNull('parsed_cv_data')->where('cv_index_failed', 0)->count(),
+        ]);
+    }
+
+    $result = [
+        'id'       => $app->id,
+        'name'     => $app->full_name,
+        'phase'    => $phase,
+        'status'   => 'skipped',
+        'message'  => '',
+    ];
 
     // ═══════════════════════════════════════════════════
-    // PHASE 1: Extract CV text from files
+    // PHASE 1: Extract CV text from file
     // ═══════════════════════════════════════════════════
-    foreach ($needsText as $app) {
+    if ($phase === 'text_extract') {
         try {
             $doc = $app->documents()->where('name', 'Resume')->first();
             if (!$doc || empty($doc->hashname)) {
                 if (!$dryRun) {
                     $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
                 }
-                $failedText++;
-                $results[] = ['id' => $app->id, 'status' => 'fail', 'phase' => 'no_doc'];
-                continue;
+                $result['status'] = 'fail';
+                $result['message'] = 'No resume document found';
+                goto respond;
             }
 
             $filePath = public_path('user-uploads/documents/' . $app->id . '/' . $doc->hashname);
@@ -3113,9 +3134,9 @@ public function bulkParseAllCvs(Request $request)
                 if (!$dryRun) {
                     $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
                 }
-                $failedText++;
-                $results[] = ['id' => $app->id, 'status' => 'fail', 'phase' => 'file_not_found'];
-                continue;
+                $result['status'] = 'fail';
+                $result['message'] = 'Resume file not found on disk';
+                goto respond;
             }
 
             $ext = strtolower(pathinfo($doc->hashname, PATHINFO_EXTENSION));
@@ -3128,25 +3149,33 @@ public function bulkParseAllCvs(Request $request)
                 if (!$dryRun) {
                     $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
                 }
-                $failedText++;
-                $results[] = ['id' => $app->id, 'status' => 'fail', 'phase' => 'empty_file'];
-                continue;
+                $result['status'] = 'fail';
+                $result['message'] = 'Empty file';
+                goto respond;
             }
 
             if ($dryRun) {
-                $processedText++;
-                $results[] = ['id' => $app->id, 'status' => 'dry_run', 'phase' => 'text_extract'];
-                continue;
+                $result['status'] = 'dry_run';
+                $result['message'] = 'Would extract text';
+                goto respond;
             }
 
-            $saved = $this->saveCvTextFromBytes($app, $bytes, $ext);
-            if ($saved) {
-                $processedText++;
-                $results[] = ['id' => $app->id, 'status' => 'ok', 'phase' => 'text_extract'];
-            } else {
-                $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
-                $failedText++;
-                $results[] = ['id' => $app->id, 'status' => 'fail', 'phase' => 'extractor_fail'];
+            $tmpPath = sys_get_temp_dir() . '/cv_idx_' . $app->id . '_' . time() . '.' . $ext;
+            file_put_contents($tmpPath, $bytes);
+            try {
+                $extractor = new \App\Services\ResumeTextExtractor();
+                $text = $extractor->extractFromPath($tmpPath, $ext);
+                if ($text !== '') {
+                    $app->update(['cv_text' => mb_substr($text, 0, 65000)]);
+                    $result['status'] = 'ok';
+                    $result['message'] = 'Text extracted (' . strlen($text) . ' chars)';
+                } else {
+                    $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
+                    $result['status'] = 'fail';
+                    $result['message'] = 'Extractor returned empty text';
+                }
+            } finally {
+                if (file_exists($tmpPath)) @unlink($tmpPath);
             }
 
         } catch (\Throwable $e) {
@@ -3154,46 +3183,26 @@ public function bulkParseAllCvs(Request $request)
             if (!$dryRun) {
                 $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
             }
-            $failedText++;
-            $results[] = ['id' => $app->id, 'status' => 'fail', 'phase' => 'exception', 'error' => $e->getMessage()];
+            $result['status'] = 'fail';
+            $result['message'] = $e->getMessage();
         }
     }
 
     // ═══════════════════════════════════════════════════
     // PHASE 2: AI-parse CV text into structured data
     // ═══════════════════════════════════════════════════
-    $parseQueue = $needsParse->merge(
-        // Also re-check any that just got text extracted in this batch
-        JobApplication::whereNotNull('cv_text')
-            ->where('cv_text', '!=', '')
-            ->whereNull('parsed_cv_data')
-            ->where('cv_index_failed', 0)
-            ->whereIn('id', $needsText->pluck('id')->all()) // ones we just processed
-            ->get()
-    )->unique('id')->values();
-
-    // If we didn't fill text slots, use remaining for parsing
-    if ($parseQueue->isEmpty() && $needsParse->isEmpty() && $processedText === 0) {
-        $parseQueue = JobApplication::whereNotNull('cv_text')
-            ->where('cv_text', '!=', '')
-            ->whereNull('parsed_cv_data')
-            ->where('cv_index_failed', 0)
-            ->orderBy('id')
-            ->limit($batchSize)
-            ->get();
-    }
-
-    foreach ($parseQueue as $app) {
+    if ($phase === 'ai_parse') {
         try {
             if (empty($app->cv_text)) {
-                $skipped++;
-                continue;
+                $result['status'] = 'skipped';
+                $result['message'] = 'No cv_text to parse';
+                goto respond;
             }
 
             if ($dryRun) {
-                $processedParse++;
-                $results[] = ['id' => $app->id, 'status' => 'dry_run', 'phase' => 'ai_parse'];
-                continue;
+                $result['status'] = 'dry_run';
+                $result['message'] = 'Would AI parse';
+                goto respond;
             }
 
             $data = $this->parseCvStructured($app->cv_text);
@@ -3203,12 +3212,12 @@ public function bulkParseAllCvs(Request $request)
                     'cv_index_failed' => true,
                     'cv_indexed_at'   => now(),
                 ]);
-                $failedParse++;
-                $results[] = ['id' => $app->id, 'status' => 'fail', 'phase' => 'ai_parse_null'];
-                continue;
+                $result['status'] = 'fail';
+                $result['message'] = 'AI returned null/invalid JSON';
+                goto respond;
             }
 
-            // ── Calculate derived fields ──
+            // Calculate derived fields
             $years = (float) ($data['total_experience']['years'] ?? 0)
                 + ((float) ($data['total_experience']['months'] ?? 0) / 12);
 
@@ -3221,7 +3230,6 @@ public function bulkParseAllCvs(Request $request)
             $jobTitles = (array) ($data['job_titles'] ?? []);
             $skills    = (array) ($data['skills'] ?? []);
 
-            // ── Save everything ──
             $app->update([
                 'parsed_cv_data'      => json_encode($data),
                 'cv_experience_years' => round($years, 1),
@@ -3232,16 +3240,8 @@ public function bulkParseAllCvs(Request $request)
                 'cv_index_failed'     => false,
             ]);
 
-            $processedParse++;
-            $results[] = [
-                'id'           => $app->id,
-                'status'       => 'ok',
-                'phase'        => 'ai_parse',
-                'name'         => $data['personal']['name'] ?? '',
-                'job_titles'   => count($jobTitles),
-                'skills'       => count($skills),
-                'experience'   => round($years, 1),
-            ];
+            $result['status'] = 'ok';
+            $result['message'] = 'AI parsed | ' . count($jobTitles) . ' jobs, ' . count($skills) . ' skills, ' . round($years, 1) . ' yrs';
 
         } catch (\Throwable $e) {
             \Log::warning('CV parse failed for ' . $app->id . ' : ' . $e->getMessage());
@@ -3251,48 +3251,22 @@ public function bulkParseAllCvs(Request $request)
                     'cv_indexed_at'   => now(),
                 ]);
             }
-            $failedParse++;
-            $results[] = ['id' => $app->id, 'status' => 'fail', 'phase' => 'ai_parse_exception', 'error' => $e->getMessage()];
+            $result['status'] = 'fail';
+            $result['message'] = $e->getMessage();
         }
     }
 
-    // ═══════════════════════════════════════════════════
-    // Remaining counts
-    // ═══════════════════════════════════════════════════
-    $remainingText = JobApplication::where(function ($q) {
-            $q->whereNull('cv_text')
-              ->orWhere('cv_text', '');
-        })
-        ->where('cv_index_failed', 0)
-        ->whereHas('documents', function ($q) {
-            $q->where('name', 'Resume');
-        })
-        ->count();
-
-    $remainingParse = JobApplication::whereNotNull('cv_text')
-        ->where('cv_text', '!=', '')
-        ->whereNull('parsed_cv_data')
-        ->where('cv_index_failed', 0)
-        ->count();
-
-    $totalRemaining = $remainingText + $remainingParse;
-
+    respond:
     return Reply::dataOnly([
-        'dry_run'         => $dryRun,
-        'batch_size'      => $batchSize,
-        'text_extracted'  => $processedText,
-        'ai_parsed'       => $processedParse,
-        'failed_text'     => $failedText,
-        'failed_parse'    => $failedParse,
-        'skipped'         => $skipped,
-        'remaining_text'  => $remainingText,
-        'remaining_parse' => $remainingParse,
-        'total_remaining' => $totalRemaining,
+        'done'            => false,
+        'result'          => $result,
         'total_done'      => JobApplication::whereNotNull('parsed_cv_data')->count(),
         'total_failed'    => JobApplication::where('cv_index_failed', 1)->count(),
-        'results'         => $results,
-        'continue'        => $totalRemaining > 0,
-        'next_batch_url'  => $totalRemaining > 0 ? route('admin.job-applications.bulk-parse-all-cvs') : null,
+        'remaining_text'  => JobApplication::where(function ($q) {
+                                $q->whereNull('cv_text')->orWhere('cv_text', '');
+                            })->where('cv_index_failed', 0)->whereHas('documents', fn($q) => $q->where('name', 'Resume'))->count(),
+        'remaining_parse' => JobApplication::whereNotNull('cv_text')->where('cv_text', '!=', '')->whereNull('parsed_cv_data')->where('cv_index_failed', 0)->count(),
+        'next_url'        => route('admin.job-applications.bulk-parse-all-cvs'),
     ]);
 }
 }

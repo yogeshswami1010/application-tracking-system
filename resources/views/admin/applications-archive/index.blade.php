@@ -140,21 +140,32 @@
 document.getElementById('run-bulk-parse').addEventListener('click', function() {
     var btn = this;
     btn.disabled = true;
-    btn.textContent = 'Running...';
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Processing...';
     
     var logEl = document.getElementById('bulk-parse-log');
+    logEl.style.display = 'block';
+    
     var totalDone = 0;
     var totalFailed = 0;
+    var consecutiveErrors = 0;
+    var isRunning = true;
     
-    function log(msg) {
+    function log(msg, type) {
         var line = document.createElement('div');
-        line.textContent = new Date().toLocaleTimeString() + ' | ' + msg;
+        var time = new Date().toLocaleTimeString();
+        var color = type === 'error' ? '#ef4444' : (type === 'success' ? '#22c55e' : '#e5e7eb');
+        line.innerHTML = '<span style="color:#6b7280">[' + time + ']</span> <span style="color:' + color + '">' + msg + '</span>';
         logEl.appendChild(line);
         logEl.scrollTop = logEl.scrollHeight;
+        
+        // Keep log from growing too large
+        while (logEl.children.length > 100) {
+            logEl.removeChild(logEl.firstChild);
+        }
     }
     
-    function runBatch() {
-        log('Fetching next batch...');
+    function processNext() {
+        if (!isRunning) return;
         
         fetch('{{ route("admin.job-applications.bulk-parse-all-cvs") }}', {
             method: 'POST',
@@ -163,45 +174,87 @@ document.getElementById('run-bulk-parse').addEventListener('click', function() {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ batch_size: 30 }) // 30 per batch to stay within 30-45s timeout
+            body: JSON.stringify({ mode: 'auto' })
         })
-        .then(r => r.json())
-        .then(data => {
-            if (data.status === 'success') {
-                var d = data.data || data;
-                totalDone += (d.text_extracted || 0) + (d.ai_parsed || 0);
-                totalFailed += (d.failed_text || 0) + (d.failed_parse || 0);
-                
-                log('Batch done: +' + (d.text_extracted || 0) + ' text, +' + (d.ai_parsed || 0) + ' parsed | ' +
-                    'Failed: ' + ((d.failed_text || 0) + (d.failed_parse || 0)) + ' | ' +
-                    'Remaining: ' + d.total_remaining + ' | ' +
-                    'Total done: ' + d.total_done + ' | ' +
-                    'Total failed: ' + d.total_failed);
-                
-                if (d.continue && d.total_remaining > 0) {
-                    // Small delay between batches to be nice to the API
-                    setTimeout(runBatch, 2000);
-                } else {
-                    log('✅ ALL DONE! Total processed: ' + totalDone + ', Total failed: ' + totalFailed);
-                    btn.textContent = 'Complete';
-                    btn.classList.remove('btn-primary');
-                    btn.classList.add('btn-success');
-                }
-            } else {
-                log('❌ Error: ' + (data.message || 'Unknown error'));
-                btn.disabled = false;
+        .then(function(r) {
+            if (r.status === 524) {
+                throw new Error('Cloudflare timeout — reducing speed');
             }
+            if (!r.ok) {
+                throw new Error('HTTP ' + r.status);
+            }
+            return r.json();
         })
-        .catch(err => {
-            log('❌ Network error: ' + err.message);
-            // Retry after delay
-            setTimeout(runBatch, 5000);
+        .then(function(data) {
+            var d = data.data || data;
+            
+            if (d.done) {
+                log('✅ ' + d.message, 'success');
+                log('Total parsed: ' + d.total_done + ' | Total failed: ' + d.total_failed, 'success');
+                btn.innerHTML = '<i class="fa fa-check"></i> Complete';
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-success');
+                isRunning = false;
+                return;
+            }
+            
+            var r = d.result;
+            consecutiveErrors = 0;
+            
+            if (r.status === 'ok') {
+                totalDone++;
+                log('#' + r.id + ' ' + r.name + ' → ' + r.message, 'success');
+            } else if (r.status === 'fail') {
+                totalFailed++;
+                log('#' + r.id + ' ' + r.name + ' → ❌ ' + r.message, 'error');
+            } else {
+                log('#' + r.id + ' ' + r.name + ' → ' + r.status);
+            }
+            
+            // Update button text with progress
+            var remaining = (d.remaining_text || 0) + (d.remaining_parse || 0);
+            btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ' + 
+                totalDone + ' done, ' + totalFailed + ' failed (' + remaining + ' remaining)';
+            
+            // Small delay to avoid hammering the server
+            setTimeout(processNext, 500);
+        })
+        .catch(function(err) {
+            consecutiveErrors++;
+            log('❌ ' + err.message, 'error');
+            
+            if (consecutiveErrors > 5) {
+                log('Too many errors. Stopping. Refresh and click again to resume.', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa fa-play"></i> Resume';
+                isRunning = false;
+                return;
+            }
+            
+            // Back off on error
+            var delay = Math.min(3000 * consecutiveErrors, 15000);
+            log('Retrying in ' + (delay/1000) + 's...');
+            setTimeout(processNext, delay);
         });
     }
     
-    runBatch();
+    // Start processing
+    log('🚀 Starting bulk CV parse...');
+    processNext();
+    
+    // Allow stopping
+    btn.addEventListener('click', function stopHandler(e) {
+        if (!isRunning) return;
+        e.preventDefault();
+        e.stopPropagation();
+        isRunning = false;
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa fa-play"></i> Resume';
+        log('⏸ Paused by user. Click Resume to continue.');
+    }, { once: true });
 });
 </script>
+
         {{-- Filter Bar --}}
         <div id="ja-table-filter-bar" class="border-b border-[#E8E6E1] bg-white">
             <div class="px-5 sm:px-6">
