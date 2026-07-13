@@ -45,7 +45,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use Yajra\DataTables\Facades\DataTables;
 use App\Models\Currency;
 use App\ApplicantNote;
-
+use Illuminate\Support\Facades\Log;
 class AdminJobApplicationController extends AdminBaseController
 {
     use ZoomSettings;
@@ -3309,28 +3309,34 @@ if ($phase === 'text_extract') {
         return $this->bulkParseRespond($result);
     }
 protected function callDeepSeekWithImage(string $systemPrompt, string $userPrompt): string
-{
-    $apiKey = env('DEEPSEEK_API_KEY');
-    
-    $response = \Http::withHeaders([
-        'Authorization' => 'Bearer ' . $apiKey,
-        'Content-Type'  => 'application/json',
-    ])->post('https://api.deepseek.com/v1/chat/completions', [
-        'model'    => 'deepseek-chat',
-        'messages' => [
-            ['role' => 'system', 'content' => $systemPrompt],
-            ['role' => 'user',   'content' => $userPrompt],
-        ],
-        'temperature' => 0.1,
-        'max_tokens'  => 4000,
-    ]);
+    {
+        $apiKey = env('DEEPSEEK_API_KEY');
+        
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $apiKey,
+            'Content-Type'  => 'application/json',
+        ])->post('https://api.deepseek.com/v1/chat/completions', [
+            'model'    => 'deepseek-chat',
+            'messages' => [
+                ['role' => 'system', 'content' => $systemPrompt],
+                ['role' => 'user',   'content' => $userPrompt],
+            ],
+            'temperature' => 0.1,
+            'max_tokens'  => 4000,
+        ]);
 
-    $content = $response->json('choices.0.message.content', '');
-    
-    // Strip markdown fences
-    $content = preg_replace('/^```(?:json)?\s*/i', '', $content);
-    return trim(preg_replace('/\s*```$/', '', $content));
-}
+        if ($response->failed()) {
+            Log::error('DeepSeek API error: ' . $response->status() . ' - ' . $response->body());
+            throw new \RuntimeException('DeepSeek API error: ' . $response->status());
+        }
+
+        $content = $response->json('choices.0.message.content', '');
+        
+        // Strip markdown code fences
+        $content = preg_replace('/^```(?:json)?\s*/i', '', $content);
+        return trim(preg_replace('/\s*```$/', '', $content));
+    }
+
     /**
      * Helper to return consistent response format
      */
