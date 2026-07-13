@@ -2283,7 +2283,7 @@ class AdminJobApplicationController extends AdminBaseController
      * Send a prompt to DeepSeek API and return the response text.
      * Uses the OpenAI-compatible chat completions endpoint.
      */
-    private function callDeepSeek(string $prompt): string
+        private function callDeepSeek(string $prompt): string
     {
         $key   = config('services.deepseek.key');
         $model = config('services.deepseek.model', 'deepseek-chat');
@@ -2299,7 +2299,8 @@ class AdminJobApplicationController extends AdminBaseController
             ])
             ->post('https://api.deepseek.com/chat/completions', [
                 'model'       => $model,
-                'max_tokens'  => 1024,
+                'max_tokens'  => 2048,  // Increased for full JSON response
+                'temperature' => 0.1,   // Lower = more deterministic JSON
                 'messages'    => [
                     ['role' => 'user', 'content' => $prompt],
                 ],
@@ -2310,7 +2311,11 @@ class AdminJobApplicationController extends AdminBaseController
         }
 
         $text = $response->json('choices.0.message.content') ?? '';
-        $text = trim(preg_replace('/```json|```/', '', $text) ?? '');
+        
+        // More robust markdown stripping
+        $text = preg_replace('/^```(?:json)?\s*/i', '', trim($text)) ?? trim($text);
+        $text = preg_replace('/\s*```$/', '', $text) ?? $text;
+        $text = trim($text);
 
         return $text;
     }
@@ -2318,37 +2323,47 @@ class AdminJobApplicationController extends AdminBaseController
      * Parse extracted CV text into the structured applicant schema using DeepSeek.
      * Returns null on failure — caller marks cv_parse_failed so it isn't retried every batch.
      */
-   private function parseCvStructured(string $cvText): ?array
-{
-    $schema = '{"personal":{"name":"","email":"","phone":"","location":{"city":"","province":"","country":""}},'
-        . '"headline":"","total_experience":{"years":0,"months":0},"job_titles":[],"skills":[],'
-        . '"certifications":[],"education":[{"degree":"","field":"","school":""}],'
-        . '"employment":[{"company":"","title":"","start":"","end":"","duration_years":0}],'
-        . '"languages":[],"availability":{"notice_period":""},"resume_summary":""}';
+    private function parseCvStructured(string $cvText): ?array
+    {
+        $schema = '{"personal":{"name":"","email":"","phone":"","location":{"city":"","province":"","country":""}},'
+            . '"headline":"","total_experience":{"years":0,"months":0},"job_titles":[],"skills":[],'
+            . '"certifications":[],"education":[{"degree":"","field":"","school":""}],'
+            . '"employment":[{"company":"","title":"","start":"","end":"","duration_years":0}],'
+            . '"languages":[],"availability":{"notice_period":""},"resume_summary":""}';
 
-    $prompt = "Extract structured data from this resume/CV text..."
-        . "CV TEXT:\n" . mb_substr($cvText, 0, 10000);
+        $prompt = "You are a CV parser. Extract structured data from this resume/CV text and return ONLY a raw JSON object matching this exact schema. Do NOT include markdown code fences, explanations, or any text outside the JSON.\n\n"
+            . "Schema: " . $schema . "\n\n"
+            . "Rules:\n"
+            . "- Return ONLY the JSON object, minified or pretty-printed is fine\n"
+            . "- Use empty string \"\" for any field you cannot determine\n"
+            . "- For total_experience, calculate from employment history if possible\n"
+            . "- job_titles should be an array of all job titles found\n"
+            . "- skills should be an array of all technical and soft skills found\n"
+            . "- employment array should include all jobs with company, title, start/end dates (YYYY-MM format), and duration in years\n"
+            . "- education array should include all degrees with degree name, field of study, and school\n"
+            . "- certifications should be an array of certification names\n"
+            . "- resume_summary should be a 2-3 sentence professional summary\n\n"
+            . "CV TEXT:\n" . mb_substr($cvText, 0, 10000);
 
-    try {
-        $text   = $this->callDeepSeek($prompt);
+        try {
+            $text   = $this->callDeepSeek($prompt);
 
-        // ADD THESE TWO LINES HERE
-        \Log::info('===== DeepSeek Raw Response =====');
-        \Log::info($text);
+            \Log::info('===== DeepSeek Raw Response =====');
+            \Log::info($text);
 
-        $parsed = json_decode($text, true);
+            $parsed = json_decode($text, true);
 
-        if (!is_array($parsed) || !isset($parsed['personal'])) {
-            \Log::warning('parseCvStructured: invalid JSON shape: ' . $text);
+            if (!is_array($parsed) || !isset($parsed['personal'])) {
+                \Log::warning('parseCvStructured: invalid JSON shape: ' . $text);
+                return null;
+            }
+
+            return $parsed;
+        } catch (\Throwable $e) {
+            \Log::warning('parseCvStructured failed: ' . $e->getMessage());
             return null;
         }
-
-        return $parsed;
-    } catch (\Throwable $e) {
-        \Log::warning('parseCvStructured failed: ' . $e->getMessage());
-        return null;
     }
-}
     /**
      * Extract plain text from a downloaded resume file and save it to cv_text.
      * Called after parseSkills so the file bytes are already in memory.
