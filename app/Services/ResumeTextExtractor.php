@@ -68,17 +68,24 @@ class ResumeTextExtractor
         return $this->normalizeWhitespace($text);
     }
 
-    private function fromPdf(string $path): string
+   private function fromPdf(string $path): string
     {
         try {
-            $config = new \Smalot\PdfParser\Config();
-            $config->setRetainImageContent(false); // skip embedded images, reduces errors
-            $parser = new PdfParser([], $config);
-            $pdf    = $parser->parseFile($path);
-            $text   = $pdf->getText();
-            return is_string($text) ? $text : '';
-        } catch (\Throwable) {
-            // Malformed PDF (e.g. "Invalid object reference for $obj") — return empty
+            // Version-safe constructor: v2.x uses (null, Config), v0.x/v1.x uses ()
+            try {
+                $config = new \Smalot\PdfParser\Config();
+                $config->setRetainImageContent(false);
+                $parser = new PdfParser(null, $config);
+            } catch (\Throwable $e) {
+                $parser = new PdfParser();
+            }
+
+            $pdf  = $parser->parseFile($path);
+            $text = $pdf->getText();
+
+            return is_string($text) ? $this->normalizeWhitespace($text) : '';
+        } catch (\Throwable $e) {
+            \Log::warning('PDF extraction failed for ' . $path . ': ' . $e->getMessage());
             return '';
         }
     }
