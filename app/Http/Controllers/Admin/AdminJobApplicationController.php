@@ -3308,7 +3308,29 @@ if ($phase === 'text_extract') {
 
         return $this->bulkParseRespond($result);
     }
+protected function callDeepSeekWithImage(string $systemPrompt, string $userPrompt): string
+{
+    $apiKey = env('DEEPSEEK_API_KEY');
+    
+    $response = \Http::withHeaders([
+        'Authorization' => 'Bearer ' . $apiKey,
+        'Content-Type'  => 'application/json',
+    ])->post('https://api.deepseek.com/v1/chat/completions', [
+        'model'    => 'deepseek-chat',
+        'messages' => [
+            ['role' => 'system', 'content' => $systemPrompt],
+            ['role' => 'user',   'content' => $userPrompt],
+        ],
+        'temperature' => 0.1,
+        'max_tokens'  => 4000,
+    ]);
 
+    $content = $response->json('choices.0.message.content', '');
+    
+    // Strip markdown fences
+    $content = preg_replace('/^```(?:json)?\s*/i', '', $content);
+    return trim(preg_replace('/\s*```$/', '', $content));
+}
     /**
      * Helper to return consistent response format
      */
