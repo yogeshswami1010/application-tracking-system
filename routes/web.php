@@ -252,6 +252,10 @@ Route::middleware('auth')->group(function () {
             Route::post('job-applications/{id}/update-info', [AdminJobApplicationController::class, 'updateBasicInfo'])
             ->name('job-applications.update-basic-info');
             Route::post('job-applications/{id}/toggle-marketing',         [AdminJobApplicationController::class, 'toggleMarketing'])->name('job-applications.toggle-marketing');
+            // routes/web.php or routes/admin.php
+            Route::post('admin/job-applications/bulk-parse-all-cvs', [AdminJobApplicationController::class, 'bulkParseAllCvs'])
+                ->name('admin.job-applications.bulk-parse-all-cvs');
+            
             Route::post('job-applications/{id}/update-marketing-label',   [AdminJobApplicationController::class, 'updateMarketingLabel'])->name('job-applications.update-marketing-label');
             // Candidate Marketing
             Route::get('candidate-marketing/data',          [AdminCandidateMarketingController::class, 'data'])->name('candidate-marketing.data');
