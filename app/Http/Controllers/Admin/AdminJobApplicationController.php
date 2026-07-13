@@ -2325,7 +2325,7 @@ class AdminJobApplicationController extends AdminBaseController
      * Extract plain text from a downloaded resume file and save it to cv_text.
      * Called after parseSkills so the file bytes are already in memory.
      */
-    private function saveCvTextFromBytes(JobApplication $application, string $fileBytes, string $ext): void
+    private function saveCvTextFromBytes(JobApplication $application, string $fileBytes, string $ext): bool
     {
         try {
             $tmpPath = sys_get_temp_dir() . '/cv_idx_' . $application->id . '_' . time() . '.' . $ext;
@@ -2336,12 +2336,15 @@ class AdminJobApplicationController extends AdminBaseController
                 if ($text !== '') {
                     JobApplication::where('id', $application->id)
                         ->update(['cv_text' => mb_substr($text, 0, 65000)]);
+                    return true;
                 }
+                return false;
             } finally {
                 if (file_exists($tmpPath)) @unlink($tmpPath);
             }
         } catch (\Throwable $e) {
             \Log::warning('saveCvTextFromBytes failed for app ' . $application->id . ': ' . $e->getMessage());
+            return false;
         }
     }
 
@@ -2367,57 +2370,55 @@ class AdminJobApplicationController extends AdminBaseController
     */
     $needsText = JobApplication::where(function ($q) {
             $q->whereNull('cv_text')
-              ->orWhere('cv_text', '');
+            ->orWhere('cv_text', '');
         })
+        ->where('cv_index_failed', 0)          // ← ADD: skip permanently-failed rows
         ->whereHas('documents', function ($q) {
             $q->where('name', 'Resume');
         })
         ->limit($limit)
         ->get();
 
-    foreach ($needsText as $app) {
-
+     foreach ($needsText as $app) {
         try {
-
-            $doc = $app->documents()
-                ->where('name', 'Resume')
-                ->first();
-
+            $doc = $app->documents()->where('name', 'Resume')->first();
             if (!$doc || empty($doc->hashname)) {
+                $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]); // ← ADD
                 $failed++;
                 continue;
             }
 
             $file = public_path('user-uploads/documents/'.$app->id.'/'.$doc->hashname);
-
             if (!is_readable($file)) {
+                $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]); // ← ADD
                 $failed++;
                 continue;
             }
 
             $ext = strtolower(pathinfo($doc->hashname, PATHINFO_EXTENSION));
-
             if (!in_array($ext, ['pdf','doc','docx','txt','rtf','xls','xlsx'])) {
                 $ext = 'pdf';
             }
 
             $bytes = file_get_contents($file);
-
             if (!$bytes) {
+                $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]); // ← ADD
                 $failed++;
                 continue;
             }
 
-            $this->saveCvTextFromBytes($app, $bytes, $ext);
+            $saved = $this->saveCvTextFromBytes($app, $bytes, $ext); // ← now returns bool
 
-            $processed++;
+            if ($saved) {
+                $processed++;
+            } else {
+                $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]); // ← ADD
+                $failed++;
+            }
 
         } catch (\Throwable $e) {
-
-            \Log::warning(
-                'CV text extraction failed for '.$app->id.' : '.$e->getMessage()
-            );
-
+            \Log::warning('CV text extraction failed for '.$app->id.' : '.$e->getMessage());
+            $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]); // ← ADD
             $failed++;
         }
     }
@@ -2513,6 +2514,7 @@ class AdminJobApplicationController extends AdminBaseController
             $q->whereNull('cv_text')
               ->orWhere('cv_text','');
         })
+        ->where('cv_index_failed', 0)  
         ->whereHas('documents', function ($q) {
             $q->where('name','Resume');
         })
