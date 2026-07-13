@@ -3306,7 +3306,7 @@ class AdminJobApplicationController extends AdminBaseController
     /**
      * Helper to return consistent response format
      */
-    private function bulkParseRespond(array $result): \Illuminate\Http\JsonResponse
+    private function bulkParseRespond(array $result)
     {
         $remainingText = JobApplication::where(function ($q) {
                 $q->whereNull('cv_text')->orWhere('cv_text', '');
