@@ -70,8 +70,17 @@ class ResumeTextExtractor
 
    private function fromPdf(string $path): string
     {
+        // PRIMARY: pdftotext (most reliable, handles encodings and edge cases)
+        $pdftotext = shell_exec('which pdftotext 2>/dev/null');
+        if ($pdftotext) {
+            $output = shell_exec('pdftotext -layout -enc UTF-8 ' . escapeshellarg($path) . ' - 2>/dev/null');
+            if ($output && strlen($output) > 50) {
+                return $this->normalizeWhitespace($output);
+            }
+        }
+
+        // FALLBACK: Smalot\PdfParser
         try {
-            // Version-safe constructor: v2.x uses (null, Config), v0.x/v1.x uses ()
             try {
                 $config = new \Smalot\PdfParser\Config();
                 $config->setRetainImageContent(false);
@@ -79,10 +88,8 @@ class ResumeTextExtractor
             } catch (\Throwable $e) {
                 $parser = new PdfParser();
             }
-
             $pdf  = $parser->parseFile($path);
             $text = $pdf->getText();
-
             return is_string($text) ? $this->normalizeWhitespace($text) : '';
         } catch (\Throwable $e) {
             \Log::warning('PDF extraction failed for ' . $path . ': ' . $e->getMessage());
