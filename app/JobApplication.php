@@ -11,7 +11,18 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class JobApplication extends Model
 {
     use Notifiable, SoftDeletes, HasFactory;
+    protected $fillable = [
+            'cv_text',
+            'parsed_cv_data',
+            'cv_experience_years',
+            'cv_job_titles',
+            'cv_skills_text',
+            'cv_location_text',
+            'cv_indexed_at',
+            'cv_index_failed',
+        ];
 
+    
     protected $casts = [
         'dob' => 'datetime',
         'skills' => 'array',
