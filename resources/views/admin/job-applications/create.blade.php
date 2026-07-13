@@ -1139,6 +1139,8 @@
                         matched_skills: res.matched_skills || [],
                         new_skills:     res.new_skills || [],
                     };
+                    item._cvText       = res.resume_text    || '';   // NEW
+                    item._parsedCvData = res.parsed_cv_data || null; // NEW
 
                     item.status = 'done';
 
@@ -1744,7 +1746,8 @@
             fd.append('phone',     document.getElementById('bf-phone').value.trim());
             fd.append('skills',    document.getElementById('bf-skills').value.trim());
             fd.append('address',   document.getElementById('bf-address').value.trim());
-
+            if (item._cvText)       fd.append('cv_text', item._cvText);
+            if (item._parsedCvData) fd.append('parsed_cv_data', JSON.stringify(item._parsedCvData));
             // Filing mode
             if (bulkFiling === 'db') {
                 fd.append('entry_type', 'candidate');
@@ -1870,6 +1873,8 @@
                 fd.append('phone',      (item.parsed && item.parsed.phone)     || '');
                 fd.append('skills',     (item.parsed && item.parsed.skills)    || '');
                 fd.append('address',    (item.parsed && item.parsed.address)   || '');
+                if (item._cvText)       fd.append('cv_text', item._cvText);
+                if (item._parsedCvData) fd.append('parsed_cv_data', JSON.stringify(item._parsedCvData));
                 if (item.file) fd.append('resume', item.file);
 
                 $.ajax({

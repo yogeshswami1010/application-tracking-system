@@ -943,7 +943,35 @@ class AdminJobApplicationController extends AdminBaseController
                 $jobApplication->save();
             }
         }
+        // ── Save AI-structured CV data captured during bulk-parse ──
+        if ($request->filled('cv_text')) {
+            $jobApplication->cv_text = mb_substr($request->input('cv_text'), 0, 65000);
+            $jobApplication->save();
+        }
 
+        if ($request->filled('parsed_cv_data')) {
+            $decoded = json_decode($request->input('parsed_cv_data'), true);
+
+            if (is_array($decoded)) {
+                $years = (float) ($decoded['total_experience']['years'] ?? 0)
+                    + ((float) ($decoded['total_experience']['months'] ?? 0) / 12);
+
+                $location = array_filter([
+                    $decoded['personal']['location']['city'] ?? null,
+                    $decoded['personal']['location']['province'] ?? null,
+                    $decoded['personal']['location']['country'] ?? null,
+                ]);
+
+                $jobApplication->parsed_cv_data      = json_encode($decoded);
+                $jobApplication->cv_experience_years = round($years, 1);
+                $jobApplication->cv_job_titles       = implode(', ', (array) ($decoded['job_titles'] ?? []));
+                $jobApplication->cv_skills_text      = implode(', ', (array) ($decoded['skills'] ?? []));
+                $jobApplication->cv_location_text    = implode(', ', $location);
+                $jobApplication->cv_indexed_at       = now();
+                $jobApplication->cv_index_failed     = false;
+                $jobApplication->save();
+            }
+        }
         if ($request->filled('notes') && is_array($request->notes)) {
             foreach ($request->notes as $noteText) {
                 if (trim($noteText)) {
@@ -2594,7 +2622,7 @@ class AdminJobApplicationController extends AdminBaseController
 
             // If text extraction failed (malformed/scanned PDF), return empty result
             // so the user can fill in the form manually
-            if (empty($cvText)) {
+           if (empty($cvText)) {
                 return response()->json([
                     'status'         => 'success',
                     'full_name'      => '',
@@ -2603,9 +2631,12 @@ class AdminJobApplicationController extends AdminBaseController
                     'address'        => '',
                     'matched_skills' => [],
                     'new_skills'     => [],
+                    'parsed_cv_data' => null,   // NEW
+                    'resume_text'    => '',     // NEW
                     'warning'        => 'Could not read text from this file (it may be a scanned or image-based PDF). Please fill in the details manually.',
                 ]);
             }
+        
 
             $allSkillNames = mb_substr(\App\Skill::pluck('name')->implode(', '), 0, 2000);
 
@@ -2632,6 +2663,8 @@ class AdminJobApplicationController extends AdminBaseController
 
             $matchedSkills = \App\Skill::whereIn('name', $parsed['matched_skills'] ?? [])->get(['id', 'name']);
 
+            $structuredCvData = $this->parseCvStructured($cvText);
+
             return response()->json([
                 'status'         => 'success',
                 'full_name'      => $parsed['full_name']     ?? '',
@@ -2640,6 +2673,8 @@ class AdminJobApplicationController extends AdminBaseController
                 'address'        => $parsed['address']       ?? '',
                 'matched_skills' => $matchedSkills,
                 'new_skills'     => $parsed['new_skills']    ?? [],
+                'parsed_cv_data' => $structuredCvData,          // NEW
+                'resume_text'    => mb_substr($cvText, 0, 65000), // NEW
             ]);
 
         } catch (\Throwable $e) {
