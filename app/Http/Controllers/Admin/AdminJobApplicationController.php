@@ -3148,13 +3148,11 @@ class AdminJobApplicationController extends AdminBaseController
                 'status'   => 'skipped',
                 'message'  => '',
             ];
-
             // ═══════════════════════════════════════════════════
-            // PHASE 1: Send PDF directly to DeepSeek for FULL parsing
-            // Saves BOTH cv_text (for search) AND all structured fields
+            // PHASE 1: Extract PDF text, then send to DeepSeek for FULL parsing
             // ═══════════════════════════════════════════════════
             if ($phase === 'text_extract') {
-                \Log::info('PHASE 1: DeepSeek full parse for app #' . $app->id);
+                \Log::info('PHASE 1: Extract + DeepSeek full parse for app #' . $app->id);
                 try {
                     $doc = $app->documents()->where('name', 'Resume')->first();
                     if (!$doc || empty($doc->hashname)) {
@@ -3178,15 +3176,42 @@ class AdminJobApplicationController extends AdminBaseController
 
                     if ($dryRun) {
                         $result['status'] = 'dry_run';
-                        $result['message'] = 'Would DeepSeek parse (' . filesize($filePath) . ' bytes)';
+                        $result['message'] = 'Would parse (' . filesize($filePath) . ' bytes)';
                         return $result;
                     }
 
-                    // Read PDF bytes and base64 encode for DeepSeek
-                    $pdfBytes = file_get_contents($filePath);
-                    $pdfBase64 = base64_encode($pdfBytes);
+                    // ── STEP 1: Extract text from PDF using pdftotext or similar ──
+                    $ext = strtolower(pathinfo($doc->hashname, PATHINFO_EXTENSION)) ?: 'pdf';
+                    $cvText = '';
 
-                    $systemPrompt = 'You are a CV parser API. Read this PDF resume and extract structured data. '
+                    try {
+                        $extractor = new \App\Services\ResumeTextExtractor();
+                        $cvText = $extractor->extractFromPath($filePath, $ext);
+                    } catch (\Throwable $e) {
+                        \Log::warning('App #' . $app->id . ' - Text extraction failed: ' . $e->getMessage());
+                    }
+
+                    // If text extraction returned nothing, try reading raw bytes as fallback
+                    if (empty(trim($cvText))) {
+                        $cvText = file_get_contents($filePath);
+                        // Try to extract readable text from binary
+                        $cvText = preg_replace('/[^\x20-\x7E\s]/', ' ', $cvText);
+                        $cvText = preg_replace('/\s+/', ' ', $cvText);
+                        $cvText = trim($cvText);
+                    }
+
+                    if (empty($cvText) || strlen($cvText) < 100) {
+                        \Log::warning('App #' . $app->id . ' - Could not extract meaningful text from PDF');
+                        $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
+                        $result['status'] = 'fail';
+                        $result['message'] = 'Could not extract text from PDF (scanned/image PDF?)';
+                        return $result;
+                    }
+
+                    \Log::info('App #' . $app->id . ' - Extracted ' . strlen($cvText) . ' chars from PDF');
+
+                    // ── STEP 2: Send extracted text to DeepSeek for structured parsing ──
+                    $systemPrompt = 'You are a CV parser API. Extract structured data from this resume text. '
                         . 'Return ONLY a raw JSON object. '
                         . 'Schema: {"personal":{"name":"","email":"","phone":"","location":{"city":"","province":"","country":""}},'
                         . '"headline":"","total_experience":{"years":0,"months":0},"job_titles":[],"skills":[],"'
@@ -3200,13 +3225,13 @@ class AdminJobApplicationController extends AdminBaseController
                         . 'personal.location: extract city, province/state, country. '
                         . 'resume_summary: 2-3 sentence professional summary.';
 
-                    $userPrompt = 'Parse this resume PDF (base64 encoded): ' . $pdfBase64;
+                    $userPrompt = "Parse this resume text and extract all structured data:\n\n" . mb_substr($cvText, 0, 12000);
 
                     $text = $this->callDeepSeekWithImage($systemPrompt, $userPrompt);
                     $data = json_decode($text, true);
 
                     if (!is_array($data) || !isset($data['personal'])) {
-                        \Log::warning('App #' . $app->id . ' - DeepSeek returned invalid JSON');
+                        \Log::warning('App #' . $app->id . ' - DeepSeek returned invalid JSON: ' . mb_substr($text, 0, 500));
                         $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
                         $result['status'] = 'fail';
                         $result['message'] = 'AI returned invalid data';
@@ -3225,11 +3250,8 @@ class AdminJobApplicationController extends AdminBaseController
 
                     // Ensure cv_text is never empty
                     if (empty(trim($rawText))) {
-                        \Log::warning('App #' . $app->id . ' - Extracted text is empty');
-                        $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
-                        $result['status'] = 'fail';
-                        $result['message'] = 'Extracted text is empty';
-                        return $result;
+                        // Fallback: use the extracted PDF text directly
+                        $rawText = mb_substr($cvText, 0, 65000);
                     }
 
                     // ── Calculate structured fields from the JSON ──
@@ -3257,21 +3279,22 @@ class AdminJobApplicationController extends AdminBaseController
                         'cv_index_failed'     => false,
                     ];
 
-                    \Log::info('App #' . $app->id . ' - Saving full parsed data: ' . json_encode([
+                    \Log::info('App #' . $app->id . ' - Saved: ' . json_encode([
                         'experience_years' => $updateData['cv_experience_years'],
                         'job_titles_count' => count($jobTitles),
                         'skills_count'     => count($skills),
                         'location'         => $updateData['cv_location_text'],
+                        'name'             => $data['personal']['name'] ?? 'N/A',
                     ]));
 
                     $app->update($updateData);
 
                     $result['status'] = 'ok';
-                    $result['message'] = 'DeepSeek parsed PDF | ' . count($jobTitles) . ' jobs, ' . count($skills) . ' skills, ' . round($years, 1) . ' yrs';
+                    $result['message'] = 'Parsed | ' . count($jobTitles) . ' jobs, ' . count($skills) . ' skills, ' . round($years, 1) . ' yrs';
                     return $result;
 
                 } catch (\Throwable $e) {
-                    \Log::error('App #' . $app->id . ' - DeepSeek parse exception: ' . $e->getMessage());
+                    \Log::error('App #' . $app->id . ' - Parse exception: ' . $e->getMessage());
                     if (!$dryRun) {
                         $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
                     }
