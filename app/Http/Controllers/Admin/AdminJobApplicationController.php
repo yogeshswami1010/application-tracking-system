@@ -3129,88 +3129,94 @@ class AdminJobApplicationController extends AdminBaseController
         ];
 
         // ═══════════════════════════════════════════════════
-        // PHASE 1: Extract CV text from file
-        // ═══════════════════════════════════════════════════
-        if ($phase === 'text_extract') {
-            \Log::info('PHASE 1: Extracting text for app #' . $app->id);
-            try {
-                $doc = $app->documents()->where('name', 'Resume')->first();
-                if (!$doc || empty($doc->hashname)) {
-                    \Log::warning('App #' . $app->id . ' - No resume document');
-                    if (!$dryRun) {
-                        $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
-                    }
-                    $result['status'] = 'fail';
-                    $result['message'] = 'No resume document found';
-                    return $this->bulkParseRespond($result);
-                }
-
-                $filePath = public_path('user-uploads/documents/' . $app->id . '/' . $doc->hashname);
-                if (!is_readable($filePath)) {
-                    \Log::warning('App #' . $app->id . ' - File not readable: ' . $filePath);
-                    if (!$dryRun) {
-                        $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
-                    }
-                    $result['status'] = 'fail';
-                    $result['message'] = 'Resume file not found on disk';
-                    return $this->bulkParseRespond($result);
-                }
-
-                $ext = strtolower(pathinfo($doc->hashname, PATHINFO_EXTENSION));
-                if (!in_array($ext, ['pdf','doc','docx','txt','rtf','xls','xlsx'])) {
-                    $ext = 'pdf';
-                }
-
-                $bytes = file_get_contents($filePath);
-                if (!$bytes) {
-                    \Log::warning('App #' . $app->id . ' - Empty file bytes');
-                    if (!$dryRun) {
-                        $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
-                    }
-                    $result['status'] = 'fail';
-                    $result['message'] = 'Empty file';
-                    return $this->bulkParseRespond($result);
-                }
-
-                if ($dryRun) {
-                    $result['status'] = 'dry_run';
-                    $result['message'] = 'Would extract text (' . strlen($bytes) . ' bytes)';
-                    return $this->bulkParseRespond($result);
-                }
-
-                $tmpPath = sys_get_temp_dir() . '/cv_idx_' . $app->id . '_' . time() . '.' . $ext;
-                file_put_contents($tmpPath, $bytes);
-                $text = '';
-                try {
-                    $extractor = new \App\Services\ResumeTextExtractor();
-                    $text = $extractor->extractFromPath($tmpPath, $ext);
-                } finally {
-                    if (file_exists($tmpPath)) @unlink($tmpPath);
-                }
-
-                if ($text !== '' && strlen($text) > 50) {
-                    $app->update(['cv_text' => mb_substr($text, 0, 65000)]);
-                    \Log::info('App #' . $app->id . ' - Text extracted: ' . strlen($text) . ' chars');
-                    $result['status'] = 'ok';
-                    $result['message'] = 'Text extracted (' . strlen($text) . ' chars)';
-                } else {
-                    \Log::warning('App #' . $app->id . ' - Extractor returned empty/short text');
-                    $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
-                    $result['status'] = 'fail';
-                    $result['message'] = 'Extractor returned empty text';
-                }
-                return $this->bulkParseRespond($result);
-
-            } catch (\Throwable $e) {
-                \Log::error('App #' . $app->id . ' - Text extraction exception: ' . $e->getMessage());
-                if (!$dryRun) {
-                    $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
-                }
-                $result['status'] = 'fail';
-                $result['message'] = 'Exception: ' . $e->getMessage();
-                return $this->bulkParseRespond($result);
+// PHASE 1: Send PDF directly to DeepSeek for parsing
+// ═══════════════════════════════════════════════════
+if ($phase === 'text_extract') {
+    \Log::info('PHASE 1: DeepSeek direct parse for app #' . $app->id);
+    try {
+        $doc = $app->documents()->where('name', 'Resume')->first();
+        if (!$doc || empty($doc->hashname)) {
+            if (!$dryRun) {
+                $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
             }
+            $result['status'] = 'fail';
+            $result['message'] = 'No resume document found';
+            return $this->bulkParseRespond($result);
         }
+
+        $filePath = public_path('user-uploads/documents/' . $app->id . '/' . $doc->hashname);
+        if (!is_readable($filePath)) {
+            if (!$dryRun) {
+                $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
+            }
+            $result['status'] = 'fail';
+            $result['message'] = 'Resume file not found on disk';
+            return $this->bulkParseRespond($result);
+        }
+
+        if ($dryRun) {
+            $result['status'] = 'dry_run';
+            $result['message'] = 'Would DeepSeek parse (' . filesize($filePath) . ' bytes)';
+            return $this->bulkParseRespond($result);
+        }
+
+        // Read PDF bytes and base64 encode for DeepSeek
+        $pdfBytes = file_get_contents($filePath);
+        $pdfBase64 = base64_encode($pdfBytes);
+
+        $systemPrompt = 'You are a CV parser API. Read this PDF resume and extract structured data. '
+            . 'Return ONLY a raw JSON object. '
+            . 'Schema: {"personal":{"name":"","email":"","phone":"","location":{"city":"","province":"","country":""}},'
+            . '"headline":"","total_experience":{"years":0,"months":0},"job_titles":[],"skills":[],"'
+            . '"certifications":[],"education":[{"degree":"","field":"","school":""}],'
+            . '"employment":[{"company":"","title":"","start":"","end":"","duration_years":0}],'
+            . '"languages":[],"availability":{"notice_period":""},"resume_summary":""}. '
+            . 'Use empty string for unknown fields. '
+            . 'job_titles: array of ALL job titles from employment history. '
+            . 'skills: array of ALL technical and soft skills found anywhere. '
+            . 'total_experience: calculate from employment dates. '
+            . 'personal.location: extract city, province/state, country. '
+            . 'resume_summary: 2-3 sentence professional summary.';
+
+        $userPrompt = 'Parse this resume PDF (base64 encoded): ' . $pdfBase64;
+
+        $text = $this->callDeepSeekWithImage($systemPrompt, $userPrompt);
+        $data = json_decode($text, true);
+
+        if (!is_array($data) || !isset($data['personal'])) {
+            \Log::warning('App #' . $app->id . ' - DeepSeek returned invalid JSON');
+            $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
+            $result['status'] = 'fail';
+            $result['message'] = 'AI returned invalid data';
+            return $this->bulkParseRespond($result);
+        }
+
+        // Save raw text for search indexing (extract from JSON)
+        $rawText = implode(' ', [
+            $data['personal']['name'] ?? '',
+            $data['personal']['email'] ?? '',
+            $data['personal']['phone'] ?? '',
+            implode(' ', $data['job_titles'] ?? []),
+            implode(' ', $data['skills'] ?? []),
+            $data['resume_summary'] ?? '',
+        ]);
+
+        $app->update(['cv_text' => mb_substr($rawText, 0, 65000)]);
+
+        $result['status'] = 'ok';
+        $result['message'] = 'DeepSeek parsed PDF directly';
+        return $this->bulkParseRespond($result);
+
+    } catch (\Throwable $e) {
+        \Log::error('App #' . $app->id . ' - DeepSeek parse exception: ' . $e->getMessage());
+        if (!$dryRun) {
+            $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
+        }
+        $result['status'] = 'fail';
+        $result['message'] = 'Exception: ' . $e->getMessage();
+        return $this->bulkParseRespond($result);
+    }
+}
 
         // ═══════════════════════════════════════════════════
         // PHASE 2: AI-parse CV text into structured data
