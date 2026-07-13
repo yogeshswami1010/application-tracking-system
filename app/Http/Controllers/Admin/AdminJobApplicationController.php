@@ -3067,6 +3067,10 @@ class AdminJobApplicationController extends AdminBaseController
      * Process ONE application at a time for CV text extraction + AI parsing.
      * Stays under Cloudflare's 120s timeout by doing only 1 item per request.
      */
+        /**
+     * Process ONE application at a time for CV text extraction + AI parsing.
+     * Stays under Cloudflare's 120s timeout by doing only 1 item per request.
+     */
     public function bulkParseAllCvs(Request $request)
     {
         abort_if(!$this->user->cans('edit_job_applications'), 403);
@@ -3080,7 +3084,7 @@ class AdminJobApplicationController extends AdminBaseController
             $app = null;
             $phase = '';
 
-            // Phase 1: Find one that needs text extraction
+            // Phase 1: Find one that needs text extraction + full parse
             if (in_array($mode, ['auto', 'text'])) {
                 $app = JobApplication::where(function ($q) {
                         $q->whereNull('cv_text')->orWhere('cv_text', '');
@@ -3095,11 +3099,11 @@ class AdminJobApplicationController extends AdminBaseController
                     ->first();
                 if ($app) {
                     $phase = 'text_extract';
-                    \Log::info('Found app #' . $app->id . ' for TEXT EXTRACTION');
+                    \Log::info('Found app #' . $app->id . ' for TEXT EXTRACTION + FULL PARSE');
                 }
             }
 
-            // Phase 2: If no text needed, find one that needs AI parsing
+            // Phase 2: If no text needed, find one that needs AI parsing (legacy/fallback)
             if (!$app && in_array($mode, ['auto', 'parse'])) {
                 $app = JobApplication::whereNotNull('cv_text')
                     ->where('cv_text', '!=', '')
@@ -3146,10 +3150,11 @@ class AdminJobApplicationController extends AdminBaseController
             ];
 
             // ═══════════════════════════════════════════════════
-            // PHASE 1: Send PDF directly to DeepSeek for parsing
+            // PHASE 1: Send PDF directly to DeepSeek for FULL parsing
+            // Saves BOTH cv_text (for search) AND all structured fields
             // ═══════════════════════════════════════════════════
             if ($phase === 'text_extract') {
-                \Log::info('PHASE 1: DeepSeek direct parse for app #' . $app->id);
+                \Log::info('PHASE 1: DeepSeek full parse for app #' . $app->id);
                 try {
                     $doc = $app->documents()->where('name', 'Resume')->first();
                     if (!$doc || empty($doc->hashname)) {
@@ -3208,7 +3213,7 @@ class AdminJobApplicationController extends AdminBaseController
                         return $result;
                     }
 
-                    // Save raw text for search indexing (extract from JSON)
+                    // ── Build raw text for search indexing ──
                     $rawText = implode(' ', array_filter([
                         $data['personal']['name'] ?? '',
                         $data['personal']['email'] ?? '',
@@ -3227,13 +3232,42 @@ class AdminJobApplicationController extends AdminBaseController
                         return $result;
                     }
 
-                    $app->update([
-                        'cv_text' => mb_substr($rawText, 0, 65000),
-                        'cv_indexed_at' => now(),
+                    // ── Calculate structured fields from the JSON ──
+                    $years = (float) ($data['total_experience']['years'] ?? 0)
+                        + ((float) ($data['total_experience']['months'] ?? 0) / 12);
+
+                    $location = array_filter([
+                        $data['personal']['location']['city'] ?? null,
+                        $data['personal']['location']['province'] ?? null,
+                        $data['personal']['location']['country'] ?? null,
                     ]);
 
+                    $jobTitles = (array) ($data['job_titles'] ?? []);
+                    $skills    = (array) ($data['skills'] ?? []);
+
+                    // ── Save EVERYTHING in one update ──
+                    $updateData = [
+                        'cv_text'             => mb_substr($rawText, 0, 65000),
+                        'parsed_cv_data'      => json_encode($data),
+                        'cv_experience_years' => round($years, 1),
+                        'cv_job_titles'       => implode(', ', $jobTitles),
+                        'cv_skills_text'      => implode(', ', $skills),
+                        'cv_location_text'    => implode(', ', $location),
+                        'cv_indexed_at'       => now(),
+                        'cv_index_failed'     => false,
+                    ];
+
+                    \Log::info('App #' . $app->id . ' - Saving full parsed data: ' . json_encode([
+                        'experience_years' => $updateData['cv_experience_years'],
+                        'job_titles_count' => count($jobTitles),
+                        'skills_count'     => count($skills),
+                        'location'         => $updateData['cv_location_text'],
+                    ]));
+
+                    $app->update($updateData);
+
                     $result['status'] = 'ok';
-                    $result['message'] = 'DeepSeek parsed PDF directly';
+                    $result['message'] = 'DeepSeek parsed PDF | ' . count($jobTitles) . ' jobs, ' . count($skills) . ' skills, ' . round($years, 1) . ' yrs';
                     return $result;
 
                 } catch (\Throwable $e) {
@@ -3248,7 +3282,8 @@ class AdminJobApplicationController extends AdminBaseController
             }
 
             // ═══════════════════════════════════════════════════
-            // PHASE 2: AI-parse CV text into structured data
+            // PHASE 2: AI-parse CV text into structured data (LEGACY/FALLBACK)
+            // Only runs for records that have cv_text but no parsed_cv_data
             // ═══════════════════════════════════════════════════
             if ($phase === 'ai_parse') {
                 \Log::info('PHASE 2: AI parsing for app #' . $app->id);
