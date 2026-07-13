@@ -804,6 +804,11 @@
                                 @lang('app.startOnboard')
                             </a>
                             @endif
+                              @if(auth()->user()->hasRole('admin'))
+                            <button type="button" onclick="deleteApplication({{ $application->id }})" class="ja-btn ja-btn-red">
+                                <i class="fa fa-trash-o"></i> @lang('app.delete')
+                            </button>
+                            @endif
                         </div>
 
                         {{-- Stage mover --}}
