@@ -129,7 +129,79 @@
                 <i class="fa fa-plus"></i> Create Applicant
             </a>
         </div>
+<!-- Add this button somewhere in your admin panel -->
+<button id="run-bulk-parse" class="btn btn-primary">
+    Start Bulk CV Parse (1700 applications)
+</button>
 
+<div id="bulk-parse-log" style="font-family:monospace; font-size:12px; max-height:400px; overflow-y:auto; background:#1a1a2e; color:#eee; padding:10px; margin-top:10px; border-radius:8px;"></div>
+
+<script>
+document.getElementById('run-bulk-parse').addEventListener('click', function() {
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Running...';
+    
+    var logEl = document.getElementById('bulk-parse-log');
+    var totalDone = 0;
+    var totalFailed = 0;
+    
+    function log(msg) {
+        var line = document.createElement('div');
+        line.textContent = new Date().toLocaleTimeString() + ' | ' + msg;
+        logEl.appendChild(line);
+        logEl.scrollTop = logEl.scrollHeight;
+    }
+    
+    function runBatch() {
+        log('Fetching next batch...');
+        
+        fetch('{{ route("admin.job-applications.bulk-parse-all-cvs") }}', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ batch_size: 30 }) // 30 per batch to stay within 30-45s timeout
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                var d = data.data || data;
+                totalDone += (d.text_extracted || 0) + (d.ai_parsed || 0);
+                totalFailed += (d.failed_text || 0) + (d.failed_parse || 0);
+                
+                log('Batch done: +' + (d.text_extracted || 0) + ' text, +' + (d.ai_parsed || 0) + ' parsed | ' +
+                    'Failed: ' + ((d.failed_text || 0) + (d.failed_parse || 0)) + ' | ' +
+                    'Remaining: ' + d.total_remaining + ' | ' +
+                    'Total done: ' + d.total_done + ' | ' +
+                    'Total failed: ' + d.total_failed);
+                
+                if (d.continue && d.total_remaining > 0) {
+                    // Small delay between batches to be nice to the API
+                    setTimeout(runBatch, 2000);
+                } else {
+                    log('✅ ALL DONE! Total processed: ' + totalDone + ', Total failed: ' + totalFailed);
+                    btn.textContent = 'Complete';
+                    btn.classList.remove('btn-primary');
+                    btn.classList.add('btn-success');
+                }
+            } else {
+                log('❌ Error: ' + (data.message || 'Unknown error'));
+                btn.disabled = false;
+            }
+        })
+        .catch(err => {
+            log('❌ Network error: ' + err.message);
+            // Retry after delay
+            setTimeout(runBatch, 5000);
+        });
+    }
+    
+    runBatch();
+});
+</script>
         {{-- Filter Bar --}}
         <div id="ja-table-filter-bar" class="border-b border-[#E8E6E1] bg-white">
             <div class="px-5 sm:px-6">
