@@ -3004,14 +3004,15 @@ class AdminJobApplicationController extends AdminBaseController
      * Toggle an applicant's "Candidate Marketing" flag on/off.
      * Used by the button on the applicant profile (job-applications/show.blade.php).
      */
+       /**
+     * Toggle an applicant's "Candidate Marketing" flag on/off.
+     */
     public function toggleMarketing(Request $request, $id)
     {
         abort_if(!$this->user->cans('edit_job_applications'), 403);
 
         $application = JobApplication::withTrashed()->findOrFail($id);
-
         $turningOn = !$application->is_marketing;
-
         $application->is_marketing = $turningOn ? 1 : 0;
 
         if ($turningOn) {
@@ -3020,17 +3021,11 @@ class AdminJobApplicationController extends AdminBaseController
                 $application->marketing_label = trim($request->marketing_label);
             }
         } else {
-            // Switching off clears the timestamp but keeps the label in case they
-            // re-enable later and want it pre-filled.
             $application->marketing_added_at = null;
         }
 
         $application->save();
 
-        // Record in the history tab.
-        // Reuse the applicant's current status for both from/to so the FK
-        // on to_status_id is satisfied without altering the schema.
-        // The notes column carries the description shown in the history view.
         if ($application->status_id) {
             \App\JobApplicationStatusHistory::create([
                 'job_application_id' => $application->id,
@@ -3052,7 +3047,6 @@ class AdminJobApplicationController extends AdminBaseController
 
     /**
      * Save/update just the marketing label without toggling the flag.
-     * Used when the label input is edited while marketing is already on.
      */
     public function updateMarketingLabel(Request $request, $id)
     {
@@ -3064,291 +3058,276 @@ class AdminJobApplicationController extends AdminBaseController
 
         return Reply::success('Label updated.');
     }
+
     /**
- * Bulk backfill: parse ALL existing applicants' resumes via DeepSeek AI.
- * Processes in batches to avoid timeout. Call repeatedly until remaining=0.
- */
-/**
- * Process ONE application at a time for CV text extraction + AI parsing.
- * Stays under Cloudflare's 120s timeout by doing only 1 item per request.
- */
-public function bulkParseAllCvs(Request $request)
-{
-    abort_if(!$this->user->cans('edit_job_applications'), 403);
+     * Process ONE application at a time for CV text extraction + AI parsing.
+     * Stays under Cloudflare's 120s timeout by doing only 1 item per request.
+     */
+    public function bulkParseAllCvs(Request $request)
+    {
+        abort_if(!$this->user->cans('edit_job_applications'), 403);
 
-    $mode = $request->input('mode', 'auto'); // 'text' | 'parse' | 'auto'
-    $dryRun = (bool) $request->input('dry_run', false);
+        $mode = $request->input('mode', 'auto');
+        $dryRun = (bool) $request->input('dry_run', false);
 
-    \Log::info('=== bulkParseAllCvs START === mode=' . $mode . ' dryRun=' . ($dryRun ? 'yes' : 'no'));
+        \Log::info('=== bulkParseAllCvs START === mode=' . $mode . ' dryRun=' . ($dryRun ? 'yes' : 'no'));
 
-    // ── Find ONE application that needs work ──
-    $app = null;
-    $phase = '';
+        $app = null;
+        $phase = '';
 
-    // Phase 1: Find one that needs text extraction
-    if (in_array($mode, ['auto', 'text'])) {
-        $app = JobApplication::where(function ($q) {
-                $q->whereNull('cv_text')
-                  ->orWhere('cv_text', '');
-            })
-            ->where('cv_index_failed', 0)
-            ->whereHas('documents', function ($q) {
-                $q->where('name', 'Resume');
-            })
-            ->orderBy('id')
-            ->first();
-        if ($app) {
-            $phase = 'text_extract';
-            \Log::info('Found app #' . $app->id . ' for TEXT EXTRACTION');
+        // Phase 1: Find one that needs text extraction
+        if (in_array($mode, ['auto', 'text'])) {
+            $app = JobApplication::where(function ($q) {
+                    $q->whereNull('cv_text')->orWhere('cv_text', '');
+                })
+                ->where('cv_index_failed', 0)
+                ->whereHas('documents', function ($q) {
+                    $q->where('name', 'Resume');
+                })
+                ->orderBy('id')
+                ->first();
+            if ($app) {
+                $phase = 'text_extract';
+                \Log::info('Found app #' . $app->id . ' for TEXT EXTRACTION');
+            }
         }
+
+        // Phase 2: If no text needed, find one that needs AI parsing
+        if (!$app && in_array($mode, ['auto', 'parse'])) {
+            $app = JobApplication::whereNotNull('cv_text')
+                ->where('cv_text', '!=', '')
+                ->whereNull('parsed_cv_data')
+                ->where('cv_index_failed', 0)
+                ->orderBy('id')
+                ->first();
+            if ($app) {
+                $phase = 'ai_parse';
+                \Log::info('Found app #' . $app->id . ' for AI PARSE. cv_text length=' . strlen($app->cv_text));
+            }
+        }
+
+        if (!$app) {
+            \Log::info('No more applications to process.');
+            return Reply::dataOnly([
+                'done'            => true,
+                'message'         => 'All applications processed!',
+                'total_done'      => JobApplication::whereNotNull('parsed_cv_data')->count(),
+                'total_failed'    => JobApplication::where('cv_index_failed', 1)->count(),
+                'remaining_text'  => JobApplication::where(function ($q) {
+                                        $q->whereNull('cv_text')->orWhere('cv_text', '');
+                                    })->where('cv_index_failed', 0)->whereHas('documents', fn($q) => $q->where('name', 'Resume'))->count(),
+                'remaining_parse' => JobApplication::whereNotNull('cv_text')->where('cv_text', '!=', '')->whereNull('parsed_cv_data')->where('cv_index_failed', 0)->count(),
+            ]);
+        }
+
+        $result = [
+            'id'       => $app->id,
+            'name'     => $app->full_name,
+            'phase'    => $phase,
+            'status'   => 'skipped',
+            'message'  => '',
+        ];
+
+        // ═══════════════════════════════════════════════════
+        // PHASE 1: Extract CV text from file
+        // ═══════════════════════════════════════════════════
+        if ($phase === 'text_extract') {
+            \Log::info('PHASE 1: Extracting text for app #' . $app->id);
+            try {
+                $doc = $app->documents()->where('name', 'Resume')->first();
+                if (!$doc || empty($doc->hashname)) {
+                    \Log::warning('App #' . $app->id . ' - No resume document');
+                    if (!$dryRun) {
+                        $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
+                    }
+                    $result['status'] = 'fail';
+                    $result['message'] = 'No resume document found';
+                    return $this->bulkParseRespond($result);
+                }
+
+                $filePath = public_path('user-uploads/documents/' . $app->id . '/' . $doc->hashname);
+                if (!is_readable($filePath)) {
+                    \Log::warning('App #' . $app->id . ' - File not readable: ' . $filePath);
+                    if (!$dryRun) {
+                        $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
+                    }
+                    $result['status'] = 'fail';
+                    $result['message'] = 'Resume file not found on disk';
+                    return $this->bulkParseRespond($result);
+                }
+
+                $ext = strtolower(pathinfo($doc->hashname, PATHINFO_EXTENSION));
+                if (!in_array($ext, ['pdf','doc','docx','txt','rtf','xls','xlsx'])) {
+                    $ext = 'pdf';
+                }
+
+                $bytes = file_get_contents($filePath);
+                if (!$bytes) {
+                    \Log::warning('App #' . $app->id . ' - Empty file bytes');
+                    if (!$dryRun) {
+                        $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
+                    }
+                    $result['status'] = 'fail';
+                    $result['message'] = 'Empty file';
+                    return $this->bulkParseRespond($result);
+                }
+
+                if ($dryRun) {
+                    $result['status'] = 'dry_run';
+                    $result['message'] = 'Would extract text (' . strlen($bytes) . ' bytes)';
+                    return $this->bulkParseRespond($result);
+                }
+
+                $tmpPath = sys_get_temp_dir() . '/cv_idx_' . $app->id . '_' . time() . '.' . $ext;
+                file_put_contents($tmpPath, $bytes);
+                $text = '';
+                try {
+                    $extractor = new \App\Services\ResumeTextExtractor();
+                    $text = $extractor->extractFromPath($tmpPath, $ext);
+                } finally {
+                    if (file_exists($tmpPath)) @unlink($tmpPath);
+                }
+
+                if ($text !== '' && strlen($text) > 50) {
+                    $app->update(['cv_text' => mb_substr($text, 0, 65000)]);
+                    \Log::info('App #' . $app->id . ' - Text extracted: ' . strlen($text) . ' chars');
+                    $result['status'] = 'ok';
+                    $result['message'] = 'Text extracted (' . strlen($text) . ' chars)';
+                } else {
+                    \Log::warning('App #' . $app->id . ' - Extractor returned empty/short text');
+                    $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
+                    $result['status'] = 'fail';
+                    $result['message'] = 'Extractor returned empty text';
+                }
+                return $this->bulkParseRespond($result);
+
+            } catch (\Throwable $e) {
+                \Log::error('App #' . $app->id . ' - Text extraction exception: ' . $e->getMessage());
+                if (!$dryRun) {
+                    $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
+                }
+                $result['status'] = 'fail';
+                $result['message'] = 'Exception: ' . $e->getMessage();
+                return $this->bulkParseRespond($result);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════
+        // PHASE 2: AI-parse CV text into structured data
+        // ═══════════════════════════════════════════════════
+        if ($phase === 'ai_parse') {
+            \Log::info('PHASE 2: AI parsing for app #' . $app->id);
+            try {
+                if (empty($app->cv_text) || strlen($app->cv_text) < 50) {
+                    \Log::warning('App #' . $app->id . ' - cv_text too short');
+                    $result['status'] = 'skipped';
+                    $result['message'] = 'cv_text too short (' . strlen($app->cv_text ?? '') . ' chars)';
+                    return $this->bulkParseRespond($result);
+                }
+
+                if ($dryRun) {
+                    $result['status'] = 'dry_run';
+                    $result['message'] = 'Would AI parse (' . strlen($app->cv_text) . ' chars)';
+                    return $this->bulkParseRespond($result);
+                }
+
+                \Log::info('App #' . $app->id . ' - Calling parseCvStructured...');
+                $data = $this->parseCvStructured($app->cv_text);
+                \Log::info('App #' . $app->id . ' - parseCvStructured returned: ' . ($data === null ? 'NULL' : 'VALID ARRAY'));
+
+                if (!$data || !is_array($data)) {
+                    \Log::warning('App #' . $app->id . ' - AI returned null/invalid. Marking failed.');
+                    $app->update([
+                        'cv_index_failed' => true,
+                        'cv_indexed_at'   => now(),
+                    ]);
+                    $result['status'] = 'fail';
+                    $result['message'] = 'AI returned null or invalid data';
+                    return $this->bulkParseRespond($result);
+                }
+
+                if (!isset($data['personal']) || !isset($data['job_titles']) || !isset($data['skills'])) {
+                    \Log::warning('App #' . $app->id . ' - AI JSON missing required keys');
+                    $app->update([
+                        'cv_index_failed' => true,
+                        'cv_indexed_at'   => now(),
+                    ]);
+                    $result['status'] = 'fail';
+                    $result['message'] = 'AI JSON missing required structure';
+                    return $this->bulkParseRespond($result);
+                }
+
+                $years = (float) ($data['total_experience']['years'] ?? 0)
+                    + ((float) ($data['total_experience']['months'] ?? 0) / 12);
+
+                $location = array_filter([
+                    $data['personal']['location']['city'] ?? null,
+                    $data['personal']['location']['province'] ?? null,
+                    $data['personal']['location']['country'] ?? null,
+                ]);
+
+                $jobTitles = (array) ($data['job_titles'] ?? []);
+                $skills    = (array) ($data['skills'] ?? []);
+
+                $updateData = [
+                    'parsed_cv_data'      => json_encode($data),
+                    'cv_experience_years' => round($years, 1),
+                    'cv_job_titles'       => implode(', ', $jobTitles),
+                    'cv_skills_text'      => implode(', ', $skills),
+                    'cv_location_text'    => implode(', ', $location),
+                    'cv_indexed_at'       => now(),
+                    'cv_index_failed'     => false,
+                ];
+
+                \Log::info('App #' . $app->id . ' - Saving parsed data');
+                $app->update($updateData);
+
+                $result['status'] = 'ok';
+                $result['message'] = 'AI parsed | ' . count($jobTitles) . ' jobs, ' . count($skills) . ' skills, ' . round($years, 1) . ' yrs';
+                return $this->bulkParseRespond($result);
+
+            } catch (\Throwable $e) {
+                \Log::error('App #' . $app->id . ' - AI parse exception: ' . $e->getMessage());
+                if (!$dryRun) {
+                    $app->update([
+                        'cv_index_failed' => true,
+                        'cv_indexed_at'   => now(),
+                    ]);
+                }
+                $result['status'] = 'fail';
+                $result['message'] = 'Exception: ' . $e->getMessage();
+                return $this->bulkParseRespond($result);
+            }
+        }
+
+        return $this->bulkParseRespond($result);
     }
 
-    // Phase 2: If no text needed, find one that needs AI parsing
-    if (!$app && in_array($mode, ['auto', 'parse'])) {
-        $app = JobApplication::whereNotNull('cv_text')
+    /**
+     * Helper to return consistent response format
+     */
+    private function bulkParseRespond(array $result): \Illuminate\Http\JsonResponse
+    {
+        $remainingText = JobApplication::where(function ($q) {
+                $q->whereNull('cv_text')->orWhere('cv_text', '');
+            })->where('cv_index_failed', 0)->whereHas('documents', fn($q) => $q->where('name', 'Resume'))->count();
+
+        $remainingParse = JobApplication::whereNotNull('cv_text')
             ->where('cv_text', '!=', '')
             ->whereNull('parsed_cv_data')
             ->where('cv_index_failed', 0)
-            ->orderBy('id')
-            ->first();
-        if ($app) {
-            $phase = 'ai_parse';
-            \Log::info('Found app #' . $app->id . ' for AI PARSE. cv_text length=' . strlen($app->cv_text));
-        }
-    }
+            ->count();
 
-    if (!$app) {
-        \Log::info('No more applications to process.');
+        \Log::info('=== bulkParseAllCvs END === status=' . $result['status'] . ' msg=' . $result['message']);
+
         return Reply::dataOnly([
-            'done'            => true,
-            'message'         => 'All applications processed!',
+            'done'            => false,
+            'result'          => $result,
             'total_done'      => JobApplication::whereNotNull('parsed_cv_data')->count(),
             'total_failed'    => JobApplication::where('cv_index_failed', 1)->count(),
-            'remaining_text'  => JobApplication::where(function ($q) {
-                                    $q->whereNull('cv_text')->orWhere('cv_text', '');
-                                })->where('cv_index_failed', 0)->whereHas('documents', fn($q) => $q->where('name', 'Resume'))->count(),
-            'remaining_parse' => JobApplication::whereNotNull('cv_text')->where('cv_text', '!=', '')->whereNull('parsed_cv_data')->where('cv_index_failed', 0)->count(),
+            'remaining_text'  => $remainingText,
+            'remaining_parse' => $remainingParse,
+            'next_url'        => route('admin.job-applications.bulk-parse-all-cvs'),
         ]);
     }
-
-    $result = [
-        'id'       => $app->id,
-        'name'     => $app->full_name,
-        'phase'    => $phase,
-        'status'   => 'skipped',
-        'message'  => '',
-    ];
-
-    // ═══════════════════════════════════════════════════
-    // PHASE 1: Extract CV text from file
-    // ═══════════════════════════════════════════════════
-    if ($phase === 'text_extract') {
-        \Log::info('PHASE 1: Extracting text for app #' . $app->id);
-        try {
-            $doc = $app->documents()->where('name', 'Resume')->first();
-            if (!$doc || empty($doc->hashname)) {
-                \Log::warning('App #' . $app->id . ' - No resume document');
-                if (!$dryRun) {
-                    $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
-                }
-                $result['status'] = 'fail';
-                $result['message'] = 'No resume document found';
-                return $this->bulkParseRespond($result);
-            }
-
-            $filePath = public_path('user-uploads/documents/' . $app->id . '/' . $doc->hashname);
-            if (!is_readable($filePath)) {
-                \Log::warning('App #' . $app->id . ' - File not readable: ' . $filePath);
-                if (!$dryRun) {
-                    $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
-                }
-                $result['status'] = 'fail';
-                $result['message'] = 'Resume file not found on disk';
-                return $this->bulkParseRespond($result);
-            }
-
-            $ext = strtolower(pathinfo($doc->hashname, PATHINFO_EXTENSION));
-            if (!in_array($ext, ['pdf','doc','docx','txt','rtf','xls','xlsx'])) {
-                $ext = 'pdf';
-            }
-
-            $bytes = file_get_contents($filePath);
-            if (!$bytes) {
-                \Log::warning('App #' . $app->id . ' - Empty file bytes');
-                if (!$dryRun) {
-                    $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
-                }
-                $result['status'] = 'fail';
-                $result['message'] = 'Empty file';
-                return $this->bulkParseRespond($result);
-            }
-
-            if ($dryRun) {
-                $result['status'] = 'dry_run';
-                $result['message'] = 'Would extract text (' . strlen($bytes) . ' bytes)';
-                return $this->bulkParseRespond($result);
-            }
-
-            $tmpPath = sys_get_temp_dir() . '/cv_idx_' . $app->id . '_' . time() . '.' . $ext;
-            file_put_contents($tmpPath, $bytes);
-            $text = '';
-            try {
-                $extractor = new \App\Services\ResumeTextExtractor();
-                $text = $extractor->extractFromPath($tmpPath, $ext);
-            } finally {
-                if (file_exists($tmpPath)) @unlink($tmpPath);
-            }
-
-            if ($text !== '' && strlen($text) > 50) {
-                $app->update(['cv_text' => mb_substr($text, 0, 65000)]);
-                \Log::info('App #' . $app->id . ' - Text extracted: ' . strlen($text) . ' chars');
-                $result['status'] = 'ok';
-                $result['message'] = 'Text extracted (' . strlen($text) . ' chars)';
-            } else {
-                \Log::warning('App #' . $app->id . ' - Extractor returned empty/short text: "' . mb_substr($text, 0, 100) . '"');
-                $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
-                $result['status'] = 'fail';
-                $result['message'] = 'Extractor returned empty text';
-            }
-            return $this->bulkParseRespond($result);
-
-        } catch (\Throwable $e) {
-            \Log::error('App #' . $app->id . ' - Text extraction exception: ' . $e->getMessage());
-            if (!$dryRun) {
-                $app->update(['cv_index_failed' => true, 'cv_indexed_at' => now()]);
-            }
-            $result['status'] = 'fail';
-            $result['message'] = 'Exception: ' . $e->getMessage();
-            return $this->bulkParseRespond($result);
-        }
-    }
-
-    // ═══════════════════════════════════════════════════
-    // PHASE 2: AI-parse CV text into structured data
-    // ═══════════════════════════════════════════════════
-    if ($phase === 'ai_parse') {
-        \Log::info('PHASE 2: AI parsing for app #' . $app->id);
-        try {
-            if (empty($app->cv_text) || strlen($app->cv_text) < 50) {
-                \Log::warning('App #' . $app->id . ' - cv_text too short or empty');
-                $result['status'] = 'skipped';
-                $result['message'] = 'cv_text too short (' . strlen($app->cv_text ?? '') . ' chars)';
-                return $this->bulkParseRespond($result);
-            }
-
-            if ($dryRun) {
-                $result['status'] = 'dry_run';
-                $result['message'] = 'Would AI parse (' . strlen($app->cv_text) . ' chars)';
-                return $this->bulkParseRespond($result);
-            }
-
-            \Log::info('App #' . $app->id . ' - Calling parseCvStructured...');
-            $data = $this->parseCvStructured($app->cv_text);
-            \Log::info('App #' . $app->id . ' - parseCvStructured returned: ' . ($data === null ? 'NULL' : 'VALID ARRAY'));
-
-            if (!$data || !is_array($data)) {
-                \Log::warning('App #' . $app->id . ' - AI returned null/invalid. Marking failed.');
-                $app->update([
-                    'cv_index_failed' => true,
-                    'cv_indexed_at'   => now(),
-                ]);
-                $result['status'] = 'fail';
-                $result['message'] = 'AI returned null or invalid data';
-                return $this->bulkParseRespond($result);
-            }
-
-            // Validate required structure
-            if (!isset($data['personal']) || !isset($data['job_titles']) || !isset($data['skills'])) {
-                \Log::warning('App #' . $app->id . ' - AI JSON missing required keys. Keys: ' . implode(', ', array_keys($data)));
-                $app->update([
-                    'cv_index_failed' => true,
-                    'cv_indexed_at'   => now(),
-                ]);
-                $result['status'] = 'fail';
-                $result['message'] = 'AI JSON missing required structure';
-                return $this->bulkParseRespond($result);
-            }
-
-            // ── Calculate derived fields ──
-            $years = (float) ($data['total_experience']['years'] ?? 0)
-                + ((float) ($data['total_experience']['months'] ?? 0) / 12);
-
-            $location = array_filter([
-                $data['personal']['location']['city'] ?? null,
-                $data['personal']['location']['province'] ?? null,
-                $data['personal']['location']['country'] ?? null,
-            ]);
-
-            $jobTitles = (array) ($data['job_titles'] ?? []);
-            $skills    = (array) ($data['skills'] ?? []);
-
-            $updateData = [
-                'parsed_cv_data'      => json_encode($data),
-                'cv_experience_years' => round($years, 1),
-                'cv_job_titles'       => implode(', ', $jobTitles),
-                'cv_skills_text'      => implode(', ', $skills),
-                'cv_location_text'    => implode(', ', $location),
-                'cv_indexed_at'       => now(),
-                'cv_index_failed'     => false,
-            ];
-
-            \Log::info('App #' . $app->id . ' - Saving: ' . json_encode([
-                'cv_experience_years' => $updateData['cv_experience_years'],
-                'cv_job_titles'       => mb_substr($updateData['cv_job_titles'], 0, 100),
-                'cv_skills_text'      => mb_substr($updateData['cv_skills_text'], 0, 100),
-                'cv_location_text'    => $updateData['cv_location_text'],
-            ]));
-
-            $app->update($updateData);
-
-            $result['status'] = 'ok';
-            $result['message'] = 'AI parsed | ' . count($jobTitles) . ' jobs, ' . count($skills) . ' skills, ' . round($years, 1) . ' yrs';
-            return $this->bulkParseRespond($result);
-
-        } catch (\Throwable $e) {
-            \Log::error('App #' . $app->id . ' - AI parse exception: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
-            if (!$dryRun) {
-                $app->update([
-                    'cv_index_failed' => true,
-                    'cv_indexed_at'   => now(),
-                ]);
-            }
-            $result['status'] = 'fail';
-            $result['message'] = 'Exception: ' . $e->getMessage();
-            return $this->bulkParseRespond($result);
-        }
-    }
-
-    // Should never reach here
-    return $this->bulkParseRespond($result);
-}
-
-/**
- * Helper to return consistent response format
- */
-private function bulkParseRespond(array $result): \Illuminate\Http\JsonResponse
-{
-    $remainingText = JobApplication::where(function ($q) {
-            $q->whereNull('cv_text')->orWhere('cv_text', '');
-        })->where('cv_index_failed', 0)->whereHas('documents', fn($q) => $q->where('name', 'Resume'))->count();
-
-    $remainingParse = JobApplication::whereNotNull('cv_text')
-        ->where('cv_text', '!=', '')
-        ->whereNull('parsed_cv_data')
-        ->where('cv_index_failed', 0)
-        ->count();
-
-    \Log::info('=== bulkParseAllCvs END === result: ' . json_encode($result));
-    \Log::info('Remaining: text=' . $remainingText . ' parse=' . $remainingParse);
-
-    return Reply::dataOnly([
-        'done'            => false,
-        'result'          => $result,
-        'total_done'      => JobApplication::whereNotNull('parsed_cv_data')->count(),
-        'total_failed'    => JobApplication::where('cv_index_failed', 1)->count(),
-        'remaining_text'  => $remainingText,
-        'remaining_parse' => $remainingParse,
-        'next_url'        => route('admin.job-applications.bulk-parse-all-cvs'),
-    ]);
-}
-}
+} // ← THIS IS THE CLASS CLOSING BRACE
