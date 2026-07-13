@@ -3201,7 +3201,7 @@ if ($phase === 'text_extract') {
             $data['resume_summary'] ?? '',
         ]);
 
-        $app->update(['cv_text' => mb_substr($rawText, 0, 65000)]);
+        $app->update(['cv_text' => mb_substr($rawText, 0, 65000), 'cv_indexed_at' => now(), ]);
 
         $result['status'] = 'ok';
         $result['message'] = 'DeepSeek parsed PDF directly';
