@@ -268,6 +268,7 @@ Route::post('job-applications/bulk-parse-all-cvs', [AdminJobApplicationControlle
             Route::post('candidate-marketing/{id}/remove',  [AdminCandidateMarketingController::class, 'remove'])->name('candidate-marketing.remove');
             Route::resource('candidate-marketing', AdminCandidateMarketingController::class)->only(['index']);
             Route::get('candidate-marketing/{id}/show', [AdminCandidateMarketingController::class, 'show'])->name('candidate-marketing.show');
+Route::get('job-applications/get-locations', [AdminJobApplicationController::class, 'getLocations'])->name('admin.job-applications.get-locations');
 
             // Applications Archive
             Route::get('applications-archive/data',            [AdminApplicationArchiveController::class, 'data'])->name('applications-archive.data');

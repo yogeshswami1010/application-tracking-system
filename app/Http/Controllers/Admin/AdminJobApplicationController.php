@@ -2198,27 +2198,56 @@ class AdminJobApplicationController extends AdminBaseController
 
         public function getJobs(Request $request)
     {
+        $companyId  = $request->companyId;
+        $locationId = $request->locationId;
+
         $query = Job::query();
 
-        // Filter by company if provided
-        if ($request->has('companyId') && $request->companyId != 'all' && $request->companyId != '') {
-            $query->where('company_id', $request->companyId);
+        if ($companyId && $companyId != 'all' && $companyId != '') {
+            $query->where('company_id', $companyId);
         }
 
-        // Filter by location if provided
-        if ($request->has('location_id') && $request->location_id != 'all' && $request->location_id != '') {
-            $query->where('location_id', $request->location_id);
+        if ($locationId && $locationId != 'all' && $locationId != '') {
+            $query->whereIn('id', function ($sub) use ($locationId) {
+                $sub->select('job_id')
+                    ->from('job_job_locations')
+                    ->where('location_id', $locationId);
+            });
         }
 
         $jobs = $query->get();
 
         $html = '<option value="all">'.__('modules.jobApplication.allJobs').'</option>';
-
         foreach ($jobs as $job) {
             $html .= '<option title="'.ucfirst($job->title).'" value="'.$job->id.'">'.ucfirst($job->title).'</option>';
         }
 
         return Reply::dataOnly(['jobs' => $html]);
+    }
+
+    public function getLocations(Request $request)
+    {
+        $companyId = $request->companyId;
+
+        $query = JobLocation::query();
+
+        if ($companyId && $companyId != 'all' && $companyId != '') {
+            $locationIds = JobJobLocation::join('jobs', 'jobs.id', 'job_job_locations.job_id')
+                ->where('jobs.company_id', $companyId)
+                ->pluck('job_job_locations.location_id')
+                ->unique();
+
+            $query->whereIn('id', $locationIds);
+        }
+
+        $locations = $query->get();
+
+        $html = '<option value="all">'.__('modules.jobApplication.allLocation').'</option>';
+        foreach ($locations as $location) {
+            $html .= '<option value="'.$location->id.'">'.ucfirst($location->location).'</option>';
+        }
+
+        return Reply::dataOnly(['locations' => $html]);
     }
     public function parseSkills(Request $request, $id)
     {
@@ -3475,33 +3504,5 @@ class AdminJobApplicationController extends AdminBaseController
             'remaining_parse' => $remainingParse,
             'next_url'        => route('admin.job-applications.bulk-parse-all-cvs'),
         ]);
-    }
-        /**
-     * Get companies that have jobs at a specific location
-     */
-        public function getCompaniesByLocation(Request $request)
-    {
-        $locationId = $request->get('location_id');
-
-        if (!$locationId || $locationId === 'all') {
-            $companies = Company::select('id', 'company_name')->get();
-        } else {
-            $companyIds = JobJobLocation::where('location_id', $locationId)
-                ->join('jobs', 'jobs.id', '=', 'job_job_locations.job_id')
-                ->distinct()
-                ->pluck('jobs.company_id');
-
-            $companies = Company::whereIn('id', $companyIds)
-                ->select('id', 'company_name')
-                ->get();
-        }
-
-        return Reply::dataOnly(['companies' => $companies]);
-    }
-
-    public function getCompanies(Request $request)
-    {
-        $companies = Company::select('id', 'company_name')->get();
-        return response()->json(['companies' => $companies]);
     }
 } // ← CLASS CLOSING BRACE — KEEP ONLY THIS ONE
