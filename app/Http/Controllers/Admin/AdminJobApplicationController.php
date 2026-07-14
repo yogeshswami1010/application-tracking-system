@@ -3527,7 +3527,7 @@ class AdminJobApplicationController extends AdminBaseController
         \Log::info('=== bulkParseAllCvs END === status=' . ($result['status'] ?? 'unknown') . ' msg=' . ($result['message'] ?? ''));
 
         return Reply::dataOnly([
-            'done'            => false,
+            'done'            => false, 
             'result'          => $result,
             'total_done'      => JobApplication::whereNotNull('parsed_cv_data')->count(),
             'total_failed'    => JobApplication::where('cv_index_failed', 1)->count(),
