@@ -1059,31 +1059,61 @@
 
    // ── Company → Location → Jobs cascade ────────────────────────
     function jaRefreshLocations(companyId, callback) {
-        $.ajax({
-            url: "{{ route('admin.job-applications.get-locations') }}",
-            type: 'GET',
-            data: { companyId: companyId },
-            success: function(data) {
-                var was = $('#location').val();
-                $('#location').select2('destroy').html(data.locations).select2({ width: '100%' });
-                $('#location').val($('#location option[value="' + was + '"]').length ? was : 'all').trigger('change.select2');
-                if (typeof callback === 'function') callback();
+    $.ajax({
+        url: "{{ route('admin.job-applications.get-locations') }}",
+        type: 'GET',
+        data: { companyId: companyId },
+        success: function(data) {
+            // Destroy existing Select2
+            if ($('#location').hasClass('select2-hidden-accessible')) {
+                $('#location').select2('destroy');
             }
-        });
-    }
+            
+            // Update HTML
+            $('#location').html(data.locations);
+            
+            // Re-initialize Select2
+            $('#location').select2({ width: '100%' });
+            
+            // Reset to "all" since location context changed
+            $('#location').val('all').trigger('change.select2');
+            
+            if (typeof callback === 'function') callback();
+        },
+        error: function(xhr) {
+            console.error('jaRefreshLocations failed:', xhr.status, xhr.responseText);
+        }
+    });
+}
 
     function jaRefreshJobs(companyId, locationId) {
-        $.ajax({
-            url: "{{ route('admin.job-applications.get-jobs') }}",
-            type: 'GET',
-            data: { companyId: companyId, locationId: locationId },
-            success: function(data) {
-                var was = $('#jobs').val();
-                $('#jobs').select2('destroy').html(data.jobs).select2({ width: '100%' });
-                $('#jobs').val($('#jobs option[value="' + was + '"]').length ? was : 'all').trigger('change');
+    $.ajax({
+        url: "{{ route('admin.job-applications.get-jobs') }}",
+        type: 'GET',
+        data: { companyId: companyId, locationId: locationId },
+        success: function(data) {
+            // Destroy existing Select2
+            if ($('#jobs').hasClass('select2-hidden-accessible')) {
+                $('#jobs').select2('destroy');
             }
-        });
-    }
+            
+            // Update HTML
+            $('#jobs').html(data.jobs);
+            
+            // Re-initialize Select2
+            $('#jobs').select2({ width: '100%' });
+            
+            // Reset to "all" since job context changed
+            $('#jobs').val('all').trigger('change');
+            
+            // IMPORTANT: Trigger job status rebuild when jobs change
+            jaLoadJobStatuses('all');
+        },
+        error: function(xhr) {
+            console.error('jaRefreshJobs failed:', xhr.status, xhr.responseText);
+        }
+    });
+}
 
     // Company changes → filter locations, then filter jobs by (company + location)
     // Company changes → filter locations, then filter jobs by (company + location)

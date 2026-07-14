@@ -2227,21 +2227,27 @@ class AdminJobApplicationController extends AdminBaseController
 
         public function getLocations(Request $request)
 {
-    $companyId = $request->companyId;
+    $companyId = $request->input('companyId');
 
-    \Log::info('getLocations called with companyId: ' . $companyId);
+    \Log::info('getLocations called with companyId: ' . ($companyId ?? 'null'));
 
-    if ($companyId && $companyId != 'all' && $companyId != '') {
-        $locationIds = JobJobLocation::join('jobs', 'jobs.id', '=', 'job_job_locations.job_id')
+    // If specific company selected, only get locations linked to that company's jobs
+    if ($companyId && $companyId !== 'all' && $companyId !== '') {
+        $locationIds = \DB::table('job_job_locations')
+            ->join('jobs', 'jobs.id', '=', 'job_job_locations.job_id')
             ->where('jobs.company_id', $companyId)
             ->pluck('job_job_locations.location_id')
             ->unique()
+            ->filter()
             ->values();
 
-        \Log::info('Found location IDs for company ' . $companyId . ': ' . $locationIds->implode(', '));
+        \Log::info('Found location IDs: ' . $locationIds->implode(', '));
 
-        $locations = JobLocation::whereIn('id', $locationIds)->orderBy('location')->get();
+        $locations = JobLocation::whereIn('id', $locationIds)
+            ->orderBy('location')
+            ->get();
     } else {
+        // No company filter - show all locations
         $locations = JobLocation::orderBy('location')->get();
     }
 
