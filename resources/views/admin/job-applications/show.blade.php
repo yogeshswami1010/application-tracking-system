@@ -430,7 +430,8 @@ function jaSaveMarketingLabel(appId) {
                     @endif
                 </div>
             @endforeach
-               
+                 </div>{{-- /ja-tab-history --}}
+                @endif
 
                 {{-- ── DETAILS TAB ── --}}
                 <div id="ja-tab-details" class="ja-tab-pane">
