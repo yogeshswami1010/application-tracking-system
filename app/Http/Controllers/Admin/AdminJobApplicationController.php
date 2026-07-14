@@ -1247,19 +1247,7 @@ class AdminJobApplicationController extends AdminBaseController
         $this->jobs = Job::all();
         $this->skills = Skill::all();
         $this->questions = Question::all();
-        $companyLocationMap = DB::table('jobs')
-            ->join('job_job_locations', 'job_job_locations.job_id', '=', 'jobs.id')
-            ->select('jobs.company_id', 'job_job_locations.location_id')
-            ->get()
-            ->groupBy('company_id')
-            ->map(function ($rows) {
-                return $rows->pluck('location_id')->unique()->implode(',');
-            });
-
-        $this->companies = Company::all()->map(function ($company) use ($companyLocationMap) {
-            $company->location_ids = $companyLocationMap->get($company->id, '');
-            return $company;
-        });
+        $this->companies = Company::all();
         $this->applicantsForAiCompare = JobApplication::query()
             ->select('id', 'full_name', 'job_id')
             ->with(['job:id,title'])
@@ -2208,9 +2196,21 @@ class AdminJobApplicationController extends AdminBaseController
         return Reply::dataOnly(['view' => $view, 'load_more' => $loadStatus]);
     }
 
-    public function getJobs(Request $request)
+        public function getJobs(Request $request)
     {
-        $jobs = Job::where('company_id', $request->companyId)->get();
+        $query = Job::query();
+
+        // Filter by company if provided
+        if ($request->has('companyId') && $request->companyId != 'all' && $request->companyId != '') {
+            $query->where('company_id', $request->companyId);
+        }
+
+        // Filter by location if provided
+        if ($request->has('location_id') && $request->location_id != 'all' && $request->location_id != '') {
+            $query->where('location_id', $request->location_id);
+        }
+
+        $jobs = $query->get();
 
         $html = '<option value="all">'.__('modules.jobApplication.allJobs').'</option>';
 
@@ -3475,5 +3475,35 @@ class AdminJobApplicationController extends AdminBaseController
             'remaining_parse' => $remainingParse,
             'next_url'        => route('admin.job-applications.bulk-parse-all-cvs'),
         ]);
+    }
+        /**
+     * Get companies that have jobs at a specific location
+     */
+    public function getCompaniesByLocation(Request $request)
+    {
+        $locationId = $request->get('location_id');
+
+        if (!$locationId || $locationId === 'all') {
+            $companies = Company::select('id', 'company_name')->get();
+        } else {
+            $companyIds = Job::where('location_id', $locationId)
+                ->distinct()
+                ->pluck('company_id');
+
+            $companies = Company::whereIn('id', $companyIds)
+                ->select('id', 'company_name')
+                ->get();
+        }
+
+        return Reply::dataOnly(['companies' => $companies]);
+    }
+
+    /**
+     * Get all companies (for reset when location = 'all')
+     */
+    public function getCompanies(Request $request)
+    {
+        $companies = Company::select('id', 'company_name')->get();
+        return Reply::dataOnly(['companies' => $companies]);
     }
 } // ← CLASS CLOSING BRACE — KEEP ONLY THIS ONE
