@@ -130,11 +130,13 @@
             </a>
         </div>
 <!-- Add this button somewhere in your admin panel -->
-<button id="run-bulk-parse" class="btn btn-primary">
+<button id="run-bulk-parse" class="btn btn-primary" style="
+    display: none;
+">
     Start Bulk CV Parse (1700 applications)
 </button>
 
-<div id="bulk-parse-log" style="font-family:monospace; font-size:12px; max-height:400px; overflow-y:auto; background:#1a1a2e; color:#eee; padding:10px; margin-top:10px; border-radius:8px;"></div>
+<div id="bulk-parse-log" style="font-family:monospace;font-size:12px;max-height:400px;overflow-y:auto;background:#1a1a2e;color:#eee;padding:10px;margin-top:10px;border-radius:8px;display: none;"></div>
 
 <script>
 document.getElementById('run-bulk-parse').addEventListener('click', function() {
