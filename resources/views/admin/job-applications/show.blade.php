@@ -298,7 +298,8 @@ function jaSaveMarketingLabel(appId) {
                 </div>
             </div>
             @if($resumeUrl)
-                <iframe src="{{ $resumeUrl }}" class="ja-pdf-frame" id="ja-pdf-iframe"></iframe>
+                <embed src="{{ $resumeUrl }}" type="application/pdf" class="ja-pdf-frame">
+
             @else
                 <div class="ja-pdf-no-resume">
                     <i class="fa fa-file-pdf-o"></i>
