@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers\Admin;
-use App\JobClientNote;
+
 use App\AiApiKey;
 use App\ApplicationSetting;
 use App\ApplicationStatus;
@@ -1151,66 +1151,23 @@ class AdminJobApplicationController extends AdminBaseController
 
     public function show($id)
     {
-        // Eager load ALL relationships needed by the view in ONE query
         $this->application = JobApplication::withTrashed()
-            ->with([
-                // Schedule with nested relationships
-                'schedule' => function ($q) {
-                    $q->with([
-                        'employee.user',           // ← ADD: employee.user
-                        'comments.user:id,name',     // ← SPECIFIC columns
-                    ]);
-                },
-                
-                // Notes with user (limit to recent 50 to avoid huge payloads)
-                'notes' => function ($q) {
-                    $q->with('user:id,name')
-                    ->orderByDesc('created_at')
-                    ->limit(50);
-                },
-                
-                'onboard',
-                'status',
-                'location',
-                
-                // Job with company and its location
-                'job' => function ($q) {
-                    $q->with([
-                        'company',
-                        'location',                // ← ADD: job.location for job desc modal
-                        'skills.skill',            // ← ADD: for required skills section
-                    ]);
-                },
-                
-                // Status histories
-                'statusHistories.fromStatus',
-                'statusHistories.toStatus',
-                'statusHistories.user:id,name',
-                
-                // Previous applications (same email) - eager load everything here
-                'previousApplications' => function ($q) {
-                    $q->where('is_candidate', 0)
-                    ->where('id', '!=', $id)
-                    ->with([
-                        'job:id,title',
-                        'status:id,status,color',
-                        'location:id,location',
-                        'answers.question:id,question,type',  // ← ADD
-                        'notes.user:id,name',                  // ← ADD
-                    ])
-                    ->orderByDesc('created_at')
-                    ->limit(10);  // ← LIMIT: don't load infinite history
-                },
-            ])
-            // Add counts to avoid separate queries
-            ->withCount('notes')
-            ->withCount([
-                'statusHistories as status_histories_count',
-                'answers as answers_count' => function ($q) {
-                    $q->whereNotNull('answer');
-                }
-            ])
-            ->find($id);
+        ->with([
+            'schedule',
+            'schedule.employee',
+            'schedule.comments.user',
+            'notes',
+            'onboard',
+            'status',
+            'location',
+            'job',
+            'job.company',
+            'job.location',
+            'statusHistories.fromStatus',
+            'statusHistories.toStatus',
+            'statusHistories.user',
+        ])
+        ->find($id);
 
         if (!$this->application) {
             return Reply::error('Application not found.');
@@ -1218,20 +1175,9 @@ class AdminJobApplicationController extends AdminBaseController
 
         $this->skills = Skill::select('id', 'name')->get();
 
-        // Use pre-loaded relationship instead of new query
-        $this->answers = $this->application->answers()
-            ->with('question:id,question,type')
-            ->whereNotNull('answer')
-            ->get();
-
-        // Pre-loaded previous apps from relationship
-        $this->previousApps = $this->application->previousApplications ?? collect();
-
-        // Client notes - single query with limit
-        $this->clientNotes = \App\JobClientNote::with('user:id,name')
+        $this->answers = JobApplicationAnswer::with(['question'])
             ->where('job_id', $this->application->job_id)
-            ->orderByDesc('created_at')
-            ->limit(50)
+            ->where('job_application_id', $this->application->id)
             ->get();
 
         $view = view('admin.job-applications.show', $this->data)->render();
