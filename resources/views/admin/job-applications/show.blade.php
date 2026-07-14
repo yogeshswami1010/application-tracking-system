@@ -307,7 +307,15 @@ function jaSaveMarketingLabel(appId) {
                 </div>
             </div>
             @if($resumeUrl)
-                <embed src="{{ $resumeUrl }}" type="application/pdf" class="ja-pdf-frame">
+                <div id="ja-pdf-container" style="flex:1;position:relative;background:#525659;">
+                    <div id="ja-pdf-loader" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#aaa;z-index:1;">
+                        <i class="fa fa-spinner fa-spin" style="font-size:24px;margin-right:10px;"></i> Loading PDF...
+                    </div>
+                    <iframe id="ja-pdf-frame" src="{{ $resumeUrl }}" 
+                            style="position:absolute;inset:0;width:100%;height:100%;border:none;z-index:2;opacity:0;transition:opacity .3s;"
+                            onload="document.getElementById('ja-pdf-loader').style.display='none';this.style.opacity='1';">
+                    </iframe>
+                </div>
             @else
                 <div class="ja-pdf-no-resume">
                     <i class="fa fa-file-pdf-o"></i>
