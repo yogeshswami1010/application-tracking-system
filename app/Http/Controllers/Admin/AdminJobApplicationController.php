@@ -1152,37 +1152,68 @@ class AdminJobApplicationController extends AdminBaseController
     public function show($id)
     {
         $this->application = JobApplication::withTrashed()
-        ->with([
-            'schedule',
-            'schedule.employee',
-            'schedule.comments.user',
-            'notes',
-            'onboard',
-            'status',
-            'location',
-            'job',
-            'job.company',
-            'job.location',
-            'statusHistories.fromStatus',
-            'statusHistories.toStatus',
-            'statusHistories.user',
-        ])
-        ->find($id);
+            ->with([
+                'schedule',
+                'schedule.employee',
+                'schedule.comments.user',
+                'notes.user',
+                'onboard',
+                'status',
+                'location',
+                'job.company',
+                'job.location',
+                'job.category',
+                'statusHistories.fromStatus',
+                'statusHistories.toStatus',
+                'statusHistories.user',
+            ])
+            ->findOrFail($id);
 
-        if (!$this->application) {
-            return Reply::error('Application not found.');
+        // Load statuses
+        $allStatuses = ApplicationStatus::whereNull('job_id')
+            ->orderBy('position')
+            ->get();
+
+        if ($this->application->job_id) {
+            $jobStatuses = ApplicationStatus::where('job_id', $this->application->job_id)
+                ->orderBy('position')
+                ->get();
+
+            $allStatuses = $allStatuses->concat(
+                $jobStatuses->whereNotIn('id', $allStatuses->pluck('id'))
+            );
         }
+
+        $this->allStatuses = $allStatuses;
 
         $this->skills = Skill::select('id', 'name')->get();
 
-        $this->answers = JobApplicationAnswer::with(['question'])
-            ->where('job_id', $this->application->job_id)
+        $this->answers = JobApplicationAnswer::with('question')
             ->where('job_application_id', $this->application->id)
             ->get();
 
-        $view = view('admin.job-applications.show', $this->data)->render();
+        $this->previousApps = JobApplication::with([
+                'job:id,title',
+                'status:id,status,color',
+                'answers.question',
+                'notes.user',
+                'location'
+            ])
+            ->where('email', $this->application->email)
+            ->where('is_candidate',0)
+            ->where('id','!=',$this->application->id)
+            ->latest()
+            ->get();
 
-        return Reply::dataOnly(['status' => 'success', 'view' => $view]);
+        $this->clientNotes = JobClientNote::with('user:id,name')
+            ->where('job_id',$this->application->job_id)
+            ->latest()
+            ->get();
+
+        return Reply::dataOnly([
+            'status'=>'success',
+            'view'=>view('admin.job-applications.show',$this->data)->render()
+        ]);
     }
 
     public function updateIndex(Request $request)

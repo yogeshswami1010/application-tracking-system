@@ -12,30 +12,10 @@
     $stagePillBg = $application->status?->color ?? '#6366F1';
     $initials = collect(explode(' ', $application->full_name))->map(fn($w) => strtoupper(substr($w,0,1)))->take(2)->join('');
     // Load global statuses + any custom statuses for this applicant's job
-    $allStatuses = \App\ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
-    if ($application->job_id) {
-        try {
-            $jobSpecific = \App\ApplicationStatus::where('job_id', $application->job_id)->orderBy('position')->get();
-            $globalIds   = $allStatuses->pluck('id');
-            $extra       = $jobSpecific->filter(fn($s) => !$globalIds->contains($s->id));
-            $allStatuses = $allStatuses->concat($extra);
-        } catch (\Exception $e) {}
-    }
+    
+ 
     $currentStatusId = $application->status_id;
     $currentStatus = $allStatuses->firstWhere('id', $currentStatusId);
-
-    // ── Previous applications (same email) ──
-    $previousApps = \App\JobApplication::where('email', $application->email)
-        ->where('is_candidate', 0)
-        ->where('id', '!=', $application->id)
-        ->with(['job:id,title', 'status:id,status,color'])
-        ->orderByDesc('created_at')
-        ->get();
-
-    $clientNotes = \App\JobClientNote::with('user:id,name')
-        ->where('job_id', $application->job_id)
-        ->orderByDesc('created_at')
-        ->get();
 
     // Resolve resume URL
     $resumeUrl = null;
@@ -311,7 +291,7 @@ function jaSaveMarketingLabel(appId) {
                     <div id="ja-pdf-loader" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#aaa;z-index:1;">
                         <i class="fa fa-spinner fa-spin" style="font-size:24px;margin-right:10px;"></i> Loading PDF...
                     </div>
-                    <iframe id="ja-pdf-frame" src="{{ $resumeUrl }}" 
+                    <iframe id="ja-pdf-frame" data-src="{{ $resumeUrl }}" 
                             style="position:absolute;inset:0;width:100%;height:100%;border:none;z-index:2;opacity:0;transition:opacity .3s;"
                             onload="document.getElementById('ja-pdf-loader').style.display='none';this.style.opacity='1';">
                     </iframe>
@@ -406,11 +386,10 @@ function jaSaveMarketingLabel(appId) {
                         </div>
                         @endif
                        
-                        @php $prevAnswers = \App\JobApplicationAnswer::where('job_application_id', $prev->id)->with('question')->whereNotNull('answer')->get()->filter(fn($a) => !empty(trim($a->answer))); @endphp
-                        @if($prevAnswers->isNotEmpty())
+                        @if($prev->answers->isNotEmpty())
                         <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #F0EEE9">
                             <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:6px"><i class="fa fa-question-circle-o" style="font-size:10px"></i> Screening Answers</div>
-                            @foreach($prevAnswers as $ans)
+                            @foreach($prev->answers as $ans)
                             <div style="margin-bottom:6px">
                                 <div style="font-size:11.5px;font-weight:600;color:#1A1E2E;margin-bottom:2px">{{ $ans->question?->question ?? '—' }}</div>
                                 <div style="font-size:12px;color:#5A6478">
@@ -422,11 +401,11 @@ function jaSaveMarketingLabel(appId) {
                             @endforeach
                         </div>
                         @endif
-                        @php $prevNotes = \App\ApplicantNote::where('job_application_id', $prev->id)->with('user:id,name')->orderByDesc('created_at')->get(); @endphp
-                        @if($prevNotes->isNotEmpty())
+                     
+                        @if($prev->notes->isNotEmpty())
                         <div>
-                            <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:6px"><i class="fa fa-sticky-note-o" style="font-size:10px"></i> Notes <span style="display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;border-radius:20px;background:#F0EEE9;font-size:10px;color:#8A94A6;margin-left:4px">{{ $prevNotes->count() }}</span></div>
-                            @foreach($prevNotes as $pNote)
+                            <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:6px"><i class="fa fa-sticky-note-o" style="font-size:10px"></i> Notes <span style="display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;border-radius:20px;background:#F0EEE9;font-size:10px;color:#8A94A6;margin-left:4px">{{ $prev->notes->count() }}</span></div>
+                            @foreach($prev->notes as $pNote)
                             <div style="background:#F8F7F4;border-radius:8px;border-left:3px solid #2563EB;padding:8px 11px;margin-bottom:6px">
                                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
                                     <span style="font-size:11.5px;font-weight:600;color:#1A1E2E"><i class="fa fa-user-circle" style="font-size:12px;color:#2563EB;margin-right:4px"></i>{{ ucwords($pNote->user?->name ?? '—') }}</span>
@@ -437,7 +416,7 @@ function jaSaveMarketingLabel(appId) {
                             @endforeach
                         </div>
                         @endif
-                        @if(!$prev->cover_letter && $prevAnswers->isEmpty() && $prevNotes->isEmpty())
+                        @if(!$prev->cover_letter && $prev->answers->isEmpty() && $prev->notes->isEmpty())
                         <div style="font-size:12px;color:#B0B8C4;text-align:center;padding:8px 0"><i class="fa fa-info-circle" style="margin-right:5px"></i> No additional details recorded.</div>
                         @endif
                     </div>
