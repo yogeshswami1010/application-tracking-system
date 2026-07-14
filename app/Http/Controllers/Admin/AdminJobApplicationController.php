@@ -1152,22 +1152,25 @@ class AdminJobApplicationController extends AdminBaseController
     public function show($id)
     {
         $this->application = JobApplication::withTrashed()
-        ->with([
-            'schedule',
-            'schedule.employee',
-            'schedule.comments.user',
-            'notes',
-            'onboard',
-            'status',
-            'location',
-            'job',
-            'job.company',
-            'job.location',
-            'statusHistories.fromStatus',
-            'statusHistories.toStatus',
-            'statusHistories.user',
-        ])
-        ->find($id);
+            ->with([
+                'schedule',
+                'schedule.employee',
+                'schedule.comments.user',
+                'notes' => function ($q) {
+                    $q->with('user:id,name')->orderByDesc('created_at');
+                },
+                'onboard',
+                'status',
+                'location',
+                'job',
+                'job.company',
+                'job.location',
+                'job.skills.skill', // avoids re-querying skills in the job-description modal
+                'statusHistories.fromStatus',
+                'statusHistories.toStatus',
+                'statusHistories.user',
+            ])
+            ->find($id);
 
         if (!$this->application) {
             return Reply::error('Application not found.');
@@ -1178,6 +1181,30 @@ class AdminJobApplicationController extends AdminBaseController
         $this->answers = JobApplicationAnswer::with(['question'])
             ->where('job_id', $this->application->job_id)
             ->where('job_application_id', $this->application->id)
+            ->get();
+
+        // Previous applications (same email) — eager load answers+question and
+        // notes+user so the blade never issues a query per row.
+        $this->previousApps = JobApplication::where('email', $this->application->email)
+            ->where('is_candidate', 0)
+            ->where('id', '!=', $this->application->id)
+            ->with([
+                'job:id,title',
+                'status:id,status,color',
+                'location:id,location',
+                'answers' => function ($q) {
+                    $q->whereNotNull('answer')->with('question');
+                },
+                'notes' => function ($q) {
+                    $q->with('user:id,name')->orderByDesc('created_at');
+                },
+            ])
+            ->orderByDesc('created_at')
+            ->get();
+
+        $this->clientNotes = \App\JobClientNote::with('user:id,name')
+            ->where('job_id', $this->application->job_id)
+            ->orderByDesc('created_at')
             ->get();
 
         $view = view('admin.job-applications.show', $this->data)->render();

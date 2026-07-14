@@ -11,6 +11,7 @@
     };
     $stagePillBg = $application->status?->color ?? '#6366F1';
     $initials = collect(explode(' ', $application->full_name))->map(fn($w) => strtoupper(substr($w,0,1)))->take(2)->join('');
+
     // Load global statuses + any custom statuses for this applicant's job
     $allStatuses = \App\ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
     if ($application->job_id) {
@@ -24,18 +25,8 @@
     $currentStatusId = $application->status_id;
     $currentStatus = $allStatuses->firstWhere('id', $currentStatusId);
 
-    // ── Previous applications (same email) ──
-    $previousApps = \App\JobApplication::where('email', $application->email)
-        ->where('is_candidate', 0)
-        ->where('id', '!=', $application->id)
-        ->with(['job:id,title', 'status:id,status,color'])
-        ->orderByDesc('created_at')
-        ->get();
-
-    $clientNotes = \App\JobClientNote::with('user:id,name')
-        ->where('job_id', $application->job_id)
-        ->orderByDesc('created_at')
-        ->get();
+    // $previousApps and $clientNotes now come from the controller (already
+    // eager-loaded with answers.question and notes.user) — no query here.
 
     // Resolve resume URL
     $resumeUrl = null;
@@ -377,65 +368,69 @@ function jaSaveMarketingLabel(appId) {
                 </div>
                 @endif
 
-                @foreach($previousApps as $prev)
-                    <div class="ja-card" style="margin-bottom:10px">
-                        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #F0EEE9">
-                            <div style="flex:1;min-width:0">
-                                <div style="font-size:13.5px;font-weight:700;color:#1A1E2E;margin-bottom:3px">{{ ucwords($prev->job?->title ?? '—') }}</div>
-                                <div style="font-size:11px;color:#8A94A6;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                                    <span><i class="fa fa-calendar-o" style="font-size:10px;margin-right:3px"></i>{{ $prev->created_at?->format('d M Y') }}</span>
-                                    @if($prev->location)<span><i class="fa fa-map-marker" style="font-size:10px;margin-right:3px"></i>{{ ucwords($prev->location->location) }}</span>@endif
-                                </div>
+               @foreach($previousApps as $prev)
+                <div class="ja-card" style="margin-bottom:10px">
+                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #F0EEE9">
+                        <div style="flex:1;min-width:0">
+                            <div style="font-size:13.5px;font-weight:700;color:#1A1E2E;margin-bottom:3px">{{ ucwords($prev->job?->title ?? '—') }}</div>
+                            <div style="font-size:11px;color:#8A94A6;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                                <span><i class="fa fa-calendar-o" style="font-size:10px;margin-right:3px"></i>{{ $prev->created_at?->format('d M Y') }}</span>
+                                @if($prev->location)<span><i class="fa fa-map-marker" style="font-size:10px;margin-right:3px"></i>{{ ucwords($prev->location->location) }}</span>@endif
                             </div>
-                            <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;color:#fff;flex-shrink:0;background:{{ $prev->status?->color ?? '#6B7280' }}">
-                                {{ ucwords(str_replace('_', ' ', $prev->status?->status ?? '—')) }}
-                            </span>
                         </div>
-                        @if($prev->cover_letter)
-                        <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #F0EEE9">
-                            <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:5px"><i class="fa fa-file-text-o" style="font-size:10px"></i> Cover Letter</div>
-                            <p style="font-size:12px;color:#5A6478;line-height:1.6;margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">{{ $prev->cover_letter }}</p>
-                        </div>
-                        @endif
-                       
-                        @php $prevAnswers = \App\JobApplicationAnswer::where('job_application_id', $prev->id)->with('question')->whereNotNull('answer')->get()->filter(fn($a) => !empty(trim($a->answer))); @endphp
-                        @if($prevAnswers->isNotEmpty())
-                        <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #F0EEE9">
-                            <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:6px"><i class="fa fa-question-circle-o" style="font-size:10px"></i> Screening Answers</div>
-                            @foreach($prevAnswers as $ans)
-                            <div style="margin-bottom:6px">
-                                <div style="font-size:11.5px;font-weight:600;color:#1A1E2E;margin-bottom:2px">{{ $ans->question?->question ?? '—' }}</div>
-                                <div style="font-size:12px;color:#5A6478">
-                                    @if(strtolower(trim($ans->answer)) === 'yes')<span style="display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;background:#ECFDF5;color:#065F46"><i class="fa fa-check" style="font-size:9px;margin-right:4px"></i> Yes</span>
-                                    @elseif(strtolower(trim($ans->answer)) === 'no')<span style="display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;background:#FEF2F2;color:#991B1B"><i class="fa fa-times" style="font-size:9px;margin-right:4px"></i> No</span>
-                                    @else{{ ucfirst($ans->answer) }}@endif
-                                </div>
-                            </div>
-                            @endforeach
-                        </div>
-                        @endif
-                        @php $prevNotes = \App\ApplicantNote::where('job_application_id', $prev->id)->with('user:id,name')->orderByDesc('created_at')->get(); @endphp
-                        @if($prevNotes->isNotEmpty())
-                        <div>
-                            <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:6px"><i class="fa fa-sticky-note-o" style="font-size:10px"></i> Notes <span style="display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;border-radius:20px;background:#F0EEE9;font-size:10px;color:#8A94A6;margin-left:4px">{{ $prevNotes->count() }}</span></div>
-                            @foreach($prevNotes as $pNote)
-                            <div style="background:#F8F7F4;border-radius:8px;border-left:3px solid #2563EB;padding:8px 11px;margin-bottom:6px">
-                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-                                    <span style="font-size:11.5px;font-weight:600;color:#1A1E2E"><i class="fa fa-user-circle" style="font-size:12px;color:#2563EB;margin-right:4px"></i>{{ ucwords($pNote->user?->name ?? '—') }}</span>
-                                    <span style="font-size:10.5px;color:#B0B8C4">{{ $pNote->created_at?->format('d M Y') }}</span>
-                                </div>
-                                <p style="font-size:12px;color:#5A6478;line-height:1.6;margin:0">{{ ucfirst($pNote->note_text) }}</p>
-                            </div>
-                            @endforeach
-                        </div>
-                        @endif
-                        @if(!$prev->cover_letter && $prevAnswers->isEmpty() && $prevNotes->isEmpty())
-                        <div style="font-size:12px;color:#B0B8C4;text-align:center;padding:8px 0"><i class="fa fa-info-circle" style="margin-right:5px"></i> No additional details recorded.</div>
-                        @endif
+                        <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;color:#fff;flex-shrink:0;background:{{ $prev->status?->color ?? '#6B7280' }}">
+                            {{ ucwords(str_replace('_', ' ', $prev->status?->status ?? '—')) }}
+                        </span>
                     </div>
-                    @endforeach
+
+                    @if($prev->cover_letter)
+                    <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #F0EEE9">
+                        <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:5px"><i class="fa fa-file-text-o" style="font-size:10px"></i> Cover Letter</div>
+                        <p style="font-size:12px;color:#5A6478;line-height:1.6;margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">{{ $prev->cover_letter }}</p>
+                    </div>
+                    @endif
+
+                    {{-- Already eager-loaded on the controller: whereNotNull('answer') + with('question') --}}
+                    @php $prevAnswers = $prev->answers->filter(fn($a) => !empty(trim($a->answer))); @endphp
+                    @if($prevAnswers->isNotEmpty())
+                    <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #F0EEE9">
+                        <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:6px"><i class="fa fa-question-circle-o" style="font-size:10px"></i> Screening Answers</div>
+                        @foreach($prevAnswers as $ans)
+                        <div style="margin-bottom:6px">
+                            <div style="font-size:11.5px;font-weight:600;color:#1A1E2E;margin-bottom:2px">{{ $ans->question?->question ?? '—' }}</div>
+                            <div style="font-size:12px;color:#5A6478">
+                                @if(strtolower(trim($ans->answer)) === 'yes')<span style="display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;background:#ECFDF5;color:#065F46"><i class="fa fa-check" style="font-size:9px;margin-right:4px"></i> Yes</span>
+                                @elseif(strtolower(trim($ans->answer)) === 'no')<span style="display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;background:#FEF2F2;color:#991B1B"><i class="fa fa-times" style="font-size:9px;margin-right:4px"></i> No</span>
+                                @else{{ ucfirst($ans->answer) }}@endif
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                    @endif
+
+                    {{-- Already eager-loaded on the controller: with('user:id,name')->orderByDesc('created_at') --}}
+                    @php $prevNotes = $prev->notes; @endphp
+                    @if($prevNotes->isNotEmpty())
+                    <div>
+                        <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:6px"><i class="fa fa-sticky-note-o" style="font-size:10px"></i> Notes <span style="display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;border-radius:20px;background:#F0EEE9;font-size:10px;color:#8A94A6;margin-left:4px">{{ $prevNotes->count() }}</span></div>
+                        @foreach($prevNotes as $pNote)
+                        <div style="background:#F8F7F4;border-radius:8px;border-left:3px solid #2563EB;padding:8px 11px;margin-bottom:6px">
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                                <span style="font-size:11.5px;font-weight:600;color:#1A1E2E"><i class="fa fa-user-circle" style="font-size:12px;color:#2563EB;margin-right:4px"></i>{{ ucwords($pNote->user?->name ?? '—') }}</span>
+                                <span style="font-size:10.5px;color:#B0B8C4">{{ $pNote->created_at?->format('d M Y') }}</span>
+                            </div>
+                            <p style="font-size:12px;color:#5A6478;line-height:1.6;margin:0">{{ ucfirst($pNote->note_text) }}</p>
+                        </div>
+                        @endforeach
+                    </div>
+                    @endif
+
+                    @if(!$prev->cover_letter && $prevAnswers->isEmpty() && $prevNotes->isEmpty())
+                    <div style="font-size:12px;color:#B0B8C4;text-align:center;padding:8px 0"><i class="fa fa-info-circle" style="margin-right:5px"></i> No additional details recorded.</div>
+                    @endif
                 </div>
-                @endif
+            @endforeach
+               
 
                 {{-- ── DETAILS TAB ── --}}
                 <div id="ja-tab-details" class="ja-tab-pane">
@@ -809,7 +804,7 @@ function jaSaveMarketingLabel(appId) {
                     @endif
                     <div id="applicant-notes">
                         @include('admin.job-applications.partials.applicant-notes-list', [
-                            'notes' => $application->notes()->with('user:id,name')->orderByDesc('created_at')->get()
+                            'notes' => $application->notes
                         ])
                     </div>
                 </div>
