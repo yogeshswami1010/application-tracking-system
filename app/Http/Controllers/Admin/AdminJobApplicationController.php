@@ -3486,9 +3486,11 @@ class AdminJobApplicationController extends AdminBaseController
         if (!$locationId || $locationId === 'all') {
             $companies = Company::select('id', 'company_name')->get();
         } else {
-            $companyIds = Job::where('location_id', $locationId)
+            // Fix: Use job_job_locations pivot table instead of direct location_id on jobs
+            $companyIds = JobJobLocation::where('location_id', $locationId)
+                ->join('jobs', 'jobs.id', '=', 'job_job_locations.job_id')
                 ->distinct()
-                ->pluck('company_id');
+                ->pluck('jobs.company_id');
 
             $companies = Company::whereIn('id', $companyIds)
                 ->select('id', 'company_name')
