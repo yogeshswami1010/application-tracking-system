@@ -1058,78 +1058,95 @@
     });
 
    // ── Company → Location → Jobs cascade ────────────────────────
-    function jaRefreshLocations(companyId, callback) {
+  // ── Company → Location → Jobs cascade ────────────────────────
+
+function jaRefreshLocations(companyId, callback) {
+    console.log('jaRefreshLocations called with companyId:', companyId);
+    
     $.ajax({
         url: "{{ route('admin.job-applications.get-locations') }}",
         type: 'GET',
         data: { companyId: companyId },
         success: function(data) {
-            // Destroy existing Select2
-            if ($('#location').hasClass('select2-hidden-accessible')) {
-                $('#location').select2('destroy');
+            console.log('jaRefreshLocations success, locations HTML:', data.locations);
+            
+            // Destroy Select2 if initialized
+            try {
+                if ($('#location').data('select2')) {
+                    $('#location').select2('destroy');
+                }
+            } catch(e) {
+                console.log('Select2 destroy warning (can ignore):', e);
             }
             
-            // Update HTML
+            // Replace HTML
             $('#location').html(data.locations);
             
-            // Re-initialize Select2
+            // Re-init Select2
             $('#location').select2({ width: '100%' });
             
-            // Reset to "all" since location context changed
+            // ALWAYS reset to "all" when company changes — old location won't exist in new company's list
             $('#location').val('all').trigger('change.select2');
             
             if (typeof callback === 'function') callback();
         },
-        error: function(xhr) {
-            console.error('jaRefreshLocations failed:', xhr.status, xhr.responseText);
+        error: function(xhr, status, error) {
+            console.error('jaRefreshLocations AJAX ERROR:', status, error);
+            console.error('Response:', xhr.responseText);
         }
     });
 }
 
-    function jaRefreshJobs(companyId, locationId) {
+function jaRefreshJobs(companyId, locationId) {
+    console.log('jaRefreshJobs called:', { companyId, locationId });
+    
     $.ajax({
         url: "{{ route('admin.job-applications.get-jobs') }}",
         type: 'GET',
         data: { companyId: companyId, locationId: locationId },
         success: function(data) {
-            // Destroy existing Select2
-            if ($('#jobs').hasClass('select2-hidden-accessible')) {
-                $('#jobs').select2('destroy');
+            console.log('jaRefreshJobs success');
+            
+            try {
+                if ($('#jobs').data('select2')) {
+                    $('#jobs').select2('destroy');
+                }
+            } catch(e) {
+                console.log('Select2 destroy warning (can ignore):', e);
             }
             
-            // Update HTML
             $('#jobs').html(data.jobs);
-            
-            // Re-initialize Select2
             $('#jobs').select2({ width: '100%' });
-            
-            // Reset to "all" since job context changed
             $('#jobs').val('all').trigger('change');
             
-            // IMPORTANT: Trigger job status rebuild when jobs change
+            // Reset job stages since no job is selected
             jaLoadJobStatuses('all');
         },
-        error: function(xhr) {
-            console.error('jaRefreshJobs failed:', xhr.status, xhr.responseText);
+        error: function(xhr, status, error) {
+            console.error('jaRefreshJobs AJAX ERROR:', status, error);
         }
     });
 }
 
-    // Company changes → filter locations, then filter jobs by (company + location)
-    // Company changes → filter locations, then filter jobs by (company + location)
-    $('#company').on('change', function() {
-        var company_id = $(this).val();
-        jaRefreshLocations(company_id, function() {
-            jaRefreshJobs(company_id, $('#location').val());
-        });
+// Bind company change — use direct binding, not delegation
+$('#company').off('change').on('change', function() {
+    var company_id = $(this).val();
+    console.log('Company changed to:', company_id);
+    
+    jaRefreshLocations(company_id, function() {
+        // After locations refresh, refresh jobs with company + new location (which is 'all')
+        jaRefreshJobs(company_id, $('#location').val());
     });
+});
 
-    // Location changes → filter jobs by (company + location)
-    $('#location').on('change', function() {
-        var company_id  = $('#company').val();
-        var location_id = $(this).val();
-        jaRefreshJobs(company_id, location_id);
-    });
+// Bind location change
+$('#location').off('change').on('change', function() {
+    var company_id  = $('#company').val();
+    var location_id = $(this).val();
+    console.log('Location changed to:', location_id, 'company:', company_id);
+    
+    jaRefreshJobs(company_id, location_id);
+});
     // ── Select2 init ─────────────────────────────────────────────
     $('#filter-form select.select2').not('#skill').select2({ width: '100%' });
 
