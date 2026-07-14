@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers\Admin;
-
+use App\JobClientNote;
 use App\AiApiKey;
 use App\ApplicationSetting;
 use App\ApplicationStatus;
