@@ -1141,64 +1141,49 @@
         return html;
     }
 
-    // Location change → filter companies → filter jobs
-        // ── Location → Company → Job cascade (AJAX-based) ──────────
+      // ── Location → Company → Job cascade (AJAX-based) ──────────
 
     // Location change → fetch companies for this location
     $('#location').on('change', function() {
         var locationId = $(this).val() || 'all';
         var currentCompany = $('#company').val();
-        var currentJob = $('#jobs').val();
 
-        if (locationId === 'all') {
-            // Reset companies to all
-            $.ajax({
-                url: "{{ route('admin.job-applications.get-companies') }}",
-                type: 'GET',
-                success: function(data) {
-                    var html = '<option value="all">@lang("modules.jobApplication.allCompany")</option>';
-                    if (data.companies && data.companies.length) {
-                        data.companies.forEach(function(c) {
-                            html += '<option title="' + (c.company_name || '') + '" value="' + c.id + '">' + (c.company_name || '') + '</option>';
-                        });
-                    }
-                    $('#company').select2('destroy').html(html).select2({ width: '100%' });
-
-                    var companyStillValid = $('#company option[value="' + currentCompany + '"]').length > 0;
-                    if (companyStillValid && currentCompany && currentCompany !== 'all') {
-                        $('#company').val(currentCompany).trigger('change');
-                    } else {
-                        $('#company').val('all').trigger('change');
-                    }
+        // Fetch companies via existing get-jobs route (we'll derive companies from jobs)
+        // OR use a generic admin route you already have
+        $.ajax({
+            url: "{{ route('admin.job-applications.data') }}",  // Use your existing data route
+            type: 'GET',
+            data: {
+                location: locationId,
+                draw: 1,
+                start: 0,
+                length: 100,
+                search: { value: '' }
+            },
+            success: function(res) {
+                // Extract unique companies from the response
+                var companies = [];
+                var seen = {};
+                if (res.data) {
+                    res.data.forEach(function(row) {
+                        if (row.company_id && !seen[row.company_id]) {
+                            seen[row.company_id] = true;
+                            companies.push({ id: row.company_id, company_name: row.company_name });
+                        }
+                    });
                 }
-            });
-        } else {
-            // Fetch companies for specific location
-            $.ajax({
-                url: "{{ route('admin.job-applications.get-companies-by-location') }}",
-                type: 'GET',
-                data: { location_id: locationId },
-                success: function(data) {
-                    var html = '<option value="all">@lang("modules.jobApplication.allCompany")</option>';
-                    if (data.companies && data.companies.length) {
-                        data.companies.forEach(function(c) {
-                            html += '<option title="' + (c.company_name || '') + '" value="' + c.id + '">' + (c.company_name || '') + '</option>';
-                        });
-                    }
-                    $('#company').select2('destroy').html(html).select2({ width: '100%' });
 
-                    var companyStillValid = $('#company option[value="' + currentCompany + '"]').length > 0;
-                    if (companyStillValid && currentCompany && currentCompany !== 'all') {
-                        $('#company').val(currentCompany).trigger('change');
-                    } else {
-                        $('#company').val('all').trigger('change');
-                    }
-                }
-            });
-        }
+                var html = '<option value="all">@lang("modules.jobApplication.allCompany")</option>';
+                companies.forEach(function(c) {
+                    html += '<option value="' + c.id + '">' + (c.company_name || 'Company ' + c.id) + '</option>';
+                });
+                $('#company').select2('destroy').html(html).select2({ width: '100%' });
+                $('#company').val('all').trigger('change');
+            }
+        });
     });
 
-    // Company change → fetch jobs for this company (and location if selected)
+    // Company change → fetch jobs
     $('#company').on('change', function() {
         var companyId = $(this).val() || 'all';
         var locationId = $('#location').val() || 'all';
@@ -1213,8 +1198,11 @@
             },
             success: function(data) {
                 var html = '<option value="all">@lang("modules.jobApplication.allJobs")</option>';
-                if (data.jobs && data.jobs.length) {
-                    data.jobs.forEach(function(j) {
+                
+                // Handle both response formats
+                var jobs = data.jobs || data;
+                if (jobs && jobs.length) {
+                    jobs.forEach(function(j) {
                         html += '<option title="' + (j.title || '') + '" value="' + j.id + '">' + (j.title || '') + '</option>';
                     });
                 }
