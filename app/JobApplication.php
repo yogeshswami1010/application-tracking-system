@@ -99,4 +99,6 @@ class JobApplication extends Model
     {
         return $this->hasMany(JobApplicationStatusHistory::class)->orderByDesc('created_at');
     }
+    public function previousApplications()
+    {}
 }
