@@ -2225,7 +2225,7 @@ class AdminJobApplicationController extends AdminBaseController
         return Reply::dataOnly(['jobs' => $html]);
     }
 
-    public function getLocations(Request $request)
+        public function getLocations(Request $request)
     {
         $companyId = $request->companyId;
 
