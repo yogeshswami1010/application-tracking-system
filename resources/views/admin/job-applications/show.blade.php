@@ -11,7 +11,6 @@
     };
     $stagePillBg = $application->status?->color ?? '#6366F1';
     $initials = collect(explode(' ', $application->full_name))->map(fn($w) => strtoupper(substr($w,0,1)))->take(2)->join('');
-
     // Load global statuses + any custom statuses for this applicant's job
     $allStatuses = \App\ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
     if ($application->job_id) {
@@ -25,8 +24,18 @@
     $currentStatusId = $application->status_id;
     $currentStatus = $allStatuses->firstWhere('id', $currentStatusId);
 
-    // $previousApps and $clientNotes now come from the controller (already
-    // eager-loaded with answers.question and notes.user) — no query here.
+    // ── Previous applications (same email) ──
+    $previousApps = \App\JobApplication::where('email', $application->email)
+        ->where('is_candidate', 0)
+        ->where('id', '!=', $application->id)
+        ->with(['job:id,title', 'status:id,status,color'])
+        ->orderByDesc('created_at')
+        ->get();
+
+    $clientNotes = \App\JobClientNote::with('user:id,name')
+        ->where('job_id', $application->job_id)
+        ->orderByDesc('created_at')
+        ->get();
 
     // Resolve resume URL
     $resumeUrl = null;
@@ -298,8 +307,15 @@ function jaSaveMarketingLabel(appId) {
                 </div>
             </div>
             @if($resumeUrl)
-                <embed src="{{ $resumeUrl }}" type="application/pdf" class="ja-pdf-frame">
-
+                <div id="ja-pdf-container" style="flex:1;position:relative;background:#525659;">
+                    <div id="ja-pdf-loader" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#aaa;z-index:1;">
+                        <i class="fa fa-spinner fa-spin" style="font-size:24px;margin-right:10px;"></i> Loading PDF...
+                    </div>
+                    <iframe id="ja-pdf-frame" src="{{ $resumeUrl }}" 
+                            style="position:absolute;inset:0;width:100%;height:100%;border:none;z-index:2;opacity:0;transition:opacity .3s;"
+                            onload="document.getElementById('ja-pdf-loader').style.display='none';this.style.opacity='1';">
+                    </iframe>
+                </div>
             @else
                 <div class="ja-pdf-no-resume">
                     <i class="fa fa-file-pdf-o"></i>
@@ -369,69 +385,64 @@ function jaSaveMarketingLabel(appId) {
                 </div>
                 @endif
 
-               @foreach($previousApps as $prev)
-                <div class="ja-card" style="margin-bottom:10px">
-                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #F0EEE9">
-                        <div style="flex:1;min-width:0">
-                            <div style="font-size:13.5px;font-weight:700;color:#1A1E2E;margin-bottom:3px">{{ ucwords($prev->job?->title ?? '—') }}</div>
-                            <div style="font-size:11px;color:#8A94A6;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                                <span><i class="fa fa-calendar-o" style="font-size:10px;margin-right:3px"></i>{{ $prev->created_at?->format('d M Y') }}</span>
-                                @if($prev->location)<span><i class="fa fa-map-marker" style="font-size:10px;margin-right:3px"></i>{{ ucwords($prev->location->location) }}</span>@endif
+                @foreach($previousApps as $prev)
+                    <div class="ja-card" style="margin-bottom:10px">
+                        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #F0EEE9">
+                            <div style="flex:1;min-width:0">
+                                <div style="font-size:13.5px;font-weight:700;color:#1A1E2E;margin-bottom:3px">{{ ucwords($prev->job?->title ?? '—') }}</div>
+                                <div style="font-size:11px;color:#8A94A6;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                                    <span><i class="fa fa-calendar-o" style="font-size:10px;margin-right:3px"></i>{{ $prev->created_at?->format('d M Y') }}</span>
+                                    @if($prev->location)<span><i class="fa fa-map-marker" style="font-size:10px;margin-right:3px"></i>{{ ucwords($prev->location->location) }}</span>@endif
+                                </div>
                             </div>
+                            <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;color:#fff;flex-shrink:0;background:{{ $prev->status?->color ?? '#6B7280' }}">
+                                {{ ucwords(str_replace('_', ' ', $prev->status?->status ?? '—')) }}
+                            </span>
                         </div>
-                        <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;color:#fff;flex-shrink:0;background:{{ $prev->status?->color ?? '#6B7280' }}">
-                            {{ ucwords(str_replace('_', ' ', $prev->status?->status ?? '—')) }}
-                        </span>
-                    </div>
-
-                    @if($prev->cover_letter)
-                    <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #F0EEE9">
-                        <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:5px"><i class="fa fa-file-text-o" style="font-size:10px"></i> Cover Letter</div>
-                        <p style="font-size:12px;color:#5A6478;line-height:1.6;margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">{{ $prev->cover_letter }}</p>
-                    </div>
-                    @endif
-
-                    {{-- Already eager-loaded on the controller: whereNotNull('answer') + with('question') --}}
-                    @php $prevAnswers = $prev->answers->filter(fn($a) => !empty(trim($a->answer))); @endphp
-                    @if($prevAnswers->isNotEmpty())
-                    <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #F0EEE9">
-                        <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:6px"><i class="fa fa-question-circle-o" style="font-size:10px"></i> Screening Answers</div>
-                        @foreach($prevAnswers as $ans)
-                        <div style="margin-bottom:6px">
-                            <div style="font-size:11.5px;font-weight:600;color:#1A1E2E;margin-bottom:2px">{{ $ans->question?->question ?? '—' }}</div>
-                            <div style="font-size:12px;color:#5A6478">
-                                @if(strtolower(trim($ans->answer)) === 'yes')<span style="display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;background:#ECFDF5;color:#065F46"><i class="fa fa-check" style="font-size:9px;margin-right:4px"></i> Yes</span>
-                                @elseif(strtolower(trim($ans->answer)) === 'no')<span style="display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;background:#FEF2F2;color:#991B1B"><i class="fa fa-times" style="font-size:9px;margin-right:4px"></i> No</span>
-                                @else{{ ucfirst($ans->answer) }}@endif
+                        @if($prev->cover_letter)
+                        <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #F0EEE9">
+                            <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:5px"><i class="fa fa-file-text-o" style="font-size:10px"></i> Cover Letter</div>
+                            <p style="font-size:12px;color:#5A6478;line-height:1.6;margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">{{ $prev->cover_letter }}</p>
+                        </div>
+                        @endif
+                       
+                        @php $prevAnswers = \App\JobApplicationAnswer::where('job_application_id', $prev->id)->with('question')->whereNotNull('answer')->get()->filter(fn($a) => !empty(trim($a->answer))); @endphp
+                        @if($prevAnswers->isNotEmpty())
+                        <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #F0EEE9">
+                            <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:6px"><i class="fa fa-question-circle-o" style="font-size:10px"></i> Screening Answers</div>
+                            @foreach($prevAnswers as $ans)
+                            <div style="margin-bottom:6px">
+                                <div style="font-size:11.5px;font-weight:600;color:#1A1E2E;margin-bottom:2px">{{ $ans->question?->question ?? '—' }}</div>
+                                <div style="font-size:12px;color:#5A6478">
+                                    @if(strtolower(trim($ans->answer)) === 'yes')<span style="display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;background:#ECFDF5;color:#065F46"><i class="fa fa-check" style="font-size:9px;margin-right:4px"></i> Yes</span>
+                                    @elseif(strtolower(trim($ans->answer)) === 'no')<span style="display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;background:#FEF2F2;color:#991B1B"><i class="fa fa-times" style="font-size:9px;margin-right:4px"></i> No</span>
+                                    @else{{ ucfirst($ans->answer) }}@endif
+                                </div>
                             </div>
+                            @endforeach
                         </div>
-                        @endforeach
-                    </div>
-                    @endif
-
-                    {{-- Already eager-loaded on the controller: with('user:id,name')->orderByDesc('created_at') --}}
-                    @php $prevNotes = $prev->notes; @endphp
-                    @if($prevNotes->isNotEmpty())
-                    <div>
-                        <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:6px"><i class="fa fa-sticky-note-o" style="font-size:10px"></i> Notes <span style="display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;border-radius:20px;background:#F0EEE9;font-size:10px;color:#8A94A6;margin-left:4px">{{ $prevNotes->count() }}</span></div>
-                        @foreach($prevNotes as $pNote)
-                        <div style="background:#F8F7F4;border-radius:8px;border-left:3px solid #2563EB;padding:8px 11px;margin-bottom:6px">
-                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-                                <span style="font-size:11.5px;font-weight:600;color:#1A1E2E"><i class="fa fa-user-circle" style="font-size:12px;color:#2563EB;margin-right:4px"></i>{{ ucwords($pNote->user?->name ?? '—') }}</span>
-                                <span style="font-size:10.5px;color:#B0B8C4">{{ $pNote->created_at?->format('d M Y') }}</span>
+                        @endif
+                        @php $prevNotes = \App\ApplicantNote::where('job_application_id', $prev->id)->with('user:id,name')->orderByDesc('created_at')->get(); @endphp
+                        @if($prevNotes->isNotEmpty())
+                        <div>
+                            <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:6px"><i class="fa fa-sticky-note-o" style="font-size:10px"></i> Notes <span style="display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;border-radius:20px;background:#F0EEE9;font-size:10px;color:#8A94A6;margin-left:4px">{{ $prevNotes->count() }}</span></div>
+                            @foreach($prevNotes as $pNote)
+                            <div style="background:#F8F7F4;border-radius:8px;border-left:3px solid #2563EB;padding:8px 11px;margin-bottom:6px">
+                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                                    <span style="font-size:11.5px;font-weight:600;color:#1A1E2E"><i class="fa fa-user-circle" style="font-size:12px;color:#2563EB;margin-right:4px"></i>{{ ucwords($pNote->user?->name ?? '—') }}</span>
+                                    <span style="font-size:10.5px;color:#B0B8C4">{{ $pNote->created_at?->format('d M Y') }}</span>
+                                </div>
+                                <p style="font-size:12px;color:#5A6478;line-height:1.6;margin:0">{{ ucfirst($pNote->note_text) }}</p>
                             </div>
-                            <p style="font-size:12px;color:#5A6478;line-height:1.6;margin:0">{{ ucfirst($pNote->note_text) }}</p>
+                            @endforeach
                         </div>
-                        @endforeach
+                        @endif
+                        @if(!$prev->cover_letter && $prevAnswers->isEmpty() && $prevNotes->isEmpty())
+                        <div style="font-size:12px;color:#B0B8C4;text-align:center;padding:8px 0"><i class="fa fa-info-circle" style="margin-right:5px"></i> No additional details recorded.</div>
+                        @endif
                     </div>
-                    @endif
-
-                    @if(!$prev->cover_letter && $prevAnswers->isEmpty() && $prevNotes->isEmpty())
-                    <div style="font-size:12px;color:#B0B8C4;text-align:center;padding:8px 0"><i class="fa fa-info-circle" style="margin-right:5px"></i> No additional details recorded.</div>
-                    @endif
+                    @endforeach
                 </div>
-            @endforeach
-                 </div>{{-- /ja-tab-history --}}
                 @endif
 
                 {{-- ── DETAILS TAB ── --}}
@@ -806,7 +817,7 @@ function jaSaveMarketingLabel(appId) {
                     @endif
                     <div id="applicant-notes">
                         @include('admin.job-applications.partials.applicant-notes-list', [
-                            'notes' => $application->notes
+                            'notes' => $application->notes()->with('user:id,name')->orderByDesc('created_at')->get()
                         ])
                     </div>
                 </div>
@@ -1012,9 +1023,8 @@ function jaMoveFromDetail(appId, toStatusId, toStatusLabel, currentStatusId) {
         data: { _token: '{{ csrf_token() }}', ids: [appId], status_id: toStatusId },
         success: function(response) {
             if (response.status === 'success') {
-                 jaCleanupBeforeNavigate();
                 $.easyAjax({ type:'GET', url:"{{ route('admin.job-applications.show', ':id') }}".replace(':id', appId),
-                    success: function(res) { if (res.status === 'success')  jaCleanupBeforeNavigate(); $('#right-sidebar-content').html(res.view); }
+                    success: function(res) { if (res.status === 'success') $('#right-sidebar-content').html(res.view); }
                 });
                 if (typeof table !== 'undefined') table.draw(false);
                 if (typeof jaLoadTabCounts === 'function') jaLoadTabCounts();
@@ -1115,44 +1125,7 @@ function deleteApplication(applicationId) {
         if (prev) prev.disabled = (idx === 0);
         if (next) next.disabled = (idx === ids.length - 1);
     }
-    // Add this BEFORE any profile load happens
-function jaCleanupBeforeNavigate() {
-    // Destroy PDF embed by removing src first (stops the plugin)
-    var embed = document.querySelector('.ja-pdf-frame');
-    if (embed) {
-        embed.src = 'about:blank';
-        embed.remove();
-    }
-    
-    // Clear any pending mention timer
-    if (window.jaMentionTimer) {
-        clearTimeout(window.jaMentionTimer);
-        window.jaMentionTimer = null;
-    }
-    
-    // Destroy Select2 instance
-    try {
-        $('.select2#skills').select2('destroy');
-    } catch(e) {}
-    
-    // Remove all document-level listeners we added
-    if (window._jaKeyNav) {
-        document.removeEventListener('keydown', window._jaKeyNav);
-        window._jaKeyNav = null;
-    }
-    
-    // Hide any open modals/dropdowns
-    var overlay = document.getElementById('ja-jobdesc-overlay');
-    if (overlay) overlay.style.display = 'none';
-    
-    var mentionDrop = document.getElementById('ja-mention-drop');
-    if (mentionDrop) mentionDrop.style.display = 'none';
-    
-    // Reset body overflow
-    document.body.style.overflow = '';
-}
     window.jaNavigate = function (direction, fromId) {
-          jaCleanupBeforeNavigate()
         var ids = getIds(), idx = ids.indexOf(fromId);
         if (idx === -1 || !ids.length) return;
         var targetId = (direction === 'prev') ? ids[idx - 1] : ids[idx + 1];
@@ -1171,25 +1144,12 @@ function jaCleanupBeforeNavigate() {
             error: function() { if (wrap) wrap.classList.remove('ja-nav-loading'); updateNavUI(); }
         });
     };
-   r ONCE:
-function jaHandleKeyNavigation(e) {
-    var tag = document.activeElement ? document.activeElement.tagName : '';
-    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-    if (e.key === 'ArrowLeft' || e.keyCode === 37) { 
-        var p = document.getElementById('ja-prev-btn'); 
-        if (p && !p.disabled) jaNavigate('prev', window.jaCurrentAppId); 
+    function onKeyDown(e) {
+        var tag = document.activeElement ? document.activeElement.tagName : '';
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+        if (e.key === 'ArrowLeft' || e.keyCode === 37) { var p = document.getElementById('ja-prev-btn'); if (p && !p.disabled) jaNavigate('prev', CURRENT_ID); }
+        if (e.key === 'ArrowRight' || e.keyCode === 39) { var n = document.getElementById('ja-next-btn'); if (n && !n.disabled) jaNavigate('next', CURRENT_ID); }
     }
-    if (e.key === 'ArrowRight' || e.keyCode === 39) { 
-        var n = document.getElementById('ja-next-btn'); 
-        if (n && !n.disabled) jaNavigate('next', window.jaCurrentAppId); 
-    }
-}
-
-// Only add once, remove the IIFE pattern:
-if (!window._jaNavListenerAdded) {
-    document.addEventListener('keydown', jaHandleKeyNavigation);
-    window._jaNavListenerAdded = true;
-}
     document.removeEventListener('keydown', window._jaKeyNav);
     window._jaKeyNav = onKeyDown;
     document.addEventListener('keydown', window._jaKeyNav);
@@ -1235,26 +1195,22 @@ function jaShowJobDesc() { var o = document.getElementById('ja-jobdesc-overlay')
 function jaHideJobDesc() { var o = document.getElementById('ja-jobdesc-overlay'); o.style.display = 'none'; document.body.style.overflow = ''; }
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') jaHideJobDesc(); });
 
-var jaMentionQuery = '', jaMentionStart = -1, jaMentionTimer = null;
+/* ── @mention autocomplete ── */
+var jaAllUsers = @json(\App\User::select('id','name')->get());
+var jaMentionQuery = '', jaMentionStart = -1;
 function jaNoteHandleInput(el) {
     var val = el.value, caret = el.selectionStart, drop = document.getElementById('ja-mention-drop');
     if (!drop) return;
     var textBefore = val.substring(0, caret), atMatch = textBefore.match(/@([a-zA-Z0-9_]*)$/);
     if (!atMatch) { drop.style.display = 'none'; jaMentionStart = -1; return; }
-    jaMentionQuery = atMatch[1]; jaMentionStart = caret - atMatch[0].length;
-
-    clearTimeout(jaMentionTimer);
-    jaMentionTimer = setTimeout(function() {
-        $.get("{{ route('admin.job-applications.search-users-mention') }}", { q: jaMentionQuery }, function(res) {
-            var matches = (res.data && res.data.users) ? res.data.users : [];
-            if (!matches.length) { drop.style.display = 'none'; return; }
-            drop.innerHTML = matches.map(function(u) {
-                var initials = u.name.split(' ').map(function(w){ return w[0]; }).join('').substring(0,2).toUpperCase();
-                return '<div onclick="jaInsertMention(\'' + u.name.replace(/'/g, "\\'") + '\')" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;font-size:13px;color:#1A1E2E;" onmouseover="this.style.background=\'#EFF6FF\'" onmouseout="this.style.background=\'none\'"><span style="width:26px;height:26px;border-radius:50%;background:#2563EB;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">' + initials + '</span><span style="font-weight:500">' + u.name + '</span></div>';
-            }).join('');
-            drop.style.display = 'block';
-        });
-    }, 300);
+    jaMentionQuery = atMatch[1].toLowerCase(); jaMentionStart = caret - atMatch[0].length;
+    var matches = jaAllUsers.filter(function(u) { return u.name.toLowerCase().includes(jaMentionQuery) && u.id !== {{ auth()->id() }}; }).slice(0, 6);
+    if (!matches.length) { drop.style.display = 'none'; return; }
+    drop.innerHTML = matches.map(function(u) {
+        var initials = u.name.split(' ').map(function(w){ return w[0]; }).join('').substring(0,2).toUpperCase();
+        return '<div onclick="jaInsertMention(\'' + u.name.replace(/'/g, "\\'") + '\')" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;font-size:13px;color:#1A1E2E;" onmouseover="this.style.background=\'#EFF6FF\'" onmouseout="this.style.background=\'none\'"><span style="width:26px;height:26px;border-radius:50%;background:#2563EB;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">' + initials + '</span><span style="font-weight:500">' + u.name + '</span></div>';
+    }).join('');
+    drop.style.display = 'block';
 }
 function jaInsertMention(name) {
     var ta = document.getElementById('note_text'), val = ta.value, caret = ta.selectionStart;
@@ -1394,292 +1350,6 @@ function jaSaveJobEdit(appId) {
         }
     });
 }
-// ============================================================
-// JOB APPLICATION DETAIL PANEL - GLOBAL FUNCTIONS
-// These must be available globally because show.blade.php
-// is loaded dynamically via AJAX
-// ============================================================
-
-window.jaShowJobDesc = function() {
-    var o = document.getElementById('ja-jobdesc-overlay');
-    if (o) {
-        o.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-    }
-};
-
-window.jaHideJobDesc = function() {
-    var o = document.getElementById('ja-jobdesc-overlay');
-    if (o) {
-        o.style.display = 'none';
-        document.body.style.overflow = '';
-    }
-};
-
-window.jaToggleInfoEdit = function(appId) {
-    var view = document.getElementById('ja-info-view-' + appId);
-    var editBox = document.getElementById('ja-info-edit-' + appId);
-    var btn = document.getElementById('ja-info-edit-btn-' + appId);
-    if (!view || !editBox) return;
-    
-    var isEdit = editBox.style.display !== 'none';
-    if (isEdit) {
-        editBox.style.display = 'none';
-        view.style.display = 'block';
-        if (btn) btn.innerHTML = '<i class="fa fa-pencil" style="font-size:10px"></i> Edit';
-    } else {
-        view.style.display = 'none';
-        editBox.style.display = 'block';
-        if (btn) btn.innerHTML = '<i class="fa fa-times" style="font-size:10px"></i> Cancel';
-        var nameInput = document.getElementById('ja-edit-name-' + appId);
-        if (nameInput) nameInput.focus();
-    }
-    var msg = document.getElementById('ja-info-save-msg-' + appId);
-    if (msg) { msg.style.display = 'none'; msg.innerHTML = ''; }
-};
-
-window.jaSaveInfoEdit = function(appId) {
-    var name  = document.getElementById('ja-edit-name-' + appId);
-    var email = document.getElementById('ja-edit-email-' + appId);
-    var phone = document.getElementById('ja-edit-phone-' + appId);
-    var icon  = document.getElementById('ja-info-save-icon-' + appId);
-    var msg   = document.getElementById('ja-info-save-msg-' + appId);
-    var btn   = document.getElementById('ja-info-save-btn-' + appId);
-
-    if (!name || !email) return;
-    
-    var nameVal = name.value.trim();
-    var emailVal = email.value.trim();
-    var phoneVal = phone ? phone.value.trim() : '';
-
-    if (!nameVal || !emailVal) {
-        if (msg) {
-            msg.style.display = 'block';
-            msg.style.color = '#EF4444';
-            msg.innerHTML = '<i class="fa fa-exclamation-circle"></i> Name and email are required.';
-        }
-        return;
-    }
-
-    if (icon) icon.className = 'fa fa-spinner fa-spin';
-    if (btn) btn.disabled = true;
-
-    $.ajax({
-        type: 'POST',
-        url: window.jaRoutes && window.jaRoutes.updateBasicInfo ? window.jaRoutes.updateBasicInfo.replace(':id', appId) : '/admin/job-applications/' + appId + '/update-basic-info',
-        data: { 
-            _token: window.csrfToken || $('meta[name="csrf-token"]').attr('content'),
-            full_name: nameVal, 
-            email: emailVal, 
-            phone: phoneVal 
-        },
-        success: function(res) {
-            if (icon) icon.className = 'fa fa-check';
-            if (btn) btn.disabled = false;
-            
-            if (res.status === 'success') {
-                var n = res.data ? res.data.full_name : nameVal;
-                var e = res.data ? res.data.email : emailVal;
-                var p = res.data ? res.data.phone : phoneVal;
-                
-                var nameEl  = document.getElementById('ja-display-name-' + appId);
-                var emailEl = document.getElementById('ja-display-email-' + appId);
-                var phoneEl = document.getElementById('ja-display-phone-' + appId);
-                
-                if (nameEl)  nameEl.textContent = n;
-                if (emailEl) emailEl.innerHTML  = '<a href="mailto:' + e + '" style="color:#2563EB">' + e + '</a>';
-                if (phoneEl) phoneEl.innerHTML  = '<a href="tel:' + p + '" style="color:#2563EB">' + p + '</a>';
-                
-                var viewEl  = document.getElementById('ja-info-view-' + appId);
-                var editEl  = document.getElementById('ja-info-edit-' + appId);
-                var editBtn = document.getElementById('ja-info-edit-btn-' + appId);
-                
-                if (editEl)  editEl.style.display = 'none';
-                if (viewEl)  viewEl.style.display = 'block';
-                if (editBtn) editBtn.innerHTML = '<i class="fa fa-pencil" style="font-size:10px"></i> Edit';
-                if (msg)     msg.style.display = 'none';
-                
-                if (typeof table !== 'undefined') table.draw(false);
-            } else {
-                if (msg) {
-                    msg.style.display = 'block';
-                    msg.style.color = '#EF4444';
-                    msg.innerHTML = '<i class="fa fa-exclamation-circle"></i> ' + (res.message || 'Save failed.');
-                }
-            }
-        },
-        error: function() {
-            if (icon) icon.className = 'fa fa-check';
-            if (btn) btn.disabled = false;
-            if (msg) {
-                msg.style.display = 'block';
-                msg.style.color = '#EF4444';
-                msg.innerHTML = '<i class="fa fa-exclamation-circle"></i> Server error. Please try again.';
-            }
-        }
-    });
-};
-
-window.jaToggleJobEdit = function(appId) {
-    var view = document.getElementById('ja-job-view-' + appId);
-    var edit = document.getElementById('ja-job-edit-' + appId);
-    if (!view || !edit) return;
-    
-    var isEdit = edit.style.display !== 'none';
-    edit.style.display = isEdit ? 'none' : 'block';
-    var msg = document.getElementById('ja-job-save-msg-' + appId);
-    if (msg) { msg.style.display = 'none'; msg.innerHTML = ''; }
-};
-
-window.jaSaveJobEdit = function(appId) {
-    var select = document.getElementById('ja-job-select-' + appId);
-    var icon   = document.getElementById('ja-job-save-icon-' + appId);
-    var btn    = document.getElementById('ja-job-save-btn-' + appId);
-    var msg    = document.getElementById('ja-job-save-msg-' + appId);
-
-    if (!select) return;
-    var jobId = select.value;
-    if (!jobId) return;
-
-    if (icon) icon.className = 'fa fa-spinner fa-spin';
-    if (btn) btn.disabled = true;
-
-    $.ajax({
-        type: 'POST',
-        url: window.jaRoutes && window.jaRoutes.assignJob ? window.jaRoutes.assignJob.replace(':id', appId) : '/admin/job-applications/' + appId + '/assign-job',
-        data: { 
-            _token: window.csrfToken || $('meta[name="csrf-token"]').attr('content'),
-            job_id: jobId 
-        },
-        success: function(res) {
-            if (icon) icon.className = 'fa fa-check';
-            if (btn) btn.disabled = false;
-
-            if (res.status === 'success') {
-                // Reload the whole detail panel
-                $.easyAjax({
-                    type: 'GET',
-                    url: window.jaRoutes && window.jaRoutes.show ? window.jaRoutes.show.replace(':id', appId) : '/admin/job-applications/' + appId,
-                    success: function(r) {
-                        if (r.status === 'success') {
-                            $('#right-sidebar-content').html(r.view);
-                            // Re-initialize tab switching after content load
-                            window.jaInitTabs();
-                        }
-                    }
-                });
-                if (typeof table !== 'undefined') table.draw(false);
-            } else {
-                if (msg) {
-                    msg.style.display = 'block';
-                    msg.style.color = '#EF4444';
-                    msg.innerHTML = '<i class="fa fa-exclamation-circle"></i> ' + (res.message || 'Save failed.');
-                }
-            }
-        },
-        error: function() {
-            if (icon) icon.className = 'fa fa-check';
-            if (btn) btn.disabled = false;
-            if (msg) {
-                msg.style.display = 'block';
-                msg.style.color = '#EF4444';
-                msg.innerHTML = '<i class="fa fa-exclamation-circle"></i> Server error. Please try again.';
-            }
-        }
-    });
-};
-
-window.jaToggleMarketing = function(appId) {
-    var btn   = document.getElementById('ja-marketing-btn-' + appId);
-    var icon  = document.getElementById('ja-marketing-icon-' + appId);
-    var label = document.getElementById('ja-marketing-label-text-' + appId);
-    var input = document.getElementById('ja-marketing-label-input-' + appId);
-
-    if (icon) icon.className = 'fa fa-spinner fa-spin';
-
-    $.ajax({
-        type: 'POST',
-        url: window.jaRoutes && window.jaRoutes.toggleMarketing ? window.jaRoutes.toggleMarketing.replace(':id', appId) : '/admin/job-applications/' + appId + '/toggle-marketing',
-        data: {
-            _token: window.csrfToken || $('meta[name="csrf-token"]').attr('content'),
-            marketing_label: input ? input.value : ''
-        },
-        success: function (res) {
-            if (icon) icon.className = 'fa fa-bullhorn';
-            if (res.status !== 'success') return;
-
-            var payload = (res.data && typeof res.data.is_marketing !== 'undefined') ? res.data : res;
-            var isOn = !!payload.is_marketing;
-
-            if (label) label.textContent = isOn ? 'In Candidate Marketing' : 'Candidate Marketing';
-            if (btn) {
-                btn.style.background  = isOn ? '#ECFDF5' : '';
-                btn.style.color       = isOn ? '#065F46' : '';
-                btn.style.borderColor = isOn ? '#A7F3D0' : '';
-            }
-            if (input) {
-                input.style.display = isOn ? 'inline-block' : 'none';
-                if (typeof payload.marketing_label !== 'undefined' && payload.marketing_label !== null) {
-                    input.value = payload.marketing_label;
-                }
-            }
-        },
-        error: function () {
-            if (icon) icon.className = 'fa fa-bullhorn';
-        }
-    });
-};
-
-window.jaSaveMarketingLabel = function(appId) {
-    var input = document.getElementById('ja-marketing-label-input-' + appId);
-    if (!input) return;
-    
-    $.ajax({
-        type: 'POST',
-        url: window.jaRoutes && window.jaRoutes.updateMarketingLabel ? window.jaRoutes.updateMarketingLabel.replace(':id', appId) : '/admin/job-applications/' + appId + '/update-marketing-label',
-        data: { 
-            _token: window.csrfToken || $('meta[name="csrf-token"]').attr('content'),
-            marketing_label: input.value 
-        }
-    });
-};
-
-window.jaParseSkills = function(appId) {
-    // ... (move the entire function here)
-};
-
-window.jaAddManualSkill = function(appId) {
-    // ... (move the entire function here)
-};
-
-// Tab switching initialization
-window.jaInitTabs = function() {
-    // Remove old tab listeners first to prevent duplicates
-    $(document).off('click.jaTab');
-    
-    $(document).on('click.jaTab', '.ja-tab[data-tab]', function() {
-        var target = $(this).data('tab');
-        $('.ja-tab').removeClass('active');
-        $('.ja-tab-pane').hide();
-        $(this).addClass('active');
-        $('#ja-tab-' + target).show();
-    });
-};
-
-// Initialize on first load
-$(document).ready(function() {
-    window.jaInitTabs();
-    
-    // Escape key for job desc modal
-    $(document).on('keydown', function(e) {
-        if (e.key === 'Escape') window.jaHideJobDesc();
-    });
-    
-    // Close button for sidebar
-    $(document).on('click', '.right-side-toggle', function() {
-        if (window.raCloseRightSidebar) window.raCloseRightSidebar();
-    });
-});
 </script>
 
 @if(!is_null($application->skype_id))
