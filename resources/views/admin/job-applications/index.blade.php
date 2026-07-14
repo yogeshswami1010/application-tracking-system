@@ -1144,6 +1144,7 @@
         // ── Location → Company → Job cascade (AJAX-based) ──────────
 
     // Location change → fetch companies for this location
+    // Location change → fetch companies for this location
     $('#location').on('change', function() {
         var locationId = $(this).val() || 'all';
 
@@ -1151,13 +1152,13 @@
             $.ajax({
                 url: "{{ route('admin.job-applications.get-companies') }}",
                 type: 'GET',
-                success: function(data) {
+                success: function(response) {
+                    var payload = response.data || response;
+                    var companies = payload.companies || [];
                     var html = '<option value="all">@lang("modules.jobApplication.allCompany")</option>';
-                    if (data.companies && data.companies.length) {
-                        data.companies.forEach(function(c) {
-                            html += '<option value="' + c.id + '">' + (c.company_name || '') + '</option>';
-                        });
-                    }
+                    companies.forEach(function(c) {
+                        html += '<option value="' + c.id + '">' + (c.company_name || '') + '</option>';
+                    });
                     $('#company').select2('destroy').html(html).select2({ width: '100%' });
                     $('#company').val('all').trigger('change');
                 }
@@ -1167,13 +1168,13 @@
                 url: "{{ route('admin.job-applications.get-companies-by-location') }}",
                 type: 'GET',
                 data: { location_id: locationId },
-                success: function(data) {
+                success: function(response) {
+                    var payload = response.data || response;
+                    var companies = payload.companies || [];
                     var html = '<option value="all">@lang("modules.jobApplication.allCompany")</option>';
-                    if (data.companies && data.companies.length) {
-                        data.companies.forEach(function(c) {
-                            html += '<option value="' + c.id + '">' + (c.company_name || '') + '</option>';
-                        });
-                    }
+                    companies.forEach(function(c) {
+                        html += '<option value="' + c.id + '">' + (c.company_name || '') + '</option>';
+                    });
                     $('#company').select2('destroy').html(html).select2({ width: '100%' });
                     $('#company').val('all').trigger('change');
                 }
