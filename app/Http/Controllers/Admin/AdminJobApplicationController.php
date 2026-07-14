@@ -2225,10 +2225,11 @@ class AdminJobApplicationController extends AdminBaseController
         return Reply::dataOnly(['jobs' => $html]);
     }
 
-    public function getLocations(Request $request)
+        public function getLocations(Request $request)
     {
         $companyId = $request->input('companyId');
 
+        // If specific company selected, only get locations linked to that company's jobs
         if ($companyId && $companyId !== 'all' && $companyId !== '') {
             $locationIds = \DB::table('job_job_locations')
                 ->join('jobs', 'jobs.id', '=', 'job_job_locations.job_id')
@@ -2240,6 +2241,7 @@ class AdminJobApplicationController extends AdminBaseController
                 ->orderBy('location')
                 ->get();
         } else {
+            // No company filter - show all locations
             $locations = JobLocation::orderBy('location')->get();
         }
 
@@ -2248,7 +2250,6 @@ class AdminJobApplicationController extends AdminBaseController
             $html .= '<option value="' . $location->id . '">' . ucfirst($location->location) . '</option>';
         }
 
-        // Return plain JSON response directly
         return response()->json(['locations' => $html]);
     }
         public function parseSkills(Request $request, $id)

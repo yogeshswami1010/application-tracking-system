@@ -222,7 +222,7 @@ Route::middleware('auth')->group(function () {
             Route::post('jobs/update-visibility',      [AdminJobsController::class, 'updateVisibility'])->name('jobs.updateVisibility');
             Route::resource('jobs', AdminJobsController::class);
 
-            // Job Applications
+                        // Job Applications — SPECIFIC routes FIRST (no wildcards)
             Route::post('job-applications/rating-save/{id?}',              [AdminJobApplicationController::class, 'ratingSave'])->name('job-applications.rating-save');
             Route::get('job-applications/create-schedule/{id?}',           [AdminJobApplicationController::class, 'createSchedule'])->name('job-applications.create-schedule');
             Route::post('job-applications/store-schedule',                 [AdminJobApplicationController::class, 'storeSchedule'])->name('job-applications.store-schedule');
@@ -240,35 +240,36 @@ Route::middleware('auth')->group(function () {
             Route::get('job-applications/ai-compare-applicants',          [AdminJobApplicationController::class, 'aiCompareApplicants'])->name('job-applications.ai-compare-applicants');
             Route::post('job-applications/ai-generate-cover-letter',      [AdminJobApplicationController::class, 'aiGenerateCoverLetterAndDetails'])->name('job-applications.ai-generate-cover-letter');
             Route::post('job-applications/ai-parse-resume',               [AdminJobApplicationController::class, 'aiParseResumeFromUpload'])->name('job-applications.ai-parse-resume');
+
+            // ✅ CASCADE routes — MUST be before Route::resource (no wildcards)
             Route::get('job-applications/get-jobs',                       [AdminJobApplicationController::class, 'getJobs'])->name('job-applications.get-jobs');
+            Route::get('job-applications/get-locations',                    [AdminJobApplicationController::class, 'getLocations'])->name('job-applications.get-locations');
             Route::get('job-applications/stage-counts',                   [AdminJobApplicationController::class, 'stageCounts'])->name('job-applications.stage-counts');
             Route::post('job-applications/bulk-status-update',            [AdminJobApplicationController::class, 'bulkStatusUpdate'])->name('job-applications.bulk-status-update');
             Route::post('job-applications/bulk-restore-knockout',         [AdminJobApplicationController::class, 'bulkRestoreKnockout'])->name('job-applications.bulk-restore-knockout');
             Route::get('job-applications/job-statuses',                   [AdminJobApplicationController::class, 'jobStatuses'])->name('job-applications.job-statuses');
             Route::post('job-applications/bulk-parse-resume',             [AdminJobApplicationController::class, 'bulkParseResume'])->name('job-applications.bulk-parse-resume');
+
+            // ✅ Resource route LAST — has wildcard {job_application} that catches everything
             Route::resource('job-applications', AdminJobApplicationController::class);
+
+            // Routes with {id} parameter — AFTER resource
             Route::post('job-applications/{id}/parse-skills',             [AdminJobApplicationController::class, 'parseSkills'])->name('job-applications.parse-skills');
             Route::post('job-applications/{id}/assign-job',               [AdminJobApplicationController::class, 'assignJob'])->name('job-applications.assign-job');
-            Route::post('job-applications/{id}/update-info', [AdminJobApplicationController::class, 'updateBasicInfo'])
-            ->name('job-applications.update-basic-info');
+            Route::post('job-applications/{id}/update-info', [AdminJobApplicationController::class, 'updateBasicInfo'])->name('job-applications.update-basic-info');
             Route::post('job-applications/{id}/toggle-marketing',         [AdminJobApplicationController::class, 'toggleMarketing'])->name('job-applications.toggle-marketing');
-            // routes/web.php or routes/admin.php
-           // ✅ CORRECT - inside admin group, just use the base name
-Route::get('job-applications/get-companies-by-location', [AdminJobApplicationController::class, 'getCompaniesByLocation'])
-    ->name('job-applications.get-companies-by-location');
+            Route::post('job-applications/{id}/update-marketing-label',   [AdminJobApplicationController::class, 'updateMarketingLabel'])->name('job-applications.update-marketing-label');
 
-Route::get('job-applications/get-companies', [AdminJobApplicationController::class, 'getCompanies'])
-    ->name('job-applications.get-companies');
-            // ✅ CORRECT — inside the Route::prefix('admin')->name('admin.') group
-Route::post('job-applications/bulk-parse-all-cvs', [AdminJobApplicationController::class, 'bulkParseAllCvs'])
-    ->name('job-applications.bulk-parse-all-cvs');
+            // Other job-applications routes
+            Route::get('job-applications/get-companies-by-location', [AdminJobApplicationController::class, 'getCompaniesByLocation'])->name('job-applications.get-companies-by-location');
+            Route::get('job-applications/get-companies', [AdminJobApplicationController::class, 'getCompanies'])->name('job-applications.get-companies');
+            Route::post('job-applications/bulk-parse-all-cvs', [AdminJobApplicationController::class, 'bulkParseAllCvs'])->name('job-applications.bulk-parse-all-cvs');
             Route::post('job-applications/{id}/update-marketing-label',   [AdminJobApplicationController::class, 'updateMarketingLabel'])->name('job-applications.update-marketing-label');
             // Candidate Marketing
             Route::get('candidate-marketing/data',          [AdminCandidateMarketingController::class, 'data'])->name('candidate-marketing.data');
             Route::post('candidate-marketing/{id}/remove',  [AdminCandidateMarketingController::class, 'remove'])->name('candidate-marketing.remove');
             Route::resource('candidate-marketing', AdminCandidateMarketingController::class)->only(['index']);
             Route::get('candidate-marketing/{id}/show', [AdminCandidateMarketingController::class, 'show'])->name('candidate-marketing.show');
-Route::get('job-applications/get-locations', [AdminJobApplicationController::class, 'getLocations'])->name('job-applications.get-locations');
 
             // Applications Archive
             Route::get('applications-archive/data',            [AdminApplicationArchiveController::class, 'data'])->name('applications-archive.data');

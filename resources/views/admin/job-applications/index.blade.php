@@ -1057,122 +1057,79 @@
         return false;
     });
 
-function jaRefreshLocations(companyId, callback) {
-    console.log('jaRefreshLocations called with companyId:', companyId);
-    
-    $.ajax({
-        url: "{{ route('admin.job-applications.get-locations') }}",
-        type: 'GET',
-        data: { companyId: companyId },
-        dataType: 'json',  // Explicitly expect JSON
-        success: function(data, textStatus, xhr) {
-            console.log('=== AJAX SUCCESS ===');
-            console.log('Status:', textStatus);
-            console.log('Content-Type:', xhr.getResponseHeader('Content-Type'));
-            console.log('Raw response:', data);
-            console.log('Type of data:', typeof data);
-            console.log('Has locations?', data.hasOwnProperty('locations'));
-            console.log('data.locations:', data.locations);
-            
-            // Handle different response formats
-            var html = '';
-            if (data && typeof data === 'object') {
-                if (data.locations !== undefined) {
-                    html = data.locations;
-                } else if (data.data && data.data.locations !== undefined) {
-                    html = data.data.locations; // Some Reply helpers wrap in data.data
-                } else {
-                    console.error('Unknown response structure, keys:', Object.keys(data));
-                    html = '<option value="all">All Location</option>';
-                }
-            } else {
-                console.error('Response is not an object:', data);
-                html = '<option value="all">All Location</option>';
-            }
-            
-            console.log('Final HTML to insert:', html);
-            
-            // Destroy Select2
-            try {
-                var $loc = $('#location');
-                if ($loc.data('select2')) {
-                    $loc.select2('destroy');
-                }
-            } catch(e) {
-                console.log('Select2 destroy warning:', e.message);
-            }
-            
-            // Update HTML
-            $('#location').html(html);
-            
-            // Re-init Select2
-            $('#location').select2({ width: '100%' });
-            
-            // Reset to "all"
-            $('#location').val('all').trigger('change.select2');
-            
-            if (typeof callback === 'function') callback();
-        },
-        error: function(xhr, status, error) {
-            console.error('=== AJAX ERROR ===');
-            console.error('Status:', status);
-            console.error('Error:', error);
-            console.error('Response text:', xhr.responseText);
-            console.error('Status code:', xhr.status);
-        }
-    });
-}
+    // ── Company → Location → Jobs cascade ────────────────────────
 
-function jaRefreshJobs(companyId, locationId) {
-    console.log('jaRefreshJobs called:', { companyId, locationId });
-    
-    $.ajax({
-        url: "{{ route('admin.job-applications.get-jobs') }}",
-        type: 'GET',
-        data: { companyId: companyId, locationId: locationId },
-        success: function(data) {
-            console.log('jaRefreshJobs success');
-            
-            try {
-                if ($('#jobs').data('select2')) {
-                    $('#jobs').select2('destroy');
-                }
-            } catch(e) {
-                console.log('Select2 destroy warning (can ignore):', e);
+    function jaRefreshLocations(companyId, callback) {
+        $.ajax({
+            url: "{{ route('admin.job-applications.get-locations') }}",
+            type: 'GET',
+            data: { companyId: companyId },
+            dataType: 'json',
+            success: function(data) {
+                // Destroy Select2 if initialized
+                try {
+                    if ($('#location').data('select2')) {
+                        $('#location').select2('destroy');
+                    }
+                } catch(e) {}
+
+                // Update HTML
+                $('#location').html(data.locations);
+
+                // Re-init Select2
+                $('#location').select2({ width: '100%' });
+
+                // Reset to "all" when company changes
+                $('#location').val('all').trigger('change.select2');
+
+                if (typeof callback === 'function') callback();
+            },
+            error: function(xhr) {
+                console.error('jaRefreshLocations failed:', xhr.status, xhr.responseText);
             }
-            
-            $('#jobs').html(data.jobs);
-            $('#jobs').select2({ width: '100%' });
-            $('#jobs').val('all').trigger('change');
-            
-            // Reset job stages since no job is selected
-            jaLoadJobStatuses('all');
-        },
-        error: function(xhr, status, error) {
-            console.error('jaRefreshJobs AJAX ERROR:', status, error);
-        }
-    });
-}
+        });
+    }
 
-// Bind company change — use direct binding, not delegation
-$('#company').off('change').on('change', function() {
-    var company_id = $(this).val();
-    console.log('Company changed to:', company_id);
-    
-    jaRefreshLocations(company_id, function() {
-        // After locations refresh, refresh jobs with company + new location (which is 'all')
-        jaRefreshJobs(company_id, $('#location').val());
-    });
-});
+    function jaRefreshJobs(companyId, locationId) {
+        $.ajax({
+            url: "{{ route('admin.job-applications.get-jobs') }}",
+            type: 'GET',
+            data: { companyId: companyId, locationId: locationId },
+            dataType: 'json',
+            success: function(data) {
+                try {
+                    if ($('#jobs').data('select2')) {
+                        $('#jobs').select2('destroy');
+                    }
+                } catch(e) {}
 
-// Bind location change
-$('#location').off('change').on('change', function() {
-    var company_id  = $('#company').val();
-    var location_id = $(this).val();
-    console.log('Location changed to:', location_id, 'company:', company_id);
-    
-    jaRefreshJobs(company_id, location_id);
-});
+                $('#jobs').html(data.jobs);
+                $('#jobs').select2({ width: '100%' });
+                $('#jobs').val('all').trigger('change');
+
+                // Reset job stages since no job is selected
+                jaLoadJobStatuses('all');
+            },
+            error: function(xhr) {
+                console.error('jaRefreshJobs failed:', xhr.status, xhr.responseText);
+            }
+        });
+    }
+
+    // Company changes → filter locations, then filter jobs
+    $('#company').on('change', function() {
+        var company_id = $(this).val();
+        jaRefreshLocations(company_id, function() {
+            jaRefreshJobs(company_id, $('#location').val());
+        });
+    });
+
+    // Location changes → filter jobs
+    $('#location').on('change', function() {
+        var company_id  = $('#company').val();
+        var location_id = $(this).val();
+        jaRefreshJobs(company_id, location_id);
+    });
     // ── Select2 init ─────────────────────────────────────────────
     $('#filter-form select.select2').not('#skill').select2({ width: '100%' });
 
