@@ -245,4 +245,31 @@ class AdminApplicationArchiveController extends AdminBaseController
 
         return Reply::success(__('messages.recordDeleted'));
     }
+        public function getLocations(Request $request)
+    {
+        $companyId = $request->input('companyId');
+
+        // If specific company selected, only get locations linked to that company's jobs
+        if ($companyId && $companyId !== 'all' && $companyId !== '') {
+            $locationIds = \DB::table('job_job_locations')
+                ->join('jobs', 'jobs.id', '=', 'job_job_locations.job_id')
+                ->where('jobs.company_id', $companyId)
+                ->distinct()
+                ->pluck('job_job_locations.location_id');
+
+            $locations = JobLocation::whereIn('id', $locationIds)
+                ->orderBy('location')
+                ->get();
+        } else {
+            // No company filter - show all locations
+            $locations = JobLocation::orderBy('location')->get();
+        }
+
+        $html = '<option value="all">' . __('modules.jobApplication.allLocation') . '</option>';
+        foreach ($locations as $location) {
+            $html .= '<option value="' . $location->id . '">' . ucfirst($location->location) . '</option>';
+        }
+
+        return response()->json(['locations' => $html]);
+    }
 }

@@ -270,7 +270,9 @@ Route::middleware('auth')->group(function () {
             Route::post('candidate-marketing/{id}/remove',  [AdminCandidateMarketingController::class, 'remove'])->name('candidate-marketing.remove');
             Route::resource('candidate-marketing', AdminCandidateMarketingController::class)->only(['index']);
             Route::get('candidate-marketing/{id}/show', [AdminCandidateMarketingController::class, 'show'])->name('candidate-marketing.show');
-
+            // Archive / Candidate Database cascade routes
+            Route::get('applications-archive/get-locations', [AdminApplicationArchiveController::class, 'getLocations'])
+                ->name('applications-archive.get-locations');
             // Applications Archive
             Route::get('applications-archive/data',            [AdminApplicationArchiveController::class, 'data'])->name('applications-archive.data');
             Route::get('applications-archive/export/{skill}',  [AdminApplicationArchiveController::class, 'export'])->name('applications-archive.export');
