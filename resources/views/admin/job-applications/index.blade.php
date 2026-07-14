@@ -291,7 +291,16 @@
                             @endforelse
                         </select>
                     </div>
-
+                    <div class="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[220px]">
+                        <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('menu.locations')</label>
+                        <select class="select2 w-full" name="location" id="location">
+                            <option value="all">@lang('modules.jobApplication.allLocation')</option>
+                            @forelse($locations as $location)
+                                <option value="{{ $location->id }}">{{ ucfirst($location->location) }}</option>
+                            @empty
+                            @endforelse
+                        </select>
+                    </div>
                     <div class="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[220px]">
                         <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('menu.jobs')</label>
                         <select class="select2 w-full" name="jobs" id="jobs">
@@ -303,16 +312,7 @@
                         </select>
                     </div>
 
-                    <div class="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[220px]">
-                        <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('menu.locations')</label>
-                        <select class="select2 w-full" name="location" id="location">
-                            <option value="all">@lang('modules.jobApplication.allLocation')</option>
-                            @forelse($locations as $location)
-                                <option value="{{ $location->id }}">{{ ucfirst($location->location) }}</option>
-                            @empty
-                            @endforelse
-                        </select>
-                    </div>
+                   
 
                     <div class="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[240px]">
                         <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('modules.jobApplication.allQuestion')</label>
