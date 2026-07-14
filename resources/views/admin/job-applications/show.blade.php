@@ -990,9 +990,9 @@ function jaSaveMarketingLabel(appId) {
     </div>
 </div>
 
-<!-- @if($user->cans('edit_job_applications'))
-<script src="{{ asset('assets/plugins/jquery-bar-rating-master/dist/jquery.barrating.min.js') }}" type="text/javascript"></script>
-@endif -->
+@if($user->cans('edit_job_applications'))
+<script src="{{ asset('assets/plugins/jquery-bar-rating-master/dist/jquery.barrating.min.js') }}" async></script>
+@endif
 
 <script>
 /* ── Tab switching ── */
