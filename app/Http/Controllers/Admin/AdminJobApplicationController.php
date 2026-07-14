@@ -1213,7 +1213,7 @@ class AdminJobApplicationController extends AdminBaseController
         return Reply::dataOnly(['status' => 'success', 'view' => $view]);
     }
 
-    public function updateIndex(Request $request)
+    public function updateIndex(Request $request) 
     {
         $taskIds = $request->applicationIds;
         $boardColumnIds = $request->boardColumnIds;
