@@ -268,27 +268,48 @@ document.getElementById('run-bulk-parse').addEventListener('click', function() {
                 </div>
                 <form id="filter-form" class="flex flex-wrap items-end gap-3.5 pb-3">
 
-                    <div class="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[220px]">
-                        <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('app.status')</label>
-                        <select class="select2 w-full" name="status" id="status">
-                            <option value="all">@lang('modules.jobApplication.allStatus')</option>
-                            @forelse($boardColumns as $col)
-                                <option value="{{ $col->id }}">{{ ucfirst($col->status) }}</option>
-                            @empty
-                            @endforelse
-                        </select>
-                    </div>
+                    {{-- ── Skill tag input ── --}}
+                    <!-- <div class="flex min-w-[200px] flex-1 flex-col gap-1 sm:max-w-[300px]">
+                        <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">
+                            @lang('modules.applicationArchive.enterSkill')
+                        </label>
+                        {{-- Hidden input carries comma-joined skill list for form submit --}}
+                        <input type="hidden" id="skill" name="skill" value="">
+                        <div class="relative">
+                            <div class="skill-tag-wrap" id="skill-tag-wrap">
+                                <input type="text" id="skill-tag-input" class="skill-tag-input"
+                                    placeholder="Type a skill, press Enter…"
+                                    autocomplete="off">
+                            </div>
+                            <div class="skill-suggestions" id="skill-suggestions" style="display:none;"></div>
+                        </div>
+                    </div> -->
 
+                    {{-- Company --}}
                     <div class="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[220px]">
                         <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('app.company')</label>
                         <select class="select2 w-full" name="company" id="company">
                             <option value="all">@lang('modules.jobApplication.allCompany')</option>
                             @forelse($companies as $company)
-                                <option title="{{ ucfirst($company->company_name) }}" value="{{ $company->id }}">{{ ucfirst($company->company_name) }}</option>
+                                <option value="{{ $company->id }}">{{ ucfirst($company->company_name) }}</option>
                             @empty
                             @endforelse
                         </select>
                     </div>
+
+                    {{-- Jobs --}}
+                    <div class="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[220px]">
+                        <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('menu.jobs')</label>
+                        <select class="select2 w-full" name="jobs" id="jobs">
+                            <option value="all">@lang('modules.jobApplication.allJobs')</option>
+                            @forelse($jobs as $job)
+                                <option value="{{ $job->id }}">{{ ucfirst($job->title) }}</option>
+                            @empty
+                            @endforelse
+                        </select>
+                    </div>
+
+                    {{-- Location --}}
                     <div class="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[220px]">
                         <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('menu.locations')</label>
                         <select class="select2 w-full" name="location" id="location">
@@ -299,19 +320,20 @@ document.getElementById('run-bulk-parse').addEventListener('click', function() {
                             @endforelse
                         </select>
                     </div>
+
+                    {{-- Status --}}
                     <div class="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[220px]">
-                        <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('menu.jobs')</label>
-                        <select class="select2 w-full" name="jobs" id="jobs">
-                            <option value="all">@lang('modules.jobApplication.allJobs')</option>
-                            @forelse($jobs as $job)
-                                <option title="{{ ucfirst($job->title) }}" value="{{ $job->id }}">{{ ucfirst($job->title) }}</option>
+                        <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('app.status')</label>
+                        <select class="select2 w-full" name="status" id="status">
+                            <option value="all">@lang('modules.jobApplication.allStatus')</option>
+                            @forelse($statuses as $s)
+                                <option value="{{ $s->id }}">{{ ucfirst($s->status) }}</option>
                             @empty
                             @endforelse
                         </select>
                     </div>
 
-                   
-
+                    {{-- Question --}}
                     <div class="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[240px]">
                         <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('modules.jobApplication.allQuestion')</label>
                         <select class="select2 w-full" name="question" id="questions">
@@ -323,13 +345,18 @@ document.getElementById('run-bulk-parse').addEventListener('click', function() {
                         </select>
                     </div>
 
+                    {{-- Question value (shown when a question is selected) --}}
                     <div class="hidden flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[220px]" id="question_value">
                         <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('app.filterBy')</label>
-                        <input type="text" class="form-control rounded-[10px] border-[1.5px] border-[#E2DED8] bg-[#F8F7F4] text-[13px]" name="question_value" id="question-value" placeholder="">
+                        <input type="text" class="form-control rounded-[10px] border-[1.5px] border-[#E2DED8] bg-[#F8F7F4] text-[13px]"
+                               name="question_value" id="question-value" placeholder="">
                     </div>
 
+                    {{-- Actions --}}
                     <div class="flex w-full flex-wrap items-center gap-2.5 pt-1">
-                        <button type="button" id="reset-filters" class="inline-flex items-center gap-2 rounded-[9px] border-[1.5px] border-[#E2DED8] bg-white px-4 py-2.5 text-[13px] font-semibold text-[#8892A0] transition hover:border-[#EF4444] hover:text-[#EF4444] focus:outline-none">
+                        
+                        <button type="button" id="reset-filters"
+                            class="inline-flex items-center gap-2 rounded-[9px] border-[1.5px] border-[#E2DED8] bg-white px-4 py-2.5 text-[13px] font-semibold text-[#8892A0] transition hover:border-[#EF4444] hover:text-[#EF4444] focus:outline-none">
                             <i class="fa fa-refresh"></i> @lang('app.reset')
                         </button>
                     </div>
