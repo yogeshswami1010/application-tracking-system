@@ -3486,7 +3486,6 @@ class AdminJobApplicationController extends AdminBaseController
         if (!$locationId || $locationId === 'all') {
             $companies = Company::select('id', 'company_name')->get();
         } else {
-            // Fix: Use job_job_locations pivot table instead of direct location_id on jobs
             $companyIds = JobJobLocation::where('location_id', $locationId)
                 ->join('jobs', 'jobs.id', '=', 'job_job_locations.job_id')
                 ->distinct()
@@ -3497,15 +3496,13 @@ class AdminJobApplicationController extends AdminBaseController
                 ->get();
         }
 
-        return Reply::dataOnly(['companies' => $companies]);
+        // Return plain array for direct JS consumption
+        return response()->json(['companies' => $companies]);
     }
 
-    /**
-     * Get all companies (for reset when location = 'all')
-     */
     public function getCompanies(Request $request)
     {
         $companies = Company::select('id', 'company_name')->get();
-        return Reply::dataOnly(['companies' => $companies]);
+        return response()->json(['companies' => $companies]);
     }
 } // ← CLASS CLOSING BRACE — KEEP ONLY THIS ONE
