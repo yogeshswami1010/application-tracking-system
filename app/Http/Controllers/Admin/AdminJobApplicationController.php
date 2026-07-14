@@ -2225,42 +2225,33 @@ class AdminJobApplicationController extends AdminBaseController
         return Reply::dataOnly(['jobs' => $html]);
     }
 
-        public function getLocations(Request $request)
-{
-    $companyId = $request->input('companyId');
+    public function getLocations(Request $request)
+    {
+        $companyId = $request->input('companyId');
 
-    \Log::info('getLocations called with companyId: ' . ($companyId ?? 'null'));
+        if ($companyId && $companyId !== 'all' && $companyId !== '') {
+            $locationIds = \DB::table('job_job_locations')
+                ->join('jobs', 'jobs.id', '=', 'job_job_locations.job_id')
+                ->where('jobs.company_id', $companyId)
+                ->distinct()
+                ->pluck('job_job_locations.location_id');
 
-    // If specific company selected, only get locations linked to that company's jobs
-    if ($companyId && $companyId !== 'all' && $companyId !== '') {
-        $locationIds = \DB::table('job_job_locations')
-            ->join('jobs', 'jobs.id', '=', 'job_job_locations.job_id')
-            ->where('jobs.company_id', $companyId)
-            ->pluck('job_job_locations.location_id')
-            ->unique()
-            ->filter()
-            ->values();
+            $locations = JobLocation::whereIn('id', $locationIds)
+                ->orderBy('location')
+                ->get();
+        } else {
+            $locations = JobLocation::orderBy('location')->get();
+        }
 
-        \Log::info('Found location IDs: ' . $locationIds->implode(', '));
+        $html = '<option value="all">' . __('modules.jobApplication.allLocation') . '</option>';
+        foreach ($locations as $location) {
+            $html .= '<option value="' . $location->id . '">' . ucfirst($location->location) . '</option>';
+        }
 
-        $locations = JobLocation::whereIn('id', $locationIds)
-            ->orderBy('location')
-            ->get();
-    } else {
-        // No company filter - show all locations
-        $locations = JobLocation::orderBy('location')->get();
+        // Return plain JSON response directly
+        return response()->json(['locations' => $html]);
     }
-
-    \Log::info('Returning ' . $locations->count() . ' locations');
-
-    $html = '<option value="all">'.__('modules.jobApplication.allLocation').'</option>';
-    foreach ($locations as $location) {
-        $html .= '<option value="'.$location->id.'">'.ucfirst($location->location).'</option>';
-    }
-
-    return Reply::dataOnly(['locations' => $html]);
-}
-    public function parseSkills(Request $request, $id)
+        public function parseSkills(Request $request, $id)
     {
         \Log::info('parseSkills called for id: ' . $id);
 

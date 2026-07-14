@@ -1057,9 +1057,6 @@
         return false;
     });
 
-   // ── Company → Location → Jobs cascade ────────────────────────
-  // ── Company → Location → Jobs cascade ────────────────────────
-
 function jaRefreshLocations(companyId, callback) {
     console.log('jaRefreshLocations called with companyId:', companyId);
     
@@ -1067,32 +1064,61 @@ function jaRefreshLocations(companyId, callback) {
         url: "{{ route('admin.job-applications.get-locations') }}",
         type: 'GET',
         data: { companyId: companyId },
-        success: function(data) {
-            console.log('jaRefreshLocations success, locations HTML:', data.locations);
+        dataType: 'json',  // Explicitly expect JSON
+        success: function(data, textStatus, xhr) {
+            console.log('=== AJAX SUCCESS ===');
+            console.log('Status:', textStatus);
+            console.log('Content-Type:', xhr.getResponseHeader('Content-Type'));
+            console.log('Raw response:', data);
+            console.log('Type of data:', typeof data);
+            console.log('Has locations?', data.hasOwnProperty('locations'));
+            console.log('data.locations:', data.locations);
             
-            // Destroy Select2 if initialized
-            try {
-                if ($('#location').data('select2')) {
-                    $('#location').select2('destroy');
+            // Handle different response formats
+            var html = '';
+            if (data && typeof data === 'object') {
+                if (data.locations !== undefined) {
+                    html = data.locations;
+                } else if (data.data && data.data.locations !== undefined) {
+                    html = data.data.locations; // Some Reply helpers wrap in data.data
+                } else {
+                    console.error('Unknown response structure, keys:', Object.keys(data));
+                    html = '<option value="all">All Location</option>';
                 }
-            } catch(e) {
-                console.log('Select2 destroy warning (can ignore):', e);
+            } else {
+                console.error('Response is not an object:', data);
+                html = '<option value="all">All Location</option>';
             }
             
-            // Replace HTML
-            $('#location').html(data.locations);
+            console.log('Final HTML to insert:', html);
+            
+            // Destroy Select2
+            try {
+                var $loc = $('#location');
+                if ($loc.data('select2')) {
+                    $loc.select2('destroy');
+                }
+            } catch(e) {
+                console.log('Select2 destroy warning:', e.message);
+            }
+            
+            // Update HTML
+            $('#location').html(html);
             
             // Re-init Select2
             $('#location').select2({ width: '100%' });
             
-            // ALWAYS reset to "all" when company changes — old location won't exist in new company's list
+            // Reset to "all"
             $('#location').val('all').trigger('change.select2');
             
             if (typeof callback === 'function') callback();
         },
         error: function(xhr, status, error) {
-            console.error('jaRefreshLocations AJAX ERROR:', status, error);
-            console.error('Response:', xhr.responseText);
+            console.error('=== AJAX ERROR ===');
+            console.error('Status:', status);
+            console.error('Error:', error);
+            console.error('Response text:', xhr.responseText);
+            console.error('Status code:', xhr.status);
         }
     });
 }
