@@ -339,7 +339,8 @@ function jaSaveMarketingLabel(appId) {
                 <div class="ja-tab" data-tab="client-notes">
                     <i class="fa fa-building" style="font-size:11px"></i> Client Notes
                     @if($clientNotes->count() > 0)
-                        <span class="ja-tab-badge">{{ $clientNotes->count() }}</span>
+                        <span class="ja-tab-badge">{{ count($clientNotes) }}</span>
+
                     @endif
                 </div>
                 
