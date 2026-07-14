@@ -1394,6 +1394,292 @@ function jaSaveJobEdit(appId) {
         }
     });
 }
+// ============================================================
+// JOB APPLICATION DETAIL PANEL - GLOBAL FUNCTIONS
+// These must be available globally because show.blade.php
+// is loaded dynamically via AJAX
+// ============================================================
+
+window.jaShowJobDesc = function() {
+    var o = document.getElementById('ja-jobdesc-overlay');
+    if (o) {
+        o.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+};
+
+window.jaHideJobDesc = function() {
+    var o = document.getElementById('ja-jobdesc-overlay');
+    if (o) {
+        o.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+};
+
+window.jaToggleInfoEdit = function(appId) {
+    var view = document.getElementById('ja-info-view-' + appId);
+    var editBox = document.getElementById('ja-info-edit-' + appId);
+    var btn = document.getElementById('ja-info-edit-btn-' + appId);
+    if (!view || !editBox) return;
+    
+    var isEdit = editBox.style.display !== 'none';
+    if (isEdit) {
+        editBox.style.display = 'none';
+        view.style.display = 'block';
+        if (btn) btn.innerHTML = '<i class="fa fa-pencil" style="font-size:10px"></i> Edit';
+    } else {
+        view.style.display = 'none';
+        editBox.style.display = 'block';
+        if (btn) btn.innerHTML = '<i class="fa fa-times" style="font-size:10px"></i> Cancel';
+        var nameInput = document.getElementById('ja-edit-name-' + appId);
+        if (nameInput) nameInput.focus();
+    }
+    var msg = document.getElementById('ja-info-save-msg-' + appId);
+    if (msg) { msg.style.display = 'none'; msg.innerHTML = ''; }
+};
+
+window.jaSaveInfoEdit = function(appId) {
+    var name  = document.getElementById('ja-edit-name-' + appId);
+    var email = document.getElementById('ja-edit-email-' + appId);
+    var phone = document.getElementById('ja-edit-phone-' + appId);
+    var icon  = document.getElementById('ja-info-save-icon-' + appId);
+    var msg   = document.getElementById('ja-info-save-msg-' + appId);
+    var btn   = document.getElementById('ja-info-save-btn-' + appId);
+
+    if (!name || !email) return;
+    
+    var nameVal = name.value.trim();
+    var emailVal = email.value.trim();
+    var phoneVal = phone ? phone.value.trim() : '';
+
+    if (!nameVal || !emailVal) {
+        if (msg) {
+            msg.style.display = 'block';
+            msg.style.color = '#EF4444';
+            msg.innerHTML = '<i class="fa fa-exclamation-circle"></i> Name and email are required.';
+        }
+        return;
+    }
+
+    if (icon) icon.className = 'fa fa-spinner fa-spin';
+    if (btn) btn.disabled = true;
+
+    $.ajax({
+        type: 'POST',
+        url: window.jaRoutes && window.jaRoutes.updateBasicInfo ? window.jaRoutes.updateBasicInfo.replace(':id', appId) : '/admin/job-applications/' + appId + '/update-basic-info',
+        data: { 
+            _token: window.csrfToken || $('meta[name="csrf-token"]').attr('content'),
+            full_name: nameVal, 
+            email: emailVal, 
+            phone: phoneVal 
+        },
+        success: function(res) {
+            if (icon) icon.className = 'fa fa-check';
+            if (btn) btn.disabled = false;
+            
+            if (res.status === 'success') {
+                var n = res.data ? res.data.full_name : nameVal;
+                var e = res.data ? res.data.email : emailVal;
+                var p = res.data ? res.data.phone : phoneVal;
+                
+                var nameEl  = document.getElementById('ja-display-name-' + appId);
+                var emailEl = document.getElementById('ja-display-email-' + appId);
+                var phoneEl = document.getElementById('ja-display-phone-' + appId);
+                
+                if (nameEl)  nameEl.textContent = n;
+                if (emailEl) emailEl.innerHTML  = '<a href="mailto:' + e + '" style="color:#2563EB">' + e + '</a>';
+                if (phoneEl) phoneEl.innerHTML  = '<a href="tel:' + p + '" style="color:#2563EB">' + p + '</a>';
+                
+                var viewEl  = document.getElementById('ja-info-view-' + appId);
+                var editEl  = document.getElementById('ja-info-edit-' + appId);
+                var editBtn = document.getElementById('ja-info-edit-btn-' + appId);
+                
+                if (editEl)  editEl.style.display = 'none';
+                if (viewEl)  viewEl.style.display = 'block';
+                if (editBtn) editBtn.innerHTML = '<i class="fa fa-pencil" style="font-size:10px"></i> Edit';
+                if (msg)     msg.style.display = 'none';
+                
+                if (typeof table !== 'undefined') table.draw(false);
+            } else {
+                if (msg) {
+                    msg.style.display = 'block';
+                    msg.style.color = '#EF4444';
+                    msg.innerHTML = '<i class="fa fa-exclamation-circle"></i> ' + (res.message || 'Save failed.');
+                }
+            }
+        },
+        error: function() {
+            if (icon) icon.className = 'fa fa-check';
+            if (btn) btn.disabled = false;
+            if (msg) {
+                msg.style.display = 'block';
+                msg.style.color = '#EF4444';
+                msg.innerHTML = '<i class="fa fa-exclamation-circle"></i> Server error. Please try again.';
+            }
+        }
+    });
+};
+
+window.jaToggleJobEdit = function(appId) {
+    var view = document.getElementById('ja-job-view-' + appId);
+    var edit = document.getElementById('ja-job-edit-' + appId);
+    if (!view || !edit) return;
+    
+    var isEdit = edit.style.display !== 'none';
+    edit.style.display = isEdit ? 'none' : 'block';
+    var msg = document.getElementById('ja-job-save-msg-' + appId);
+    if (msg) { msg.style.display = 'none'; msg.innerHTML = ''; }
+};
+
+window.jaSaveJobEdit = function(appId) {
+    var select = document.getElementById('ja-job-select-' + appId);
+    var icon   = document.getElementById('ja-job-save-icon-' + appId);
+    var btn    = document.getElementById('ja-job-save-btn-' + appId);
+    var msg    = document.getElementById('ja-job-save-msg-' + appId);
+
+    if (!select) return;
+    var jobId = select.value;
+    if (!jobId) return;
+
+    if (icon) icon.className = 'fa fa-spinner fa-spin';
+    if (btn) btn.disabled = true;
+
+    $.ajax({
+        type: 'POST',
+        url: window.jaRoutes && window.jaRoutes.assignJob ? window.jaRoutes.assignJob.replace(':id', appId) : '/admin/job-applications/' + appId + '/assign-job',
+        data: { 
+            _token: window.csrfToken || $('meta[name="csrf-token"]').attr('content'),
+            job_id: jobId 
+        },
+        success: function(res) {
+            if (icon) icon.className = 'fa fa-check';
+            if (btn) btn.disabled = false;
+
+            if (res.status === 'success') {
+                // Reload the whole detail panel
+                $.easyAjax({
+                    type: 'GET',
+                    url: window.jaRoutes && window.jaRoutes.show ? window.jaRoutes.show.replace(':id', appId) : '/admin/job-applications/' + appId,
+                    success: function(r) {
+                        if (r.status === 'success') {
+                            $('#right-sidebar-content').html(r.view);
+                            // Re-initialize tab switching after content load
+                            window.jaInitTabs();
+                        }
+                    }
+                });
+                if (typeof table !== 'undefined') table.draw(false);
+            } else {
+                if (msg) {
+                    msg.style.display = 'block';
+                    msg.style.color = '#EF4444';
+                    msg.innerHTML = '<i class="fa fa-exclamation-circle"></i> ' + (res.message || 'Save failed.');
+                }
+            }
+        },
+        error: function() {
+            if (icon) icon.className = 'fa fa-check';
+            if (btn) btn.disabled = false;
+            if (msg) {
+                msg.style.display = 'block';
+                msg.style.color = '#EF4444';
+                msg.innerHTML = '<i class="fa fa-exclamation-circle"></i> Server error. Please try again.';
+            }
+        }
+    });
+};
+
+window.jaToggleMarketing = function(appId) {
+    var btn   = document.getElementById('ja-marketing-btn-' + appId);
+    var icon  = document.getElementById('ja-marketing-icon-' + appId);
+    var label = document.getElementById('ja-marketing-label-text-' + appId);
+    var input = document.getElementById('ja-marketing-label-input-' + appId);
+
+    if (icon) icon.className = 'fa fa-spinner fa-spin';
+
+    $.ajax({
+        type: 'POST',
+        url: window.jaRoutes && window.jaRoutes.toggleMarketing ? window.jaRoutes.toggleMarketing.replace(':id', appId) : '/admin/job-applications/' + appId + '/toggle-marketing',
+        data: {
+            _token: window.csrfToken || $('meta[name="csrf-token"]').attr('content'),
+            marketing_label: input ? input.value : ''
+        },
+        success: function (res) {
+            if (icon) icon.className = 'fa fa-bullhorn';
+            if (res.status !== 'success') return;
+
+            var payload = (res.data && typeof res.data.is_marketing !== 'undefined') ? res.data : res;
+            var isOn = !!payload.is_marketing;
+
+            if (label) label.textContent = isOn ? 'In Candidate Marketing' : 'Candidate Marketing';
+            if (btn) {
+                btn.style.background  = isOn ? '#ECFDF5' : '';
+                btn.style.color       = isOn ? '#065F46' : '';
+                btn.style.borderColor = isOn ? '#A7F3D0' : '';
+            }
+            if (input) {
+                input.style.display = isOn ? 'inline-block' : 'none';
+                if (typeof payload.marketing_label !== 'undefined' && payload.marketing_label !== null) {
+                    input.value = payload.marketing_label;
+                }
+            }
+        },
+        error: function () {
+            if (icon) icon.className = 'fa fa-bullhorn';
+        }
+    });
+};
+
+window.jaSaveMarketingLabel = function(appId) {
+    var input = document.getElementById('ja-marketing-label-input-' + appId);
+    if (!input) return;
+    
+    $.ajax({
+        type: 'POST',
+        url: window.jaRoutes && window.jaRoutes.updateMarketingLabel ? window.jaRoutes.updateMarketingLabel.replace(':id', appId) : '/admin/job-applications/' + appId + '/update-marketing-label',
+        data: { 
+            _token: window.csrfToken || $('meta[name="csrf-token"]').attr('content'),
+            marketing_label: input.value 
+        }
+    });
+};
+
+window.jaParseSkills = function(appId) {
+    // ... (move the entire function here)
+};
+
+window.jaAddManualSkill = function(appId) {
+    // ... (move the entire function here)
+};
+
+// Tab switching initialization
+window.jaInitTabs = function() {
+    // Remove old tab listeners first to prevent duplicates
+    $(document).off('click.jaTab');
+    
+    $(document).on('click.jaTab', '.ja-tab[data-tab]', function() {
+        var target = $(this).data('tab');
+        $('.ja-tab').removeClass('active');
+        $('.ja-tab-pane').hide();
+        $(this).addClass('active');
+        $('#ja-tab-' + target).show();
+    });
+};
+
+// Initialize on first load
+$(document).ready(function() {
+    window.jaInitTabs();
+    
+    // Escape key for job desc modal
+    $(document).on('keydown', function(e) {
+        if (e.key === 'Escape') window.jaHideJobDesc();
+    });
+    
+    // Close button for sidebar
+    $(document).on('click', '.right-side-toggle', function() {
+        if (window.raCloseRightSidebar) window.raCloseRightSidebar();
+    });
+});
 </script>
 
 @if(!is_null($application->skype_id))
