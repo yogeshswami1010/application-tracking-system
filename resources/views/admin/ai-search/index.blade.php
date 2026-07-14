@@ -8,6 +8,7 @@
         background: #EEF0F5;
         margin: -1rem -1.5rem;
         padding: 2rem 1.5rem;
+        position: relative;
     }
 
     /* ── Header ── */
@@ -91,6 +92,21 @@
     }
     .ai-search-btn:hover { background: #1d4ed8; }
     .ai-search-btn:disabled { opacity: .6; cursor: not-allowed; }
+    .ai-search-btn.secondary {
+        background: #fff;
+        color: #5a6478;
+        border: 1.5px solid #e2ded8;
+    }
+    .ai-search-btn.secondary:hover {
+        background: #f8f9fb;
+        border-color: #2563eb;
+        color: #2563eb;
+    }
+    .ai-search-btn.secondary.saved {
+        background: #d1fae5;
+        color: #065f46;
+        border-color: #a7f3d0;
+    }
 
     /* ── Suggestions ── */
     .ai-search-suggestions {
@@ -117,6 +133,166 @@
         background: #eff6ff;
     }
 
+    /* ── Saved Prompts Sidebar ── */
+    .ai-saved-prompts-sidebar {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 320px;
+        height: 100vh;
+        background: #fff;
+        border-left: 1px solid #e2ded8;
+        box-shadow: -4px 0 24px rgba(0,0,0,.08);
+        transform: translateX(100%);
+        transition: transform .3s cubic-bezier(.4,0,.2,1);
+        z-index: 1050;
+        display: flex;
+        flex-direction: column;
+    }
+    .ai-saved-prompts-sidebar.open { transform: translateX(0); }
+    .ai-saved-prompts-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,.25);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .3s;
+        z-index: 1049;
+    }
+    .ai-saved-prompts-backdrop.open { opacity: 1; pointer-events: auto; }
+    .ai-saved-prompts-toggle {
+        position: fixed;
+        top: 50%;
+        right: 0;
+        transform: translateY(-50%);
+        background: #fff;
+        border: 1px solid #e2ded8;
+        border-right: none;
+        border-radius: 12px 0 0 12px;
+        padding: 12px 10px 12px 14px;
+        cursor: pointer;
+        box-shadow: -2px 0 12px rgba(0,0,0,.08);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: #5a6478;
+        font-size: 13px;
+        font-weight: 600;
+        z-index: 1048;
+        transition: all .2s;
+    }
+    .ai-saved-prompts-toggle:hover {
+        background: #eff6ff;
+        color: #2563eb;
+        border-color: #2563eb;
+    }
+    .ai-saved-prompts-count {
+        background: #2563eb;
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        min-width: 18px;
+        height: 18px;
+        border-radius: 9px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .ai-saved-prompts-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 18px;
+        border-bottom: 1px solid #f1f3f7;
+    }
+    .ai-saved-prompts-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: #1a1e2e;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .ai-saved-prompts-close {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        border: 1px solid #e2ded8;
+        background: #fff;
+        color: #8892a0;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all .12s;
+    }
+    .ai-saved-prompts-close:hover {
+        border-color: #dc2626;
+        color: #dc2626;
+        background: #fef2f2;
+    }
+    .ai-saved-prompts-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px;
+    }
+    .ai-saved-prompts-empty {
+        text-align: center;
+        padding: 40px 20px;
+        color: #b0b8c4;
+        font-size: 13px;
+    }
+    .ai-saved-prompt-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all .12s;
+        margin-bottom: 4px;
+        border: 1px solid transparent;
+    }
+    .ai-saved-prompt-item:hover {
+        background: #f8f9fb;
+        border-color: #e2ded8;
+    }
+    .ai-saved-prompt-item.active {
+        background: #eff6ff;
+        border-color: #2563eb;
+    }
+    .ai-saved-prompt-text {
+        flex: 1;
+        font-size: 13px;
+        color: #1a1e2e;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .ai-saved-prompt-date {
+        font-size: 10px;
+        color: #b0b8c4;
+        white-space: nowrap;
+    }
+    .ai-saved-prompt-delete {
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        border: none;
+        background: transparent;
+        color: #b0b8c4;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: all .12s;
+        flex-shrink: 0;
+    }
+    .ai-saved-prompt-item:hover .ai-saved-prompt-delete { opacity: 1; }
+    .ai-saved-prompt-delete:hover { background: #fef2f2; color: #dc2626; }
+
     /* ── Status bar ── */
     .ai-search-status-bar {
         max-width: 880px;
@@ -134,9 +310,7 @@
         align-items: center;
         gap: 8px;
     }
-    .ai-search-status-label span {
-        color: #1a1e2e;
-    }
+    .ai-search-status-label span { color: #1a1e2e; }
     .ai-search-clear-btn {
         font-size: 12.5px;
         color: #8892a0;
@@ -151,15 +325,8 @@
     .ai-search-clear-btn:hover { border-color: #dc2626; color: #dc2626; }
 
     /* ── Sort bar ── */
-    .ai-search-sort-bar {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    .ai-search-sort-label {
-        font-size: 12px;
-        color: #8892a0;
-    }
+    .ai-search-sort-bar { display: flex; align-items: center; gap: 8px; }
+    .ai-search-sort-label { font-size: 12px; color: #8892a0; }
     .ai-search-sort-btn {
         font-size: 12px;
         font-weight: 500;
@@ -345,10 +512,7 @@
         color: #5a6478;
         margin: 0 0 6px;
     }
-    .ai-search-empty p {
-        font-size: 13px;
-        margin: 0;
-    }
+    .ai-search-empty p { font-size: 13px; margin: 0; }
     .ai-search-loading {
         max-width: 880px;
         margin: 0 auto;
@@ -430,6 +594,13 @@
             <input type="text" id="ai-search-input" class="ai-search-input"
                 placeholder="Try: web developer, Python backend, sales manager with 5 years..."
                 onkeydown="if(event.key==='Enter') aiDoSearch()">
+            <button type="button" class="ai-search-btn secondary" id="ai-save-prompt-btn" onclick="aiSavePrompt()">
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+                </svg>
+                Save
+            </button>
             <button type="button" class="ai-search-btn" id="ai-search-btn" onclick="aiDoSearch()">
                 <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
@@ -471,16 +642,50 @@
         </div>
     </div>
 
-</div>
+    {{-- Saved Prompts Sidebar --}}
+    <div class="ai-saved-prompts-sidebar" id="ai-saved-prompts-sidebar">
+        <div class="ai-saved-prompts-header">
+            <div class="ai-saved-prompts-title">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+                </svg>
+                Saved Prompts
+            </div>
+            <button class="ai-saved-prompts-close" onclick="aiToggleSavedSidebar()">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div class="ai-saved-prompts-list" id="ai-saved-prompts-list">
+            <div class="ai-saved-prompts-empty" id="ai-saved-prompts-empty">
+                <i class="fa fa-bookmark-o" style="font-size:28px;opacity:.3;margin-bottom:8px;display:block;"></i>
+                <div>No saved prompts yet</div>
+                <div style="font-size:11px;margin-top:4px;">Click "Save" next to the search bar to store your prompts</div>
+            </div>
+        </div>
+    </div>
 
-{{-- Applicant sidebar (reuse existing) --}}
+    {{-- Saved Prompts Toggle Tab --}}
+    <button class="ai-saved-prompts-toggle" id="ai-saved-prompts-toggle" onclick="aiToggleSavedSidebar()">
+        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+        </svg>
+        <span class="ai-saved-prompts-count" id="ai-saved-prompts-count">0</span>
+    </button>
+
+    {{-- Backdrop --}}
+    <div class="ai-saved-prompts-backdrop" id="ai-saved-prompts-backdrop" onclick="aiToggleSavedSidebar()"></div>
+
+</div>
 @endsection
 
 @push('footer-script')
 <script src="{{ asset('assets/node_modules_files/select2/dist/js/select2.full.min.js') }}"></script>
 <script>
     // ── Sidebar close handlers ──────────────────────────────
-        // ── Watch for sidebar closing and clear backdrop ────────
     var sidebarObserver = new MutationObserver(function () {
         var sidebar = document.getElementById('right-sidebar');
         if (!sidebar) return;
@@ -499,7 +704,6 @@
         sidebarObserver.observe(sidebar, { attributes: true, attributeFilter: ['class'] });
     }
 
-    // Also force-clear backdrop on any click outside sidebar content
     document.addEventListener('click', function (e) {
         var sidebar  = document.getElementById('right-sidebar');
         var backdrop = document.getElementById('right-sidebar-backdrop');
@@ -516,85 +720,224 @@
             backdrop.style.visibility = 'hidden';
         }
     });
+
     var aiCurrentSort = 'score';
     var aiLastResults = [];
     var aiLastQuery   = '';
     var aiLastMeta    = { location: '', min_experience: 0 };
 
-    // ── Quick suggestion click ──────────────────────────────────
+    // ═══════════════════════════════════════════════════════════════
+    // ═══ SAVED PROMPTS — DATABASE BACKED ══════════════════════════
+    // ═══════════════════════════════════════════════════════════════
+    var aiSavedPrompts = [];
+    var aiSavedSidebarOpen = false;
+
+    // ── Load saved prompts from database ───────────────────────────
+    function aiLoadSavedPrompts() {
+        $.ajax({
+            url: '{{ route("admin.ai-search.prompts.index") }}',
+            type: 'GET',
+            success: function(res) {
+                aiSavedPrompts = res.data || [];
+                aiRenderSavedPrompts();
+            },
+            error: function() {
+                aiSavedPrompts = [];
+                aiRenderSavedPrompts();
+            }
+        });
+    }
+
+    function aiToggleSavedSidebar() {
+        aiSavedSidebarOpen = !aiSavedSidebarOpen;
+        var sidebar = document.getElementById('ai-saved-prompts-sidebar');
+        var backdrop = document.getElementById('ai-saved-prompts-backdrop');
+        var toggle = document.getElementById('ai-saved-prompts-toggle');
+        if (sidebar) sidebar.classList.toggle('open', aiSavedSidebarOpen);
+        if (backdrop) backdrop.classList.toggle('open', aiSavedSidebarOpen);
+        if (toggle) toggle.style.display = aiSavedSidebarOpen ? 'none' : 'flex';
+    }
+
+    // ── Save prompt to database ────────────────────────────────────
+    function aiSavePrompt() {
+        var input = document.getElementById('ai-search-input');
+        var query = input ? input.value.trim() : '';
+        if (!query) {
+            alert('Please enter a search query first');
+            return;
+        }
+
+        var btn = document.getElementById('ai-save-prompt-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Saving…';
+
+        $.ajax({
+            url: '{{ route("admin.ai-search.prompts.store") }}',
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                query_text: query,
+                label: null
+            },
+            success: function(res) {
+                btn.disabled = false;
+                btn.classList.add('saved');
+                btn.innerHTML = '<svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg> Saved';
+                setTimeout(function() {
+                    btn.classList.remove('saved');
+                    btn.innerHTML = '<svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg> Save';
+                }, 2000);
+                aiLoadSavedPrompts();
+                if (!aiSavedSidebarOpen) aiToggleSavedSidebar();
+            },
+            error: function(xhr) {
+                btn.disabled = false;
+                btn.innerHTML = '<svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg> Save';
+                var msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Failed to save';
+                alert(msg);
+            }
+        });
+    }
+
+    // ── Delete prompt from database ────────────────────────────────
+    function aiDeletePrompt(id, event) {
+        if (event) event.stopPropagation();
+        if (!confirm('Delete this saved prompt?')) return;
+
+        $.ajax({
+            url: '{{ route("admin.ai-search.prompts.destroy", ":id") }}'.replace(':id', id),
+            type: 'DELETE',
+            data: { _token: '{{ csrf_token() }}' },
+            success: function() {
+                aiLoadSavedPrompts();
+            },
+            error: function() {
+                alert('Failed to delete prompt');
+            }
+        });
+    }
+
+    // ── Load prompt into search bar + increment use count ──────────
+    function aiLoadPrompt(id) {
+        var prompt = aiSavedPrompts.find(function(p) { return p.id === id; });
+        if (!prompt) return;
+
+        var input = document.getElementById('ai-search-input');
+        if (input) {
+            input.value = prompt.query_text;
+            input.focus();
+        }
+
+        // Increment use count in background
+        $.ajax({
+            url: '{{ route("admin.ai-search.prompts.use", ":id") }}'.replace(':id', id),
+            type: 'POST',
+            data: { _token: '{{ csrf_token() }}' }
+        });
+
+        aiToggleSavedSidebar();
+    }
+
+    // ── Toggle favorite status ───────────────────────────────────
+    function aiToggleFavorite(id, event) {
+        if (event) event.stopPropagation();
+        $.ajax({
+            url: '{{ route("admin.ai-search.prompts.favorite", ":id") }}'.replace(':id', id),
+            type: 'PATCH',
+            data: { _token: '{{ csrf_token() }}' },
+            success: function() {
+                aiLoadSavedPrompts();
+            }
+        });
+    }
+
+    // ── Render saved prompts sidebar ───────────────────────────────
+    function aiRenderSavedPrompts() {
+        var list = document.getElementById('ai-saved-prompts-list');
+        var count = document.getElementById('ai-saved-prompts-count');
+        if (count) count.textContent = aiSavedPrompts.length;
+        if (!list) return;
+
+        if (aiSavedPrompts.length === 0) {
+            list.innerHTML =
+                '<div class="ai-saved-prompts-empty" id="ai-saved-prompts-empty">' +
+                    '<i class="fa fa-bookmark-o" style="font-size:28px;opacity:.3;margin-bottom:8px;display:block;"></i>' +
+                    '<div>No saved prompts yet</div>' +
+                    '<div style="font-size:11px;margin-top:4px;">Click "Save" next to the search bar to store your prompts</div>' +
+                '</div>';
+            return;
+        }
+
+        var html = '';
+        aiSavedPrompts.forEach(function(p) {
+            var dateStr = new Date(p.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+            var favIcon = p.is_favorite
+                ? '<i class="fa fa-star" style="color:#f59e0b;font-size:11px;cursor:pointer;" onclick="aiToggleFavorite(' + p.id + ', event)" title="Unfavorite"></i>'
+                : '<i class="fa fa-star-o" style="color:#b0b8c4;font-size:11px;cursor:pointer;" onclick="aiToggleFavorite(' + p.id + ', event)" title="Favorite"></i>';
+
+            html +=
+                '<div class="ai-saved-prompt-item" onclick="aiLoadPrompt(' + p.id + ')">' +
+                    '<svg width="14" height="14" fill="none" stroke="#2563eb" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;">' +
+                        '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>' +
+                    '</svg>' +
+                    '<div style="flex:1;min-width:0;">' +
+                        '<div class="ai-saved-prompt-text">' + aiEsc(p.query_text) + '</div>' +
+                        '<div class="ai-saved-prompt-date">' + dateStr + ' · Used ' + p.use_count + '×</div>' +
+                    '</div>' +
+                    favIcon +
+                    '<button class="ai-saved-prompt-delete" onclick="aiDeletePrompt(' + p.id + ', event)" title="Delete">' +
+                        '<svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>' +
+                    '</button>' +
+                '</div>';
+        });
+        list.innerHTML = html;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // ═══ EXISTING SEARCH FUNCTIONS (unchanged) ════════════════════
+    // ═══════════════════════════════════════════════════════════════
     function aiQuick(text) {
         document.getElementById('ai-search-input').value = text;
         aiDoSearch();
     }
 
-    // ── Main search ─────────────────────────────────────────────
     function aiDoSearch() {
+        var query = document.getElementById('ai-search-input').value.trim();
+        if (!query) return;
 
-    var query = document.getElementById('ai-search-input').value.trim();
+        aiLastQuery = query;
+        document.getElementById('ai-suggestions').style.display = 'none';
+        aiShowLoading();
 
-    if (!query) return;
+        var btn = document.getElementById('ai-search-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Thinking…';
 
-    aiLastQuery = query;
-    document.getElementById('ai-suggestions').style.display = 'none';
-    aiShowLoading();
+        $.ajax({
+            url: '{{ route("admin.ai-search.parse-query") }}',
+            type: 'POST',
+            data: { _token: '{{ csrf_token() }}', query: query },
+            success: function(res) {
+                var parsed = res.data || res;
+                var roles = parsed.roles || [];
+                var allTerms = [].concat(parsed.skills || []).concat(parsed.keywords || []).concat(roles);
+                aiLastMeta = {
+                    location: parsed.location || '',
+                    min_experience: parseInt(parsed.min_experience || 0)
+                };
+                aiSearchServer(query, allTerms, roles, parsed.location || '', parseInt(parsed.min_experience || 0));
+            },
+            error: function() {
+                aiSearchServer(query, [query], [], '', 0);
+            }
+        });
+    }
 
-    var btn = document.getElementById('ai-search-btn');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Thinking…';
-
-    $.ajax({
-        url: '{{ route("admin.ai-search.parse-query") }}',
-        type: 'POST',
-        data: {
-            _token: '{{ csrf_token() }}',
-            query: query
-        },
-
-        success: function(res) {
-
-            var parsed = res.data || res;
-
-            var roles = parsed.roles || [];
-
-            var allTerms = []
-                .concat(parsed.skills || [])
-                .concat(parsed.keywords || [])
-                .concat(roles);
-
-            aiLastMeta = {
-                location: parsed.location || '',
-                min_experience: parseInt(parsed.min_experience || 0)
-            };
-
-            aiSearchServer(
-                query,
-                allTerms,
-                roles,
-                parsed.location || '',
-                parseInt(parsed.min_experience || 0)
-            );
-        },
-
-        error: function() {
-
-            aiSearchServer(
-                query,
-                [query],
-                [],
-                '',
-                0
-            );
-        }
-    });
-}
-
-    // ── Server search ────────────────────────────────────────────
     function aiSearchServer(query, terms, roles, location, minExp) {
-
         $.ajax({
             url: '{{ route("admin.ai-search.results") }}',
             type: 'GET',
-             data: { query: query, terms: terms, roles: roles, location: location, min_experience: minExp },
+            data: { query: query, terms: terms, roles: roles, location: location, min_experience: minExp },
             success: function(res) {
                 var btn = document.getElementById('ai-search-btn');
                 btn.disabled = false;
@@ -611,7 +954,6 @@
         });
     }
 
-    // ── Bulk CV text indexing ────────────────────────────────────
     function aiIndexCvs() {
         var btn    = document.getElementById('ai-index-btn');
         var status = document.getElementById('ai-index-status');
@@ -632,9 +974,7 @@
                     } else {
                         btn.disabled = false;
                         btn.innerHTML = '<i class="fa fa-check"></i> All CVs indexed';
-                        setTimeout(function() {
-                            btn.innerHTML = '<i class="fa fa-database"></i> Index CVs for search';
-                        }, 4000);
+                        setTimeout(function() { btn.innerHTML = '<i class="fa fa-database"></i> Index CVs for search'; }, 4000);
                     }
                 },
                 error: function() {
@@ -647,48 +987,18 @@
         runBatch();
     }
 
-    // ── Render results ───────────────────────────────────────────
     function aiRenderResults(results, query) {
         var out = document.getElementById('ai-search-output');
-
         if (!results.length) {
-            out.innerHTML =
-                '<div class="ai-search-empty">' +
-                    '<div class="ai-search-empty-icon"><i class="fa fa-user-times"></i></div>' +
-                    '<h3>No matches found</h3>' +
-                    '<p>No candidates matched "<strong>' + aiEsc(query) + '</strong>" — try different keywords</p>' +
-                    '<button onclick="aiClear()" style="margin-top:14px;font-size:13px;font-weight:600;padding:8px 20px;border-radius:10px;border:1.5px solid #e2ded8;background:#fff;color:#5a6478;cursor:pointer;font-family:inherit;">Clear search</button>' +
-                '</div>';
+            out.innerHTML = '<div class="ai-search-empty"><div class="ai-search-empty-icon"><i class="fa fa-user-times"></i></div><h3>No matches found</h3><p>No candidates matched "<strong>' + aiEsc(query) + '</strong>" — try different keywords</p><button onclick="aiClear()" style="margin-top:14px;font-size:13px;font-weight:600;padding:8px 20px;border-radius:10px;border:1.5px solid #e2ded8;background:#fff;color:#5a6478;cursor:pointer;font-family:inherit;">Clear search</button></div>';
             return;
         }
 
         var filterBadges = '';
-        if (aiLastMeta.location) {
-            filterBadges += '<span style="font-size:11px;font-weight:600;color:#2563eb;background:#eff6ff;padding:3px 9px;border-radius:12px;"><i class="fa fa-map-marker" style="font-size:10px"></i> ' + aiEsc(aiLastMeta.location) + '</span>';
-        }
-        if (aiLastMeta.min_experience > 0) {
-            filterBadges += '<span style="font-size:11px;font-weight:600;color:#7c3aed;background:#f5f3ff;padding:3px 9px;border-radius:12px;"><i class="fa fa-clock-o" style="font-size:10px"></i> ' + aiLastMeta.min_experience + '+ yrs exp</span>';
-        }
+        if (aiLastMeta.location) filterBadges += '<span style="font-size:11px;font-weight:600;color:#2563eb;background:#eff6ff;padding:3px 9px;border-radius:12px;"><i class="fa fa-map-marker" style="font-size:10px"></i> ' + aiEsc(aiLastMeta.location) + '</span>';
+        if (aiLastMeta.min_experience > 0) filterBadges += '<span style="font-size:11px;font-weight:600;color:#7c3aed;background:#f5f3ff;padding:3px 9px;border-radius:12px;"><i class="fa fa-clock-o" style="font-size:10px"></i> ' + aiLastMeta.min_experience + '+ yrs exp</span>';
 
-        var html =
-            '<div class="ai-search-status-bar">' +
-                '<div class="ai-search-status-label" style="flex-wrap:wrap;">' +
-                    '<span class="ai-thinking-badge"><i class="fa fa-magic"></i> AI matched</span>' +
-                    '<span>' + results.length + ' candidate' + (results.length !== 1 ? 's' : '') + '</span> for "' + aiEsc(query) + '"' +
-                    (filterBadges ? '<span style="display:inline-flex;gap:5px;margin-left:4px;">' + filterBadges + '</span>' : '') +
-                '</div>' +
-                '<div style="display:flex;align-items:center;gap:10px;">' +
-                    '<div class="ai-search-sort-bar">' +
-                        '<span class="ai-search-sort-label">Sort:</span>' +
-                        '<button class="ai-search-sort-btn ' + (aiCurrentSort==='score'?'active':'') + '" onclick="aiSort(\'score\')">Best match</button>' +
-                        '<button class="ai-search-sort-btn ' + (aiCurrentSort==='name'?'active':'') + '" onclick="aiSort(\'name\')">Name</button>' +
-                        '<button class="ai-search-sort-btn ' + (aiCurrentSort==='recent'?'active':'') + '" onclick="aiSort(\'recent\')">Recent</button>' +
-                    '</div>' +
-                    '<button class="ai-search-clear-btn" onclick="aiClear()"><i class="fa fa-times"></i> Clear</button>' +
-                '</div>' +
-            '</div>' +
-            '<div class="ai-search-results-grid" id="ai-results-grid"></div>';
-
+        var html = '<div class="ai-search-status-bar"><div class="ai-search-status-label" style="flex-wrap:wrap;"><span class="ai-thinking-badge"><i class="fa fa-magic"></i> AI matched</span><span>' + results.length + ' candidate' + (results.length !== 1 ? 's' : '') + '</span> for "' + aiEsc(query) + '"' + (filterBadges ? '<span style="display:inline-flex;gap:5px;margin-left:4px;">' + filterBadges + '</span>' : '') + '</div><div style="display:flex;align-items:center;gap:10px;"><div class="ai-search-sort-bar"><span class="ai-search-sort-label">Sort:</span><button class="ai-search-sort-btn ' + (aiCurrentSort==='score'?'active':'') + '" onclick="aiSort('score')">Best match</button><button class="ai-search-sort-btn ' + (aiCurrentSort==='name'?'active':'') + '" onclick="aiSort('name')">Name</button><button class="ai-search-sort-btn ' + (aiCurrentSort==='recent'?'active':'') + '" onclick="aiSort('recent')">Recent</button></div><button class="ai-search-clear-btn" onclick="aiClear()"><i class="fa fa-times"></i> Clear</button></div></div><div class="ai-search-results-grid" id="ai-results-grid"></div>';
         out.innerHTML = html;
         aiRenderCards(results);
     }
@@ -696,130 +1006,70 @@
     function aiRenderCards(results) {
         var grid = document.getElementById('ai-results-grid');
         if (!grid) return;
-
         var html = '';
         results.forEach(function(r, idx) {
-            var initial    = (r.full_name || '?').charAt(0).toUpperCase();
+            var initial = (r.full_name || '?').charAt(0).toUpperCase();
             var scoreColor = r.score >= 75 ? '#059669' : r.score >= 45 ? '#2563eb' : '#8892a0';
-            var isTop      = idx < 3;
-
-            // Avatar color based on initial
+            var isTop = idx < 3;
             var avatarColors = ['#dbeafe:#1d4ed8','#d1fae5:#065f46','#fef3c7:#92400e','#fce7f3:#9d174d','#ede9fe:#5b21b6'];
             var ac = avatarColors[r.full_name.charCodeAt(0) % avatarColors.length].split(':');
-
             var skillsHtml = '';
             if (r.all_skills && r.all_skills.length) {
-                skillsHtml = '<div class="ai-result-skills">' +
-                    r.all_skills.slice(0, 8).map(function(s) {
-                        var isMatch = r.matched_skills && r.matched_skills.indexOf(s) > -1;
-                        return '<span class="ai-result-skill-tag' + (isMatch ? ' matched' : '') + '">' + aiEsc(s) + '</span>';
-                    }).join('') +
-                    (r.all_skills.length > 8 ? '<span class="ai-result-skill-tag">+' + (r.all_skills.length - 8) + '</span>' : '') +
-                '</div>';
+                skillsHtml = '<div class="ai-result-skills">' + r.all_skills.slice(0, 8).map(function(s) {
+                    var isMatch = r.matched_skills && r.matched_skills.indexOf(s) > -1;
+                    return '<span class="ai-result-skill-tag' + (isMatch ? ' matched' : '') + '">' + aiEsc(s) + '</span>';
+                }).join('') + (r.all_skills.length > 8 ? '<span class="ai-result-skill-tag">+' + (r.all_skills.length - 8) + '</span>' : '') + '</div>';
             }
-
-            var cvBadge = r.has_cv
-                ? '<span style="font-size:10px;font-weight:600;color:#059669;background:#d1fae5;padding:2px 7px;border-radius:10px;margin-left:6px;"><i class="fa fa-file-text-o" style="font-size:9px"></i> CV indexed</span>'
-                : '<span style="font-size:10px;color:#b0b8c4;background:#f1f3f7;padding:2px 7px;border-radius:10px;margin-left:6px;">No CV</span>';
-
-            html +=
-                '<div class="ai-result-card" onclick="aiOpenApplicant(' + r.id + ')">' +
-                    '<div class="ai-result-rank ' + (isTop ? 'top' : '') + '">' + (isTop ? '★' : (idx+1)) + '</div>' +
-                    '<div class="ai-result-avatar" style="background:' + ac[0] + ';color:' + ac[1] + '">' + aiEsc(initial) + '</div>' +
-                    '<div class="ai-result-body">' +
-                        '<div class="ai-result-name">' + aiEsc(r.full_name) + cvBadge + '</div>' +
-                        '<div class="ai-result-meta">' +
-                            aiEsc(r.job_title || '—') +
-                            '<span class="ai-result-meta-sep"></span>' +
-                            '<i class="fa fa-map-marker" style="font-size:10px;color:#8892a0;margin-right:2px"></i>' + aiEsc(r.location || '—') +
-                            '<span class="ai-result-meta-sep"></span>' +
-                            '<span class="ai-result-status" style="background:' + aiEsc(r.status_color || '#6b7280') + '">' + aiEsc(r.status || '—') + '</span>' +
-                        '</div>' +
-                        skillsHtml +
-                    '</div>' +
-                    '<div class="ai-result-score-col">' +
-                        '<div class="ai-result-score-pct" style="color:' + scoreColor + '">' + r.score + '%</div>' +
-                        '<div class="ai-result-score-label">match</div>' +
-                        '<div class="ai-result-score-bar-wrap">' +
-                            '<div class="ai-result-score-bar" style="width:' + r.score + '%;background:' + scoreColor + '"></div>' +
-                        '</div>' +
-                    '</div>' +
-                    '<button class="ai-result-view-btn" onclick="event.stopPropagation();aiOpenApplicant(' + r.id + ')">View <i class="fa fa-arrow-right" style="font-size:10px"></i></button>' +
-                '</div>';
+            var cvBadge = r.has_cv ? '<span style="font-size:10px;font-weight:600;color:#059669;background:#d1fae5;padding:2px 7px;border-radius:10px;margin-left:6px;"><i class="fa fa-file-text-o" style="font-size:9px"></i> CV indexed</span>' : '<span style="font-size:10px;color:#b0b8c4;background:#f1f3f7;padding:2px 7px;border-radius:10px;margin-left:6px;">No CV</span>';
+            html += '<div class="ai-result-card" onclick="aiOpenApplicant(' + r.id + ')"><div class="ai-result-rank ' + (isTop ? 'top' : '') + '">' + (isTop ? '★' : (idx+1)) + '</div><div class="ai-result-avatar" style="background:' + ac[0] + ';color:' + ac[1] + '">' + aiEsc(initial) + '</div><div class="ai-result-body"><div class="ai-result-name">' + aiEsc(r.full_name) + cvBadge + '</div><div class="ai-result-meta">' + aiEsc(r.job_title || '—') + '<span class="ai-result-meta-sep"></span><i class="fa fa-map-marker" style="font-size:10px;color:#8892a0;margin-right:2px"></i>' + aiEsc(r.location || '—') + '<span class="ai-result-meta-sep"></span><span class="ai-result-status" style="background:' + aiEsc(r.status_color || '#6b7280') + '">' + aiEsc(r.status || '—') + '</span></div>' + skillsHtml + '</div><div class="ai-result-score-col"><div class="ai-result-score-pct" style="color:' + scoreColor + '">' + r.score + '%</div><div class="ai-result-score-label">match</div><div class="ai-result-score-bar-wrap"><div class="ai-result-score-bar" style="width:' + r.score + '%;background:' + scoreColor + '"></div></div></div><button class="ai-result-view-btn" onclick="event.stopPropagation();aiOpenApplicant(' + r.id + ')">View <i class="fa fa-arrow-right" style="font-size:10px"></i></button></div>';
         });
-
         grid.innerHTML = html;
     }
 
-    // ── Sort ─────────────────────────────────────────────────────
     function aiSort(by) {
         aiCurrentSort = by;
         var sorted = aiLastResults.slice();
-        if (by === 'score') {
-            sorted.sort(function(a,b){ return b.score - a.score; });
-        } else if (by === 'name') {
-            sorted.sort(function(a,b){ return (a.full_name||'').localeCompare(b.full_name||''); });
-        } else if (by === 'recent') {
-            sorted.sort(function(a,b){ return b.id - a.id; });
-        }
-        // Re-render sort buttons
-        document.querySelectorAll('.ai-search-sort-btn').forEach(function(btn) {
-            btn.classList.remove('active');
-        });
+        if (by === 'score') sorted.sort(function(a,b){ return b.score - a.score; });
+        else if (by === 'name') sorted.sort(function(a,b){ return (a.full_name||'').localeCompare(b.full_name||''); });
+        else if (by === 'recent') sorted.sort(function(a,b){ return b.id - a.id; });
+        document.querySelectorAll('.ai-search-sort-btn').forEach(function(btn) { btn.classList.remove('active'); });
         event.target.classList.add('active');
         aiRenderCards(sorted);
     }
 
-    // ── Clear ────────────────────────────────────────────────────
     function aiClear() {
         document.getElementById('ai-search-input').value = '';
         document.getElementById('ai-suggestions').style.display = 'flex';
         aiLastResults = [];
-        aiLastQuery   = '';
-        document.getElementById('ai-search-output').innerHTML =
-            '<div class="ai-search-empty" id="ai-empty-state">' +
-                '<div class="ai-search-empty-icon"><i class="fa fa-search"></i></div>' +
-                '<h3>Search your candidate database</h3>' +
-                '<p>Type a role, skill, or description — AI will find the best matches from all applicants</p>' +
-            '</div>';
+        aiLastQuery = '';
+        document.getElementById('ai-search-output').innerHTML = '<div class="ai-search-empty" id="ai-empty-state"><div class="ai-search-empty-icon"><i class="fa fa-search"></i></div><h3>Search your candidate database</h3><p>Type a role, skill, or description — AI will find the best matches from all applicants</p></div>';
     }
 
-    // ── Loading skeletons ────────────────────────────────────────
     function aiShowLoading() {
         var html = '<div class="ai-search-loading">';
-        for (var i = 0; i < 5; i++) {
-            html +=
-                '<div class="ai-search-skeleton">' +
-                    '<div class="ai-skel-circle"></div>' +
-                    '<div class="ai-skel-body">' +
-                        '<div class="ai-skel-line mid"></div>' +
-                        '<div class="ai-skel-line short"></div>' +
-                    '</div>' +
-                '</div>';
-        }
+        for (var i = 0; i < 5; i++) html += '<div class="ai-search-skeleton"><div class="ai-skel-circle"></div><div class="ai-skel-body"><div class="ai-skel-line mid"></div><div class="ai-skel-line short"></div></div></div>';
         html += '</div>';
         document.getElementById('ai-search-output').innerHTML = html;
     }
 
-    // ── Open applicant sidebar ───────────────────────────────────
     function aiOpenApplicant(id) {
         var url = "{{ route('admin.job-applications.show', ':id') }}".replace(':id', id);
-        var $sidebar  = $('#right-sidebar');
+        var $sidebar = $('#right-sidebar');
         var $backdrop = $('#right-sidebar-backdrop');
         $sidebar.removeClass('translate-x-full').addClass('translate-x-0');
         $backdrop.removeClass('hidden').css({ display:'block', visibility:'visible' });
-        $.easyAjax({
-            type: 'GET', url: url,
-            success: function(response) {
-                if (response.status === 'success') {
-                    $('#right-sidebar-content').html(response.view);
-                }
-            }
-        });
+        $.easyAjax({ type: 'GET', url: url, success: function(response) {
+            if (response.status === 'success') $('#right-sidebar-content').html(response.view);
+        }});
     }
 
     function aiEsc(s) {
         return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
+
+    // ── Initialize ─────────────────────────────────────────────────
+    $(document).ready(function() {
+        aiLoadSavedPrompts();
+    });
 </script>
 @endpush

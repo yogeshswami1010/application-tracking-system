@@ -278,7 +278,18 @@ Route::middleware('auth')->group(function () {
             Route::get('applications-archive/export/{skill}',  [AdminApplicationArchiveController::class, 'export'])->name('applications-archive.export');
             Route::resource('applications-archive', AdminApplicationArchiveController::class);
             Route::post('applications-archive{id}',            [AdminApplicationArchiveController::class, 'deleteRecords'])->name('applications-archive.deleteRecords');
-
+Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
+    Route::get('ai-search/prompts', [App\Http\Controllers\Admin\AiSearchPromptController::class, 'index'])
+        ->name('admin.ai-search.prompts.index');
+    Route::post('ai-search/prompts', [App\Http\Controllers\Admin\AiSearchPromptController::class, 'store'])
+        ->name('admin.ai-search.prompts.store');
+    Route::post('ai-search/prompts/{id}/use', [App\Http\Controllers\Admin\AiSearchPromptController::class, 'use'])
+        ->name('admin.ai-search.prompts.use');
+    Route::patch('ai-search/prompts/{id}/favorite', [App\Http\Controllers\Admin\AiSearchPromptController::class, 'toggleFavorite'])
+        ->name('admin.ai-search.prompts.favorite');
+    Route::delete('ai-search/prompts/{id}', [App\Http\Controllers\Admin\AiSearchPromptController::class, 'destroy'])
+        ->name('admin.ai-search.prompts.destroy');
+});
             Route::get('job-applications/search-users-mention', [AdminJobApplicationController::class, 'searchUsersForMention'])->name('job-applications.search-users-mention');
             // Job Onboard
             Route::get('job-onboard/data',              [AdminJobOnboardController::class, 'data'])->name('job-onboard.data');
