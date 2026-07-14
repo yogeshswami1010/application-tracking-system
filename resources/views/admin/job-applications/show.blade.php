@@ -298,7 +298,7 @@ function jaSaveMarketingLabel(appId) {
                 </div>
             </div>
             @if($resumeUrl)
-                <embed src="{{ $resumeUrl }}" type="application/pdf" class="ja-pdf-frame">
+                <iframe src="{{ $resumeUrl }}" class="ja-pdf-frame" id="ja-pdf-iframe"></iframe>
             @else
                 <div class="ja-pdf-no-resume">
                     <i class="fa fa-file-pdf-o"></i>
@@ -1011,8 +1011,9 @@ function jaMoveFromDetail(appId, toStatusId, toStatusLabel, currentStatusId) {
         data: { _token: '{{ csrf_token() }}', ids: [appId], status_id: toStatusId },
         success: function(response) {
             if (response.status === 'success') {
+                 jaCleanupBeforeNavigate();
                 $.easyAjax({ type:'GET', url:"{{ route('admin.job-applications.show', ':id') }}".replace(':id', appId),
-                    success: function(res) { if (res.status === 'success') $('#right-sidebar-content').html(res.view); }
+                    success: function(res) { if (res.status === 'success')  jaCleanupBeforeNavigate(); $('#right-sidebar-content').html(res.view); }
                 });
                 if (typeof table !== 'undefined') table.draw(false);
                 if (typeof jaLoadTabCounts === 'function') jaLoadTabCounts();
@@ -1113,7 +1114,44 @@ function deleteApplication(applicationId) {
         if (prev) prev.disabled = (idx === 0);
         if (next) next.disabled = (idx === ids.length - 1);
     }
+    // Add this BEFORE any profile load happens
+function jaCleanupBeforeNavigate() {
+    // Destroy PDF embed by removing src first (stops the plugin)
+    var embed = document.querySelector('.ja-pdf-frame');
+    if (embed) {
+        embed.src = 'about:blank';
+        embed.remove();
+    }
+    
+    // Clear any pending mention timer
+    if (window.jaMentionTimer) {
+        clearTimeout(window.jaMentionTimer);
+        window.jaMentionTimer = null;
+    }
+    
+    // Destroy Select2 instance
+    try {
+        $('.select2#skills').select2('destroy');
+    } catch(e) {}
+    
+    // Remove all document-level listeners we added
+    if (window._jaKeyNav) {
+        document.removeEventListener('keydown', window._jaKeyNav);
+        window._jaKeyNav = null;
+    }
+    
+    // Hide any open modals/dropdowns
+    var overlay = document.getElementById('ja-jobdesc-overlay');
+    if (overlay) overlay.style.display = 'none';
+    
+    var mentionDrop = document.getElementById('ja-mention-drop');
+    if (mentionDrop) mentionDrop.style.display = 'none';
+    
+    // Reset body overflow
+    document.body.style.overflow = '';
+}
     window.jaNavigate = function (direction, fromId) {
+          jaCleanupBeforeNavigate()
         var ids = getIds(), idx = ids.indexOf(fromId);
         if (idx === -1 || !ids.length) return;
         var targetId = (direction === 'prev') ? ids[idx - 1] : ids[idx + 1];
@@ -1132,12 +1170,25 @@ function deleteApplication(applicationId) {
             error: function() { if (wrap) wrap.classList.remove('ja-nav-loading'); updateNavUI(); }
         });
     };
-    function onKeyDown(e) {
-        var tag = document.activeElement ? document.activeElement.tagName : '';
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-        if (e.key === 'ArrowLeft' || e.keyCode === 37) { var p = document.getElementById('ja-prev-btn'); if (p && !p.disabled) jaNavigate('prev', CURRENT_ID); }
-        if (e.key === 'ArrowRight' || e.keyCode === 39) { var n = document.getElementById('ja-next-btn'); if (n && !n.disabled) jaNavigate('next', CURRENT_ID); }
+   r ONCE:
+function jaHandleKeyNavigation(e) {
+    var tag = document.activeElement ? document.activeElement.tagName : '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (e.key === 'ArrowLeft' || e.keyCode === 37) { 
+        var p = document.getElementById('ja-prev-btn'); 
+        if (p && !p.disabled) jaNavigate('prev', window.jaCurrentAppId); 
     }
+    if (e.key === 'ArrowRight' || e.keyCode === 39) { 
+        var n = document.getElementById('ja-next-btn'); 
+        if (n && !n.disabled) jaNavigate('next', window.jaCurrentAppId); 
+    }
+}
+
+// Only add once, remove the IIFE pattern:
+if (!window._jaNavListenerAdded) {
+    document.addEventListener('keydown', jaHandleKeyNavigation);
+    window._jaNavListenerAdded = true;
+}
     document.removeEventListener('keydown', window._jaKeyNav);
     window._jaKeyNav = onKeyDown;
     document.addEventListener('keydown', window._jaKeyNav);
@@ -1202,7 +1253,7 @@ function jaNoteHandleInput(el) {
             }).join('');
             drop.style.display = 'block';
         });
-    }, 200);
+    }, 300);
 }
 function jaInsertMention(name) {
     var ta = document.getElementById('note_text'), val = ta.value, caret = ta.selectionStart;
