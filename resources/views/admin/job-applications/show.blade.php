@@ -24,18 +24,30 @@
     $currentStatusId = $application->status_id;
     $currentStatus = $allStatuses->firstWhere('id', $currentStatusId);
 
-    // ── Previous applications (same email) ──
-    $previousApps = \App\JobApplication::where('email', $application->email)
-        ->where('is_candidate', 0)
-        ->where('id', '!=', $application->id)
-        ->with(['job:id,title', 'status:id,status,color'])
-        ->orderByDesc('created_at')
-        ->get();
+    $previousApps = JobApplication::select(
+        'id',
+        'job_id',
+        'status_id',
+        'created_at',
+        'location_id'
+    )
+    ->where('email', $application->email)
+    ->where('id', '!=', $application->id)
+    ->where('is_candidate', 0)
+    ->with([
+        'job:id,title',
+        'status:id,status,color',
+        'location:id,location'
+    ])
+    ->latest()
+    ->limit(10)
+    ->get();
 
-    $clientNotes = \App\JobClientNote::with('user:id,name')
-        ->where('job_id', $application->job_id)
-        ->orderByDesc('created_at')
-        ->get();
+    $clientNotes = JobClientNote::with('user:id,name')
+    ->where('job_id', $application->job_id)
+    ->latest()
+    ->limit(20)
+    ->get();
 
     // Resolve resume URL
     $resumeUrl = null;
