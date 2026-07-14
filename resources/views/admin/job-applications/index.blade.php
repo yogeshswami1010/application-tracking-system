@@ -1086,6 +1086,7 @@
     }
 
     // Company changes → filter locations, then filter jobs by (company + location)
+    // Company changes → filter locations, then filter jobs by (company + location)
     $('#company').on('change', function() {
         var company_id = $(this).val();
         jaRefreshLocations(company_id, function() {
@@ -1099,7 +1100,6 @@
         var location_id = $(this).val();
         jaRefreshJobs(company_id, location_id);
     });
-
     // ── Select2 init ─────────────────────────────────────────────
     $('#filter-form select.select2').not('#skill').select2({ width: '100%' });
 
