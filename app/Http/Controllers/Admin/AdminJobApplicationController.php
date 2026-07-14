@@ -3479,7 +3479,7 @@ class AdminJobApplicationController extends AdminBaseController
         /**
      * Get companies that have jobs at a specific location
      */
-    public function getCompaniesByLocation(Request $request)
+        public function getCompaniesByLocation(Request $request)
     {
         $locationId = $request->get('location_id');
 
@@ -3496,8 +3496,7 @@ class AdminJobApplicationController extends AdminBaseController
                 ->get();
         }
 
-        // Return plain array for direct JS consumption
-        return response()->json(['companies' => $companies]);
+        return Reply::dataOnly(['companies' => $companies]);
     }
 
     public function getCompanies(Request $request)

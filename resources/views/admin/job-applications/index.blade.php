@@ -1141,9 +1141,8 @@
         return html;
     }
 
-        // ── Location → Company → Job cascade (AJAX-based) ──────────
+     // ── Location → Company → Job cascade (AJAX-based) ──────────
 
-    // Location change → fetch companies for this location
     // Location change → fetch companies for this location
     $('#location').on('change', function() {
         var locationId = $(this).val() || 'all';
@@ -1153,7 +1152,8 @@
                 url: "{{ route('admin.job-applications.get-companies') }}",
                 type: 'GET',
                 success: function(response) {
-                    var payload = response.data || response;
+                    // Fix: unwrap Reply::dataOnly() response
+                    var payload = (response && response.data) ? response.data : response;
                     var companies = payload.companies || [];
                     var html = '<option value="all">@lang("modules.jobApplication.allCompany")</option>';
                     companies.forEach(function(c) {
@@ -1161,6 +1161,9 @@
                     });
                     $('#company').select2('destroy').html(html).select2({ width: '100%' });
                     $('#company').val('all').trigger('change');
+                },
+                error: function(xhr) {
+                    console.error('getCompanies failed:', xhr.status, xhr.responseText);
                 }
             });
         } else {
@@ -1169,14 +1172,19 @@
                 type: 'GET',
                 data: { location_id: locationId },
                 success: function(response) {
-                    var payload = response.data || response;
+                    // Fix: unwrap Reply::dataOnly() response
+                    var payload = (response && response.data) ? response.data : response;
                     var companies = payload.companies || [];
+                    console.log('getCompaniesByLocation response:', response, 'payload:', payload, 'companies:', companies);
                     var html = '<option value="all">@lang("modules.jobApplication.allCompany")</option>';
                     companies.forEach(function(c) {
                         html += '<option value="' + c.id + '">' + (c.company_name || '') + '</option>';
                     });
                     $('#company').select2('destroy').html(html).select2({ width: '100%' });
                     $('#company').val('all').trigger('change');
+                },
+                error: function(xhr) {
+                    console.error('getCompaniesByLocation failed:', xhr.status, xhr.responseText);
                 }
             });
         }
@@ -1194,9 +1202,15 @@
                 companyId: companyId,
                 location_id: locationId
             },
-            success: function(data) {
-                $('#jobs').select2('destroy').html(data.jobs).select2({ width: '100%' });
+            success: function(response) {
+                // Fix: unwrap Reply::dataOnly() response — getJobs returns { jobs: html }
+                var payload = (response && response.data) ? response.data : response;
+                var jobsHtml = payload.jobs || '<option value="all">@lang("modules.jobApplication.allJobs")</option>';
+                $('#jobs').select2('destroy').html(jobsHtml).select2({ width: '100%' });
                 $('#jobs').val('all').trigger('change');
+            },
+            error: function(xhr) {
+                console.error('getJobs failed:', xhr.status, xhr.responseText);
             }
         });
     });
