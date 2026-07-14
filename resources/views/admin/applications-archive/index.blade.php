@@ -387,6 +387,70 @@ document.getElementById('run-bulk-parse').addEventListener('click', function() {
     <script src="{{ asset('assets/node_modules_files/select2/dist/js/select2.full.min.js') }}" type="text/javascript"></script>
 
     <script>
+            // ── Company → Location → Jobs cascade ───────────────────────────────────────
+
+    function jaRefreshArchiveLocations(companyId, callback) {
+        $.ajax({
+            url: "{{ route('admin.applications-archive.get-locations') }}",
+            type: 'GET',
+            data: { companyId: companyId },
+            dataType: 'json',
+            success: function(data) {
+                try {
+                    if ($('#location').data('select2')) {
+                        $('#location').select2('destroy');
+                    }
+                } catch(e) {}
+
+                $('#location').html(data.locations);
+                $('#location').select2({ width: '100%' });
+                $('#location').val('all').trigger('change.select2');
+
+                if (typeof callback === 'function') callback();
+            },
+            error: function(xhr) {
+                console.error('jaRefreshArchiveLocations failed:', xhr.status, xhr.responseText);
+            }
+        });
+    }
+
+    function jaRefreshArchiveJobs(companyId, locationId) {
+        $.ajax({
+            url: "{{ route('admin.job-applications.get-jobs') }}",
+            type: 'GET',
+            data: { companyId: companyId, locationId: locationId },
+            dataType: 'json',
+            success: function(data) {
+                try {
+                    if ($('#jobs').data('select2')) {
+                        $('#jobs').select2('destroy');
+                    }
+                } catch(e) {}
+
+                $('#jobs').html(data.jobs);
+                $('#jobs').select2({ width: '100%' });
+                $('#jobs').val('all').trigger('change');
+            },
+            error: function(xhr) {
+                console.error('jaRefreshArchiveJobs failed:', xhr.status, xhr.responseText);
+            }
+        });
+    }
+
+    // Company changes → filter locations, then filter jobs
+    $('#company').on('change', function() {
+        var company_id = $(this).val();
+        jaRefreshArchiveLocations(company_id, function() {
+            jaRefreshArchiveJobs(company_id, $('#location').val());
+        });
+    });
+
+    // Location changes → filter jobs
+    $('#location').on('change', function() {
+        var company_id  = $('#company').val();
+        var location_id = $(this).val();
+        jaRefreshArchiveJobs(company_id, location_id);
+    });
     // ── Skill tag input ────────────────────────────────────────────────────────
     (function () {
         // All available skills from Laravel (for autocomplete suggestions)
@@ -639,17 +703,17 @@ document.getElementById('run-bulk-parse').addEventListener('click', function() {
             serverSide: true,
             autoWidth: false,
             order: [[5, 'desc']],
-            ajax: {
+                      ajax: {
                 url: "{!! route('admin.applications-archive.data') !!}",
                 data: function (d) {
                     return $.extend({}, d, {
-                        skill:          skill,
-                        company:        company,
-                        jobs:           jobs,
-                        location:       location,
-                        status:         status,
-                        questions:      questions,
-                        question_value: question_value
+                        skill:          window.jaGetSkills ? window.jaGetSkills() : '',
+                        company:        $('#company').val()   || 'all',
+                        jobs:           $('#jobs').val()      || 'all',
+                        location:       $('#location').val()  || 'all',
+                        status:         $('#status').val()    || 'all',
+                        questions:      $('#questions').val() || 'all',
+                        question_value: $('#question-value').val() || ''
                     });
                 }
             },
