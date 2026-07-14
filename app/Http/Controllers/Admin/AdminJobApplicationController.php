@@ -1200,6 +1200,7 @@ class AdminJobApplicationController extends AdminBaseController
                 },
             ])
             ->orderByDesc('created_at')
+            ->limit(10)   
             ->get();
 
         $this->clientNotes = \App\JobClientNote::with('user:id,name')
@@ -3535,4 +3536,15 @@ class AdminJobApplicationController extends AdminBaseController
             'next_url'        => route('admin.job-applications.bulk-parse-all-cvs'),
         ]);
     }
+    public function searchUsersForMention(Request $request)
+{
+    $query = trim($request->input('q', ''));
+    $users = \App\User::select('id', 'name')
+        ->where('id', '!=', $this->user->id)
+        ->when($query !== '', fn ($q) => $q->where('name', 'LIKE', '%'.$query.'%'))
+        ->limit(6)
+        ->get();
+
+    return Reply::dataOnly(['users' => $users]);
+}
 } // ← CLASS CLOSING BRACE — KEEP ONLY THIS ONE

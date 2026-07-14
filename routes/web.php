@@ -279,6 +279,7 @@ Route::middleware('auth')->group(function () {
             Route::resource('applications-archive', AdminApplicationArchiveController::class);
             Route::post('applications-archive{id}',            [AdminApplicationArchiveController::class, 'deleteRecords'])->name('applications-archive.deleteRecords');
 
+            Route::get('job-applications/search-users-mention', [AdminJobApplicationController::class, 'searchUsersForMention'])->name('job-applications.search-users-mention');
             // Job Onboard
             Route::get('job-onboard/data',              [AdminJobOnboardController::class, 'data'])->name('job-onboard.data');
             Route::get('job-onboard/send-offer/{id?}',  [AdminJobOnboardController::class, 'sendOffer'])->name('job-onboard.send-offer');

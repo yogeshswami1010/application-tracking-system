@@ -1183,22 +1183,26 @@ function jaShowJobDesc() { var o = document.getElementById('ja-jobdesc-overlay')
 function jaHideJobDesc() { var o = document.getElementById('ja-jobdesc-overlay'); o.style.display = 'none'; document.body.style.overflow = ''; }
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') jaHideJobDesc(); });
 
-/* ── @mention autocomplete ── */
-var jaAllUsers = @json(\App\User::select('id','name')->get());
-var jaMentionQuery = '', jaMentionStart = -1;
+var jaMentionQuery = '', jaMentionStart = -1, jaMentionTimer = null;
 function jaNoteHandleInput(el) {
     var val = el.value, caret = el.selectionStart, drop = document.getElementById('ja-mention-drop');
     if (!drop) return;
     var textBefore = val.substring(0, caret), atMatch = textBefore.match(/@([a-zA-Z0-9_]*)$/);
     if (!atMatch) { drop.style.display = 'none'; jaMentionStart = -1; return; }
-    jaMentionQuery = atMatch[1].toLowerCase(); jaMentionStart = caret - atMatch[0].length;
-    var matches = jaAllUsers.filter(function(u) { return u.name.toLowerCase().includes(jaMentionQuery) && u.id !== {{ auth()->id() }}; }).slice(0, 6);
-    if (!matches.length) { drop.style.display = 'none'; return; }
-    drop.innerHTML = matches.map(function(u) {
-        var initials = u.name.split(' ').map(function(w){ return w[0]; }).join('').substring(0,2).toUpperCase();
-        return '<div onclick="jaInsertMention(\'' + u.name.replace(/'/g, "\\'") + '\')" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;font-size:13px;color:#1A1E2E;" onmouseover="this.style.background=\'#EFF6FF\'" onmouseout="this.style.background=\'none\'"><span style="width:26px;height:26px;border-radius:50%;background:#2563EB;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">' + initials + '</span><span style="font-weight:500">' + u.name + '</span></div>';
-    }).join('');
-    drop.style.display = 'block';
+    jaMentionQuery = atMatch[1]; jaMentionStart = caret - atMatch[0].length;
+
+    clearTimeout(jaMentionTimer);
+    jaMentionTimer = setTimeout(function() {
+        $.get("{{ route('admin.job-applications.search-users-mention') }}", { q: jaMentionQuery }, function(res) {
+            var matches = (res.data && res.data.users) ? res.data.users : [];
+            if (!matches.length) { drop.style.display = 'none'; return; }
+            drop.innerHTML = matches.map(function(u) {
+                var initials = u.name.split(' ').map(function(w){ return w[0]; }).join('').substring(0,2).toUpperCase();
+                return '<div onclick="jaInsertMention(\'' + u.name.replace(/'/g, "\\'") + '\')" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;font-size:13px;color:#1A1E2E;" onmouseover="this.style.background=\'#EFF6FF\'" onmouseout="this.style.background=\'none\'"><span style="width:26px;height:26px;border-radius:50%;background:#2563EB;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">' + initials + '</span><span style="font-weight:500">' + u.name + '</span></div>';
+            }).join('');
+            drop.style.display = 'block';
+        });
+    }, 200);
 }
 function jaInsertMention(name) {
     var ta = document.getElementById('note_text'), val = ta.value, caret = ta.selectionStart;
