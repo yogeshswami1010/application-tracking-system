@@ -1247,7 +1247,19 @@ class AdminJobApplicationController extends AdminBaseController
         $this->jobs = Job::all();
         $this->skills = Skill::all();
         $this->questions = Question::all();
-        $this->companies = Company::all();
+        $companyLocationMap = DB::table('jobs')
+            ->join('job_job_locations', 'job_job_locations.job_id', '=', 'jobs.id')
+            ->select('jobs.company_id', 'job_job_locations.location_id')
+            ->get()
+            ->groupBy('company_id')
+            ->map(function ($rows) {
+                return $rows->pluck('location_id')->unique()->implode(',');
+            });
+
+        $this->companies = Company::all()->map(function ($company) use ($companyLocationMap) {
+            $company->location_ids = $companyLocationMap->get($company->id, '');
+            return $company;
+        });
         $this->applicantsForAiCompare = JobApplication::query()
             ->select('id', 'full_name', 'job_id')
             ->with(['job:id,title'])
