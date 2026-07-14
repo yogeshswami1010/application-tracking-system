@@ -32,6 +32,7 @@ use App\Http\Controllers\Admin\AdminThemeSettingsController;
 use App\Http\Controllers\Admin\AdminTodoItemController;
 use App\Http\Controllers\Admin\AdminWorkExperienceController;
 use App\Http\Controllers\Admin\AdminZoomMeetingController;
+use App\Http\Controllers\Admin\AiSearchPromptController;
 use App\Http\Controllers\Admin\ApplicantNoteController;
 use App\Http\Controllers\Admin\ApplicationSettingsController;
 use App\Http\Controllers\Admin\CategoryController;
@@ -51,6 +52,7 @@ use App\Http\Controllers\ZoomWebhookController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\AdminJobClientNoteController;
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -128,6 +130,20 @@ Route::middleware('auth')->group(function () {
             Route::get('ai-search/results', [AdminJobApplicationController::class, 'aiSearchResults'])->name('ai-search.results');
             Route::post('ai-search/index-cvs', [AdminJobApplicationController::class, 'indexCvs'])->name('ai-search.index-cvs');
             Route::post('ai-search/parse-query', [AdminJobApplicationController::class, 'aiParseQuery'])->name('ai-search.parse-query');
+
+            // ═══════════════════════════════════════════════════════════════
+            // ═══ AI SAVED SEARCH PROMPTS ══════════════════════════════════
+            // ═══════════════════════════════════════════════════════════════
+            Route::get('ai-search/prompts', [AiSearchPromptController::class, 'index'])
+                ->name('ai-search.prompts.index');
+            Route::post('ai-search/prompts', [AiSearchPromptController::class, 'store'])
+                ->name('ai-search.prompts.store');
+            Route::post('ai-search/prompts/{id}/use', [AiSearchPromptController::class, 'use'])
+                ->name('ai-search.prompts.use');
+            Route::patch('ai-search/prompts/{id}/favorite', [AiSearchPromptController::class, 'toggleFavorite'])
+                ->name('ai-search.prompts.favorite');
+            Route::delete('ai-search/prompts/{id}', [AiSearchPromptController::class, 'destroy'])
+                ->name('ai-search.prompts.destroy');
 
             // Questions
             Route::get('questions/data',         [AdminQuestionController::class, 'data'])->name('questions.data');
@@ -210,7 +226,7 @@ Route::middleware('auth')->group(function () {
             Route::resource('locations', AdminLocationsController::class);
 
             // Jobs
-        
+
             Route::get('jobs/data',                   [AdminJobsController::class, 'data'])->name('jobs.data');
             Route::post('jobs/bulk-destroy',           [AdminJobsController::class, 'bulkDestroy'])->name('jobs.bulkDestroy');
             Route::post('jobs/{job}/toggle-status',    [AdminJobsController::class, 'toggleStatus'])->name('jobs.toggleStatus');
@@ -222,7 +238,7 @@ Route::middleware('auth')->group(function () {
             Route::post('jobs/update-visibility',      [AdminJobsController::class, 'updateVisibility'])->name('jobs.updateVisibility');
             Route::resource('jobs', AdminJobsController::class);
 
-                        // Job Applications — SPECIFIC routes FIRST (no wildcards)
+            // Job Applications — SPECIFIC routes FIRST (no wildcards)
             Route::post('job-applications/rating-save/{id?}',              [AdminJobApplicationController::class, 'ratingSave'])->name('job-applications.rating-save');
             Route::get('job-applications/create-schedule/{id?}',           [AdminJobApplicationController::class, 'createSchedule'])->name('job-applications.create-schedule');
             Route::post('job-applications/store-schedule',                 [AdminJobApplicationController::class, 'storeSchedule'])->name('job-applications.store-schedule');
@@ -241,7 +257,7 @@ Route::middleware('auth')->group(function () {
             Route::post('job-applications/ai-generate-cover-letter',      [AdminJobApplicationController::class, 'aiGenerateCoverLetterAndDetails'])->name('job-applications.ai-generate-cover-letter');
             Route::post('job-applications/ai-parse-resume',               [AdminJobApplicationController::class, 'aiParseResumeFromUpload'])->name('job-applications.ai-parse-resume');
 
-            // ✅ CASCADE routes — MUST be before Route::resource (no wildcards)
+            // CASCADE routes — MUST be before Route::resource (no wildcards)
             Route::get('job-applications/get-jobs',                       [AdminJobApplicationController::class, 'getJobs'])->name('job-applications.get-jobs');
             Route::get('job-applications/get-locations',                    [AdminJobApplicationController::class, 'getLocations'])->name('job-applications.get-locations');
             Route::get('job-applications/stage-counts',                   [AdminJobApplicationController::class, 'stageCounts'])->name('job-applications.stage-counts');
@@ -250,7 +266,7 @@ Route::middleware('auth')->group(function () {
             Route::get('job-applications/job-statuses',                   [AdminJobApplicationController::class, 'jobStatuses'])->name('job-applications.job-statuses');
             Route::post('job-applications/bulk-parse-resume',             [AdminJobApplicationController::class, 'bulkParseResume'])->name('job-applications.bulk-parse-resume');
 
-            // ✅ Resource route LAST — has wildcard {job_application} that catches everything
+            // Resource route LAST — has wildcard {job_application} that catches everything
             Route::resource('job-applications', AdminJobApplicationController::class);
 
             // Routes with {id} parameter — AFTER resource
@@ -265,32 +281,24 @@ Route::middleware('auth')->group(function () {
             Route::get('job-applications/get-companies', [AdminJobApplicationController::class, 'getCompanies'])->name('job-applications.get-companies');
             Route::post('job-applications/bulk-parse-all-cvs', [AdminJobApplicationController::class, 'bulkParseAllCvs'])->name('job-applications.bulk-parse-all-cvs');
             Route::post('job-applications/{id}/update-marketing-label',   [AdminJobApplicationController::class, 'updateMarketingLabel'])->name('job-applications.update-marketing-label');
+            Route::get('job-applications/search-users-mention', [AdminJobApplicationController::class, 'searchUsersForMention'])->name('job-applications.search-users-mention');
+
             // Candidate Marketing
             Route::get('candidate-marketing/data',          [AdminCandidateMarketingController::class, 'data'])->name('candidate-marketing.data');
             Route::post('candidate-marketing/{id}/remove',  [AdminCandidateMarketingController::class, 'remove'])->name('candidate-marketing.remove');
             Route::resource('candidate-marketing', AdminCandidateMarketingController::class)->only(['index']);
             Route::get('candidate-marketing/{id}/show', [AdminCandidateMarketingController::class, 'show'])->name('candidate-marketing.show');
+
             // Archive / Candidate Database cascade routes
             Route::get('applications-archive/get-locations', [AdminApplicationArchiveController::class, 'getLocations'])
                 ->name('applications-archive.get-locations');
+
             // Applications Archive
             Route::get('applications-archive/data',            [AdminApplicationArchiveController::class, 'data'])->name('applications-archive.data');
             Route::get('applications-archive/export/{skill}',  [AdminApplicationArchiveController::class, 'export'])->name('applications-archive.export');
             Route::resource('applications-archive', AdminApplicationArchiveController::class);
             Route::post('applications-archive{id}',            [AdminApplicationArchiveController::class, 'deleteRecords'])->name('applications-archive.deleteRecords');
-Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
-    Route::get('ai-search/prompts', [App\Http\Controllers\Admin\AiSearchPromptController::class, 'index'])
-        ->name('admin.ai-search.prompts.index');
-    Route::post('ai-search/prompts', [App\Http\Controllers\Admin\AiSearchPromptController::class, 'store'])
-        ->name('admin.ai-search.prompts.store');
-    Route::post('ai-search/prompts/{id}/use', [App\Http\Controllers\Admin\AiSearchPromptController::class, 'use'])
-        ->name('admin.ai-search.prompts.use');
-    Route::patch('ai-search/prompts/{id}/favorite', [App\Http\Controllers\Admin\AiSearchPromptController::class, 'toggleFavorite'])
-        ->name('admin.ai-search.prompts.favorite');
-    Route::delete('ai-search/prompts/{id}', [App\Http\Controllers\Admin\AiSearchPromptController::class, 'destroy'])
-        ->name('admin.ai-search.prompts.destroy');
-});
-            Route::get('job-applications/search-users-mention', [AdminJobApplicationController::class, 'searchUsersForMention'])->name('job-applications.search-users-mention');
+
             // Job Onboard
             Route::get('job-onboard/data',              [AdminJobOnboardController::class, 'data'])->name('job-onboard.data');
             Route::get('job-onboard/send-offer/{id?}',  [AdminJobOnboardController::class, 'sendOffer'])->name('job-onboard.send-offer');
@@ -356,10 +364,3 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::post('verify-otp-phone/account', [VerifyMobileController::class, 'verifyOtpCode'])->name('verifyOtpCode.account');
     Route::get('remove-session',            [VerifyMobileController::class, 'removeSession'])->name('removeSession');
 });
-
-
-// ── Catch-all CMS page (must be LAST) ─────────────────────────────────────
-Route::name('jobs.')
-    ->group(function () {
-        Route::get('{slug}', [FrontJobsController::class, 'customPage'])->name('custom-page');
-    });
