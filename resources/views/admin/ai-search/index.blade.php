@@ -220,6 +220,7 @@
     }
 </style>
 @endpush
+
 @section('content')
 <div class="ai-search-page">
 
@@ -333,6 +334,7 @@
 
 </div>
 @endsection
+
 @push('footer-script')
 <script src="{{ asset('assets/node_modules_files/select2/dist/js/select2.full.min.js') }}"></script>
 <script>
@@ -493,7 +495,7 @@ function aiRenderSavedPrompts() {
                 '</svg>' +
                 '<div style="flex:1;min-width:0;">' +
                     '<div class="ai-saved-prompt-text">' + aiEsc(p.query_text) + '</div>' +
-                    '<div class="ai-saved-prompt-date">' + dateStr + ' · Used ' + p.use_count + '×</div>' +
+                    '<div class="ai-saved-prompt-date">' + dateStr + ' &middot; Used ' + p.use_count + '&times;</div>' +
                 '</div>' +
                 favIcon +
                 '<button class="ai-saved-prompt-delete" onclick="aiDeletePrompt(' + p.id + ', event)" title="Delete">' +
@@ -610,8 +612,21 @@ function aiRenderResults(results, query) {
     if (aiLastMeta.location) filterBadges += '<span style="font-size:11px;font-weight:600;color:#2563eb;background:#eff6ff;padding:3px 9px;border-radius:12px;"><i class="fa fa-map-marker" style="font-size:10px"></i> ' + aiEsc(aiLastMeta.location) + '</span>';
     if (aiLastMeta.min_experience > 0) filterBadges += '<span style="font-size:11px;font-weight:600;color:#7c3aed;background:#f5f3ff;padding:3px 9px;border-radius:12px;"><i class="fa fa-clock-o" style="font-size:10px"></i> ' + aiLastMeta.min_experience + '+ yrs exp</span>';
 
-    var html = '<div class="ai-search-status-bar"><div class="ai-search-status-label" style="flex-wrap:wrap;"><span class="ai-thinking-badge"><i class="fa fa-magic"></i> AI matched</span><span>' + results.length + ' candidate' + (results.length !== 1 ? 's' : '') + '</span> for "' + aiEsc(query) + '"' + (filterBadges ? '<span style="display:inline-flex;gap:5px;margin-left:4px;">' + filterBadges + '</span>' : '') + '</div><div style="display:flex;align-items:center;gap:10px;"><div class="ai-search-sort-bar"><span class="ai-search-sort-label">Sort:</span><button class="ai-search-sort-btn ' + (aiCurrentSort==='score'?'active':'') + '" onclick="aiSort('score')">Best match</button><button class="ai-search-sort-btn ' + (aiCurrentSort==='name'?'active':'') + '" onclick="aiSort('name')">Name</button><button class="ai-search-sort-btn ' + (aiCurrentSort==='recent'?'active':'') + '" onclick="aiSort('recent')">Recent</button></div><button class="ai-search-clear-btn" onclick="aiClear()"><i class="fa fa-times"></i> Clear</button></div></div><div class="ai-search-results-grid" id="ai-results-grid"></div>';
+    // Build sort buttons HTML - use data-sort attribute instead of inline onclick with quotes
+    var sortScoreClass = aiCurrentSort === 'score' ? 'active' : '';
+    var sortNameClass  = aiCurrentSort === 'name'  ? 'active' : '';
+    var sortRecentClass = aiCurrentSort === 'recent' ? 'active' : '';
+
+    var html = '<div class="ai-search-status-bar"><div class="ai-search-status-label" style="flex-wrap:wrap;"><span class="ai-thinking-badge"><i class="fa fa-magic"></i> AI matched</span><span>' + results.length + ' candidate' + (results.length !== 1 ? 's' : '') + '</span> for "' + aiEsc(query) + '"' + (filterBadges ? '<span style="display:inline-flex;gap:5px;margin-left:4px;">' + filterBadges + '</span>' : '') + '</div><div style="display:flex;align-items:center;gap:10px;"><div class="ai-search-sort-bar"><span class="ai-search-sort-label">Sort:</span><button class="ai-search-sort-btn ' + sortScoreClass + '" data-sort="score">Best match</button><button class="ai-search-sort-btn ' + sortNameClass + '" data-sort="name">Name</button><button class="ai-search-sort-btn ' + sortRecentClass + '" data-sort="recent">Recent</button></div><button class="ai-search-clear-btn" onclick="aiClear()"><i class="fa fa-times"></i> Clear</button></div></div><div class="ai-search-results-grid" id="ai-results-grid"></div>';
     out.innerHTML = html;
+
+    // Attach click handlers for sort buttons (avoids quote escaping issues)
+    out.querySelectorAll('.ai-search-sort-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            aiSort(this.getAttribute('data-sort'));
+        });
+    });
+
     aiRenderCards(results);
 }
 
@@ -644,8 +659,10 @@ function aiSort(by) {
     if (by === 'score') sorted.sort(function(a,b){ return b.score - a.score; });
     else if (by === 'name') sorted.sort(function(a,b){ return (a.full_name||'').localeCompare(b.full_name||''); });
     else if (by === 'recent') sorted.sort(function(a,b){ return b.id - a.id; });
-    document.querySelectorAll('.ai-search-sort-btn').forEach(function(btn) { btn.classList.remove('active'); });
-    event.target.classList.add('active');
+    // Update active class on buttons
+    document.querySelectorAll('.ai-search-sort-btn').forEach(function(btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-sort') === by);
+    });
     aiRenderCards(sorted);
 }
 
@@ -680,7 +697,7 @@ function aiEsc(s) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// ═══ SIDEBAR CLOSE HANDLERS (keep as-is) ════════════════════════════════
+// ═══ SIDEBAR CLOSE HANDLERS ═══════════════════════════════════════════
 // ═══════════════════════════════════════════════════════════════════════
 
 var sidebarObserver = new MutationObserver(function () {
