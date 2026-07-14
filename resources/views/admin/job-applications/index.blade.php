@@ -259,7 +259,7 @@
             @include('admin.job-applications.partials.ai-compare-modal')
         </div>
 
-        {{-- ── Filter bar (collapsible) ── --}}
+                {{-- ── Filter bar (collapsible) ── --}}
         <div id="ja-table-filter-bar" class="border-b border-[#E8E6E1] bg-white mt-3">
             <div class="px-5 sm:px-6">
                 <div class="flex items-center justify-between gap-2 pb-3 pt-0.5">
@@ -270,6 +270,7 @@
                 </div>
                 <form id="filter-form" class="flex flex-wrap items-end gap-3.5 pb-3">
 
+                    {{-- 1. Status (first) --}}
                     <div class="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[220px]">
                         <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('app.status')</label>
                         <select class="select2 w-full" name="status" id="status">
@@ -281,34 +282,37 @@
                         </select>
                     </div>
 
-                    <div class="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[220px]">
-                        <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('app.company')</label>
-                        <select class="select2 w-full" name="company" id="company">
-                            <option value="all">@lang('modules.jobApplication.allCompany')</option>
-                            @forelse($companies as $company)
-                                <option title="{{ ucfirst($company->company_name) }}" value="{{ $company->id }}">{{ ucfirst($company->company_name) }}</option>
-                            @empty
-                            @endforelse
-                        </select>
-                    </div>
-
-                    <div class="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[220px]">
-                        <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('menu.jobs')</label>
-                        <select class="select2 w-full" name="jobs" id="jobs">
-                            <option value="all">@lang('modules.jobApplication.allJobs')</option>
-                            @forelse($jobs as $job)
-                                <option title="{{ ucfirst($job->title) }}" value="{{ $job->id }}">{{ ucfirst($job->title) }}</option>
-                            @empty
-                            @endforelse
-                        </select>
-                    </div>
-
+                    {{-- 2. Location (second) --}}
                     <div class="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[220px]">
                         <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('menu.locations')</label>
                         <select class="select2 w-full" name="location" id="location">
                             <option value="all">@lang('modules.jobApplication.allLocation')</option>
                             @forelse($locations as $location)
                                 <option value="{{ $location->id }}">{{ ucfirst($location->location) }}</option>
+                            @empty
+                            @endforelse
+                        </select>
+                    </div>
+
+                    {{-- 3. Company (third) --}}
+                    <div class="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[220px]">
+                        <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('app.company')</label>
+                        <select class="select2 w-full" name="company" id="company">
+                            <option value="all">@lang('modules.jobApplication.allCompany')</option>
+                            @forelse($companies as $company)
+                                <option title="{{ ucfirst($company->company_name) }}" value="{{ $company->id }}" data-location-ids="{{ $company->location_ids ?? '' }}">{{ ucfirst($company->company_name) }}</option>
+                            @empty
+                            @endforelse
+                        </select>
+                    </div>
+
+                    {{-- 4. Job (fourth) --}}
+                    <div class="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[220px]">
+                        <label class="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8892A0]">@lang('menu.jobs')</label>
+                        <select class="select2 w-full" name="jobs" id="jobs">
+                            <option value="all">@lang('modules.jobApplication.allJobs')</option>
+                            @forelse($jobs as $job)
+                                <option title="{{ ucfirst($job->title) }}" value="{{ $job->id }}" data-company-id="{{ $job->company_id ?? '' }}" data-location-id="{{ $job->location_id ?? '' }}">{{ ucfirst($job->title) }}</option>
                             @empty
                             @endforelse
                         </select>
@@ -1071,34 +1075,158 @@
             }
         });
     });
+    // ── Location → Company → Job cascade ───────────────────────
 
+    // Store original options for reset
+    var jaOriginalCompanies = [];
+    var jaOriginalJobs = [];
+
+    function jaStoreOriginalOptions() {
+        $('#company option').each(function() {
+            jaOriginalCompanies.push({
+                value: $(this).val(),
+                text: $(this).text(),
+                title: $(this).attr('title'),
+                locationIds: $(this).attr('data-location-ids') || ''
+            });
+        });
+        $('#jobs option').each(function() {
+            jaOriginalJobs.push({
+                value: $(this).val(),
+                text: $(this).text(),
+                title: $(this).attr('title'),
+                companyId: $(this).attr('data-company-id') || '',
+                locationId: $(this).attr('data-location-id') || ''
+            });
+        });
+    }
+
+    function jaFilterCompaniesByLocation(locationId) {
+        if (locationId === 'all') {
+            var html = '<option value="all">@lang("modules.jobApplication.allCompany")</option>';
+            jaOriginalCompanies.forEach(function(c) {
+                if (c.value !== 'all') {
+                    html += '<option title="' + (c.title || '') + '" value="' + c.value + '" data-location-ids="' + (c.locationIds || '') + '">' + c.text + '</option>';
+                }
+            });
+            return html;
+        }
+        var filtered = jaOriginalCompanies.filter(function(c) {
+            if (c.value === 'all') return true;
+            var locIds = (c.locationIds || '').split(',').map(function(x) { return x.trim(); });
+            return locIds.indexOf(locationId) !== -1;
+        });
+        var html = '<option value="all">@lang("modules.jobApplication.allCompany")</option>';
+        filtered.forEach(function(c) {
+            if (c.value !== 'all') {
+                html += '<option title="' + (c.title || '') + '" value="' + c.value + '" data-location-ids="' + (c.locationIds || '') + '">' + c.text + '</option>';
+            }
+        });
+        return html;
+    }
+
+    function jaFilterJobsByLocationAndCompany(locationId, companyId) {
+        var filtered = jaOriginalJobs.filter(function(j) {
+            if (j.value === 'all') return true;
+            var matchLocation = (locationId === 'all') || (j.locationId === locationId);
+            var matchCompany = (companyId === 'all') || (j.companyId === companyId);
+            return matchLocation && matchCompany;
+        });
+        var html = '<option value="all">@lang("modules.jobApplication.allJobs")</option>';
+        filtered.forEach(function(j) {
+            if (j.value !== 'all') {
+                html += '<option title="' + (j.title || '') + '" value="' + j.value + '" data-company-id="' + (j.companyId || '') + '" data-location-id="' + (j.locationId || '') + '">' + j.text + '</option>';
+            }
+        });
+        return html;
+    }
+
+    // Location change → filter companies → filter jobs
+    $('#location').on('change', function() {
+        var locationId = $(this).val() || 'all';
+        var currentCompany = $('#company').val();
+        var currentJob = $('#jobs').val();
+
+        var companyHtml = jaFilterCompaniesByLocation(locationId);
+        $('#company').select2('destroy').html(companyHtml).select2({ width: '100%' });
+
+        var companyStillValid = $('#company option[value="' + currentCompany + '"]').length > 0;
+        if (companyStillValid && currentCompany) {
+            $('#company').val(currentCompany).trigger('change');
+        } else {
+            $('#company').val('all').trigger('change');
+            currentCompany = 'all';
+        }
+
+        var jobHtml = jaFilterJobsByLocationAndCompany(locationId, currentCompany);
+        $('#jobs').select2('destroy').html(jobHtml).select2({ width: '100%' });
+
+        var jobStillValid = $('#jobs option[value="' + currentJob + '"]').length > 0;
+        if (jobStillValid && currentJob) {
+            $('#jobs').val(currentJob).trigger('change');
+        } else {
+            $('#jobs').val('all').trigger('change');
+        }
+
+        jaApplyFilters();
+    });
+
+    // Company change → filter jobs
+    $('#company').on('change', function() {
+        var companyId = $(this).val() || 'all';
+        var locationId = $('#location').val() || 'all';
+        var currentJob = $('#jobs').val();
+
+        var jobHtml = jaFilterJobsByLocationAndCompany(locationId, companyId);
+        $('#jobs').select2('destroy').html(jobHtml).select2({ width: '100%' });
+
+        var jobStillValid = $('#jobs option[value="' + currentJob + '"]').length > 0;
+        if (jobStillValid && currentJob) {
+            $('#jobs').val(currentJob).trigger('change');
+        } else {
+            $('#jobs').val('all').trigger('change');
+        }
+
+        jaApplyFilters();
+    });
+
+    // Jobs change → load pipeline stages
+    $('#jobs').on('change', function() {
+        jaLoadJobStatuses($(this).val());
+        jaApplyFilters();
+    });
     // ── Select2 init ─────────────────────────────────────────────
     $('#filter-form select.select2').not('#skill').select2({ width: '100%' });
 
-    // ── Init — no job selected, show all applicants ──────────────
-    // Read status from URL
-const params = new URLSearchParams(window.location.search);
-const statusFromUrl = params.get('status') || 'all';
+     // ── Store original options on init ─────────────────────────
+    jaStoreOriginalOptions();
 
-jaShowKO = false;
-jaActiveStageId = statusFromUrl;
+    // ── Select2 init ───────────────────────────────────────────
+    $('#filter-form select.select2').not('#skill').select2({ width: '100%' });
 
-$('#status').val(statusFromUrl).trigger('change.select2');
+    // ── Init ───────────────────────────────────────────────────
+    const params = new URLSearchParams(window.location.search);
+    const statusFromUrl = params.get('status') || 'all';
 
-if (statusFromUrl === 'all') {
-    document.getElementById('ja-tab-all').classList.add('active');
-} else {
-    setTimeout(function () {
-        var btn = document.querySelector('[data-stage-id="' + statusFromUrl + '"]');
-        if (btn) {
-            btn.classList.add('active');
-        }
-    }, 300);
-}
+    jaShowKO = false;
+    jaActiveStageId = statusFromUrl;
 
-tableLoad('load');
-jaLoadTabCounts();
-jaTableSyncFilterBadge();
+    $('#status').val(statusFromUrl).trigger('change.select2');
+
+    if (statusFromUrl === 'all') {
+        document.getElementById('ja-tab-all').classList.add('active');
+    } else {
+        setTimeout(function () {
+            var btn = document.querySelector('[data-stage-id="' + statusFromUrl + '"]');
+            if (btn) {
+                btn.classList.add('active');
+            }
+        }, 300);
+    }
+
+    tableLoad('load');
+    jaLoadTabCounts();
+    jaTableSyncFilterBadge();
  
 
 
