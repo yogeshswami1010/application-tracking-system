@@ -2226,29 +2226,34 @@ class AdminJobApplicationController extends AdminBaseController
     }
 
         public function getLocations(Request $request)
-    {
-        $companyId = $request->companyId;
+{
+    $companyId = $request->companyId;
 
-        $query = JobLocation::query();
+    \Log::info('getLocations called with companyId: ' . $companyId);
 
-        if ($companyId && $companyId != 'all' && $companyId != '') {
-            $locationIds = JobJobLocation::join('jobs', 'jobs.id', 'job_job_locations.job_id')
-                ->where('jobs.company_id', $companyId)
-                ->pluck('job_job_locations.location_id')
-                ->unique();
+    if ($companyId && $companyId != 'all' && $companyId != '') {
+        $locationIds = JobJobLocation::join('jobs', 'jobs.id', '=', 'job_job_locations.job_id')
+            ->where('jobs.company_id', $companyId)
+            ->pluck('job_job_locations.location_id')
+            ->unique()
+            ->values();
 
-            $query->whereIn('id', $locationIds);
-        }
+        \Log::info('Found location IDs for company ' . $companyId . ': ' . $locationIds->implode(', '));
 
-        $locations = $query->get();
-
-        $html = '<option value="all">'.__('modules.jobApplication.allLocation').'</option>';
-        foreach ($locations as $location) {
-            $html .= '<option value="'.$location->id.'">'.ucfirst($location->location).'</option>';
-        }
-
-        return Reply::dataOnly(['locations' => $html]);
+        $locations = JobLocation::whereIn('id', $locationIds)->orderBy('location')->get();
+    } else {
+        $locations = JobLocation::orderBy('location')->get();
     }
+
+    \Log::info('Returning ' . $locations->count() . ' locations');
+
+    $html = '<option value="all">'.__('modules.jobApplication.allLocation').'</option>';
+    foreach ($locations as $location) {
+        $html .= '<option value="'.$location->id.'">'.ucfirst($location->location).'</option>';
+    }
+
+    return Reply::dataOnly(['locations' => $html]);
+}
     public function parseSkills(Request $request, $id)
     {
         \Log::info('parseSkills called for id: ' . $id);
