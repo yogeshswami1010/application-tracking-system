@@ -46,6 +46,7 @@ use Yajra\DataTables\Facades\DataTables;
 use App\Models\Currency;
 use App\ApplicantNote;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 class AdminJobApplicationController extends AdminBaseController
 {
     use ZoomSettings;
@@ -2823,6 +2824,62 @@ class AdminJobApplicationController extends AdminBaseController
     {
         abort_if(!$this->user->cans('view_job_applications'), 403);
         return view('admin.ai-search.index', $this->data);
+    }
+
+    /** Send a plain-text email to applicants selected from AI search results. */
+    public function sendAiSearchEmail(Request $request)
+    {
+        abort_if(!$this->user->cans('view_job_applications'), 403);
+
+        $data = $request->validate([
+            'applicant_ids' => ['required', 'array', 'min:1', 'max:100'],
+            'applicant_ids.*' => ['integer', 'distinct', 'exists:job_applications,id'],
+            'subject' => ['required', 'string', 'max:191'],
+            'message' => ['required', 'string', 'max:10000'],
+        ]);
+
+        $applications = JobApplication::whereIn('id', $data['applicant_ids'])
+            ->whereNotNull('email')
+            ->where('email', '!=', '')
+            ->get(['id', 'full_name', 'email']);
+
+        if ($applications->isEmpty()) {
+            return Reply::error('None of the selected applicants has an email address.');
+        }
+
+        $sent = 0;
+        $failed = 0;
+        $message = nl2br(e($data['message']));
+
+        foreach ($applications->unique('email') as $application) {
+            try {
+                Mail::html(
+                    '<p>Hello '.e($application->full_name ?: 'Applicant').',</p><div>'.$message.'</div>',
+                    function ($mail) use ($application, $data) {
+                        $mail->to($application->email, $application->full_name)
+                            ->subject($data['subject']);
+                    }
+                );
+                $sent++;
+            } catch (\Throwable $e) {
+                $failed++;
+                Log::warning('AI search applicant email failed', [
+                    'application_id' => $application->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        if ($sent === 0) {
+            return Reply::error('Emails could not be sent. Please check the mail settings and try again.');
+        }
+
+        $message = "Email sent to {$sent} applicant".($sent === 1 ? '' : 's').'.';
+        if ($failed > 0) {
+            $message .= " {$failed} email".($failed === 1 ? '' : 's').' failed.';
+        }
+
+        return Reply::success($message);
     }
 
     /**

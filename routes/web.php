@@ -130,6 +130,7 @@ Route::middleware('auth')->group(function () {
             Route::get('ai-search/results', [AdminJobApplicationController::class, 'aiSearchResults'])->name('ai-search.results');
             Route::post('ai-search/index-cvs', [AdminJobApplicationController::class, 'indexCvs'])->name('ai-search.index-cvs');
             Route::post('ai-search/parse-query', [AdminJobApplicationController::class, 'aiParseQuery'])->name('ai-search.parse-query');
+            Route::post('ai-search/send-email', [AdminJobApplicationController::class, 'sendAiSearchEmail'])->name('ai-search.send-email');
 
             // ═══════════════════════════════════════════════════════════════
             // ═══ AI SAVED SEARCH PROMPTS ══════════════════════════════════

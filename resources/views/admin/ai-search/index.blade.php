@@ -168,6 +168,11 @@
     .ai-result-card:hover {
         border-color: #2563eb; box-shadow: 0 4px 20px rgba(37,99,235,.1); transform: translateY(-1px);
     }
+    .ai-result-card.selected { border-color: #2563eb; background: #f8fbff; }
+    .ai-result-select { width: 18px; height: 18px; accent-color: #2563eb; cursor: pointer; flex-shrink: 0; }
+    .ai-bulk-actions { display:none; align-items:center; gap:10px; margin-left:auto; }
+    .ai-bulk-actions.visible { display:flex; }
+    .ai-email-modal textarea { min-height: 170px; resize: vertical; }
     .ai-result-rank { font-size: 11px; font-weight: 700; color: #b0b8c4; width: 20px; text-align: center; flex-shrink: 0; }
     .ai-result-rank.top { color: #f59e0b; }
     .ai-result-avatar {
@@ -295,6 +300,32 @@
         </div>
     </div>
 
+    <div class="modal fade ai-email-modal" id="ai-send-email-modal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa fa-envelope-o text-primary"></i> Send email</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-3">This email will be sent separately to <strong id="ai-email-recipient-count">0</strong> selected applicants.</p>
+                    <div class="form-group">
+                        <label for="ai-email-subject">Subject <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="ai-email-subject" maxlength="191" placeholder="Email subject">
+                    </div>
+                    <div class="form-group mb-0">
+                        <label for="ai-email-message">Message <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="ai-email-message" maxlength="10000" placeholder="Write your email message here..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="ai-send-email-confirm"><i class="fa fa-paper-plane"></i> Send email</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Saved Prompts Sidebar --}}
     <div class="ai-saved-prompts-sidebar" id="ai-saved-prompts-sidebar">
         <div class="ai-saved-prompts-header">
@@ -347,6 +378,7 @@ var aiLastQuery   = '';
 var aiLastMeta    = { location: '', min_experience: 0 };
 var aiSavedPrompts = [];
 var aiSavedSidebarOpen = false;
+var aiSelectedApplicantIds = [];
 
 // ═══════════════════════════════════════════════════════════════════════
 // ═══ SAVED PROMPTS FUNCTIONS ══════════════════════════════════════════
@@ -557,6 +589,7 @@ function aiSearchServer(query, terms, roles, location, minExp) {
             btn.disabled = false;
             btn.innerHTML = '<svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg> Search with AI';
             aiLastResults = res.results || [];
+            aiSelectedApplicantIds = [];
             aiRenderResults(aiLastResults, query);
         },
         error: function() {
@@ -617,7 +650,7 @@ function aiRenderResults(results, query) {
     var sortNameClass  = aiCurrentSort === 'name'  ? 'active' : '';
     var sortRecentClass = aiCurrentSort === 'recent' ? 'active' : '';
 
-    var html = '<div class="ai-search-status-bar"><div class="ai-search-status-label" style="flex-wrap:wrap;"><span class="ai-thinking-badge"><i class="fa fa-magic"></i> AI matched</span><span>' + results.length + ' candidate' + (results.length !== 1 ? 's' : '') + '</span> for "' + aiEsc(query) + '"' + (filterBadges ? '<span style="display:inline-flex;gap:5px;margin-left:4px;">' + filterBadges + '</span>' : '') + '</div><div style="display:flex;align-items:center;gap:10px;"><div class="ai-search-sort-bar"><span class="ai-search-sort-label">Sort:</span><button class="ai-search-sort-btn ' + sortScoreClass + '" data-sort="score">Best match</button><button class="ai-search-sort-btn ' + sortNameClass + '" data-sort="name">Name</button><button class="ai-search-sort-btn ' + sortRecentClass + '" data-sort="recent">Recent</button></div><button class="ai-search-clear-btn" onclick="aiClear()"><i class="fa fa-times"></i> Clear</button></div></div><div class="ai-search-results-grid" id="ai-results-grid"></div>';
+    var html = '<div class="ai-search-status-bar"><div class="ai-search-status-label" style="flex-wrap:wrap;"><span class="ai-thinking-badge"><i class="fa fa-magic"></i> AI matched</span><span>' + results.length + ' candidate' + (results.length !== 1 ? 's' : '') + '</span> for "' + aiEsc(query) + '"' + (filterBadges ? '<span style="display:inline-flex;gap:5px;margin-left:4px;">' + filterBadges + '</span>' : '') + '</div><div style="display:flex;align-items:center;gap:10px;"><div class="ai-bulk-actions" id="ai-bulk-actions"><button type="button" class="ai-search-btn secondary" onclick="aiToggleAllApplicants()"><i class="fa fa-check-square-o"></i> Select all</button><button type="button" class="ai-search-btn" onclick="aiOpenEmailModal()"><i class="fa fa-envelope-o"></i> Email <span id="ai-selected-count">0</span></button></div><div class="ai-search-sort-bar"><span class="ai-search-sort-label">Sort:</span><button class="ai-search-sort-btn ' + sortScoreClass + '" data-sort="score">Best match</button><button class="ai-search-sort-btn ' + sortNameClass + '" data-sort="name">Name</button><button class="ai-search-sort-btn ' + sortRecentClass + '" data-sort="recent">Recent</button></div><button class="ai-search-clear-btn" onclick="aiClear()"><i class="fa fa-times"></i> Clear</button></div></div><div class="ai-search-results-grid" id="ai-results-grid"></div>';
     out.innerHTML = html;
 
     // Attach click handlers for sort buttons (avoids quote escaping issues)
@@ -648,10 +681,60 @@ function aiRenderCards(results) {
             }).join('') + (r.all_skills.length > 8 ? '<span class="ai-result-skill-tag">+' + (r.all_skills.length - 8) + '</span>' : '') + '</div>';
         }
         var cvBadge = r.has_cv ? '<span style="font-size:10px;font-weight:600;color:#059669;background:#d1fae5;padding:2px 7px;border-radius:10px;margin-left:6px;"><i class="fa fa-file-text-o" style="font-size:9px"></i> CV indexed</span>' : '<span style="font-size:10px;color:#b0b8c4;background:#f1f3f7;padding:2px 7px;border-radius:10px;margin-left:6px;">No CV</span>';
-        html += '<div class="ai-result-card" onclick="aiOpenApplicant(' + r.id + ')"><div class="ai-result-rank ' + (isTop ? 'top' : '') + '">' + (isTop ? '★' : (idx+1)) + '</div><div class="ai-result-avatar" style="background:' + ac[0] + ';color:' + ac[1] + '">' + aiEsc(initial) + '</div><div class="ai-result-body"><div class="ai-result-name">' + aiEsc(r.full_name) + cvBadge + '</div><div class="ai-result-meta">' + aiEsc(r.job_title || '—') + '<span class="ai-result-meta-sep"></span><i class="fa fa-map-marker" style="font-size:10px;color:#8892a0;margin-right:2px"></i>' + aiEsc(r.location || '—') + '<span class="ai-result-meta-sep"></span><span class="ai-result-status" style="background:' + aiEsc(r.status_color || '#6b7280') + '">' + aiEsc(r.status || '—') + '</span></div>' + skillsHtml + '</div><div class="ai-result-score-col"><div class="ai-result-score-pct" style="color:' + scoreColor + '">' + r.score + '%</div><div class="ai-result-score-label">match</div><div class="ai-result-score-bar-wrap"><div class="ai-result-score-bar" style="width:' + r.score + '%;background:' + scoreColor + '"></div></div></div><button class="ai-result-view-btn" onclick="event.stopPropagation();aiOpenApplicant(' + r.id + ')">View <i class="fa fa-arrow-right" style="font-size:10px"></i></button></div>';
+        var isSelected = aiSelectedApplicantIds.indexOf(r.id) !== -1;
+        html += '<div class="ai-result-card' + (isSelected ? ' selected' : '') + '" onclick="aiOpenApplicant(' + r.id + ')"><input type="checkbox" class="ai-result-select" value="' + r.id + '" ' + (isSelected ? 'checked' : '') + ' onclick="event.stopPropagation()" onchange="aiToggleApplicant(' + r.id + ', this.checked)"><div class="ai-result-rank ' + (isTop ? 'top' : '') + '">' + (isTop ? '★' : (idx+1)) + '</div><div class="ai-result-avatar" style="background:' + ac[0] + ';color:' + ac[1] + '">' + aiEsc(initial) + '</div><div class="ai-result-body"><div class="ai-result-name">' + aiEsc(r.full_name) + cvBadge + '</div><div class="ai-result-meta">' + aiEsc(r.job_title || '—') + '<span class="ai-result-meta-sep"></span><i class="fa fa-map-marker" style="font-size:10px;color:#8892a0;margin-right:2px"></i>' + aiEsc(r.location || '—') + '<span class="ai-result-meta-sep"></span><span class="ai-result-status" style="background:' + aiEsc(r.status_color || '#6b7280') + '">' + aiEsc(r.status || '—') + '</span></div>' + skillsHtml + '</div><div class="ai-result-score-col"><div class="ai-result-score-pct" style="color:' + scoreColor + '">' + r.score + '%</div><div class="ai-result-score-label">match</div><div class="ai-result-score-bar-wrap"><div class="ai-result-score-bar" style="width:' + r.score + '%;background:' + scoreColor + '"></div></div></div><button class="ai-result-view-btn" onclick="event.stopPropagation();aiOpenApplicant(' + r.id + ')">View <i class="fa fa-arrow-right" style="font-size:10px"></i></button></div>';
     });
     grid.innerHTML = html;
+    aiUpdateBulkActions();
 }
+
+function aiToggleApplicant(id, selected) {
+    var index = aiSelectedApplicantIds.indexOf(id);
+    if (selected && index === -1) aiSelectedApplicantIds.push(id);
+    if (!selected && index !== -1) aiSelectedApplicantIds.splice(index, 1);
+    aiRenderCards(aiCurrentSort === 'score' ? aiLastResults.slice().sort(function(a,b){ return b.score - a.score; }) : aiLastResults);
+}
+
+function aiToggleAllApplicants() {
+    var ids = aiLastResults.map(function(result) { return result.id; });
+    aiSelectedApplicantIds = aiSelectedApplicantIds.length === ids.length ? [] : ids;
+    aiRenderCards(aiLastResults);
+}
+
+function aiUpdateBulkActions() {
+    var actions = document.getElementById('ai-bulk-actions');
+    var count = document.getElementById('ai-selected-count');
+    if (actions) actions.classList.toggle('visible', aiSelectedApplicantIds.length > 0);
+    if (count) count.textContent = aiSelectedApplicantIds.length;
+}
+
+function aiOpenEmailModal() {
+    if (!aiSelectedApplicantIds.length) return;
+    document.getElementById('ai-email-recipient-count').textContent = aiSelectedApplicantIds.length;
+    $('#ai-send-email-modal').modal('show');
+}
+
+$('#ai-send-email-confirm').on('click', function() {
+    var subject = document.getElementById('ai-email-subject').value.trim();
+    var message = document.getElementById('ai-email-message').value.trim();
+    if (!subject || !message) { alert('Please enter both a subject and message.'); return; }
+    var button = $(this);
+    button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Sending…');
+    $.easyAjax({
+        url: '{{ route("admin.ai-search.send-email") }}', type: 'POST',
+        data: { _token: '{{ csrf_token() }}', applicant_ids: aiSelectedApplicantIds, subject: subject, message: message },
+        success: function(response) {
+            if (response.status === 'success') {
+                $('#ai-send-email-modal').modal('hide');
+                document.getElementById('ai-email-subject').value = '';
+                document.getElementById('ai-email-message').value = '';
+                aiSelectedApplicantIds = [];
+                aiRenderCards(aiLastResults);
+            }
+        },
+        complete: function() { button.prop('disabled', false).html('<i class="fa fa-paper-plane"></i> Send email'); }
+    });
+});
 
 function aiSort(by) {
     aiCurrentSort = by;
@@ -670,6 +753,7 @@ function aiClear() {
     document.getElementById('ai-search-input').value = '';
     document.getElementById('ai-suggestions').style.display = 'flex';
     aiLastResults = [];
+    aiSelectedApplicantIds = [];
     aiLastQuery = '';
     document.getElementById('ai-search-output').innerHTML = '<div class="ai-search-empty" id="ai-empty-state"><div class="ai-search-empty-icon"><i class="fa fa-search"></i></div><h3>Search your candidate database</h3><p>Type a role, skill, or description — AI will find the best matches from all applicants</p></div>';
 }
