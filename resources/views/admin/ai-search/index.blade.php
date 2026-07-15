@@ -169,7 +169,13 @@
         border-color: #2563eb; box-shadow: 0 4px 20px rgba(37,99,235,.1); transform: translateY(-1px);
     }
     .ai-result-card.selected { border-color: #2563eb; background: #f8fbff; }
-    .ai-result-select { width: 22px; height: 22px; accent-color: #2563eb; cursor: pointer; flex-shrink: 0; }
+    /* The global form theme visually hides native checkboxes at left:-9999px. */
+    input[type="checkbox"].ai-result-select {
+        position: static !important; left: auto !important; opacity: 1 !important;
+        width: 22px !important; height: 22px !important; margin: 0 !important;
+        appearance: auto !important; -webkit-appearance: checkbox !important;
+        accent-color: #2563eb; cursor: pointer; flex-shrink: 0; display: block !important;
+    }
     .ai-bulk-actions { display:none; align-items:center; gap:10px; margin-left:auto; }
     .ai-bulk-actions.visible { display:flex; }
     .ai-email-modal textarea { min-height: 170px; resize: vertical; }
