@@ -2914,6 +2914,8 @@ public function aiSearchResults(Request $request)
     $query      = trim($request->input('query', ''));
     $location   = trim($request->input('location', ''));
     $minExp     = (float) $request->input('min_experience', 0);
+    $searchTerms = array_values(array_unique(array_merge($terms, $roles)));
+$roleTerms   = !empty($roles) ? $roles : $searchTerms;
 
     // Optional: let the front-end explicitly ask to restrict to active applicants only.
     // Defaults to false so AI Search covers your whole candidate pool by default.
