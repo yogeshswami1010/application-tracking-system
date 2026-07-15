@@ -2965,10 +2965,14 @@ public function aiSearchResults(Request $request)
                 $q->orWhere('job_applications.cv_text',        'LIKE', '%'.$term.'%');
             }
             if ($location) {
-                $q->orWhere('job_applications.cv_location_text', 'LIKE', '%'.$location.'%');
-                $q->orWhere('job_applications.city',              'LIKE', '%'.$location.'%');
-                $q->orWhere('job_applications.state',             'LIKE', '%'.$location.'%');
-                $q->orWhereHas('location', fn($lq) => $lq->where('location', 'LIKE', '%'.$location.'%'));
+                $applicantsQuery->where(function ($q) use ($location) {
+                    $q->where('cv_location_text', 'LIKE', "%{$location}%")
+                    ->orWhere('city', 'LIKE', "%{$location}%")
+                    ->orWhere('state', 'LIKE', "%{$location}%")
+                    ->orWhereHas('location', function ($lq) use ($location) {
+                        $lq->where('location', 'LIKE', "%{$location}%");
+                    });
+                });
             }
         });
 
