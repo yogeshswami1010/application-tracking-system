@@ -2958,15 +2958,13 @@ public function aiSearchResults(Request $request)
             foreach ($matchedSkillIds as $sid) {
                 $q->orWhereJsonContains('job_applications.skills', $sid);
             }
-            foreach ($searchTerms as $term) {
-                $q->orWhere('job_applications.full_name',     'LIKE', '%'.$term.'%');
-                $q->orWhere('job_applications.cv_job_titles',  'LIKE', '%'.$term.'%');
-                $q->orWhere('job_applications.cv_skills_text', 'LIKE', '%'.$term.'%');
-                $q->orWhere('job_applications.cv_text',        'LIKE', '%'.$term.'%');
+            foreach ($roleTerms as $role) {
+                $q->orWhere('job_applications.cv_job_titles', 'LIKE', "%{$role}%")
+                ->orWhere('job_applications.cv_text', 'LIKE', "%{$role}%");
             }
           
         });
-        if (!empty($location)) {
+       if (!empty($location)) {
 
             $applicantsQuery->where(function ($q) use ($location) {
 
@@ -3106,7 +3104,7 @@ public function aiSearchResults(Request $request)
 
         // Require *some* real signal — role, skill, or name — to appear at all.
         // Pure location/experience-only "matches" with nothing else are noise.
-        if (!$roleMatched && empty($matchedSkills) && $score <= 0) {
+        if (!empty($roleTerms) && !$roleMatched) {
             return null;
         }
         if ($score <= 0) {
