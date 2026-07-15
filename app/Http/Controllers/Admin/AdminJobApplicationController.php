@@ -2964,20 +2964,23 @@ public function aiSearchResults(Request $request)
                 $q->orWhere('job_applications.cv_skills_text', 'LIKE', '%'.$term.'%');
                 $q->orWhere('job_applications.cv_text',        'LIKE', '%'.$term.'%');
             }
-            $applicantsQuery = JobApplication::select(...)
-            ->whereNull('deleted_at');
-            if ($location) {
-                $applicantsQuery->where(function ($q) use ($location) {
-                    $q->where('cv_location_text', 'LIKE', "%{$location}%")
-                    ->orWhere('city', 'LIKE', "%{$location}%")
-                    ->orWhere('state', 'LIKE', "%{$location}%")
-                    ->orWhereHas('location', function ($lq) use ($location) {
-                        $lq->where('location', 'LIKE', "%{$location}%");
-                    });
-                });
-            }
+          
         });
+        if (!empty($location)) {
 
+            $applicantsQuery->where(function ($q) use ($location) {
+
+                $q->where('job_applications.cv_location_text', 'LIKE', "%{$location}%")
+                ->orWhere('job_applications.city', 'LIKE', "%{$location}%")
+                ->orWhere('job_applications.state', 'LIKE', "%{$location}%")
+                ->orWhere('job_applications.country', 'LIKE', "%{$location}%")
+                ->orWhereHas('location', function ($lq) use ($location) {
+                    $lq->where('location', 'LIKE', "%{$location}%");
+                });
+
+            });
+
+        }
     if ($onlyApplicants) {
         $applicantsQuery->where('job_applications.is_candidate', 0);
     }
