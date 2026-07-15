@@ -3121,11 +3121,10 @@ public function aiSearchResults(Request $request)
             'created_at'     => $app->created_at?->toDateString(),
         ];
     })
-    ->filter()
-    ->sortByDesc('score')
-    ->values()
-    ->take(100) // cap what's sent to the front-end; already sorted best-first
-    ->toArray();
+  ->filter()
+->sortByDesc('score')
+->values()
+->toArray();
 
     return Reply::dataOnly(['results' => $results]);
 }
