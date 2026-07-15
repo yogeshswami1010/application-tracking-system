@@ -406,7 +406,8 @@ function jaSaveMarketingLabel(appId) {
                         </div>
                         @endif
                        
-                        @php $prevAnswers = \App\JobApplicationAnswer::where('job_application_id', $prev->id)->with('question')->whereNotNull('answer')->get()->filter(fn($a) => !empty(trim($a->answer))); @endphp
+                        @php $prevAnswers = $prev->answers->filter(fn($a) => !empty(trim($a->answer))); @endphp
+
                         @if($prevAnswers->isNotEmpty())
                         <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #F0EEE9">
                             <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:6px"><i class="fa fa-question-circle-o" style="font-size:10px"></i> Screening Answers</div>
@@ -422,7 +423,7 @@ function jaSaveMarketingLabel(appId) {
                             @endforeach
                         </div>
                         @endif
-                        @php $prevNotes = \App\ApplicantNote::where('job_application_id', $prev->id)->with('user:id,name')->orderByDesc('created_at')->get(); @endphp
+                        @php $prevNotes = $prev->notes; @endphp
                         @if($prevNotes->isNotEmpty())
                         <div>
                             <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#B0B8C4;margin-bottom:6px"><i class="fa fa-sticky-note-o" style="font-size:10px"></i> Notes <span style="display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;border-radius:20px;background:#F0EEE9;font-size:10px;color:#8A94A6;margin-left:4px">{{ $prevNotes->count() }}</span></div>
