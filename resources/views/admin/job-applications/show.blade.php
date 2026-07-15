@@ -450,12 +450,13 @@ function jaSaveMarketingLabel(appId) {
                     {{-- Quick actions --}}
                     <div class="ja-card">
                         <div class="ja-action-btns">
-                            @if($user->cans('add_schedule') && $application->status->status == 'interview' && is_null($application->schedule))
+                            @if($user->cans('add_schedule') && $application->status?->status == 'interview' && is_null($application->schedule))
                             <a onclick="createSchedule('{{ $application->id }}')" href="javascript:;" class="ja-btn ja-btn-blue">
                                 <i class="fa fa-calendar-plus-o"></i> @lang('modules.interviewSchedule.scheduleInterview')
                             </a>
                             @endif
-                            @if($application->status->status == 'hired' && is_null($application->onboard))
+                            @if($application->status?->status == 'hired' && is_null($application->onboard))
+
                             <a href="{{ route('admin.job-onboard.create') }}?id={{ $application->id }}" class="ja-btn ja-btn-green">
                                 <i class="fa fa-rocket"></i> @lang('app.startOnboard')
                             </a>
