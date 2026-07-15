@@ -2878,187 +2878,435 @@ class AdminJobApplicationController extends AdminBaseController
         }
     }
 
-   public function aiSearchResults(Request $request)
-    {
-        abort_if(!$this->user->cans('view_job_applications'), 403);
 
-        $terms     = array_filter(array_map('trim', (array) $request->input('terms', [])));
-        $roles     = array_filter(array_map('trim', (array) $request->input('roles', [])));
-        $query     = trim($request->input('query', ''));
-        $location  = trim($request->input('location', ''));
-        $minExp    = (float) $request->input('min_experience', 0);
+public function aiSearchResults(Request $request)
+{
+    abort_if(!$this->user->cans('view_job_applications'), 403);
 
-        if (empty($terms) && empty($roles) && empty($query)) {
-            return Reply::dataOnly(['results' => []]);
+    // ── 1. INPUT NORMALIZATION ──
+    $terms     = array_values(array_unique(array_filter(array_map('trim', (array) $request->input('terms', [])))));
+    $roles     = array_values(array_unique(array_filter(array_map('trim', (array) $request->input('roles', [])))));
+    $query     = trim($request->input('query', ''));
+    $location  = trim($request->input('location', ''));
+    $minExp    = (float) $request->input('min_experience', 0);
+    $maxResults = (int) $request->input('limit', 150);
+
+    // Extract terms from free-text query
+    if ($query) {
+        $queryTerms = array_values(array_unique(array_filter(array_map('trim', preg_split('/[\s,;]+/', $query)))));
+        $terms = array_values(array_unique(array_merge($terms, $queryTerms)));
+    }
+
+    if (empty($terms) && empty($roles) && empty($query)) {
+        return Reply::dataOnly(['results' => []]);
+    }
+
+    // ── 2. SKILL RESOLUTION (with synonyms) ──
+    $searchTerms = array_values(array_unique(array_merge($terms, $roles)));
+    
+    $matchedSkillIds = \App\Skill::where(function ($q) use ($searchTerms) {
+        foreach ($searchTerms as $term) {
+            $q->orWhere('name', 'LIKE', '%' . $term . '%');
+            // Also match normalized/slug version
+            $q->orWhereRaw('LOWER(REPLACE(name, " ", "")) LIKE ?', ['%' . strtolower(str_replace(' ', '', $term)) . '%']);
+        }
+    })->pluck('id')->map(fn($id) => (string) $id)->toArray();
+
+    // ── 3. BUILD SMART QUERY ──
+    $applicants = \App\JobApplication::select(
+            'job_applications.id',
+            'job_applications.full_name',
+            'job_applications.skills',
+            'job_applications.status_id',
+            'job_applications.job_id',
+            'job_applications.location_id',
+            'job_applications.address',
+            'job_applications.city',
+            'job_applications.state',
+            'job_applications.country',
+            'job_applications.cv_text',
+            'job_applications.cv_experience_years',
+            'job_applications.cv_job_titles',
+            'job_applications.cv_skills_text',
+            'job_applications.cv_location_text',
+            'job_applications.cv_indexed_at',
+            'job_applications.created_at'
+        )
+        ->with(['status:id,status,color', 'job:id,title', 'location:id,location'])
+        ->where('job_applications.is_candidate', 0)
+        ->where(function ($q) use ($searchTerms, $matchedSkillIds, $roles, $location) {
+            // Must match at least ONE skill OR role OR name (not just location)
+            $q->where(function ($skillQ) use ($searchTerms, $matchedSkillIds, $roles) {
+                // Manual skills match
+                foreach ($matchedSkillIds as $sid) {
+                    $skillQ->orWhereJsonContains('job_applications.skills', $sid);
+                }
+                // CV skills text match
+                foreach ($searchTerms as $term) {
+                    $skillQ->orWhere('job_applications.cv_skills_text', 'LIKE', '%'.$term.'%');
+                }
+                // Job title match (prioritize role terms)
+                $roleTerms = $roles ?: $searchTerms;
+                foreach ($roleTerms as $term) {
+                    $skillQ->orWhere('job_applications.cv_job_titles', 'LIKE', '%'.$term.'%');
+                }
+                // Name match (low weight, supporting only)
+                foreach ($searchTerms as $term) {
+                    $skillQ->orWhere('job_applications.full_name', 'LIKE', '%'.$term.'%');
+                }
+                // Raw CV text fallback for unindexed
+                if (empty($roles)) {
+                    foreach ($searchTerms as $term) {
+                        $skillQ->orWhere('job_applications.cv_text', 'LIKE', '%'.$term.'%');
+                    }
+                }
+            });
+            
+            // Location is additional filter, not standalone qualifier
+            if ($location) {
+                $q->where(function ($locQ) use ($location) {
+                    $locQ->where('job_applications.cv_location_text', 'LIKE', '%'.$location.'%')
+                         ->orWhere('job_applications.city', 'LIKE', '%'.$location.'%')
+                         ->orWhere('job_applications.state', 'LIKE', '%'.$location.'%')
+                         ->orWhereHas('location', fn($lq) => $lq->where('location', 'LIKE', '%'.$location.'%'));
+                });
+            }
+        })
+        ->limit($maxResults)
+        ->get();
+
+    if ($applicants->isEmpty()) {
+        return Reply::dataOnly(['results' => []]);
+    }
+
+    // Preload skill names
+    $allSkillIds = collect($applicants->pluck('skills')->flatten())
+        ->map(fn($id) => (int) $id)->unique()->filter()->values()->toArray();
+    $allSkillsMap = \App\Skill::whereIn('id', $allSkillIds)->pluck('name', 'id');
+
+    // ── 4. CONFIGURABLE SCORING WEIGHTS ──
+    $weights = [
+        'role_exact'       => 40,   // Exact job title match
+        'role_partial'     => 25,   // Partial job title match
+        'skill_manual'     => 12,   // Manually tagged skill
+        'skill_parsed'     => 8,    // AI-parsed CV skill
+        'skill_bonus'      => 3,    // Per additional matching skill (up to cap)
+        'location_exact'   => 15,   // Exact location match
+        'location_partial' => 8,    // City/State match
+        'location_country' => 3,    // Country match only
+        'experience_exact' => 15,   // Meets min experience exactly
+        'experience_close' => 8,    // Within 1 year of min
+        'experience_fuzzy' => 5,    // Raw text estimate meets min
+        'name_match'       => 5,    // Name contains search term
+        'cv_text_match'    => 2,    // Raw text contains term
+        'coverage_bonus'   => 10,   // Matches >80% of required skills
+    ];
+
+    // ── 5. SKILL SYNONYM MAP (expand as needed) ──
+    $skillSynonyms = [
+        'react'        => ['reactjs', 'react.js', 'react js'],
+        'reactjs'      => ['react', 'react.js', 'react js'],
+        'node'         => ['nodejs', 'node.js', 'node js'],
+        'nodejs'       => ['node', 'node.js', 'node js'],
+        'python'       => ['py'],
+        'javascript'   => ['js', 'ecmascript'],
+        'typescript'   => ['ts'],
+        'postgresql'   => ['postgres', 'psql'],
+        'mongodb'      => ['mongo'],
+        'aws'          => ['amazon web services'],
+        'azure'        => ['microsoft azure'],
+        'gcp'          => ['google cloud', 'google cloud platform'],
+        'powerbi'      => ['power bi'],
+        'tableau'      => ['tableau desktop'],
+        'excel'        => ['microsoft excel', 'ms excel'],
+        'sql'          => ['mysql', 'postgresql', 'sqlite', 'mssql', 'oracle sql'],
+    ];
+
+    $results = $applicants->map(function ($app) use (
+        $terms, $roles, $allSkillsMap, $location, $minExp, 
+        $weights, $skillSynonyms
+    ) {
+        $score = 0;
+        $matchedSkills = [];
+        $allSkills = [];
+        $matchReasons = []; // For debugging/transparency
+        
+        $cvJobTitles = array_filter(array_map('trim', explode(',', (string) $app->cv_job_titles)));
+        $cvSkillsList = array_filter(array_map('trim', explode(',', (string) $app->cv_skills_text)));
+        $hasStructured = !empty($app->cv_indexed_at);
+        
+        // Normalize terms for matching
+        $normTerms = array_map('strtolower', $terms);
+        $normRoles = array_map('strtolower', $roles);
+        $allSearchTerms = array_values(array_unique(array_merge($normTerms, $normRoles)));
+
+        // ── ROLE MATCHING (highest priority) ──
+        $roleMatched = false;
+        $roleTerms = !empty($normRoles) ? $normRoles : $normTerms;
+        
+        if ($hasStructured && !empty($cvJobTitles)) {
+            foreach ($roleTerms as $term) {
+                foreach ($cvJobTitles as $title) {
+                    $titleLower = strtolower($title);
+                    // Exact or leading match
+                    if ($titleLower === $term || str_starts_with($titleLower, $term . ' ')) {
+                        $score += $weights['role_exact'];
+                        $roleMatched = true;
+                        $matchReasons[] = "Role exact: {$title}";
+                        break 2;
+                    }
+                    // Contains match
+                    if (stripos($title, $term) !== false || stripos($term, $title) !== false) {
+                        $score += $weights['role_partial'];
+                        $roleMatched = true;
+                        $matchReasons[] = "Role partial: {$title}";
+                        break 2;
+                    }
+                }
+            }
+        } else {
+            // Fallback for unindexed: search raw CV text for role terms
+            foreach ($roleTerms as $term) {
+                if (stripos((string) $app->cv_text, $term) !== false) {
+                    $score += $weights['role_partial'];
+                    $roleMatched = true;
+                    $matchReasons[] = "Role text fallback";
+                    break;
+                }
+            }
         }
 
-        $searchTerms = array_values(array_unique(array_merge($terms, $roles)));
-
-        $matchedSkillIds = \App\Skill::where(function ($q) use ($searchTerms) {
-            foreach ($searchTerms as $term) {
-                $q->orWhere('name', 'LIKE', '%' . $term . '%');
+        // ── SKILL MATCHING (deduplicated across sources) ──
+        $skillMatches = []; // Track unique skill matches to prevent double-scoring
+        
+        // Manual skills (from skills JSON column)
+        foreach ((array) $app->skills as $sid) {
+            $name = $allSkillsMap[(int) $sid] ?? null;
+            if (!$name) continue;
+            
+            $nameLower = strtolower($name);
+            $allSkills[] = $name;
+            
+            foreach ($allSearchTerms as $term) {
+                if ($this->skillMatchesTerm($nameLower, $term, $skillSynonyms)) {
+                    if (!isset($skillMatches[$nameLower])) {
+                        $score += $weights['skill_manual'];
+                        $skillMatches[$nameLower] = true;
+                        $matchedSkills[] = $name;
+                        $matchReasons[] = "Skill manual: {$name}";
+                    }
+                    break;
+                }
             }
-        })->pluck('id')->map(fn($id) => (string) $id)->toArray();
+        }
 
-        $applicants = \App\JobApplication::select(
-                'job_applications.id',
-                'job_applications.full_name',
-                'job_applications.skills',
-                'job_applications.status_id',
-                'job_applications.job_id',
-                'job_applications.location_id',
-                'job_applications.address',
-                'job_applications.city',
-                'job_applications.state',
-                'job_applications.country',
-                'job_applications.cv_text',
-                'job_applications.cv_experience_years',
-                'job_applications.cv_job_titles',
-                'job_applications.cv_skills_text',
-                'job_applications.cv_location_text',
-                'job_applications.cv_indexed_at',
-                'job_applications.created_at'
-            )
-            ->with(['status:id,status,color', 'job:id,title', 'location:id,location'])
-            ->where('job_applications.is_candidate', 0)
-            ->where(function ($q) use ($searchTerms, $matchedSkillIds, $location) {
-                foreach ($matchedSkillIds as $sid) {
-                    $q->orWhereJsonContains('job_applications.skills', $sid);
+        // AI-parsed CV skills (only if different from manual skills)
+        if ($hasStructured && !empty($cvSkillsList)) {
+            foreach ($cvSkillsList as $skill) {
+                $skillLower = strtolower($skill);
+                if (!in_array($skillLower, array_map('strtolower', $allSkills))) {
+                    $allSkills[] = $skill;
                 }
-                foreach ($searchTerms as $term) {
-                    $q->orWhere('job_applications.full_name',    'LIKE', '%'.$term.'%');
-                    $q->orWhere('job_applications.cv_job_titles', 'LIKE', '%'.$term.'%');
-                    $q->orWhere('job_applications.cv_skills_text','LIKE', '%'.$term.'%');
-                    $q->orWhere('job_applications.cv_text',      'LIKE', '%'.$term.'%');
+                
+                foreach ($allSearchTerms as $term) {
+                    if ($this->skillMatchesTerm($skillLower, $term, $skillSynonyms)) {
+                        if (!isset($skillMatches[$skillLower])) {
+                            $score += $weights['skill_parsed'];
+                            $skillMatches[$skillLower] = true;
+                            if (!in_array($skill, $matchedSkills)) {
+                                $matchedSkills[] = $skill;
+                            }
+                            $matchReasons[] = "Skill parsed: {$skill}";
+                        }
+                        break;
+                    }
                 }
-                if ($location) {
-                    $q->orWhere('job_applications.cv_location_text', 'LIKE', '%'.$location.'%');
-                    $q->orWhere('job_applications.city',              'LIKE', '%'.$location.'%');
-                    $q->orWhere('job_applications.state',             'LIKE', '%'.$location.'%');
-                    $q->orWhereHas('location', fn($lq) => $lq->where('location', 'LIKE', '%'.$location.'%'));
+            }
+        }
+
+        // Bonus for multiple skill matches (diminishing returns)
+        $skillCount = count($skillMatches);
+        if ($skillCount > 1) {
+            $bonus = min(($skillCount - 1) * $weights['skill_bonus'], 15); // Cap at 15
+            $score += $bonus;
+            $matchReasons[] = "Skill count bonus: +{$bonus}";
+        }
+
+        // ── COVERAGE RATIO BONUS ──
+        if (!empty($terms)) {
+            $requiredTerms = array_map('strtolower', $terms);
+            $matchedRequired = 0;
+            foreach ($requiredTerms as $req) {
+                foreach (array_keys($skillMatches) as $matched) {
+                    if ($this->skillMatchesTerm($matched, $req, $skillSynonyms)) {
+                        $matchedRequired++;
+                        break;
+                    }
                 }
-            })
-            ->limit(150)
-            ->get();
+            }
+            $coverage = count($requiredTerms) > 0 ? $matchedRequired / count($requiredTerms) : 0;
+            if ($coverage >= 0.8) {
+                $score += $weights['coverage_bonus'];
+                $matchReasons[] = "Coverage bonus ({$matchedRequired}/" . count($requiredTerms) . ")";
+            }
+        }
 
-        $allSkillIds = collect($applicants->pluck('skills')->flatten())
-            ->map(fn($id) => (int) $id)->unique()->filter()->values()->toArray();
-        $allSkillsMap = \App\Skill::whereIn('id', $allSkillIds)->pluck('name', 'id');
+        // ── NAME MATCH (supporting only) ──
+        foreach ($searchTerms as $term) {
+            if (stripos($app->full_name, $term) !== false) {
+                $score += $weights['name_match'];
+                $matchReasons[] = "Name match";
+                break;
+            }
+        }
 
-        $results = $applicants->map(function ($app) use ($searchTerms, $roles, $allSkillsMap, $location, $minExp) {
-            $score          = 0;
-            $matchedSkills  = [];
-            $allSkills      = [];
-            $cvJobTitles    = array_filter(array_map('trim', explode(',', (string) $app->cv_job_titles)));
-            $cvSkillsList   = array_filter(array_map('trim', explode(',', (string) $app->cv_skills_text)));
-            $hasStructured  = !empty($app->cv_indexed_at);
+        // ── RAW CV TEXT FALLBACK ──
+        if (!$hasStructured) {
+            foreach ($searchTerms as $term) {
+                if ($app->cv_text && stripos($app->cv_text, $term) !== false) {
+                    $score += $weights['cv_text_match'];
+                    $matchReasons[] = "CV text match";
+                    break;
+                }
+            }
+        }
 
-            // ── Manually-tagged skills (existing Skill model) — 25 pts ──
-            foreach ((array) $app->skills as $sid) {
-                $name = $allSkillsMap[(int) $sid] ?? null;
-                if (!$name) continue;
-                $allSkills[] = $name;
-                foreach ($searchTerms as $term) {
-                    if (stripos($name, $term) !== false) {
-                        $score += 8;
-                        if (!in_array($name, $matchedSkills)) $matchedSkills[] = $name;
+        // ── LOCATION SCORING (graduated) ──
+        if ($location !== '') {
+            $locLower = strtolower($location);
+            $locParts = array_filter([
+                strtolower((string) $app->cv_location_text),
+                strtolower((string) $app->city),
+                strtolower((string) $app->state),
+                strtolower((string) $app->country),
+                strtolower((string) ($app->location?->location ?? '')),
+                strtolower((string) $app->address),
+            ]);
+            $locHaystack = ' ' . implode(' ', $locParts) . ' ';
+            
+            // Exact match (e.g., "Toronto, ON")
+            if (str_contains($locHaystack, ' ' . $locLower . ' ') || 
+                str_contains($locHaystack, ',' . $locLower . ',') ||
+                str_contains($locHaystack, $locLower . ',')) {
+                $score += $weights['location_exact'];
+                $matchReasons[] = "Location exact";
+            }
+            // Partial match (city or state only)
+            elseif (str_contains($locHaystack, $locLower)) {
+                $score += $weights['location_partial'];
+                $matchReasons[] = "Location partial";
+            }
+            // Country match only (e.g., searched "Canada", got "Toronto")
+            elseif ($locLower === 'canada' && str_contains($locHaystack, 'canada')) {
+                $score += $weights['location_country'];
+                $matchReasons[] = "Location country";
+            }
+        } else {
+            $score += 3; // Small neutral bonus when no location filter
+        }
+
+        // ── EXPERIENCE SCORING (improved parsing) ──
+        if ($minExp > 0) {
+            $years = null;
+            
+            if ($hasStructured && $app->cv_experience_years !== null) {
+                $years = (float) $app->cv_experience_years;
+            } elseif ($app->cv_text) {
+                // Improved regex: avoid "50+ accounts" false positives
+                // Look for experience phrases with context words
+                $patterns = [
+                    '/(?:over|more than|at least|plus|\\+)\\s*(\\d+(?:\\.\\d+)?)\\s*(?:year|yr)s?\\s*(?:of\\s*)?(?:experience|exp)/i',
+                    '/(\\d+(?:\\.\\d+)?)\\s*(?:\\+)?\\s*(?:year|yr)s?\\s*(?:of\\s*)?(?:professional|work|industry|relevant)?\\s*(?:experience|exp)/i',
+                    '/(?:experience|exp)(?:\\s*[:\\-])?\\s*(\\d+(?:\\.\\d+)?)\\s*(?:\\+)?\\s*(?:year|yr)s?/i',
+                ];
+                
+                foreach ($patterns as $pattern) {
+                    if (preg_match_all($pattern, $app->cv_text, $m)) {
+                        $found = array_map('floatval', $m[1]);
+                        $years = max($found);
                         break;
                     }
                 }
             }
 
-            // ── AI-parsed CV skills — 25 pts, only if indexed ──
-            if ($hasStructured && $cvSkillsList) {
-                foreach ($searchTerms as $term) {
-                    foreach ($cvSkillsList as $skill) {
-                        if (stripos($skill, $term) !== false) {
-                            $score += 6;
-                            if (!in_array($skill, $matchedSkills)) $matchedSkills[] = $skill;
-                            $allSkills[] = $skill;
-                            break;
-                        }
-                    }
+            if ($years !== null) {
+                if ($years >= $minExp) {
+                    $score += $weights['experience_exact'];
+                    $matchReasons[] = "Experience exact: {$years}y >= {$minExp}y";
+                } elseif ($years >= $minExp - 1) {
+                    $score += $weights['experience_close'];
+                    $matchReasons[] = "Experience close: {$years}y";
                 }
             }
+        } else {
+            $score += 2; // Neutral bonus
+        }
 
-            // ── Role / job title match — 30 pts, strongest signal ──
-            $roleTerms = $roles ?: $searchTerms;
-            if ($hasStructured && $cvJobTitles) {
-                foreach ($roleTerms as $term) {
-                    foreach ($cvJobTitles as $title) {
-                        if (stripos($title, $term) !== false || stripos($term, $title) !== false) {
-                            $score += 30;
-                            break 2;
-                        }
-                    }
-                }
-            } else {
-                // fallback for not-yet-indexed applicants: raw text search
-                foreach ($roleTerms as $term) {
-                    if (stripos((string) $app->cv_text, $term) !== false) { $score += 12; break; }
-                }
-            }
+        // ── FINAL SCORE CALCULATION ──
+        if ($score <= 0) return null;
+        
+        // Normalize to 0-100 scale with diminishing returns at top end
+        $score = min(100, max(1, round($score * 0.85))); // Slight compression for headroom
+        
+        // Boost candidates with structured data slightly
+        if ($hasStructured) $score = min(100, $score + 2);
 
-            // ── Name / raw text fallback (kept low weight — supporting evidence only) ──
-            foreach ($searchTerms as $term) {
-                if (stripos($app->full_name, $term) !== false) $score += 6;
-                if ($app->cv_text && stripos($app->cv_text, $term) !== false) $score += 2;
-            }
+        return [
+            'id'             => $app->id,
+            'full_name'      => $app->full_name,
+            'job_title'      => $cvJobTitles[0] ?? ($app->job?->title ?? '—'),
+            'location'       => $app->cv_location_text ?: ($app->location?->location ?? trim("{$app->city}, {$app->state}", ', ')) ?: '—',
+            'status'         => ucwords(str_replace('_', ' ', $app->status?->status ?? '—')),
+            'status_color'   => $app->status?->color ?? '#6b7280',
+            'score'          => (int) $score,
+            'matched_skills' => array_values(array_unique($matchedSkills)),
+            'all_skills'     => array_values(array_unique($allSkills)),
+            'has_cv'         => $hasStructured,
+            'experience_years' => $app->cv_experience_years,
+            'created_at'     => $app->created_at?->toDateString(),
+            // 'debug_reasons'  => $matchReasons, // Uncomment for debugging
+        ];
+    })
+    ->filter()
+    ->sortByDesc('score')
+    ->values()
+    ->toArray();
 
-            // ── Location — 15 pts ──
-            if ($location !== '') {
-                $locLower = strtolower($location);
-                $locationHaystack = strtolower(trim(
-                    ($app->cv_location_text ?? '') . ' ' . $app->city . ' ' . $app->state . ' ' . $app->country
-                    . ' ' . ($app->location?->location ?? '') . ' ' . $app->address
-                ));
-                if (str_contains($locationHaystack, $locLower)) {
-                    $score += 15;
-                }
-            } else {
-                $score += 5; // no location filter given, don't penalize
-            }
+    return Reply::dataOnly(['results' => $results]);
+}
 
-            // ── Experience — 15 pts, uses AI-computed years when available ──
-            if ($minExp > 0) {
-                if ($hasStructured && $app->cv_experience_years !== null) {
-                    $years = (float) $app->cv_experience_years;
-                    if ($years >= $minExp) $score += 15;
-                    elseif ($years >= $minExp - 1) $score += 8;
-                } elseif ($app->cv_text && preg_match_all('/(\d+)\s*\+?\s*(?:year|yr)/i', $app->cv_text, $m)) {
-                    // fallback for not-yet-structured-parsed applicants
-                    $maxFound = max(array_map('intval', $m[1]));
-                    if ($maxFound >= $minExp) $score += 10;
-                    elseif ($maxFound >= $minExp - 1) $score += 4;
-                }
-            } else {
-                $score += 5;
-            }
-
-            if ($score <= 0) return null;
-            $score = min(99, max(5, $score));
-
-            return [
-                'id'             => $app->id,
-                'full_name'      => $app->full_name,
-                'job_title'      => $cvJobTitles[0] ?? ($app->job?->title ?? '—'),
-                'location'       => $app->cv_location_text ?: ($app->location?->location ?? trim("{$app->city}, {$app->state}", ', ')) ?: '—',
-                'status'         => ucwords(str_replace('_', ' ', $app->status?->status ?? '—')),
-                'status_color'   => $app->status?->color ?? '#6b7280',
-                'score'          => $score,
-                'matched_skills' => array_values(array_unique($matchedSkills)),
-                'all_skills'     => array_values(array_unique($allSkills)),
-                'has_cv'         => $hasStructured,
-                'created_at'     => $app->created_at?->toDateString(),
-            ];
-        })
-        ->filter()
-        ->sortByDesc('score')
-        ->values()
-        ->toArray();
-
-        return Reply::dataOnly(['results' => $results]);
+/**
+ * Check if a skill matches a search term, including synonyms
+ */
+private function skillMatchesTerm(string $skillLower, string $termLower, array $synonyms): bool
+{
+    // Direct match
+    if ($skillLower === $termLower) return true;
+    if (str_contains($skillLower, $termLower)) return true;
+    if (str_contains($termLower, $skillLower)) return true;
+    
+    // Check synonyms
+    if (isset($synonyms[$termLower])) {
+        foreach ($synonyms[$termLower] as $syn) {
+            if ($skillLower === $syn || str_contains($skillLower, $syn)) return true;
+        }
     }
+    if (isset($synonyms[$skillLower])) {
+        foreach ($synonyms[$skillLower] as $syn) {
+            if ($termLower === $syn || str_contains($termLower, $syn)) return true;
+        }
+    }
+    
+    // Word boundary match (e.g., "js" in "javascript")
+    if (strlen($termLower) <= 3) {
+        $words = explode(' ', $skillLower);
+        foreach ($words as $word) {
+            if (str_starts_with($word, $termLower)) return true;
+        }
+    }
+    
+    return false;
+}
     private function logStatusChange(int $jobApplicationId, ?int $fromStatusId, int $toStatusId, ?int $userId = null): void
     {
         if ($fromStatusId === $toStatusId) {
