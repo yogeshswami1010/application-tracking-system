@@ -2964,6 +2964,8 @@ public function aiSearchResults(Request $request)
                 $q->orWhere('job_applications.cv_skills_text', 'LIKE', '%'.$term.'%');
                 $q->orWhere('job_applications.cv_text',        'LIKE', '%'.$term.'%');
             }
+            $applicantsQuery = JobApplication::select(...)
+            ->whereNull('deleted_at');
             if ($location) {
                 $applicantsQuery->where(function ($q) use ($location) {
                     $q->where('cv_location_text', 'LIKE', "%{$location}%")
