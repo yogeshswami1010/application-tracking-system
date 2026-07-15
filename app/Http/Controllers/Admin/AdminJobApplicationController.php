@@ -2925,8 +2925,6 @@ $roleTerms   = !empty($roles) ? $roles : $searchTerms;
         return Reply::dataOnly(['results' => []]);
     }
 
-    $searchTerms = array_values(array_unique(array_merge($terms, $roles)));
-    $roleTerms   = $roles ?: $searchTerms;
 
     $matchedSkillIds = \App\Skill::where(function ($q) use ($searchTerms) {
             foreach ($searchTerms as $term) {
@@ -2956,7 +2954,7 @@ $roleTerms   = !empty($roles) ? $roles : $searchTerms;
         )
         ->with(['status:id,status,color', 'job:id,title', 'location:id,location'])
         ->whereNull('job_applications.deleted_at')
-        ->where(function ($q) use ($searchTerms, $matchedSkillIds, $location) {
+        ->where(function ($q) use ($searchTerms, $roleTerms, $matchedSkillIds) {
             foreach ($matchedSkillIds as $sid) {
                 $q->orWhereJsonContains('job_applications.skills', $sid);
             }
