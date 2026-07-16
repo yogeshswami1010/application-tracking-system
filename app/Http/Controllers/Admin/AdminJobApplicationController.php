@@ -2873,7 +2873,7 @@ class AdminJobApplicationController extends AdminBaseController
 
         // Force the mailer to rebuild with the new config
         app()->forgetInstance('mailer');
-        app()->forgetInstance('swift.mailer');
+        app()->forgetInstance('swift.mailer'); 
         app()->forgetInstance('swift.transport');
 
         $sent = 0;
@@ -2883,7 +2883,6 @@ class AdminJobApplicationController extends AdminBaseController
         foreach ($applications->unique('email') as $application) {
             try {
                 Mail::html(
-                    '<p>Hello '.e($application->full_name ?: 'Applicant').',</p><div>'.$message.'</div>',
                     function ($mail) use ($application, $data) {
                         $mail->to($application->email, $application->full_name)
                             ->subject($data['subject']);
