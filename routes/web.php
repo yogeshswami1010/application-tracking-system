@@ -114,7 +114,8 @@ Route::middleware('auth')->group(function () {
     Route::name('admin.')
         ->prefix('admin')
         ->group(function () {
-
+Route::get('job-applications/search-mention-users', [AdminJobApplicationController::class, 'searchUsersForMention'])
+            ->name('job-applications.search-mention-users');
             Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
             // In routes/web.php (inside admin middleware group)
             Route::post('job-client-notes/store',           [AdminJobClientNoteController::class, 'store'])->name('job-client-notes.store');
@@ -145,8 +146,7 @@ Route::middleware('auth')->group(function () {
                 ->name('ai-search.prompts.favorite');
             Route::delete('ai-search/prompts/{id}', [AiSearchPromptController::class, 'destroy'])
                 ->name('ai-search.prompts.destroy');
-            Route::get('job-applications/search-mention-users', [AdminJobApplicationController::class, 'searchUsersForMention'])
-                ->name('admin.job-applications.search-mention-users');
+        
             // Questions
             Route::get('questions/data',         [AdminQuestionController::class, 'data'])->name('questions.data');
             Route::post('questions/ai-generate', [AdminQuestionController::class, 'aiGenerateQuestions'])->name('questions.ai-generate');
