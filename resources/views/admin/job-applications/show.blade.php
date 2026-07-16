@@ -78,7 +78,9 @@
 .ja-pdf-no-resume { flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#aaa;text-align:center;padding:40px; }
 .ja-pdf-no-resume i { font-size:48px;opacity:.35;display:block;margin-bottom:14px; }
 .ja-pdf-no-resume p { font-size:13px;opacity:.6; }
-.ja-pdf-frame { flex:1;border:none;width:100%;height:100%;display:block; }
+    .ja-pdf-frame { flex:1;border:none;width:100%;height:100%;display:block; }
+    .ja-pdf-viewer { position:absolute;inset:0;z-index:2;overflow:auto;display:flex;justify-content:center;align-items:flex-start;padding:18px;background:#525659; }
+    .ja-pdf-viewer canvas { max-width:100%;height:auto;box-shadow:0 2px 12px rgba(0,0,0,.35);background:#fff; }
 .ja-right-panel { display:flex;flex-direction:column;overflow:hidden;background:#F8F7F4; }
 .ja-tabs { display:flex;background:#fff;border-bottom:1px solid #E8E6E1;flex-shrink:0;padding:0 16px;}
 .ja-tab { padding:11px 13px;font-size:12.5px;font-weight:600;color:#8A94A6;cursor:pointer;border-bottom:2.5px solid transparent;white-space:nowrap;display:flex;align-items:center;gap:5px;transition:color .15s;flex-shrink:0; }
@@ -277,15 +279,10 @@ function jaSaveMarketingLabel(appId) {
             </div>
             @if($resumeUrl)
                 <div id="ja-pdf-container" style="flex:1;position:relative;background:#525659;">
-                    <div id="ja-pdf-loader" style="position:absolute;inset:0;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;color:#ddd;z-index:3;">
-                        <i class="fa fa-file-pdf-o" style="font-size:42px;opacity:.7;"></i>
-                        <span style="font-size:13px;">Resume is ready to preview</span>
-                        <button type="button" class="ja-pdf-btn ja-pdf-btn-primary" onclick="jaLoadResume()"><i class="fa fa-eye"></i> Load resume</button>
+                    <div id="ja-pdf-loader" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#aaa;z-index:3;">
+                        <i class="fa fa-spinner fa-spin" style="font-size:24px;margin-right:10px;"></i> Loading CV...
                     </div>
-                    <iframe id="ja-pdf-frame" data-src="{{ $resumeUrl }}"
-                            style="position:absolute;inset:0;width:100%;height:100%;border:none;z-index:2;opacity:0;transition:opacity .3s;"
-                            onload="if(this.getAttribute('src')) { document.getElementById('ja-pdf-loader').style.display='none'; this.style.opacity='1'; }">
-                    </iframe>
+                    <div id="ja-pdf-viewer" class="ja-pdf-viewer" data-resume-url="{{ $resumeUrl }}"></div>
                 </div>
             @else
                 <div class="ja-pdf-no-resume">
@@ -977,15 +974,46 @@ function jaSaveMarketingLabel(appId) {
 
 <script>
 /* ── Tab switching ── */
-/* Avoid locking the browser while a large CV is rendered in the embedded PDF viewer. */
-function jaLoadResume() {
-    var frame = document.getElementById('ja-pdf-frame');
+/* Render the first CV page with PDF.js instead of Chrome's blocking native PDF viewer. */
+function jaRenderResume() {
+    var viewer = document.getElementById('ja-pdf-viewer');
     var loader = document.getElementById('ja-pdf-loader');
-    if (!frame || frame.getAttribute('src')) return;
-    if (loader) {
-        loader.innerHTML = '<i class="fa fa-spinner fa-spin" style="font-size:24px"></i><span style="font-size:13px">Loading resume...</span>';
+    if (!viewer) return;
+    var url = viewer.getAttribute('data-resume-url');
+
+    function showFallback() {
+        if (loader) loader.style.display = 'none';
+        viewer.innerHTML = '<div style="color:#fff;text-align:center;margin:auto"><i class="fa fa-file-pdf-o" style="font-size:42px;opacity:.7;display:block;margin-bottom:12px"></i><p style="font-size:13px;margin-bottom:14px">CV preview is unavailable.</p><a class="ja-pdf-btn ja-pdf-btn-primary" href="' + url + '" target="_blank" rel="noopener"><i class="fa fa-external-link"></i> Open CV</a></div>';
     }
-    frame.setAttribute('src', frame.getAttribute('data-src'));
+
+    if (typeof pdfjsLib === 'undefined' || !url) { showFallback(); return; }
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    pdfjsLib.getDocument({ url: url, withCredentials: true }).promise.then(function(pdf) {
+        return pdf.getPage(1);
+    }).then(function(page) {
+        var scale = Math.min(1.5, Math.max(0.7, (viewer.clientWidth - 36) / page.getViewport({ scale: 1 }).width));
+        var viewport = page.getViewport({ scale: scale });
+        var canvas = document.createElement('canvas');
+        var context = canvas.getContext('2d', { alpha: false });
+        canvas.width = Math.floor(viewport.width);
+        canvas.height = Math.floor(viewport.height);
+        viewer.innerHTML = '';
+        viewer.appendChild(canvas);
+        if (loader) loader.style.display = 'none';
+        return page.render({ canvasContext: context, viewport: viewport }).promise;
+    }).catch(showFallback);
+}
+
+if (document.getElementById('ja-pdf-viewer')) {
+    if (typeof pdfjsLib === 'undefined') {
+        var pdfScript = document.createElement('script');
+        pdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+        pdfScript.onload = jaRenderResume;
+        pdfScript.onerror = jaRenderResume;
+        document.head.appendChild(pdfScript);
+    } else {
+        jaRenderResume();
+    }
 }
 
 document.querySelectorAll('.ja-tab').forEach(function(tab) {
