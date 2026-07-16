@@ -748,7 +748,7 @@ $('#ai-send-email-confirm').on('click', function() {
     if (!subject || !message) { alert('Please enter both a subject and message.'); return; }
     var button = $(this);
     button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Sending…');
-    $.easyAjax({
+     $.ajax({
         url: '{{ route("admin.ai-search.send-email") }}', type: 'POST',
         data: { _token: '{{ csrf_token() }}', applicant_ids: aiSelectedApplicantIds, subject: subject, message: message },
         success: function(response) {
@@ -758,10 +758,16 @@ $('#ai-send-email-confirm').on('click', function() {
                 document.getElementById('ai-email-message').value = '';
                 aiSelectedApplicantIds = [];
                 aiRenderCards(aiLastResults);
+
             }
             return;
         },
-        complete: function() { button.prop('disabled', false).html('<i class="fa fa-paper-plane"></i> Send email'); }
+        complete: function() {
+            $.unblockUI();
+
+            button.prop('disabled', false)
+                .html('<i class="fa fa-paper-plane"></i> Send Email');
+        }
     });
 });
 
