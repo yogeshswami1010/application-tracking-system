@@ -715,9 +715,53 @@ function aiUpdateBulkActions() {
 }
 
 function aiOpenEmailModal() {
-    if (!aiSelectedApplicantIds.length) return;
-    document.getElementById('ai-email-recipient-count').textContent = aiSelectedApplicantIds.length;
-    $('#ai-send-email-modal').modal('show');
+    const selectedApplicants = [];
+
+    document.querySelectorAll('.ai-applicant-checkbox:checked').forEach(function (checkbox) {
+        selectedApplicants.push(checkbox.value);
+    });
+
+    if (selectedApplicants.length === 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'No applicant selected',
+            text: 'Please select at least one applicant.'
+        });
+
+        return;
+    }
+
+    const modal = document.getElementById('aiEmailModal');
+
+    if (!modal) {
+        console.error('Modal with ID aiEmailModal was not found.');
+        return;
+    }
+
+    const applicantIdsInput = document.getElementById('aiEmailApplicantIds');
+
+    if (applicantIdsInput) {
+        applicantIdsInput.value = selectedApplicants.join(',');
+    }
+
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+    modal.setAttribute('aria-hidden', 'false');
+
+    document.body.style.overflow = 'hidden';
+}
+function aiCloseEmailModal() {
+    const modal = document.getElementById('aiEmailModal');
+
+    if (!modal) {
+        return;
+    }
+
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+    modal.setAttribute('aria-hidden', 'true');
+
+    document.body.style.overflow = '';
 }
 
 $('#ai-send-email-confirm').on('click', function() {
