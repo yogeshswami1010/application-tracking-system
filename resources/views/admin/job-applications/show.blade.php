@@ -12,10 +12,31 @@
     $stagePillBg = $application->status?->color ?? '#6366F1';
     $initials = collect(explode(' ', $application->full_name))->map(fn($w) => strtoupper(substr($w,0,1)))->take(2)->join('');
     // Load global statuses + any custom statuses for this applicant's job
+    $allStatuses = \App\ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
+    if ($application->job_id) {
+        try {
+            $jobSpecific = \App\ApplicationStatus::where('job_id', $application->job_id)->orderBy('position')->get();
+            $globalIds   = $allStatuses->pluck('id');
+            $extra       = $jobSpecific->filter(fn($s) => !$globalIds->contains($s->id));
+            $allStatuses = $allStatuses->concat($extra);
+        } catch (\Exception $e) {}
+    }
     $currentStatusId = $application->status_id;
     $currentStatus = $allStatuses->firstWhere('id', $currentStatusId);
 
     // ── Previous applications (same email) ──
+    $previousApps = \App\JobApplication::where('email', $application->email)
+        ->where('is_candidate', 0)
+        ->where('id', '!=', $application->id)
+        ->with(['job:id,title', 'status:id,status,color'])
+        ->orderByDesc('created_at')
+        ->get();
+
+    $clientNotes = \App\JobClientNote::with('user:id,name')
+        ->where('job_id', $application->job_id)
+        ->orderByDesc('created_at')
+        ->get();
+
     // Resolve resume URL
     $resumeUrl = null;
     if (!empty($application->resume_url)) {
@@ -78,9 +99,7 @@
 .ja-pdf-no-resume { flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#aaa;text-align:center;padding:40px; }
 .ja-pdf-no-resume i { font-size:48px;opacity:.35;display:block;margin-bottom:14px; }
 .ja-pdf-no-resume p { font-size:13px;opacity:.6; }
-    .ja-pdf-frame { flex:1;border:none;width:100%;height:100%;display:block; }
-    .ja-pdf-viewer { position:absolute;inset:0;z-index:2;overflow:auto;display:flex;justify-content:center;align-items:flex-start;padding:18px;background:#525659; }
-    .ja-pdf-viewer canvas { max-width:100%;height:auto;box-shadow:0 2px 12px rgba(0,0,0,.35);background:#fff; }
+.ja-pdf-frame { flex:1;border:none;width:100%;height:100%;display:block; }
 .ja-right-panel { display:flex;flex-direction:column;overflow:hidden;background:#F8F7F4; }
 .ja-tabs { display:flex;background:#fff;border-bottom:1px solid #E8E6E1;flex-shrink:0;padding:0 16px;}
 .ja-tab { padding:11px 13px;font-size:12.5px;font-weight:600;color:#8A94A6;cursor:pointer;border-bottom:2.5px solid transparent;white-space:nowrap;display:flex;align-items:center;gap:5px;transition:color .15s;flex-shrink:0; }
@@ -155,6 +174,16 @@
                 {{ $application->status ? ucwords($application->status->status) : 'Internal' }}
             </span>
             <span class="ja-pill ja-pill-cat {{ $detailCatClass }}">{{ ucfirst($detailCatName) }}</span>
+        </div>
+
+        <div class="ja-nav-arrows" id="ja-nav-arrows">
+            <button type="button" class="ja-nav-btn" id="ja-prev-btn" onclick="jaNavigate('prev', {{ $application->id }})" title="Previous applicant" disabled>
+                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <span class="ja-nav-counter" id="ja-nav-counter">—</span>
+            <button type="button" class="ja-nav-btn" id="ja-next-btn" onclick="jaNavigate('next', {{ $application->id }})" title="Next applicant" disabled>
+                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+            </button>
         </div>
 
         <button type="button" class="right-side-toggle ja-close-btn" title="@lang('app.close')">
@@ -279,10 +308,13 @@ function jaSaveMarketingLabel(appId) {
             </div>
             @if($resumeUrl)
                 <div id="ja-pdf-container" style="flex:1;position:relative;background:#525659;">
-                    <div id="ja-pdf-loader" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#aaa;z-index:3;">
-                        <i class="fa fa-spinner fa-spin" style="font-size:24px;margin-right:10px;"></i> Loading CV...
+                    <div id="ja-pdf-loader" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#aaa;z-index:1;">
+                        <i class="fa fa-spinner fa-spin" style="font-size:24px;margin-right:10px;"></i> Loading PDF...
                     </div>
-                    <div id="ja-pdf-viewer" class="ja-pdf-viewer" data-resume-url="{{ $resumeUrl }}"></div>
+                    <iframe id="ja-pdf-frame" src="{{ $resumeUrl }}" 
+                            style="position:absolute;inset:0;width:100%;height:100%;border:none;z-index:2;opacity:0;transition:opacity .3s;"
+                            onload="document.getElementById('ja-pdf-loader').style.display='none';this.style.opacity='1';">
+                    </iframe>
                 </div>
             @else
                 <div class="ja-pdf-no-resume">
@@ -803,7 +835,7 @@ function jaSaveMarketingLabel(appId) {
                             <i class="fa fa-plus-circle" style="color:#059669"></i> Add Client Note
                         </div>
                         <textarea id="client_note_text" rows="4" class="ja-note-textarea" style="width:100%;min-height:90px" placeholder="Add a note visible to all applicants on this job…"></textarea>
-                        <button type="button" id="add-client-note" class="ja-save-note-btn" style="background:#059669;margin-top:8px" data-job-id="{{ $application->job_id }}">
+                        <button id="add-client-note" class="ja-save-note-btn" style="background:#059669;margin-top:8px" data-job-id="{{ $application->job_id }}">
                             <i class="fa fa-plus"></i> Add Client Note
                         </button>
                     </div>
@@ -974,48 +1006,6 @@ function jaSaveMarketingLabel(appId) {
 
 <script>
 /* ── Tab switching ── */
-/* Render the first CV page with PDF.js instead of Chrome's blocking native PDF viewer. */
-function jaRenderResume() {
-    var viewer = document.getElementById('ja-pdf-viewer');
-    var loader = document.getElementById('ja-pdf-loader');
-    if (!viewer) return;
-    var url = viewer.getAttribute('data-resume-url');
-
-    function showFallback() {
-        if (loader) loader.style.display = 'none';
-        viewer.innerHTML = '<div style="color:#fff;text-align:center;margin:auto"><i class="fa fa-file-pdf-o" style="font-size:42px;opacity:.7;display:block;margin-bottom:12px"></i><p style="font-size:13px;margin-bottom:14px">CV preview is unavailable.</p><a class="ja-pdf-btn ja-pdf-btn-primary" href="' + url + '" target="_blank" rel="noopener"><i class="fa fa-external-link"></i> Open CV</a></div>';
-    }
-
-    if (typeof pdfjsLib === 'undefined' || !url) { showFallback(); return; }
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    pdfjsLib.getDocument({ url: url, withCredentials: true }).promise.then(function(pdf) {
-        return pdf.getPage(1);
-    }).then(function(page) {
-        var scale = Math.min(1.5, Math.max(0.7, (viewer.clientWidth - 36) / page.getViewport({ scale: 1 }).width));
-        var viewport = page.getViewport({ scale: scale });
-        var canvas = document.createElement('canvas');
-        var context = canvas.getContext('2d', { alpha: false });
-        canvas.width = Math.floor(viewport.width);
-        canvas.height = Math.floor(viewport.height);
-        viewer.innerHTML = '';
-        viewer.appendChild(canvas);
-        if (loader) loader.style.display = 'none';
-        return page.render({ canvasContext: context, viewport: viewport }).promise;
-    }).catch(showFallback);
-}
-
-if (document.getElementById('ja-pdf-viewer')) {
-    if (typeof pdfjsLib === 'undefined') {
-        var pdfScript = document.createElement('script');
-        pdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-        pdfScript.onload = jaRenderResume;
-        pdfScript.onerror = jaRenderResume;
-        document.head.appendChild(pdfScript);
-    } else {
-        jaRenderResume();
-    }
-}
-
 document.querySelectorAll('.ja-tab').forEach(function(tab) {
     tab.addEventListener('click', function() {
         var target = this.dataset.tab;
@@ -1137,7 +1127,31 @@ function deleteApplication(applicationId) {
         if (prev) prev.disabled = (idx === 0);
         if (next) next.disabled = (idx === ids.length - 1);
     }
- 
+    window.jaNavigate = function (direction, fromId) {
+        var ids = getIds(), idx = ids.indexOf(fromId);
+        if (idx === -1 || !ids.length) return;
+        var targetId = (direction === 'prev') ? ids[idx - 1] : ids[idx + 1];
+        if (targetId === undefined) return;
+        var prevBtn = document.getElementById('ja-prev-btn'), nextBtn = document.getElementById('ja-next-btn');
+        if (prevBtn) prevBtn.disabled = true; if (nextBtn) nextBtn.disabled = true;
+        var wrap = document.querySelector('.ja-two-col-wrap'); if (wrap) wrap.classList.add('ja-nav-loading');
+        $.easyAjax({ type:'GET', url:showUrlTpl.replace(':id', targetId),
+            success: function(res) {
+                if (res.status === 'success') {
+                    $('#right-sidebar-content').html(res.view);
+                    var $row = $('[data-id="' + targetId + '"]');
+                    if ($row.length) { $row[0].scrollIntoView({behavior:'smooth',block:'nearest'}); $row.addClass('table-active'); setTimeout(function() { $row.removeClass('table-active'); }, 1200); }
+                } else { if (wrap) wrap.classList.remove('ja-nav-loading'); updateNavUI(); }
+            },
+            error: function() { if (wrap) wrap.classList.remove('ja-nav-loading'); updateNavUI(); }
+        });
+    };
+    function onKeyDown(e) {
+        var tag = document.activeElement ? document.activeElement.tagName : '';
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+        if (e.key === 'ArrowLeft' || e.keyCode === 37) { var p = document.getElementById('ja-prev-btn'); if (p && !p.disabled) jaNavigate('prev', CURRENT_ID); }
+        if (e.key === 'ArrowRight' || e.keyCode === 39) { var n = document.getElementById('ja-next-btn'); if (n && !n.disabled) jaNavigate('next', CURRENT_ID); }
+    }
     document.removeEventListener('keydown', window._jaKeyNav);
     window._jaKeyNav = onKeyDown;
     document.addEventListener('keydown', window._jaKeyNav);
@@ -1145,46 +1159,12 @@ function deleteApplication(applicationId) {
 })();
 
 /* ── Client Notes ── */
-$(document).off('click.clientNote', '#add-client-note').on('click.clientNote', '#add-client-note', function(e) {
-    e.preventDefault();
-    var $button = $(this);
-    var noteText = $('#client_note_text').val().trim();
-    if (!noteText) {
-        $.showToastr('Please enter a client note.', 'error');
-        $('#client_note_text').focus();
-        return;
-    }
-
-    $button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Saving...');
-    $.easyAjax({
-        type: 'POST',
-        url: "{{ route('admin.job-client-notes.store') }}",
-        data: { _token: '{{ csrf_token() }}', job_id: $button.data('job-id'), note_text: noteText },
-        success: function(response) {
-            if (response.status === 'success') {
-                $('#client-notes-list').html(response.view);
-                $('#client_note_text').val('');
-            }
-        },
-        error: function(xhr) {
-            var message = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Unable to save the client note.';
-            $.showToastr(message, 'error');
-        },
-        complete: function() {
-            $button.prop('disabled', false).html('<i class="fa fa-plus"></i> Add Client Note');
-        }
-    });
-});
-/* ── Client Notes ── */
 $('#add-client-note').click(function() {
     $.easyAjax({ type:'POST', url:"{{ route('admin.job-client-notes.store') }}",
         data: { '_token':'{{ csrf_token() }}', 'job_id':$(this).data('job-id'), 'note_text':$('#client_note_text').val() },
         success: function(response) { if (response.status === 'success') { $('#client-notes-list').html(response.view); $('#client_note_text').val(''); } }
     });
 });
-
-
-
 $('body').on('click', '.edit-client-note', function() {
     $(this).hide();
     var noteId = $(this).data('note-id'), $noteEl = $('#cn-note-' + noteId);
@@ -1379,4 +1359,4 @@ function jaSaveJobEdit(appId) {
 <div style="padding:12px 16px">
     <span class="skype-button rounded" data-contact-id="live:{{ $application->skype_id }}" data-text="Call"></span>
 </div>
-@endif         
+@endif
