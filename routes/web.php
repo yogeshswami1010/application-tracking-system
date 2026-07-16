@@ -145,7 +145,8 @@ Route::middleware('auth')->group(function () {
                 ->name('ai-search.prompts.favorite');
             Route::delete('ai-search/prompts/{id}', [AiSearchPromptController::class, 'destroy'])
                 ->name('ai-search.prompts.destroy');
-
+            Route::get('job-applications/search-mention-users', [AdminJobApplicationController::class, 'searchUsersForMention'])
+                ->name('admin.job-applications.search-mention-users');
             // Questions
             Route::get('questions/data',         [AdminQuestionController::class, 'data'])->name('questions.data');
             Route::post('questions/ai-generate', [AdminQuestionController::class, 'aiGenerateQuestions'])->name('questions.ai-generate');
