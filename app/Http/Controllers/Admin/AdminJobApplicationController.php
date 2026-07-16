@@ -2912,7 +2912,7 @@ class AdminJobApplicationController extends AdminBaseController
         app()->forgetInstance('mailer');
         app()->forgetInstance('swift.mailer');
         app()->forgetInstance('swift.transport');
-
+ 
         if ($sent === 0) {
             return Reply::error('Emails could not be sent. Please check the mail settings and try again.');
         }

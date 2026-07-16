@@ -113,9 +113,8 @@ Route::middleware('auth')->group(function () {
     // ── Admin ──────────────────────────────────────────────────────────────
     Route::name('admin.')
         ->prefix('admin')
-        ->group(function () {
-Route::get('job-applications/search-mention-users', [AdminJobApplicationController::class, 'searchUsersForMention'])
-            ->name('job-applications.search-mention-users');
+        ->group(function () { 
+
             Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
             // In routes/web.php (inside admin middleware group)
             Route::post('job-client-notes/store',           [AdminJobClientNoteController::class, 'store'])->name('job-client-notes.store');

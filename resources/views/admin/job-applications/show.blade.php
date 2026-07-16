@@ -52,19 +52,7 @@
     }
 @endphp
 
-{{--
-    PERFORMANCE NOTE (see PERFORMANCE_NOTES.md for full detail):
-    This entire partial gets re-rendered and re-injected via
-    $('#right-sidebar-content').html(res.view) every time the applicant
-    panel opens, on prev/next nav, and after most saves. That means the
-    <style> block below is re-parsed by the browser on every single one
-    of those events. The dedup script right after the tag removes any
-    older copy left behind by a previous render so duplicates don't pile
-    up in the DOM — but the real fix is to move this CSS into a static
-    .css file loaded once by the parent layout and delete it from here
-    entirely. Left as a follow-up since it touches your layout files.
---}}
-<style id="ja-applicant-panel-styles">
+<style>
     .ja-pdf-toolbar-tabs { display:flex;align-items:center;gap:4px;flex-shrink:0; }
 .ja-pdf-toolbar-tabs .ja-tab {
     padding:7px 11px;font-size:12px;font-weight:600;color:#8A94A6;cursor:pointer;
@@ -166,18 +154,6 @@
 .ja-small-badge { font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px; }
 .ja-nav-loading { opacity:.5;pointer-events:none;transition:opacity .2s; }
 </style>
-<script>
-    // Dedup guard: if this panel has been rendered before on this page
-    // (prev/next nav, stage move, note save, etc. all re-inject this whole
-    // partial), remove any older copy of the stylesheet tag left behind by
-    // a previous render so duplicates don't keep piling up in the DOM.
-    (function() {
-        var sheets = document.querySelectorAll('#ja-applicant-panel-styles');
-        for (var i = 0; i < sheets.length - 1; i++) {
-            sheets[i].remove();
-        }
-    })();
-</script>
 
 <div class="ja-two-col-wrap">
 
@@ -331,33 +307,15 @@ function jaSaveMarketingLabel(appId) {
                 </div>
             </div>
             @if($resumeUrl)
-                {{--
-                    PERFORMANCE NOTE: the iframe's real PDF url is stashed in
-                    data-src instead of src. Loading a (sometimes large) PDF
-                    synchronously while the rest of this panel is still
-                    rendering is a common cause of the "page unresponsive"
-                    browser prompt. The script below sets src one frame
-                    later so the panel finishes painting first.
-                --}}
                 <div id="ja-pdf-container" style="flex:1;position:relative;background:#525659;">
                     <div id="ja-pdf-loader" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#aaa;z-index:1;">
                         <i class="fa fa-spinner fa-spin" style="font-size:24px;margin-right:10px;"></i> Loading PDF...
                     </div>
-                    <iframe id="ja-pdf-frame" data-src="{{ $resumeUrl }}" 
+                    <iframe id="ja-pdf-frame" src="{{ $resumeUrl }}" 
                             style="position:absolute;inset:0;width:100%;height:100%;border:none;z-index:2;opacity:0;transition:opacity .3s;"
                             onload="document.getElementById('ja-pdf-loader').style.display='none';this.style.opacity='1';">
                     </iframe>
                 </div>
-                <script>
-                    (function() {
-                        var frame = document.getElementById('ja-pdf-frame');
-                        if (frame) {
-                            requestAnimationFrame(function() {
-                                setTimeout(function() { frame.src = frame.dataset.src; }, 30);
-                            });
-                        }
-                    })();
-                </script>
             @else
                 <div class="ja-pdf-no-resume">
                     <i class="fa fa-file-pdf-o"></i>
@@ -1022,11 +980,7 @@ function jaSaveMarketingLabel(appId) {
                     <div style="font-size:13px;color:#374151;line-height:1.75">{!! $application->job->job_requirement !!}</div>
                 </div>
                 @endif
-                @php
-                    // PERFORMANCE NOTE: uses the already eager-loaded job.skills.skill
-                    // relation from the controller instead of re-querying here.
-                    $jobSkillNames = $application->job?->skills?->pluck('skill.name')->filter();
-                @endphp
+                @php $jobSkillNames = $application->job?->skills()->with('skill')->get()->pluck('skill.name')->filter(); @endphp
                 @if($jobSkillNames && $jobSkillNames->isNotEmpty())
                 <div style="border-top:1px solid #F0EEE9;padding-top:18px">
                     <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#B0B8C4;margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fa fa-tags" style="font-size:11px"></i> Required Skills</div>
@@ -1081,18 +1035,8 @@ function jaMoveFromDetail(appId, toStatusId, toStatusLabel, currentStatusId) {
     });
 }
 
-/* ── Skills ──
-   PERFORMANCE NOTE: destroy any previous select2 instance before
-   reinitializing — this partial gets re-injected into the DOM repeatedly
-   (prev/next nav, stage moves, saves), and calling .select2() again on an
-   element that already has an instance attached leaks the old widget and
-   its event bindings instead of replacing them cleanly.
-*/
-if ($('.select2#skills').data('select2')) {
-    $('.select2#skills').select2('destroy');
-}
+/* ── Skills ── */
 $('.select2#skills').select2();
-
 function addSkills(applicationId, callback) {
     var url = "{{ route('admin.job-applications.addSkills', ':id') }}".replace(':id', applicationId);
     $.easyAjax({
@@ -1253,38 +1197,23 @@ function jaShowJobDesc() { var o = document.getElementById('ja-jobdesc-overlay')
 function jaHideJobDesc() { var o = document.getElementById('ja-jobdesc-overlay'); o.style.display = 'none'; document.body.style.overflow = ''; }
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') jaHideJobDesc(); });
 
-/* ── @mention autocomplete ──
-   PERFORMANCE NOTE: previously this dumped the ENTIRE users table into
-   a `jaAllUsers` JS array on every single applicant render (see
-   PERFORMANCE_NOTES.md). Now it debounces a small AJAX lookup against
-   /job-applications/search-mention-users, which only returns a handful
-   of name-matched rows, and only fires once you actually type "@".
-*/
-var jaMentionQuery = '', jaMentionStart = -1, jaMentionTimer = null;
-
+/* ── @mention autocomplete ── */
+var jaAllUsers = @json(\App\User::select('id','name')->get());
+var jaMentionQuery = '', jaMentionStart = -1;
 function jaNoteHandleInput(el) {
     var val = el.value, caret = el.selectionStart, drop = document.getElementById('ja-mention-drop');
     if (!drop) return;
     var textBefore = val.substring(0, caret), atMatch = textBefore.match(/@([a-zA-Z0-9_]*)$/);
     if (!atMatch) { drop.style.display = 'none'; jaMentionStart = -1; return; }
-
-    jaMentionQuery = atMatch[1].toLowerCase();
-    jaMentionStart = caret - atMatch[0].length;
-
-    clearTimeout(jaMentionTimer);
-    jaMentionTimer = setTimeout(function () {
-        $.get("{{ route('admin.job-applications.search-mention-users') }}", { q: jaMentionQuery }, function (res) {
-            var matches = (res && res.data && res.data.users) ? res.data.users : [];
-            if (!matches.length) { drop.style.display = 'none'; return; }
-            drop.innerHTML = matches.map(function (u) {
-                var initials = u.name.split(' ').map(function (w) { return w[0]; }).join('').substring(0, 2).toUpperCase();
-                return '<div onclick="jaInsertMention(\'' + u.name.replace(/'/g, "\\'") + '\')" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;font-size:13px;color:#1A1E2E;" onmouseover="this.style.background=\'#EFF6FF\'" onmouseout="this.style.background=\'none\'"><span style="width:26px;height:26px;border-radius:50%;background:#2563EB;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">' + initials + '</span><span style="font-weight:500">' + u.name + '</span></div>';
-            }).join('');
-            drop.style.display = 'block';
-        });
-    }, 200);
+    jaMentionQuery = atMatch[1].toLowerCase(); jaMentionStart = caret - atMatch[0].length;
+    var matches = jaAllUsers.filter(function(u) { return u.name.toLowerCase().includes(jaMentionQuery) && u.id !== {{ auth()->id() }}; }).slice(0, 6);
+    if (!matches.length) { drop.style.display = 'none'; return; }
+    drop.innerHTML = matches.map(function(u) {
+        var initials = u.name.split(' ').map(function(w){ return w[0]; }).join('').substring(0,2).toUpperCase();
+        return '<div onclick="jaInsertMention(\'' + u.name.replace(/'/g, "\\'") + '\')" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;font-size:13px;color:#1A1E2E;" onmouseover="this.style.background=\'#EFF6FF\'" onmouseout="this.style.background=\'none\'"><span style="width:26px;height:26px;border-radius:50%;background:#2563EB;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">' + initials + '</span><span style="font-weight:500">' + u.name + '</span></div>';
+    }).join('');
+    drop.style.display = 'block';
 }
-
 function jaInsertMention(name) {
     var ta = document.getElementById('note_text'), val = ta.value, caret = ta.selectionStart;
     var firstName = name.split(' ')[0];
@@ -1293,20 +1222,9 @@ function jaInsertMention(name) {
     ta.setSelectionRange(newPos, newPos); ta.focus();
     document.getElementById('ja-mention-drop').style.display = 'none'; jaMentionStart = -1;
 }
-
-/* PERFORMANCE NOTE: this partial is re-injected into the DOM on every
-   applicant open / prev-next / save, and document-level listeners were
-   never removed before — they just kept stacking up, one per render, for
-   the life of the page. Deregister the previous one before adding a new
-   one, same pattern already used for the arrow-key nav listener below. */
-document.removeEventListener('click', window._jaMentionOutsideClick);
-window._jaMentionOutsideClick = function(e) {
-    if (!e.target.closest('#ja-mention-drop') && e.target.id !== 'note_text') {
-        var d = document.getElementById('ja-mention-drop');
-        if (d) d.style.display = 'none';
-    }
-};
-document.addEventListener('click', window._jaMentionOutsideClick);
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('#ja-mention-drop') && e.target.id !== 'note_text') { var d = document.getElementById('ja-mention-drop'); if (d) d.style.display = 'none'; }
+});
 
 /* ── Inline info edit ── */
 function jaToggleInfoEdit(appId) {
@@ -1441,4 +1359,4 @@ function jaSaveJobEdit(appId) {
 <div style="padding:12px 16px">
     <span class="skype-button rounded" data-contact-id="live:{{ $application->skype_id }}" data-text="Call"></span>
 </div>
-@endif
+@endif         
