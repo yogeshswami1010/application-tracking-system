@@ -803,7 +803,7 @@ function jaSaveMarketingLabel(appId) {
                             <i class="fa fa-plus-circle" style="color:#059669"></i> Add Client Note
                         </div>
                         <textarea id="client_note_text" rows="4" class="ja-note-textarea" style="width:100%;min-height:90px" placeholder="Add a note visible to all applicants on this job…"></textarea>
-                        <button id="add-client-note" class="ja-save-note-btn" style="background:#059669;margin-top:8px" data-job-id="{{ $application->job_id }}">
+                        <button type="button" id="add-client-note" class="ja-save-note-btn" style="background:#059669;margin-top:8px" data-job-id="{{ $application->job_id }}">
                             <i class="fa fa-plus"></i> Add Client Note
                         </button>
                     </div>
@@ -1145,10 +1145,34 @@ function deleteApplication(applicationId) {
 })();
 
 /* ── Client Notes ── */
-$('#add-client-note').click(function() {
-    $.easyAjax({ type:'POST', url:"{{ route('admin.job-client-notes.store') }}",
-        data: { '_token':'{{ csrf_token() }}', 'job_id':$(this).data('job-id'), 'note_text':$('#client_note_text').val() },
-        success: function(response) { if (response.status === 'success') { $('#client-notes-list').html(response.view); $('#client_note_text').val(''); } }
+$(document).off('click.clientNote', '#add-client-note').on('click.clientNote', '#add-client-note', function(e) {
+    e.preventDefault();
+    var $button = $(this);
+    var noteText = $('#client_note_text').val().trim();
+    if (!noteText) {
+        $.showToastr('Please enter a client note.', 'error');
+        $('#client_note_text').focus();
+        return;
+    }
+
+    $button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Saving...');
+    $.easyAjax({
+        type: 'POST',
+        url: "{{ route('admin.job-client-notes.store') }}",
+        data: { _token: '{{ csrf_token() }}', job_id: $button.data('job-id'), note_text: noteText },
+        success: function(response) {
+            if (response.status === 'success') {
+                $('#client-notes-list').html(response.view);
+                $('#client_note_text').val('');
+            }
+        },
+        error: function(xhr) {
+            var message = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Unable to save the client note.';
+            $.showToastr(message, 'error');
+        },
+        complete: function() {
+            $button.prop('disabled', false).html('<i class="fa fa-plus"></i> Add Client Note');
+        }
     });
 });
 $('body').on('click', '.edit-client-note', function() {
