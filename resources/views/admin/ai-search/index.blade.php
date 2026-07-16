@@ -758,9 +758,15 @@ $('#ai-send-email-confirm').on('click', function() {
                 document.getElementById('ai-email-message').value = '';
                 aiSelectedApplicantIds = [];
                 aiRenderCards(aiLastResults);
+                  Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: response.message,
+                        confirmButtonText: 'OK'
+                    });
 
             }
-            return;
+           
         },
         complete: function() {
             $.unblockUI();
