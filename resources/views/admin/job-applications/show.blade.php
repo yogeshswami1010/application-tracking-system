@@ -155,16 +155,6 @@
             <span class="ja-pill ja-pill-cat {{ $detailCatClass }}">{{ ucfirst($detailCatName) }}</span>
         </div>
 
-        <div class="ja-nav-arrows" id="ja-nav-arrows">
-            <button type="button" class="ja-nav-btn" id="ja-prev-btn" onclick="jaNavigate('prev', {{ $application->id }})" title="Previous applicant" disabled>
-                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
-            </button>
-            <span class="ja-nav-counter" id="ja-nav-counter">—</span>
-            <button type="button" class="ja-nav-btn" id="ja-next-btn" onclick="jaNavigate('next', {{ $application->id }})" title="Next applicant" disabled>
-                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
-            </button>
-        </div>
-
         <button type="button" class="right-side-toggle ja-close-btn" title="@lang('app.close')">
             <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
@@ -1119,31 +1109,7 @@ function deleteApplication(applicationId) {
         if (prev) prev.disabled = (idx === 0);
         if (next) next.disabled = (idx === ids.length - 1);
     }
-    window.jaNavigate = function (direction, fromId) {
-        var ids = getIds(), idx = ids.indexOf(fromId);
-        if (idx === -1 || !ids.length) return;
-        var targetId = (direction === 'prev') ? ids[idx - 1] : ids[idx + 1];
-        if (targetId === undefined) return;
-        var prevBtn = document.getElementById('ja-prev-btn'), nextBtn = document.getElementById('ja-next-btn');
-        if (prevBtn) prevBtn.disabled = true; if (nextBtn) nextBtn.disabled = true;
-        var wrap = document.querySelector('.ja-two-col-wrap'); if (wrap) wrap.classList.add('ja-nav-loading');
-        $.easyAjax({ type:'GET', url:showUrlTpl.replace(':id', targetId),
-            success: function(res) {
-                if (res.status === 'success') {
-                    $('#right-sidebar-content').html(res.view);
-                    var $row = $('[data-id="' + targetId + '"]');
-                    if ($row.length) { $row[0].scrollIntoView({behavior:'smooth',block:'nearest'}); $row.addClass('table-active'); setTimeout(function() { $row.removeClass('table-active'); }, 1200); }
-                } else { if (wrap) wrap.classList.remove('ja-nav-loading'); updateNavUI(); }
-            },
-            error: function() { if (wrap) wrap.classList.remove('ja-nav-loading'); updateNavUI(); }
-        });
-    };
-    function onKeyDown(e) {
-        var tag = document.activeElement ? document.activeElement.tagName : '';
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-        if (e.key === 'ArrowLeft' || e.keyCode === 37) { var p = document.getElementById('ja-prev-btn'); if (p && !p.disabled) jaNavigate('prev', CURRENT_ID); }
-        if (e.key === 'ArrowRight' || e.keyCode === 39) { var n = document.getElementById('ja-next-btn'); if (n && !n.disabled) jaNavigate('next', CURRENT_ID); }
-    }
+ 
     document.removeEventListener('keydown', window._jaKeyNav);
     window._jaKeyNav = onKeyDown;
     document.addEventListener('keydown', window._jaKeyNav);
