@@ -311,7 +311,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="fa fa-envelope-o text-primary"></i> Send email</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <button type="button" class="close" onclick="aiCloseEmailModal()" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                 </div>
                 <div class="modal-body">
                     <p class="text-muted mb-3">This email will be sent separately to <strong id="ai-email-recipient-count">0</strong> selected applicants.</p>
@@ -325,7 +325,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-light" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-light" onclick="aiCloseEmailModal()">Cancel</button>
+
                     <button type="button" class="btn btn-primary" id="ai-send-email-confirm"><i class="fa fa-paper-plane"></i> Send email</button>
                 </div>
             </div>
@@ -719,14 +720,27 @@ function aiOpenEmailModal() {
     document.getElementById('ai-email-recipient-count').textContent = aiSelectedApplicantIds.length;
     var modal = document.getElementById('ai-send-email-modal');
     modal.style.display = 'block';
+    modal.style.paddingLeft = '0';
     modal.classList.add('show');
     document.body.classList.add('modal-open');
+
+    // simple backdrop since Bootstrap JS isn't managing one
+    if (!document.getElementById('ai-manual-backdrop')) {
+        var backdrop = document.createElement('div');
+        backdrop.id = 'ai-manual-backdrop';
+        backdrop.className = 'modal-backdrop fade show';
+        backdrop.onclick = aiCloseEmailModal;
+        document.body.appendChild(backdrop);
+    }
 }
+
 function aiCloseEmailModal() {
     var modal = document.getElementById('ai-send-email-modal');
     modal.style.display = 'none';
     modal.classList.remove('show');
     document.body.classList.remove('modal-open');
+    var backdrop = document.getElementById('ai-manual-backdrop');
+    if (backdrop) backdrop.remove();
 }
 $('#ai-send-email-confirm').on('click', function() {
     var subject = document.getElementById('ai-email-subject').value.trim();
@@ -739,7 +753,7 @@ $('#ai-send-email-confirm').on('click', function() {
         data: { _token: '{{ csrf_token() }}', applicant_ids: aiSelectedApplicantIds, subject: subject, message: message },
         success: function(response) {
             if (response.status === 'success') {
-                $('#ai-send-email-modal').modal('hide');
+                aiCloseEmailModal();
                 document.getElementById('ai-email-subject').value = '';
                 document.getElementById('ai-email-message').value = '';
                 aiSelectedApplicantIds = [];
