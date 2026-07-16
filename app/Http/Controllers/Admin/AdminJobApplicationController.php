@@ -1167,7 +1167,9 @@ class AdminJobApplicationController extends AdminBaseController
                 'job.category',
                 'job.company',
                 'job.location',
+                'job.currency', // used by the salary badge in the job-description modal
                 'job.skills.skill', // avoids re-querying skills in the job-description modal
+                'schedule.employee.user:id,name', // interviewers shown in the schedule tab
                 'statusHistories' => function ($query) {
                     $query->latest()->limit(30)->with(['fromStatus', 'toStatus', 'user']);
                 },
@@ -1218,6 +1220,15 @@ class AdminJobApplicationController extends AdminBaseController
             $globalIds = $this->allStatuses->pluck('id');
             $this->allStatuses = $this->allStatuses->concat($jobStatuses->filter(fn ($status) => ! $globalIds->contains($status->id)));
         }
+
+        // Static-ish lookup lists used inside the blade. Cached for 5 minutes so
+        // opening profiles back-to-back doesn't re-run these on every request.
+        $this->jobOptions = \Illuminate\Support\Facades\Cache::remember('ja_job_options_v1', 300, function () {
+            return Job::select('id', 'title')->orderBy('title')->get();
+        });
+        $this->mentionUsers = \Illuminate\Support\Facades\Cache::remember('ja_mention_users_v1', 300, function () {
+            return User::select('id', 'name')->orderBy('name')->get();
+        });
 
         $view = view('admin.job-applications.show', $this->data)->render();
 

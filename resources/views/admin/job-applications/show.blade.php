@@ -11,31 +11,40 @@
     };
     $stagePillBg = $application->status?->color ?? '#6366F1';
     $initials = collect(explode(' ', $application->full_name))->map(fn($w) => strtoupper(substr($w,0,1)))->take(2)->join('');
-    // Load global statuses + any custom statuses for this applicant's job
-    $allStatuses = \App\ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
-    if ($application->job_id) {
-        try {
-            $jobSpecific = \App\ApplicationStatus::where('job_id', $application->job_id)->orderBy('position')->get();
-            $globalIds   = $allStatuses->pluck('id');
-            $extra       = $jobSpecific->filter(fn($s) => !$globalIds->contains($s->id));
-            $allStatuses = $allStatuses->concat($extra);
-        } catch (\Exception $e) {}
+    // PERF: controller passes $allStatuses / $previousApps / $clientNotes already
+    // loaded — only query as a fallback when rendered from somewhere else.
+    if (!isset($allStatuses)) {
+        $allStatuses = \App\ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
+        if ($application->job_id) {
+            try {
+                $jobSpecific = \App\ApplicationStatus::where('job_id', $application->job_id)->orderBy('position')->get();
+                $globalIds   = $allStatuses->pluck('id');
+                $extra       = $jobSpecific->filter(fn($s) => !$globalIds->contains($s->id));
+                $allStatuses = $allStatuses->concat($extra);
+            } catch (\Exception $e) {}
+        }
     }
     $currentStatusId = $application->status_id;
     $currentStatus = $allStatuses->firstWhere('id', $currentStatusId);
 
     // ── Previous applications (same email) ──
-    $previousApps = \App\JobApplication::where('email', $application->email)
-        ->where('is_candidate', 0)
-        ->where('id', '!=', $application->id)
-        ->with(['job:id,title', 'status:id,status,color'])
-        ->orderByDesc('created_at')
-        ->get();
+    if (!isset($previousApps)) {
+        $previousApps = \App\JobApplication::where('email', $application->email)
+            ->where('is_candidate', 0)
+            ->where('id', '!=', $application->id)
+            ->with(['job:id,title', 'status:id,status,color', 'location:id,location'])
+            ->orderByDesc('created_at')
+            ->limit(5) // was missing: unbounded query on every profile open
+            ->get();
+    }
 
-    $clientNotes = \App\JobClientNote::with('user:id,name')
-        ->where('job_id', $application->job_id)
-        ->orderByDesc('created_at')
-        ->get();
+    if (!isset($clientNotes)) {
+        $clientNotes = \App\JobClientNote::with('user:id,name')
+            ->where('job_id', $application->job_id)
+            ->orderByDesc('created_at')
+            ->limit(50)
+            ->get();
+    }
 
     // Resolve resume URL
     $resumeUrl = null;
@@ -579,7 +588,7 @@ function jaSaveMarketingLabel(appId) {
                                 @if($user->cans('edit_job_applications'))
                                 <div id="ja-job-edit-{{ $application->id }}" style="display:none;width:100%;margin-top:8px;">
                                     <select id="ja-job-select-{{ $application->id }}" class="ja-stage-select" style="width:100%;">
-                                        @foreach(\App\Job::select('id','title')->orderBy('title')->get() as $jobOption)
+                                        @foreach(($jobOptions ?? \App\Job::select('id','title')->orderBy('title')->get()) as $jobOption)
                                             <option value="{{ $jobOption->id }}" @selected($jobOption->id === $application->job_id)>{{ ucwords($jobOption->title) }}</option>
                                         @endforeach
                                     </select>
@@ -819,7 +828,7 @@ function jaSaveMarketingLabel(appId) {
                     @endif
                     <div id="applicant-notes">
                         @include('admin.job-applications.partials.applicant-notes-list', [
-                            'notes' => $application->notes()->with('user:id,name')->orderByDesc('created_at')->get()
+                            'notes' => $application->notes // already eager-loaded by controller (same ordering + user)
                         ])
                     </div>
                 </div>
@@ -980,7 +989,7 @@ function jaSaveMarketingLabel(appId) {
                     <div style="font-size:13px;color:#374151;line-height:1.75">{!! $application->job->job_requirement !!}</div>
                 </div>
                 @endif
-                @php $jobSkillNames = $application->job?->skills()->with('skill')->get()->pluck('skill.name')->filter(); @endphp
+                @php $jobSkillNames = $application->job ? $application->job->skills->pluck('skill.name')->filter() : collect(); @endphp
                 @if($jobSkillNames && $jobSkillNames->isNotEmpty())
                 <div style="border-top:1px solid #F0EEE9;padding-top:18px">
                     <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#B0B8C4;margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fa fa-tags" style="font-size:11px"></i> Required Skills</div>
@@ -1062,7 +1071,8 @@ $('#add-note').click(function() {
     });
 });
 
-$('body').on('click', '.edit-note', function() {
+$('body').off('click.jaApp'); // drop handlers stacked by previous profile opens
+$('body').on('click.jaApp', '.edit-note', function() {
     $(this).hide();
     var noteId = $(this).data('note-id');
     $('body').find('#note-' + noteId + ' .note-text').hide();
@@ -1072,7 +1082,7 @@ $('body').on('click', '.edit-note', function() {
     $('body').find('#note-' + noteId + ' .note-textarea').html(textArea);
 });
 
-$('body').on('click', '.update-note', function() {
+$('body').on('click.jaApp', '.update-note', function() {
     var noteId = $(this).data('note-id');
     $.easyAjax({
         type: 'POST', url: "{{ route('admin.applicant-note.update', ':id') }}".replace(':id', noteId),
@@ -1081,7 +1091,7 @@ $('body').on('click', '.update-note', function() {
     });
 });
 
-$('body').on('click', '.delete-note', function() {
+$('body').on('click.jaApp', '.delete-note', function() {
     var noteId = $(this).data('note-id');
     swal({ title:"@lang('errors.areYouSure')", text:"@lang('errors.deleteWarning')", type:"warning", showCancelButton:true, confirmButtonColor:"#DD6B55", confirmButtonText:"@lang('app.delete')", cancelButtonText:"@lang('app.cancel')", closeOnConfirm:true, closeOnCancel:true },
     function(isConfirm) {
@@ -1117,6 +1127,39 @@ function deleteApplication(applicationId) {
 (function () {
     var CURRENT_ID = {{ $application->id }};
     var showUrlTpl = "{{ route('admin.job-applications.show', ':id') }}";
+    var CACHE_LIMIT = 15;
+
+    // Persist across profile swaps — this script re-runs on every profile open.
+    window._jaProfileCache = window._jaProfileCache || new Map();
+    window._jaNavSeq       = window._jaNavSeq || 0;
+
+    // Any successful POST (note add/edit/delete, status move, skill save …)
+    // can change a profile, so drop all cached views and let them refetch.
+    $(document).off('ajaxSuccess.jaApp').on('ajaxSuccess.jaApp', function (e, xhr, settings) {
+        if (settings && settings.type && String(settings.type).toUpperCase() !== 'GET' && window._jaProfileCache) {
+            window._jaProfileCache.clear();
+        }
+    });
+
+    function jaCachePut(id, html) {
+        var c = window._jaProfileCache;
+        if (c.has(id)) c.delete(id);
+        c.set(id, html);
+        while (c.size > CACHE_LIMIT) c.delete(c.keys().next().value); // evict oldest
+    }
+    function jaSwapIn(targetId, html) {
+        $('#right-sidebar-content').html(html);
+        var $row = $('[data-id="' + targetId + '"]');
+        if ($row.length) { $row[0].scrollIntoView({behavior:'smooth',block:'nearest'}); $row.addClass('table-active'); setTimeout(function() { $row.removeClass('table-active'); }, 1200); }
+        // Warm the cache for the neighbours so the next click feels instant.
+        var ids = getIds(), idx = ids.indexOf(targetId);
+        [ids[idx - 1], ids[idx + 1]].forEach(function (nid) {
+            if (nid === undefined || window._jaProfileCache.has(nid)) return;
+            $.get(showUrlTpl.replace(':id', nid), function (res) {
+                if (res && res.status === 'success') jaCachePut(nid, res.view);
+            });
+        });
+    }
     function getIds() { return (typeof jaApplicantIds !== 'undefined' && Array.isArray(jaApplicantIds) && jaApplicantIds.length) ? jaApplicantIds : []; }
     function currentIndex() { return getIds().indexOf(CURRENT_ID); }
     function updateNavUI() {
@@ -1132,18 +1175,40 @@ function deleteApplication(applicationId) {
         if (idx === -1 || !ids.length) return;
         var targetId = (direction === 'prev') ? ids[idx - 1] : ids[idx + 1];
         if (targetId === undefined) return;
+
+        // Token: only the most recent click is allowed to render.
+        var seq = ++window._jaNavSeq;
+
+        // Cancel whatever previous navigation is still in flight — rapid
+        // clicking must never queue renders (caused out-of-order swaps and
+        // the "profile does not open" symptom).
+        if (window._jaShowXhr && window._jaShowXhr.readyState !== 4) window._jaShowXhr.abort();
+
+        // Serve instantly from cache when possible (this is what makes
+        // back-to-back browsing fast).
+        if (window._jaProfileCache.has(targetId)) {
+            jaSwapIn(targetId, window._jaProfileCache.get(targetId));
+            return;
+        }
+
         var prevBtn = document.getElementById('ja-prev-btn'), nextBtn = document.getElementById('ja-next-btn');
         if (prevBtn) prevBtn.disabled = true; if (nextBtn) nextBtn.disabled = true;
         var wrap = document.querySelector('.ja-two-col-wrap'); if (wrap) wrap.classList.add('ja-nav-loading');
-        $.easyAjax({ type:'GET', url:showUrlTpl.replace(':id', targetId),
-            success: function(res) {
+
+        window._jaShowXhr = $.ajax({
+            type: 'GET', url: showUrlTpl.replace(':id', targetId),
+            success: function (res) {
+                if (seq !== window._jaNavSeq) return; // a newer click already won
                 if (res.status === 'success') {
-                    $('#right-sidebar-content').html(res.view);
-                    var $row = $('[data-id="' + targetId + '"]');
-                    if ($row.length) { $row[0].scrollIntoView({behavior:'smooth',block:'nearest'}); $row.addClass('table-active'); setTimeout(function() { $row.removeClass('table-active'); }, 1200); }
+                    jaCachePut(targetId, res.view);
+                    jaSwapIn(targetId, res.view);
                 } else { if (wrap) wrap.classList.remove('ja-nav-loading'); updateNavUI(); }
             },
-            error: function() { if (wrap) wrap.classList.remove('ja-nav-loading'); updateNavUI(); }
+            error: function (xhr, status) {
+                if (status === 'abort') return; // replaced by a newer click
+                if (seq !== window._jaNavSeq) return;
+                if (wrap) wrap.classList.remove('ja-nav-loading'); updateNavUI();
+            }
         });
     };
     function onKeyDown(e) {
@@ -1165,21 +1230,21 @@ $('#add-client-note').click(function() {
         success: function(response) { if (response.status === 'success') { $('#client-notes-list').html(response.view); $('#client_note_text').val(''); } }
     });
 });
-$('body').on('click', '.edit-client-note', function() {
+$('body').on('click.jaApp', '.edit-client-note', function() {
     $(this).hide();
     var noteId = $(this).data('note-id'), $noteEl = $('#cn-note-' + noteId);
     $noteEl.find('.cn-note-text').hide();
     var noteText = $noteEl.find('.cn-note-text').text().trim();
     $noteEl.find('.cn-note-textarea').html('<textarea id="cn-edit-text-' + noteId + '" class="ja-note-textarea" rows="3">' + noteText + '</textarea><button class="update-client-note ja-save-note-btn" data-note-id="' + noteId + '" style="margin-top:6px;background:#059669"><i class="fa fa-check"></i> Save</button>');
 });
-$('body').on('click', '.update-client-note', function() {
+$('body').on('click.jaApp', '.update-client-note', function() {
     var noteId = $(this).data('note-id');
     $.easyAjax({ type:'POST', url:"{{ route('admin.job-client-notes.update', ':id') }}".replace(':id', noteId),
         data: { '_token':'{{ csrf_token() }}', 'note':$('#cn-edit-text-' + noteId).val() },
         success: function(response) { if (response.status === 'success') $('#client-notes-list').html(response.view); }
     });
 });
-$('body').on('click', '.delete-client-note', function() {
+$('body').on('click.jaApp', '.delete-client-note', function() {
     var noteId = $(this).data('note-id');
     swal({ title:"@lang('errors.areYouSure')", text:"@lang('errors.deleteWarning')", type:"warning", showCancelButton:true, confirmButtonColor:"#DD6B55", confirmButtonText:"@lang('app.delete')", cancelButtonText:"@lang('app.cancel')", closeOnConfirm:true, closeOnCancel:true },
     function(isConfirm) {
@@ -1195,10 +1260,12 @@ $('body').on('click', '.delete-client-note', function() {
 /* ── Job Description Modal ── */
 function jaShowJobDesc() { var o = document.getElementById('ja-jobdesc-overlay'); o.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
 function jaHideJobDesc() { var o = document.getElementById('ja-jobdesc-overlay'); o.style.display = 'none'; document.body.style.overflow = ''; }
-document.addEventListener('keydown', function(e) { if (e.key === 'Escape') jaHideJobDesc(); });
+if (window._jaEscKeyHandler) document.removeEventListener('keydown', window._jaEscKeyHandler);
+window._jaEscKeyHandler = function(e) { if (e.key === 'Escape') jaHideJobDesc(); };
+document.addEventListener('keydown', window._jaEscKeyHandler);
 
 /* ── @mention autocomplete ── */
-var jaAllUsers = @json(\App\User::select('id','name')->get());
+var jaAllUsers = @json($mentionUsers ?? \App\User::select('id','name')->get());
 var jaMentionQuery = '', jaMentionStart = -1;
 function jaNoteHandleInput(el) {
     var val = el.value, caret = el.selectionStart, drop = document.getElementById('ja-mention-drop');
@@ -1222,9 +1289,11 @@ function jaInsertMention(name) {
     ta.setSelectionRange(newPos, newPos); ta.focus();
     document.getElementById('ja-mention-drop').style.display = 'none'; jaMentionStart = -1;
 }
-document.addEventListener('click', function(e) {
+if (window._jaMentionCloser) document.removeEventListener('click', window._jaMentionCloser);
+window._jaMentionCloser = function(e) {
     if (!e.target.closest('#ja-mention-drop') && e.target.id !== 'note_text') { var d = document.getElementById('ja-mention-drop'); if (d) d.style.display = 'none'; }
-});
+};
+document.addEventListener('click', window._jaMentionCloser);
 
 /* ── Inline info edit ── */
 function jaToggleInfoEdit(appId) {
