@@ -2847,17 +2847,45 @@ class AdminJobApplicationController extends AdminBaseController
             return Reply::error('None of the selected applicants has an email address.');
         }
 
+        // --- Temporarily switch mail config to Gmail SMTP for this request only ---
+        $originalConfig = [
+            'driver' => config('mail.driver'),
+            'host' => config('mail.host'),
+            'port' => config('mail.port'),
+            'encryption' => config('mail.encryption'),
+            'username' => config('mail.username'),
+            'password' => config('mail.password'),
+            'from' => config('mail.from'),
+        ];
+
+        config([
+            'mail.driver' => 'smtp',
+            'mail.host' => env('AI_SEARCH_MAIL_HOST'),
+            'mail.port' => env('AI_SEARCH_MAIL_PORT'),
+            'mail.encryption' => env('AI_SEARCH_MAIL_ENCRYPTION', 'tls'),
+            'mail.username' => env('AI_SEARCH_MAIL_USERNAME'),
+            'mail.password' => env('AI_SEARCH_MAIL_PASSWORD'),
+            'mail.from' => [
+                'address' => env('AI_SEARCH_MAIL_FROM_ADDRESS'),
+                'name' => env('AI_SEARCH_MAIL_FROM_NAME'),
+            ],
+        ]);
+
+        // Force the mailer to rebuild with the new config
+        app()->forgetInstance('mailer');
+        app()->forgetInstance('swift.mailer');
+        app()->forgetInstance('swift.transport');
+
         $sent = 0;
         $failed = 0;
         $message = nl2br(e($data['message']));
 
         foreach ($applications->unique('email') as $application) {
             try {
-                Mail::mailer('ai_search_smtp')->html(
+                Mail::html(
                     '<p>Hello '.e($application->full_name ?: 'Applicant').',</p><div>'.$message.'</div>',
                     function ($mail) use ($application, $data) {
                         $mail->to($application->email, $application->full_name)
-                            ->from(env('AI_SEARCH_MAIL_FROM_ADDRESS'), env('AI_SEARCH_MAIL_FROM_NAME'))
                             ->subject($data['subject']);
                     }
                 );
@@ -2870,6 +2898,20 @@ class AdminJobApplicationController extends AdminBaseController
                 ]);
             }
         }
+
+        // --- Restore original mail config ---
+        config([
+            'mail.driver' => $originalConfig['driver'],
+            'mail.host' => $originalConfig['host'],
+            'mail.port' => $originalConfig['port'],
+            'mail.encryption' => $originalConfig['encryption'],
+            'mail.username' => $originalConfig['username'],
+            'mail.password' => $originalConfig['password'],
+            'mail.from' => $originalConfig['from'],
+        ]);
+        app()->forgetInstance('mailer');
+        app()->forgetInstance('swift.mailer');
+        app()->forgetInstance('swift.transport');
 
         if ($sent === 0) {
             return Reply::error('Emails could not be sent. Please check the mail settings and try again.');
