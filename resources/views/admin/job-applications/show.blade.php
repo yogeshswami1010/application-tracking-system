@@ -12,31 +12,10 @@
     $stagePillBg = $application->status?->color ?? '#6366F1';
     $initials = collect(explode(' ', $application->full_name))->map(fn($w) => strtoupper(substr($w,0,1)))->take(2)->join('');
     // Load global statuses + any custom statuses for this applicant's job
-    $allStatuses = \App\ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
-    if ($application->job_id) {
-        try {
-            $jobSpecific = \App\ApplicationStatus::where('job_id', $application->job_id)->orderBy('position')->get();
-            $globalIds   = $allStatuses->pluck('id');
-            $extra       = $jobSpecific->filter(fn($s) => !$globalIds->contains($s->id));
-            $allStatuses = $allStatuses->concat($extra);
-        } catch (\Exception $e) {}
-    }
     $currentStatusId = $application->status_id;
     $currentStatus = $allStatuses->firstWhere('id', $currentStatusId);
 
     // ── Previous applications (same email) ──
-    $previousApps = \App\JobApplication::where('email', $application->email)
-        ->where('is_candidate', 0)
-        ->where('id', '!=', $application->id)
-        ->with(['job:id,title', 'status:id,status,color'])
-        ->orderByDesc('created_at')
-        ->get();
-
-    $clientNotes = \App\JobClientNote::with('user:id,name')
-        ->where('job_id', $application->job_id)
-        ->orderByDesc('created_at')
-        ->get();
-
     // Resolve resume URL
     $resumeUrl = null;
     if (!empty($application->resume_url)) {
@@ -308,12 +287,14 @@ function jaSaveMarketingLabel(appId) {
             </div>
             @if($resumeUrl)
                 <div id="ja-pdf-container" style="flex:1;position:relative;background:#525659;">
-                    <div id="ja-pdf-loader" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#aaa;z-index:1;">
-                        <i class="fa fa-spinner fa-spin" style="font-size:24px;margin-right:10px;"></i> Loading PDF...
+                    <div id="ja-pdf-loader" style="position:absolute;inset:0;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;color:#ddd;z-index:3;">
+                        <i class="fa fa-file-pdf-o" style="font-size:42px;opacity:.7;"></i>
+                        <span style="font-size:13px;">Resume is ready to preview</span>
+                        <button type="button" class="ja-pdf-btn ja-pdf-btn-primary" onclick="jaLoadResume()"><i class="fa fa-eye"></i> Load resume</button>
                     </div>
-                    <iframe id="ja-pdf-frame" src="{{ $resumeUrl }}" 
+                    <iframe id="ja-pdf-frame" data-src="{{ $resumeUrl }}"
                             style="position:absolute;inset:0;width:100%;height:100%;border:none;z-index:2;opacity:0;transition:opacity .3s;"
-                            onload="document.getElementById('ja-pdf-loader').style.display='none';this.style.opacity='1';">
+                            onload="if(this.getAttribute('src')) { document.getElementById('ja-pdf-loader').style.display='none'; this.style.opacity='1'; }">
                     </iframe>
                 </div>
             @else
@@ -1006,6 +987,17 @@ function jaSaveMarketingLabel(appId) {
 
 <script>
 /* ── Tab switching ── */
+/* Avoid locking the browser while a large CV is rendered in the embedded PDF viewer. */
+function jaLoadResume() {
+    var frame = document.getElementById('ja-pdf-frame');
+    var loader = document.getElementById('ja-pdf-loader');
+    if (!frame || frame.getAttribute('src')) return;
+    if (loader) {
+        loader.innerHTML = '<i class="fa fa-spinner fa-spin" style="font-size:24px"></i><span style="font-size:13px">Loading resume...</span>';
+    }
+    frame.setAttribute('src', frame.getAttribute('data-src'));
+}
+
 document.querySelectorAll('.ja-tab').forEach(function(tab) {
     tab.addEventListener('click', function() {
         var target = this.dataset.tab;

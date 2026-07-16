@@ -1164,12 +1164,13 @@ class AdminJobApplicationController extends AdminBaseController
                 'status',
                 'location',
                 'job',
+                'job.category',
                 'job.company',
                 'job.location',
                 'job.skills.skill', // avoids re-querying skills in the job-description modal
-                'statusHistories.fromStatus',
-                'statusHistories.toStatus',
-                'statusHistories.user',
+                'statusHistories' => function ($query) {
+                    $query->latest()->limit(30)->with(['fromStatus', 'toStatus', 'user']);
+                },
             ])
             ->find($id);
 
@@ -1201,13 +1202,22 @@ class AdminJobApplicationController extends AdminBaseController
                 },
             ])
             ->orderByDesc('created_at')
-            ->limit(10)   
+            ->limit(5)
             ->get();
 
         $this->clientNotes = \App\JobClientNote::with('user:id,name')
             ->where('job_id', $this->application->job_id)
             ->orderByDesc('created_at')
+            ->limit(50)
             ->get();
+
+        // Pass pipeline statuses to the view to avoid querying them again while rendering.
+        $this->allStatuses = ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
+        if ($this->application->job_id) {
+            $jobStatuses = ApplicationStatus::where('job_id', $this->application->job_id)->orderBy('position')->get();
+            $globalIds = $this->allStatuses->pluck('id');
+            $this->allStatuses = $this->allStatuses->concat($jobStatuses->filter(fn ($status) => ! $globalIds->contains($status->id)));
+        }
 
         $view = view('admin.job-applications.show', $this->data)->render();
 
