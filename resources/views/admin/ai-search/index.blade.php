@@ -715,55 +715,19 @@ function aiUpdateBulkActions() {
 }
 
 function aiOpenEmailModal() {
-    const selectedApplicants = [];
-
-    document.querySelectorAll('.ai-applicant-checkbox:checked').forEach(function (checkbox) {
-        selectedApplicants.push(checkbox.value);
-    });
-
-    if (selectedApplicants.length === 0) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'No applicant selected',
-            text: 'Please select at least one applicant.'
-        });
-
-        return;
-    }
-
-    const modal = document.getElementById('aiEmailModal');
-
-    if (!modal) {
-        console.error('Modal with ID aiEmailModal was not found.');
-        return;
-    }
-
-    const applicantIdsInput = document.getElementById('aiEmailApplicantIds');
-
-    if (applicantIdsInput) {
-        applicantIdsInput.value = selectedApplicants.join(',');
-    }
-
-    modal.classList.remove('hidden');
-    modal.style.display = 'flex';
-    modal.setAttribute('aria-hidden', 'false');
-
-    document.body.style.overflow = 'hidden';
+    if (!aiSelectedApplicantIds.length) return;
+    document.getElementById('ai-email-recipient-count').textContent = aiSelectedApplicantIds.length;
+    var modal = document.getElementById('ai-send-email-modal');
+    modal.style.display = 'block';
+    modal.classList.add('show');
+    document.body.classList.add('modal-open');
 }
 function aiCloseEmailModal() {
-    const modal = document.getElementById('aiEmailModal');
-
-    if (!modal) {
-        return;
-    }
-
-    modal.classList.add('hidden');
+    var modal = document.getElementById('ai-send-email-modal');
     modal.style.display = 'none';
-    modal.setAttribute('aria-hidden', 'true');
-
-    document.body.style.overflow = '';
+    modal.classList.remove('show');
+    document.body.classList.remove('modal-open');
 }
-
 $('#ai-send-email-confirm').on('click', function() {
     var subject = document.getElementById('ai-email-subject').value.trim();
     var message = document.getElementById('ai-email-message').value.trim();
