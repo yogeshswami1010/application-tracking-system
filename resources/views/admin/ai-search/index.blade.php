@@ -757,17 +757,43 @@ $('#ai-send-email-confirm').on('click', function() {
         redirect: false, // <-- add if your easyAjax wrapper supports suppressing auto-redirect
         data: { _token: '{{ csrf_token() }}', applicant_ids: aiSelectedApplicantIds, subject: subject, message: message },
         success: function(response) {
-            if (response.status === 'success') {
-                aiCloseEmailModal();
-                document.getElementById('ai-email-subject').value = '';
-                document.getElementById('ai-email-message').value = '';
-                aiUpdateBulkActions(); // <-- reset the "N selected" badge since IDs are cleared
-                aiSelectedApplicantIds = [];
-                aiRenderCards(aiLastResults);
-            } else {
-                alert(response.message || 'Failed to send email.');
-            }
-        },
+
+        if (response.status !== 'success') {
+            alert(response.message || 'Failed to send email.');
+            return;
+        }
+
+        // Close popup
+        aiCloseEmailModal();
+
+        // Clear form
+        $('#ai-email-subject').val('');
+        $('#ai-email-message').val('');
+
+        // Clear selected applicants
+        aiSelectedApplicantIds = [];
+        $('.ai-applicant-checkbox').prop('checked', false);
+
+        // Update bulk action UI
+        aiUpdateBulkActions();
+
+        // Re-render the existing AI search results
+        if (aiLastResults && aiLastResults.length) {
+            aiRenderCards(aiLastResults);
+        }
+
+        Swal.fire({
+            icon: 'success',
+            title: 'Success',
+            text: response.message,
+            timer: 2000,
+            showConfirmButton: false
+        });
+
+        // Hide any loading overlay left by easyAjax
+        $('.loader, .processing, .ajax-processing, .modal-backdrop').remove();
+        $('body').removeClass('modal-open');
+    }
         error: function(xhr) {
             var msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Something went wrong sending the email.';
             alert(msg);
