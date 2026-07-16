@@ -1175,6 +1175,16 @@ $(document).off('click.clientNote', '#add-client-note').on('click.clientNote', '
         }
     });
 });
+/* ── Client Notes ── */
+$('#add-client-note').click(function() {
+    $.easyAjax({ type:'POST', url:"{{ route('admin.job-client-notes.store') }}",
+        data: { '_token':'{{ csrf_token() }}', 'job_id':$(this).data('job-id'), 'note_text':$('#client_note_text').val() },
+        success: function(response) { if (response.status === 'success') { $('#client-notes-list').html(response.view); $('#client_note_text').val(''); } }
+    });
+});
+
+
+
 $('body').on('click', '.edit-client-note', function() {
     $(this).hide();
     var noteId = $(this).data('note-id'), $noteEl = $('#cn-note-' + noteId);
