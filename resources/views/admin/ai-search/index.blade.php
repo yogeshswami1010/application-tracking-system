@@ -746,21 +746,35 @@ $('#ai-send-email-confirm').on('click', function() {
     var subject = document.getElementById('ai-email-subject').value.trim();
     var message = document.getElementById('ai-email-message').value.trim();
     if (!subject || !message) { alert('Please enter both a subject and message.'); return; }
+    if (!aiSelectedApplicantIds.length) { alert('No applicants selected.'); return; }
+
     var button = $(this);
     button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Sending…');
+
     $.easyAjax({
-        url: '{{ route("admin.ai-search.send-email") }}', type: 'POST',
+        url: '{{ route("admin.ai-search.send-email") }}',
+        type: 'POST',
+        redirect: false, // <-- add if your easyAjax wrapper supports suppressing auto-redirect
         data: { _token: '{{ csrf_token() }}', applicant_ids: aiSelectedApplicantIds, subject: subject, message: message },
         success: function(response) {
             if (response.status === 'success') {
                 aiCloseEmailModal();
                 document.getElementById('ai-email-subject').value = '';
                 document.getElementById('ai-email-message').value = '';
+                aiUpdateBulkActions(); // <-- reset the "N selected" badge since IDs are cleared
                 aiSelectedApplicantIds = [];
                 aiRenderCards(aiLastResults);
+            } else {
+                alert(response.message || 'Failed to send email.');
             }
         },
-        complete: function() { button.prop('disabled', false).html('<i class="fa fa-paper-plane"></i> Send email'); }
+        error: function(xhr) {
+            var msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Something went wrong sending the email.';
+            alert(msg);
+        },
+        complete: function() {
+            button.prop('disabled', false).html('<i class="fa fa-paper-plane"></i> Send email');
+        }
     });
 });
 

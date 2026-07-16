@@ -119,5 +119,12 @@ return [
             resource_path('views/vendor/mail'),
         ],
     ],
-
+     'ai_search_smtp' => [
+        'transport' => 'smtp',
+        'host' => env('AI_SEARCH_MAIL_HOST'),
+        'port' => env('AI_SEARCH_MAIL_PORT'),
+        'encryption' => env('AI_SEARCH_MAIL_ENCRYPTION', 'tls'),
+        'username' => env('AI_SEARCH_MAIL_USERNAME'),
+        'password' => env('AI_SEARCH_MAIL_PASSWORD'),
+    ],
 ];

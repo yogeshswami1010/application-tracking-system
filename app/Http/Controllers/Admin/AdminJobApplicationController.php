@@ -2853,10 +2853,11 @@ class AdminJobApplicationController extends AdminBaseController
 
         foreach ($applications->unique('email') as $application) {
             try {
-                Mail::html(
+                Mail::mailer('ai_search_smtp')->html(
                     '<p>Hello '.e($application->full_name ?: 'Applicant').',</p><div>'.$message.'</div>',
                     function ($mail) use ($application, $data) {
                         $mail->to($application->email, $application->full_name)
+                            ->from(env('AI_SEARCH_MAIL_FROM_ADDRESS'), env('AI_SEARCH_MAIL_FROM_NAME'))
                             ->subject($data['subject']);
                     }
                 );
