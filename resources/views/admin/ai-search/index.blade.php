@@ -759,6 +759,7 @@ $('#ai-send-email-confirm').on('click', function() {
                 aiSelectedApplicantIds = [];
                 aiRenderCards(aiLastResults);
             }
+            return;
         },
         complete: function() { button.prop('disabled', false).html('<i class="fa fa-paper-plane"></i> Send email'); }
     });
