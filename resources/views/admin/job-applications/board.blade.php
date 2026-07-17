@@ -604,6 +604,7 @@
                 currentApplicationId = id;
 
                 if (isDragging == 0) {
+                    if (typeof window.jaUnloadPdf === 'function') window.jaUnloadPdf();
                     var $sidebar = $('#right-sidebar');
                     var $backdrop = $('#right-sidebar-backdrop');
                     $sidebar.removeClass('translate-x-full').addClass('translate-x-0');

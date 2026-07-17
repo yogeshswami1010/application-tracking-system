@@ -108,7 +108,8 @@
 .ja-pdf-no-resume { flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#aaa;text-align:center;padding:40px; }
 .ja-pdf-no-resume i { font-size:48px;opacity:.35;display:block;margin-bottom:14px; }
 .ja-pdf-no-resume p { font-size:13px;opacity:.6; }
-    .ja-pdf-frame { position:absolute;inset:0;border:0;width:100%;height:100%;display:block;background:#525659; }
+    .ja-pdf-frame { position:absolute;inset:0;z-index:1;border:0;width:100%;height:100%;display:block;background:#525659; }
+    .ja-pdf-loading { position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;color:#d1d5db;background:#525659;font-size:12px;pointer-events:none; }
 .ja-right-panel { display:flex;flex-direction:column;overflow:hidden;background:#F8F7F4; }
 .ja-tabs { display:flex;background:#fff;border-bottom:1px solid #E8E6E1;flex-shrink:0;padding:0 16px;}
 .ja-tab { padding:11px 13px;font-size:12.5px;font-weight:600;color:#8A94A6;cursor:pointer;border-bottom:2.5px solid transparent;white-space:nowrap;display:flex;align-items:center;gap:5px;transition:color .15s;flex-shrink:0; }
@@ -317,7 +318,8 @@ function jaSaveMarketingLabel(appId) {
             </div>
             @if($resumeUrl)
                 <div id="ja-pdf-container" style="flex:1;min-height:0;position:relative;overflow:hidden;background:#525659;">
-                    <iframe class="ja-pdf-frame" src="{{ $resumeUrl }}#view=FitH" title="Applicant CV" loading="lazy"></iframe>
+                    <div id="ja-pdf-loading" class="ja-pdf-loading"><i class="fa fa-spinner fa-spin" style="font-size:22px;"></i><span>Loading CV...</span></div>
+                    <iframe id="ja-pdf-frame" class="ja-pdf-frame" src="about:blank" data-src="{{ $resumeUrl }}#view=FitH" title="Applicant CV" loading="lazy"></iframe>
                 </div>
             @else
                 <div class="ja-pdf-no-resume">
@@ -1009,6 +1011,36 @@ function jaSaveMarketingLabel(appId) {
 
 <script>
 /* ── Tab switching ── */
+/* Do not let several Chrome PDF viewers run during rapid profile switching. */
+window.jaUnloadPdf = function () {
+    if (window._jaPdfLoadTimer) {
+        clearTimeout(window._jaPdfLoadTimer);
+        window._jaPdfLoadTimer = null;
+    }
+    var activeFrame = document.getElementById('ja-pdf-frame');
+    if (activeFrame && activeFrame.src !== 'about:blank') activeFrame.src = 'about:blank';
+};
+
+window.jaUnloadPdf();
+(function () {
+    var frame = document.getElementById('ja-pdf-frame');
+    var loading = document.getElementById('ja-pdf-loading');
+    if (!frame || !frame.dataset.src) return;
+
+    var loadPdf = function () {
+        if (document.getElementById('ja-pdf-frame') !== frame) return;
+        frame.addEventListener('load', function onPdfLoaded() {
+            frame.removeEventListener('load', onPdfLoaded);
+            if (loading) loading.style.display = 'none';
+        });
+        frame.src = frame.dataset.src;
+    };
+
+    // The profile UI paints first. Opening another applicant within this
+    // short delay cancels the old PDF load completely.
+    window._jaPdfLoadTimer = setTimeout(loadPdf, 350);
+})();
+
 document.querySelectorAll('.ja-tab').forEach(function(tab) {
     tab.addEventListener('click', function() {
         var target = this.dataset.tab;
@@ -1143,6 +1175,7 @@ function deleteApplication(applicationId) {
         while (c.size > CACHE_LIMIT) c.delete(c.keys().next().value); // evict oldest
     }
     function jaSwapIn(targetId, html) {
+        if (typeof window.jaUnloadPdf === 'function') window.jaUnloadPdf();
         $('#right-sidebar-content').html(html);
         var $row = $('[data-id="' + targetId + '"]');
         if ($row.length) { $row[0].scrollIntoView({behavior:'smooth',block:'nearest'}); $row.addClass('table-active'); setTimeout(function() { $row.removeClass('table-active'); }, 1200); }

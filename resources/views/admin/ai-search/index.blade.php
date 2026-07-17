@@ -808,6 +808,7 @@ function aiShowLoading() {
 }
 
 function aiOpenApplicant(id) {
+    if (typeof window.jaUnloadPdf === 'function') window.jaUnloadPdf();
     var url = "{{ route('admin.job-applications.show', ':id') }}".replace(':id', id);
     var $sidebar = $('#right-sidebar');
     var $backdrop = $('#right-sidebar-backdrop');

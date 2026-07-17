@@ -968,6 +968,7 @@
         jaRebuildIds();
 
         var id  = $(this).data('row-id');
+        if (typeof window.jaUnloadPdf === 'function') window.jaUnloadPdf();
         var url = "{{ route('admin.job-applications.show',':id') }}".replace(':id', id);
         var requestId = (window._jaDirectProfileRequestId || 0) + 1;
         window._jaDirectProfileRequestId = requestId;
