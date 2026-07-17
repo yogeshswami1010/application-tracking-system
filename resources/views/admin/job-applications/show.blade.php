@@ -108,9 +108,7 @@
 .ja-pdf-no-resume { flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#aaa;text-align:center;padding:40px; }
 .ja-pdf-no-resume i { font-size:48px;opacity:.35;display:block;margin-bottom:14px; }
 .ja-pdf-no-resume p { font-size:13px;opacity:.6; }
-    .ja-pdf-frame { flex:1;border:none;width:100%;height:100%;display:block; }
-    .ja-pdf-preview { position:absolute;inset:0;overflow-y:scroll;overflow-x:auto;padding:18px;display:flex;flex-direction:column;align-items:center; }
-    .ja-pdf-preview img { background:#fff;box-shadow:0 2px 12px rgba(0,0,0,.35);max-width:100%;height:auto;margin-bottom:14px; }
+    .ja-pdf-frame { position:absolute;inset:0;border:0;width:100%;height:100%;display:block;background:#525659; }
 .ja-right-panel { display:flex;flex-direction:column;overflow:hidden;background:#F8F7F4; }
 .ja-tabs { display:flex;background:#fff;border-bottom:1px solid #E8E6E1;flex-shrink:0;padding:0 16px;}
 .ja-tab { padding:11px 13px;font-size:12.5px;font-weight:600;color:#8A94A6;cursor:pointer;border-bottom:2.5px solid transparent;white-space:nowrap;display:flex;align-items:center;gap:5px;transition:color .15s;flex-shrink:0; }
@@ -319,12 +317,7 @@ function jaSaveMarketingLabel(appId) {
             </div>
             @if($resumeUrl)
                 <div id="ja-pdf-container" style="flex:1;min-height:0;position:relative;overflow:hidden;background:#525659;">
-                    <div id="ja-pdf-preview" class="ja-pdf-preview" data-preview-url="{{ route('admin.job-applications.cv-preview', $application->id) }}" data-resume-url="{{ $resumeUrl }}">
-                        <div style="margin:auto;text-align:center;color:#d1d5db;">
-                            <i class="fa fa-spinner fa-spin" style="font-size:24px;display:block;margin-bottom:10px;"></i>
-                            <span style="font-size:13px;">Loading CV...</span>
-                        </div>
-                    </div>
+                    <iframe class="ja-pdf-frame" src="{{ $resumeUrl }}#view=FitH" title="Applicant CV" loading="lazy"></iframe>
                 </div>
             @else
                 <div class="ja-pdf-no-resume">
@@ -1016,70 +1009,6 @@ function jaSaveMarketingLabel(appId) {
 
 <script>
 /* ── Tab switching ── */
-/* Server-rendered CV pages keep PDF parsing and canvas work out of the browser. */
-window._jaCvPreviewRequestId = (window._jaCvPreviewRequestId || 0) + 1;
-(function (requestId) {
-    var viewer = document.getElementById('ja-pdf-preview');
-    if (!viewer) return;
-
-    if (window._jaCvPreviewAbortController) {
-        try { window._jaCvPreviewAbortController.abort(); } catch (e) {}
-    }
-    window._jaCvPreviewAbortController = window.AbortController ? new AbortController() : null;
-
-    var metaUrl = viewer.getAttribute('data-preview-url');
-    var resumeUrl = viewer.getAttribute('data-resume-url');
-    var active = function () {
-        return requestId === window._jaCvPreviewRequestId && document.getElementById('ja-pdf-preview') === viewer;
-    };
-    var fallback = function () {
-        if (!active()) return;
-        viewer.innerHTML = '<div style="margin:auto;text-align:center;color:#d1d5db;"><i class="fa fa-file-pdf-o" style="font-size:42px;display:block;margin-bottom:12px;"></i><p style="font-size:13px;margin-bottom:14px;">CV preview is unavailable.</p><a href="' + resumeUrl + '" target="_blank" rel="noopener" class="ja-pdf-btn ja-pdf-btn-primary"><i class="fa fa-external-link"></i> Open CV</a></div>';
-    };
-
-    if (!metaUrl || !window.fetch) { fallback(); return; }
-
-    fetch(metaUrl, { credentials: 'same-origin', signal: window._jaCvPreviewAbortController ? window._jaCvPreviewAbortController.signal : undefined })
-        .then(function (response) { return response.ok ? response.json() : Promise.reject(); })
-        .then(function (data) {
-            if (!active() || !data.available || !data.pages || !data.page_url_template) { fallback(); return; }
-            viewer.innerHTML = '';
-            var nextPage = 1;
-            var loading = false;
-            var sentinel = document.createElement('div');
-            sentinel.style.cssText = 'height:28px;width:100%;color:#d1d5db;font-size:11px;display:flex;align-items:center;justify-content:center;';
-            viewer.appendChild(sentinel);
-
-            var loadNextPage = function () {
-                if (loading || nextPage > data.pages || !active()) return;
-                loading = true;
-                var image = document.createElement('img');
-                image.loading = 'eager';
-                image.decoding = 'async';
-                image.alt = 'CV page ' + nextPage;
-                image.onload = function () {
-                    loading = false;
-                    nextPage++;
-                    if (nextPage > data.pages) {
-                        sentinel.textContent = 'End of CV';
-                        if (observer) observer.disconnect();
-                    } else {
-                        sentinel.innerHTML = '';
-                    }
-                };
-                image.onerror = function () { loading = false; sentinel.textContent = 'Unable to load this CV page.'; };
-                image.src = data.page_url_template.replace('__PAGE__', nextPage);
-                viewer.insertBefore(image, sentinel);
-            };
-            var observer = window.IntersectionObserver ? new IntersectionObserver(function (entries) {
-                if (entries.some(function (entry) { return entry.isIntersecting; })) loadNextPage();
-            }, { root: viewer, rootMargin: '250px 0px' }) : null;
-            if (observer) observer.observe(sentinel);
-            loadNextPage();
-        })
-        .catch(fallback);
-})(window._jaCvPreviewRequestId);
-
 document.querySelectorAll('.ja-tab').forEach(function(tab) {
     tab.addEventListener('click', function() {
         var target = this.dataset.tab;
