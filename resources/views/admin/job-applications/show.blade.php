@@ -197,8 +197,7 @@
             </button>
         </div>
 
-        <button type="button" class="right-side-toggle ja-close-btn" title="@lang('app.close')"
-            @if(request()->routeIs('admin.job-applications.profile')) onclick="window.history.length > 1 ? window.history.back() : window.location.assign('{{ route('admin.job-applications.table') }}')" @endif>
+        <button type="button" class="right-side-toggle ja-close-btn" title="@lang('app.close')">
             <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
     </div>
@@ -1234,11 +1233,6 @@ function deleteApplication(applicationId) {
         if (idx === -1 || !ids.length) return;
         var targetId = (direction === 'prev') ? ids[idx - 1] : ids[idx + 1];
         if (targetId === undefined) return;
-
-        if (window.jaStandaloneProfile) {
-            window.location.assign("{{ route('admin.job-applications.profile', ':id') }}".replace(':id', targetId));
-            return;
-        }
 
         // Token: only the most recent click is allowed to render.
         var seq = ++window._jaNavSeq;

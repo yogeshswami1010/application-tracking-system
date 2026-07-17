@@ -1236,24 +1236,6 @@ class AdminJobApplicationController extends AdminBaseController
     }
 
     /**
-     * Full-page applicant profile. Unlike the old sidebar replacement flow,
-     * this page unloads the prior profile and all of its event handlers before
-     * the next applicant opens, preventing accumulated browser memory usage.
-     */
-    public function profile($id)
-    {
-        $detail = $this->show($id);
-
-        if (($detail['status'] ?? null) !== 'success') {
-            abort(404);
-        }
-
-        return view('admin.job-applications.profile', array_merge($this->data, [
-            'profileHtml' => $detail['view'],
-        ]));
-    }
-
-    /**
      * Return CV preview metadata. The CV is converted to cached images on the
      * server so opening applicant profiles never asks the browser to render a PDF.
      */

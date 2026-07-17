@@ -808,7 +808,19 @@ function aiShowLoading() {
 }
 
 function aiOpenApplicant(id) {
-    window.location.assign("{{ route('admin.job-applications.profile', ':id') }}".replace(':id', id));
+    var url = "{{ route('admin.job-applications.show', ':id') }}".replace(':id', id);
+    var $sidebar = $('#right-sidebar');
+    var $backdrop = $('#right-sidebar-backdrop');
+    $sidebar.removeClass('translate-x-full').addClass('translate-x-0');
+    $backdrop.removeClass('hidden').css({ display:'block', visibility:'visible' });
+    var requestId = (window._jaDirectProfileRequestId || 0) + 1;
+    window._jaDirectProfileRequestId = requestId;
+    if (window._jaDirectProfileXhr && window._jaDirectProfileXhr.readyState !== 4) {
+        window._jaDirectProfileXhr.abort();
+    }
+    window._jaDirectProfileXhr = $.ajax({ type: 'GET', url: url, success: function(response) {
+        if (requestId === window._jaDirectProfileRequestId && response.status === 'success') $('#right-sidebar-content').html(response.view);
+    }});
 }
 
 function aiEsc(s) {
