@@ -109,7 +109,7 @@
 .ja-pdf-no-resume i { font-size:48px;opacity:.35;display:block;margin-bottom:14px; }
 .ja-pdf-no-resume p { font-size:13px;opacity:.6; }
     .ja-pdf-frame { flex:1;border:none;width:100%;height:100%;display:block; }
-    .ja-pdf-preview { height:100%; overflow:auto; padding:18px; display:flex; justify-content:center; align-items:flex-start; }
+    .ja-pdf-preview { position:absolute; inset:0; overflow-y:scroll; overflow-x:auto; padding:18px; display:flex; flex-direction:column; align-items:center; }
     .ja-pdf-preview canvas { background:#fff; box-shadow:0 2px 12px rgba(0,0,0,.35); max-width:100%; height:auto; }
 .ja-right-panel { display:flex;flex-direction:column;overflow:hidden;background:#F8F7F4; }
 .ja-tabs { display:flex;background:#fff;border-bottom:1px solid #E8E6E1;flex-shrink:0;padding:0 16px;}
@@ -318,7 +318,7 @@ function jaSaveMarketingLabel(appId) {
                 </div>
             </div>
             @if($resumeUrl)
-                <div id="ja-pdf-container" style="flex:1;position:relative;background:#525659;">
+                <div id="ja-pdf-container" style="flex:1;min-height:0;position:relative;overflow:hidden;background:#525659;">
                     <div id="ja-pdf-preview" class="ja-pdf-preview" data-resume-url="{{ $resumeUrl }}">
                         <div style="margin:auto;text-align:center;color:#d1d5db;">
                             <i class="fa fa-spinner fa-spin" style="font-size:24px;display:block;margin-bottom:10px;"></i>
