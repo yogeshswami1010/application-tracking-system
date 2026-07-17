@@ -317,28 +317,15 @@ function jaSaveMarketingLabel(appId) {
             </div>
             @if($resumeUrl)
                 <div id="ja-pdf-container" style="flex:1;position:relative;background:#525659;">
-                    <div id="ja-pdf-loader" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#aaa;z-index:1;">
-                        <i class="fa fa-spinner fa-spin" style="font-size:24px;margin-right:10px;"></i> Loading PDF...
+                    <div class="ja-pdf-no-resume" style="height:100%;color:#d1d5db;">
+                        <i class="fa fa-file-pdf-o" style="color:#d1d5db;"></i>
+                        <h4 style="font-size:16px;font-weight:600;color:#fff;margin:0 0 8px;">CV available</h4>
+                        <p style="margin:0 0 16px;color:#d1d5db;">Open the CV in a separate tab to keep the applicant profile responsive.</p>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+                            <a href="{{ $resumeUrl }}" target="_blank" rel="noopener" class="ja-pdf-btn ja-pdf-btn-primary"><i class="fa fa-external-link"></i> Open CV</a>
+                            <a href="{{ $resumeUrl }}" download class="ja-pdf-btn"><i class="fa fa-download"></i> Download</a>
+                        </div>
                     </div>
-                    <iframe id="ja-pdf-frame" data-src="{{ $resumeUrl }}"
-                            style="position:absolute;inset:0;width:100%;height:100%;border:none;z-index:2;opacity:0;transition:opacity .3s;"
-                            onload="if(this.getAttribute('src')) { document.getElementById('ja-pdf-loader').style.display='none'; this.style.opacity='1'; }">
-                    </iframe>
-                    <script>
-                    // Paint the profile before Chrome starts rendering a potentially large PDF.
-                    // Rapid profile changes cancel the pending CV that is no longer visible.
-                    if (window._jaResumeLoadTimer) clearTimeout(window._jaResumeLoadTimer);
-                    if (window._jaActivePdfFrame) {
-                        try { window._jaActivePdfFrame.setAttribute('src', 'about:blank'); } catch (e) {}
-                    }
-                    window._jaResumeLoadTimer = setTimeout(function () {
-                        var frame = document.getElementById('ja-pdf-frame');
-                        if (frame && !frame.getAttribute('src')) {
-                            window._jaActivePdfFrame = frame;
-                            frame.setAttribute('src', frame.getAttribute('data-src'));
-                        }
-                    }, 350);
-                    </script>
                 </div>
             @else
                 <div class="ja-pdf-no-resume">
