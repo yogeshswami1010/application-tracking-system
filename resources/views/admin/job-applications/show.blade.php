@@ -108,7 +108,9 @@
 .ja-pdf-no-resume { flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#aaa;text-align:center;padding:40px; }
 .ja-pdf-no-resume i { font-size:48px;opacity:.35;display:block;margin-bottom:14px; }
 .ja-pdf-no-resume p { font-size:13px;opacity:.6; }
-.ja-pdf-frame { flex:1;border:none;width:100%;height:100%;display:block; }
+    .ja-pdf-frame { flex:1;border:none;width:100%;height:100%;display:block; }
+    .ja-pdf-preview { height:100%; overflow:auto; padding:18px; display:flex; justify-content:center; align-items:flex-start; }
+    .ja-pdf-preview canvas { background:#fff; box-shadow:0 2px 12px rgba(0,0,0,.35); max-width:100%; height:auto; }
 .ja-right-panel { display:flex;flex-direction:column;overflow:hidden;background:#F8F7F4; }
 .ja-tabs { display:flex;background:#fff;border-bottom:1px solid #E8E6E1;flex-shrink:0;padding:0 16px;}
 .ja-tab { padding:11px 13px;font-size:12.5px;font-weight:600;color:#8A94A6;cursor:pointer;border-bottom:2.5px solid transparent;white-space:nowrap;display:flex;align-items:center;gap:5px;transition:color .15s;flex-shrink:0; }
@@ -317,13 +319,10 @@ function jaSaveMarketingLabel(appId) {
             </div>
             @if($resumeUrl)
                 <div id="ja-pdf-container" style="flex:1;position:relative;background:#525659;">
-                    <div class="ja-pdf-no-resume" style="height:100%;color:#d1d5db;">
-                        <i class="fa fa-file-pdf-o" style="color:#d1d5db;"></i>
-                        <h4 style="font-size:16px;font-weight:600;color:#fff;margin:0 0 8px;">CV available</h4>
-                        <p style="margin:0 0 16px;color:#d1d5db;">Open the CV in a separate tab to keep the applicant profile responsive.</p>
-                        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
-                            <a href="{{ $resumeUrl }}" target="_blank" rel="noopener" class="ja-pdf-btn ja-pdf-btn-primary"><i class="fa fa-external-link"></i> Open CV</a>
-                            <a href="{{ $resumeUrl }}" download class="ja-pdf-btn"><i class="fa fa-download"></i> Download</a>
+                    <div id="ja-pdf-preview" class="ja-pdf-preview" data-resume-url="{{ $resumeUrl }}">
+                        <div style="margin:auto;text-align:center;color:#d1d5db;">
+                            <i class="fa fa-spinner fa-spin" style="font-size:24px;display:block;margin-bottom:10px;"></i>
+                            <span style="font-size:13px;">Loading CV preview...</span>
                         </div>
                     </div>
                 </div>
@@ -1017,6 +1016,58 @@ function jaSaveMarketingLabel(appId) {
 
 <script>
 /* ── Tab switching ── */
+/* Use a worker-based PDF preview instead of Chrome's embedded PDF renderer. */
+window.jaRenderPdfPreview = function () {
+    var viewer = document.getElementById('ja-pdf-preview');
+    if (!viewer) return;
+    var url = viewer.getAttribute('data-resume-url');
+    var renderId = ++window._jaPdfPreviewId;
+
+    function fallback() {
+        if (renderId !== window._jaPdfPreviewId || document.getElementById('ja-pdf-preview') !== viewer) return;
+        viewer.innerHTML = '<div style="margin:auto;text-align:center;color:#d1d5db;"><i class="fa fa-file-pdf-o" style="font-size:42px;display:block;margin-bottom:12px;"></i><p style="font-size:13px;margin-bottom:14px;">CV preview is unavailable.</p><a href="' + url + '" target="_blank" rel="noopener" class="ja-pdf-btn ja-pdf-btn-primary"><i class="fa fa-external-link"></i> Open CV</a></div>';
+    }
+
+    if (!url || typeof pdfjsLib === 'undefined') { fallback(); return; }
+    if (window._jaPdfLoadingTask) {
+        try { window._jaPdfLoadingTask.destroy(); } catch (e) {}
+    }
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    window._jaPdfLoadingTask = pdfjsLib.getDocument({ url: url, withCredentials: true });
+    window._jaPdfLoadingTask.promise.then(function (pdf) {
+        return pdf.getPage(1);
+    }).then(function (page) {
+        if (renderId !== window._jaPdfPreviewId || document.getElementById('ja-pdf-preview') !== viewer) return;
+        var baseViewport = page.getViewport({ scale: 1 });
+        var scale = Math.min(1.5, Math.max(0.7, (viewer.clientWidth - 36) / baseViewport.width));
+        var viewport = page.getViewport({ scale: scale });
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.floor(viewport.width);
+        canvas.height = Math.floor(viewport.height);
+        viewer.innerHTML = '';
+        viewer.appendChild(canvas);
+        return page.render({ canvasContext: canvas.getContext('2d', { alpha: false }), viewport: viewport }).promise;
+    }).catch(fallback);
+};
+
+window._jaPdfPreviewId = window._jaPdfPreviewId || 0;
+if (document.getElementById('ja-pdf-preview')) {
+    window._jaPdfPreviewId++;
+    if (typeof pdfjsLib === 'undefined') {
+        if (!window._jaPdfScriptLoading) {
+            window._jaPdfScriptLoading = true;
+            var jaPdfScript = document.createElement('script');
+            jaPdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+            jaPdfScript.onload = function () { window._jaPdfScriptLoading = false; window.jaRenderPdfPreview(); };
+            jaPdfScript.onerror = function () { window._jaPdfScriptLoading = false; window.jaRenderPdfPreview(); };
+            document.head.appendChild(jaPdfScript);
+        }
+    } else {
+        setTimeout(window.jaRenderPdfPreview, 0);
+    }
+}
+
 document.querySelectorAll('.ja-tab').forEach(function(tab) {
     tab.addEventListener('click', function() {
         var target = this.dataset.tab;
@@ -1129,7 +1180,8 @@ function deleteApplication(applicationId) {
 (function () {
     var CURRENT_ID = {{ $application->id }};
     var showUrlTpl = "{{ route('admin.job-applications.show', ':id') }}";
-    var CACHE_LIMIT = 15;
+    // Full profile HTML is large; retain only the two most recently opened panels.
+    var CACHE_LIMIT = 2;
 
     // Persist across profile swaps — this script re-runs on every profile open.
     window._jaProfileCache = window._jaProfileCache || new Map();
@@ -1153,14 +1205,6 @@ function deleteApplication(applicationId) {
         $('#right-sidebar-content').html(html);
         var $row = $('[data-id="' + targetId + '"]');
         if ($row.length) { $row[0].scrollIntoView({behavior:'smooth',block:'nearest'}); $row.addClass('table-active'); setTimeout(function() { $row.removeClass('table-active'); }, 1200); }
-        // Warm the cache for the neighbours so the next click feels instant.
-        var ids = getIds(), idx = ids.indexOf(targetId);
-        [ids[idx - 1], ids[idx + 1]].forEach(function (nid) {
-            if (nid === undefined || window._jaProfileCache.has(nid)) return;
-            $.get(showUrlTpl.replace(':id', nid), function (res) {
-                if (res && res.status === 'success') jaCachePut(nid, res.view);
-            });
-        });
     }
     function getIds() { return (typeof jaApplicantIds !== 'undefined' && Array.isArray(jaApplicantIds) && jaApplicantIds.length) ? jaApplicantIds : []; }
     function currentIndex() { return getIds().indexOf(CURRENT_ID); }
@@ -1267,7 +1311,7 @@ window._jaEscKeyHandler = function(e) { if (e.key === 'Escape') jaHideJobDesc();
 document.addEventListener('keydown', window._jaEscKeyHandler);
 
 /* ── @mention autocomplete ── */
-var jaAllUsers = @json($mentionUsers ?? \App\User::select('id','name')->get());
+var jaAllUsers = @json($mentionUsers);
 var jaMentionQuery = '', jaMentionStart = -1;
 function jaNoteHandleInput(el) {
     var val = el.value, caret = el.selectionStart, drop = document.getElementById('ja-mention-drop');

@@ -1182,6 +1182,7 @@ class AdminJobApplicationController extends AdminBaseController
 
         $this->skills = Skill::select('id', 'name')->get();
         $this->jobOptions = Job::select('id', 'title')->orderBy('title')->get();
+        $this->mentionUsers = User::select('id', 'name')->orderBy('name')->get();
 
         $this->answers = JobApplicationAnswer::with(['question'])
             ->where('job_id', $this->application->job_id)
