@@ -1017,6 +1017,7 @@ function jaSaveMarketingLabel(appId) {
 
 <script>
 /* ── Tab switching ── */
+@if(false) {{-- Legacy PDF preview code is intentionally not sent with each profile response. --}}
 /* Use a worker-based PDF preview instead of Chrome's embedded PDF renderer. */
 window.jaClearPdfPreview = function () {
     if (window._jaPdfObserver) {
@@ -1122,6 +1123,7 @@ if (document.getElementById('ja-pdf-preview')) {
         setTimeout(window.jaRenderPdfPreview, 0);
     }
 }
+@endif
 
 document.querySelectorAll('.ja-tab').forEach(function(tab) {
     tab.addEventListener('click', function() {
