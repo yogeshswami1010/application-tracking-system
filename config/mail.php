@@ -122,9 +122,9 @@ return [
     // Dedicated credentials used only when emailing applicants from AI Search.
     'ai_search_smtp' => [
         'transport' => 'smtp',
-        'host' => env('AI_SEARCH_MAIL_HOST', 'smtp.zoho.com'),
-        'port' => env('AI_SEARCH_MAIL_PORT', 587),
-        'encryption' => env('AI_SEARCH_MAIL_ENCRYPTION', 'tls'),
+        'host' => env('AI_SEARCH_MAIL_HOST', 'smtppro.zoho.in'),
+        'port' => env('AI_SEARCH_MAIL_PORT', 465),
+        'encryption' => env('AI_SEARCH_MAIL_ENCRYPTION', 'ssl'),
         'username' => env('AI_SEARCH_MAIL_USERNAME'),
         'password' => env('AI_SEARCH_MAIL_PASSWORD'),
         'from' => [
