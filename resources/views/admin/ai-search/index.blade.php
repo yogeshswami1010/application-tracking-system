@@ -189,6 +189,16 @@
     #ai-email-recipient-names { padding:12px 14px!important;background:#f0f6ff!important;border:1px solid #dceaff!important;border-radius:10px!important;color:#334155!important; }
     .ai-email-modal .form-row { padding:14px;margin:0 0 18px!important;background:#fff;border:1px solid #e7ecf2;border-radius:12px; }
     .ai-email-modal .form-row .btn { height:42px;border-radius:9px;font-weight:600; }
+    @media (min-width:768px) {
+        .ai-email-modal .modal-body { display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:14px 18px;align-items:start; }
+        .ai-email-modal .modal-body > p { grid-column:1;margin:0!important; }
+        .ai-email-modal #ai-email-recipient-names { grid-column:1;margin:0!important; }
+        .ai-email-modal .modal-body > .form-group { grid-column:1;margin:0!important; }
+        .ai-email-modal .form-row { grid-column:2;grid-row:1 / span 4;display:block;padding:15px!important;margin:0!important;background:#f5f8ff;border-color:#dbe7ff; }
+        .ai-email-modal .form-row > div { width:100%;max-width:100%;margin:0 0 13px; }
+        .ai-email-modal .form-row > div:last-child { margin-bottom:0; }
+        .ai-email-modal .form-row .btn { width:100%; }
+    }
     .ai-result-rank { font-size: 11px; font-weight: 700; color: #b0b8c4; width: 20px; text-align: center; flex-shrink: 0; }
     .ai-result-rank.top { color: #f59e0b; }
     .ai-result-avatar {
