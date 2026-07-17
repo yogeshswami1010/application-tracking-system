@@ -1036,18 +1036,47 @@ window.jaRenderPdfPreview = function () {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     window._jaPdfLoadingTask = pdfjsLib.getDocument({ url: url, withCredentials: true });
     window._jaPdfLoadingTask.promise.then(function (pdf) {
-        return pdf.getPage(1);
-    }).then(function (page) {
         if (renderId !== window._jaPdfPreviewId || document.getElementById('ja-pdf-preview') !== viewer) return;
-        var baseViewport = page.getViewport({ scale: 1 });
-        var scale = Math.min(1.5, Math.max(0.7, (viewer.clientWidth - 36) / baseViewport.width));
-        var viewport = page.getViewport({ scale: scale });
-        var canvas = document.createElement('canvas');
-        canvas.width = Math.floor(viewport.width);
-        canvas.height = Math.floor(viewport.height);
+
+        var nextPage = 1;
+        var loadingPage = false;
         viewer.innerHTML = '';
-        viewer.appendChild(canvas);
-        return page.render({ canvasContext: canvas.getContext('2d', { alpha: false }), viewport: viewport }).promise;
+        var sentinel = document.createElement('div');
+        sentinel.style.cssText = 'height:24px;width:100%;display:flex;align-items:center;justify-content:center;color:#d1d5db;font-size:11px;';
+        viewer.appendChild(sentinel);
+
+        function loadNextPage() {
+            if (loadingPage || nextPage > pdf.numPages || renderId !== window._jaPdfPreviewId || document.getElementById('ja-pdf-preview') !== viewer) return;
+            loadingPage = true;
+            sentinel.innerHTML = '<i class="fa fa-spinner fa-spin"></i>&nbsp; Loading page ' + nextPage + ' of ' + pdf.numPages;
+            pdf.getPage(nextPage).then(function (page) {
+                if (renderId !== window._jaPdfPreviewId || document.getElementById('ja-pdf-preview') !== viewer) return;
+                var baseViewport = page.getViewport({ scale: 1 });
+                var scale = Math.min(1.5, Math.max(0.7, (viewer.clientWidth - 36) / baseViewport.width));
+                var viewport = page.getViewport({ scale: scale });
+                var canvas = document.createElement('canvas');
+                canvas.width = Math.floor(viewport.width);
+                canvas.height = Math.floor(viewport.height);
+                canvas.style.marginBottom = '14px';
+                viewer.insertBefore(canvas, sentinel);
+                return page.render({ canvasContext: canvas.getContext('2d', { alpha: false }), viewport: viewport }).promise;
+            }).then(function () {
+                nextPage++;
+                loadingPage = false;
+                if (nextPage > pdf.numPages) {
+                    sentinel.textContent = 'End of CV';
+                    observer.disconnect();
+                } else if (viewer.scrollHeight <= viewer.clientHeight + 30) {
+                    loadNextPage();
+                }
+            }).catch(fallback);
+        }
+
+        var observer = new IntersectionObserver(function (entries) {
+            if (entries.some(function (entry) { return entry.isIntersecting; })) loadNextPage();
+        }, { root: viewer, rootMargin: '300px 0px' });
+        observer.observe(sentinel);
+        loadNextPage();
     }).catch(fallback);
 };
 
