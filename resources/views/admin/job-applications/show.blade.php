@@ -1022,6 +1022,11 @@ window._jaCvPreviewRequestId = (window._jaCvPreviewRequestId || 0) + 1;
     var viewer = document.getElementById('ja-pdf-preview');
     if (!viewer) return;
 
+    if (window._jaCvPreviewAbortController) {
+        try { window._jaCvPreviewAbortController.abort(); } catch (e) {}
+    }
+    window._jaCvPreviewAbortController = window.AbortController ? new AbortController() : null;
+
     var metaUrl = viewer.getAttribute('data-preview-url');
     var resumeUrl = viewer.getAttribute('data-resume-url');
     var active = function () {
@@ -1034,19 +1039,43 @@ window._jaCvPreviewRequestId = (window._jaCvPreviewRequestId || 0) + 1;
 
     if (!metaUrl || !window.fetch) { fallback(); return; }
 
-    fetch(metaUrl, { credentials: 'same-origin' })
+    fetch(metaUrl, { credentials: 'same-origin', signal: window._jaCvPreviewAbortController ? window._jaCvPreviewAbortController.signal : undefined })
         .then(function (response) { return response.ok ? response.json() : Promise.reject(); })
         .then(function (data) {
             if (!active() || !data.available || !data.pages || !data.page_url_template) { fallback(); return; }
             viewer.innerHTML = '';
-            for (var page = 1; page <= data.pages; page++) {
+            var nextPage = 1;
+            var loading = false;
+            var sentinel = document.createElement('div');
+            sentinel.style.cssText = 'height:28px;width:100%;color:#d1d5db;font-size:11px;display:flex;align-items:center;justify-content:center;';
+            viewer.appendChild(sentinel);
+
+            var loadNextPage = function () {
+                if (loading || nextPage > data.pages || !active()) return;
+                loading = true;
                 var image = document.createElement('img');
-                image.loading = page === 1 ? 'eager' : 'lazy';
+                image.loading = 'eager';
                 image.decoding = 'async';
-                image.alt = 'CV page ' + page;
-                image.src = data.page_url_template.replace('__PAGE__', page);
-                viewer.appendChild(image);
-            }
+                image.alt = 'CV page ' + nextPage;
+                image.onload = function () {
+                    loading = false;
+                    nextPage++;
+                    if (nextPage > data.pages) {
+                        sentinel.textContent = 'End of CV';
+                        if (observer) observer.disconnect();
+                    } else {
+                        sentinel.innerHTML = '';
+                    }
+                };
+                image.onerror = function () { loading = false; sentinel.textContent = 'Unable to load this CV page.'; };
+                image.src = data.page_url_template.replace('__PAGE__', nextPage);
+                viewer.insertBefore(image, sentinel);
+            };
+            var observer = window.IntersectionObserver ? new IntersectionObserver(function (entries) {
+                if (entries.some(function (entry) { return entry.isIntersecting; })) loadNextPage();
+            }, { root: viewer, rootMargin: '250px 0px' }) : null;
+            if (observer) observer.observe(sentinel);
+            loadNextPage();
         })
         .catch(fallback);
 })(window._jaCvPreviewRequestId);

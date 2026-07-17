@@ -1292,11 +1292,13 @@ class AdminJobApplicationController extends AdminBaseController
                 }
 
                 $image = new \Imagick();
-                $image->setResolution(120, 120);
+                // 160 DPI keeps small resume text readable while still being
+                // far lighter than browser-side PDF/canvas rendering.
+                $image->setResolution(160, 160);
                 $image->readImage($preview['path'] . '[' . ($page - 1) . ']');
                 $image->setImageFormat('jpeg');
                 $image->setImageCompression(\Imagick::COMPRESSION_JPEG);
-                $image->setImageCompressionQuality(82);
+                $image->setImageCompressionQuality(88);
                 $image->stripImage();
                 $image->writeImage($cachePath);
                 $image->clear();
@@ -1331,7 +1333,9 @@ class AdminJobApplicationController extends AdminBaseController
 
         return [
             'path' => $path,
-            'key' => sha1($path . '|' . filemtime($path) . '|' . filesize($path)),
+            // Bump this version when preview settings change, so stale lower
+            // quality previews are never served from the cache.
+            'key' => sha1('cv-preview-v2|' . $path . '|' . filemtime($path) . '|' . filesize($path)),
         ];
     }
 
