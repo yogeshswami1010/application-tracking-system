@@ -1017,6 +1017,29 @@ function jaSaveMarketingLabel(appId) {
 <script>
 /* ── Tab switching ── */
 /* Use a worker-based PDF preview instead of Chrome's embedded PDF renderer. */
+window.jaClearPdfPreview = function () {
+    if (window._jaPdfObserver) {
+        try { window._jaPdfObserver.disconnect(); } catch (e) {}
+        window._jaPdfObserver = null;
+    }
+    if (window._jaPdfRenderTask) {
+        try { window._jaPdfRenderTask.cancel(); } catch (e) {}
+        window._jaPdfRenderTask = null;
+    }
+    if (window._jaPdfLoadingTask) {
+        try { window._jaPdfLoadingTask.destroy(); } catch (e) {}
+        window._jaPdfLoadingTask = null;
+    }
+    if (window._jaPdfDocument) {
+        try { window._jaPdfDocument.destroy(); } catch (e) {}
+        window._jaPdfDocument = null;
+    }
+};
+
+if (!document.getElementById('ja-pdf-preview')) {
+    window.jaClearPdfPreview();
+}
+
 window.jaRenderPdfPreview = function () {
     var viewer = document.getElementById('ja-pdf-preview');
     if (!viewer) return;
@@ -1029,14 +1052,13 @@ window.jaRenderPdfPreview = function () {
     }
 
     if (!url || typeof pdfjsLib === 'undefined') { fallback(); return; }
-    if (window._jaPdfLoadingTask) {
-        try { window._jaPdfLoadingTask.destroy(); } catch (e) {}
-    }
+    window.jaClearPdfPreview();
 
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     window._jaPdfLoadingTask = pdfjsLib.getDocument({ url: url, withCredentials: true });
     window._jaPdfLoadingTask.promise.then(function (pdf) {
         if (renderId !== window._jaPdfPreviewId || document.getElementById('ja-pdf-preview') !== viewer) return;
+        window._jaPdfDocument = pdf;
 
         var nextPage = 1;
         var loadingPage = false;
@@ -1059,13 +1081,15 @@ window.jaRenderPdfPreview = function () {
                 canvas.height = Math.floor(viewport.height);
                 canvas.style.marginBottom = '14px';
                 viewer.insertBefore(canvas, sentinel);
-                return page.render({ canvasContext: canvas.getContext('2d', { alpha: false }), viewport: viewport }).promise;
+                window._jaPdfRenderTask = page.render({ canvasContext: canvas.getContext('2d', { alpha: false }), viewport: viewport });
+                return window._jaPdfRenderTask.promise;
             }).then(function () {
                 nextPage++;
                 loadingPage = false;
                 if (nextPage > pdf.numPages) {
                     sentinel.textContent = 'End of CV';
                     observer.disconnect();
+                    window._jaPdfObserver = null;
                 } else if (viewer.scrollHeight <= viewer.clientHeight + 30) {
                     loadNextPage();
                 }
@@ -1075,6 +1099,7 @@ window.jaRenderPdfPreview = function () {
         var observer = new IntersectionObserver(function (entries) {
             if (entries.some(function (entry) { return entry.isIntersecting; })) loadNextPage();
         }, { root: viewer, rootMargin: '300px 0px' });
+        window._jaPdfObserver = observer;
         observer.observe(sentinel);
         loadNextPage();
     }).catch(fallback);
