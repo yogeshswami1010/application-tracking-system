@@ -1235,6 +1235,106 @@ class AdminJobApplicationController extends AdminBaseController
         return Reply::dataOnly(['status' => 'success', 'view' => $view]);
     }
 
+    /**
+     * Return CV preview metadata. The CV is converted to cached images on the
+     * server so opening applicant profiles never asks the browser to render a PDF.
+     */
+    public function cvPreviewMeta($id)
+    {
+        abort_if(! $this->user->cans('view_job_applications'), 403);
+
+        $preview = $this->cvPreviewSource($id);
+
+        if (! $preview || ! class_exists(\Imagick::class)) {
+            return response()->json(['available' => false]);
+        }
+
+        try {
+            $pdf = new \Imagick();
+            $pdf->pingImage($preview['path']);
+            $pages = min(max($pdf->getNumberImages(), 1), 100);
+            $pdf->clear();
+            $pdf->destroy();
+
+            return response()->json([
+                'available' => true,
+                'pages' => $pages,
+                'page_url_template' => route('admin.job-applications.cv-preview-page', [
+                    'id' => $id,
+                    'page' => '__PAGE__',
+                ]),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Unable to prepare CV preview.', ['application_id' => $id, 'exception' => $e->getMessage()]);
+
+            return response()->json(['available' => false]);
+        }
+    }
+
+    /** Serve one cached JPEG page of an applicant CV. */
+    public function cvPreviewPage($id, $page)
+    {
+        abort_if(! $this->user->cans('view_job_applications'), 403);
+
+        $preview = $this->cvPreviewSource($id);
+        $page = (int) $page;
+
+        if (! $preview || ! class_exists(\Imagick::class) || $page < 1 || $page > 100) {
+            abort(404);
+        }
+
+        $cachePath = storage_path('app/cv-previews/' . $preview['key'] . '-' . $page . '.jpg');
+
+        try {
+            if (! is_file($cachePath)) {
+                if (! is_dir(dirname($cachePath))) {
+                    mkdir(dirname($cachePath), 0755, true);
+                }
+
+                $image = new \Imagick();
+                $image->setResolution(120, 120);
+                $image->readImage($preview['path'] . '[' . ($page - 1) . ']');
+                $image->setImageFormat('jpeg');
+                $image->setImageCompression(\Imagick::COMPRESSION_JPEG);
+                $image->setImageCompressionQuality(82);
+                $image->stripImage();
+                $image->writeImage($cachePath);
+                $image->clear();
+                $image->destroy();
+            }
+
+            return response()->file($cachePath, [
+                'Content-Type' => 'image/jpeg',
+                'Cache-Control' => 'private, max-age=86400',
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Unable to render CV preview page.', ['application_id' => $id, 'page' => $page, 'exception' => $e->getMessage()]);
+            abort(404);
+        }
+    }
+
+    /** Resolve a local PDF and create a cache key that changes when it changes. */
+    private function cvPreviewSource($id)
+    {
+        $application = JobApplication::withTrashed()->with('documents')->find($id);
+        $document = $application ? $application->documents->firstWhere('name', 'Resume') : null;
+
+        if (! $document) {
+            return null;
+        }
+
+        $path = public_path('user-uploads/documents/' . $application->id . '/' . $document->hashname);
+
+        if (! is_file($path) || strtolower(pathinfo($path, PATHINFO_EXTENSION)) !== 'pdf') {
+            return null;
+        }
+
+        return [
+            'path' => $path,
+            'key' => sha1($path . '|' . filemtime($path) . '|' . filesize($path)),
+        ];
+    }
+
     public function updateIndex(Request $request) 
     {
         $taskIds = $request->applicationIds;

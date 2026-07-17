@@ -1016,111 +1016,40 @@ function jaSaveMarketingLabel(appId) {
 
 <script>
 /* ── Tab switching ── */
-{{-- PDF.js renders pages in a worker instead of Chrome's native PDF iframe. --}}
-/* Use a worker-based PDF preview instead of Chrome's embedded PDF renderer. */
-window.jaClearPdfPreview = function () {
-    if (window._jaPdfObserver) {
-        try { window._jaPdfObserver.disconnect(); } catch (e) {}
-        window._jaPdfObserver = null;
-    }
-    if (window._jaPdfRenderTask) {
-        try { window._jaPdfRenderTask.cancel(); } catch (e) {}
-        window._jaPdfRenderTask = null;
-    }
-    if (window._jaPdfLoadingTask) {
-        try { window._jaPdfLoadingTask.destroy(); } catch (e) {}
-        window._jaPdfLoadingTask = null;
-    }
-    if (window._jaPdfDocument) {
-        try { window._jaPdfDocument.destroy(); } catch (e) {}
-        window._jaPdfDocument = null;
-    }
-};
-
-// Every profile swap releases the previous CV immediately.
-window.jaClearPdfPreview();
-
-window.jaRenderPdfPreview = function () {
+/* Server-rendered CV pages keep PDF parsing and canvas work out of the browser. */
+window._jaCvPreviewRequestId = (window._jaCvPreviewRequestId || 0) + 1;
+(function (requestId) {
     var viewer = document.getElementById('ja-pdf-preview');
     if (!viewer) return;
-    var url = viewer.getAttribute('data-resume-url');
-    var renderId = ++window._jaPdfPreviewId;
 
-    function fallback() {
-        if (renderId !== window._jaPdfPreviewId || document.getElementById('ja-pdf-preview') !== viewer) return;
-        viewer.innerHTML = '<div style="margin:auto;text-align:center;color:#d1d5db;"><i class="fa fa-file-pdf-o" style="font-size:42px;display:block;margin-bottom:12px;"></i><p style="font-size:13px;margin-bottom:14px;">CV preview is unavailable.</p><a href="' + url + '" target="_blank" rel="noopener" class="ja-pdf-btn ja-pdf-btn-primary"><i class="fa fa-external-link"></i> Open CV</a></div>';
-    }
+    var metaUrl = viewer.getAttribute('data-preview-url');
+    var resumeUrl = viewer.getAttribute('data-resume-url');
+    var active = function () {
+        return requestId === window._jaCvPreviewRequestId && document.getElementById('ja-pdf-preview') === viewer;
+    };
+    var fallback = function () {
+        if (!active()) return;
+        viewer.innerHTML = '<div style="margin:auto;text-align:center;color:#d1d5db;"><i class="fa fa-file-pdf-o" style="font-size:42px;display:block;margin-bottom:12px;"></i><p style="font-size:13px;margin-bottom:14px;">CV preview is unavailable.</p><a href="' + resumeUrl + '" target="_blank" rel="noopener" class="ja-pdf-btn ja-pdf-btn-primary"><i class="fa fa-external-link"></i> Open CV</a></div>';
+    };
 
-    if (!url || typeof pdfjsLib === 'undefined') { fallback(); return; }
-    window.jaClearPdfPreview();
+    if (!metaUrl || !window.fetch) { fallback(); return; }
 
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    window._jaPdfLoadingTask = pdfjsLib.getDocument({ url: url, withCredentials: true });
-    window._jaPdfLoadingTask.promise.then(function (pdf) {
-        if (renderId !== window._jaPdfPreviewId || document.getElementById('ja-pdf-preview') !== viewer) return;
-        window._jaPdfDocument = pdf;
-
-        var nextPage = 1;
-        var loadingPage = false;
-        viewer.innerHTML = '';
-        var sentinel = document.createElement('div');
-        sentinel.style.cssText = 'height:24px;width:100%;display:flex;align-items:center;justify-content:center;color:#d1d5db;font-size:11px;';
-        viewer.appendChild(sentinel);
-
-        function loadNextPage() {
-            if (loadingPage || nextPage > pdf.numPages || renderId !== window._jaPdfPreviewId || document.getElementById('ja-pdf-preview') !== viewer) return;
-            loadingPage = true;
-            sentinel.innerHTML = '<i class="fa fa-spinner fa-spin"></i>&nbsp; Loading page ' + nextPage + ' of ' + pdf.numPages;
-            pdf.getPage(nextPage).then(function (page) {
-                if (renderId !== window._jaPdfPreviewId || document.getElementById('ja-pdf-preview') !== viewer) return;
-                var baseViewport = page.getViewport({ scale: 1 });
-                var scale = Math.min(1.5, Math.max(0.7, (viewer.clientWidth - 36) / baseViewport.width));
-                var viewport = page.getViewport({ scale: scale });
-                var canvas = document.createElement('canvas');
-                canvas.width = Math.floor(viewport.width);
-                canvas.height = Math.floor(viewport.height);
-                canvas.style.marginBottom = '14px';
-                viewer.insertBefore(canvas, sentinel);
-                window._jaPdfRenderTask = page.render({ canvasContext: canvas.getContext('2d', { alpha: false }), viewport: viewport });
-                return window._jaPdfRenderTask.promise;
-            }).then(function () {
-                nextPage++;
-                loadingPage = false;
-                if (nextPage > pdf.numPages) {
-                    sentinel.textContent = 'End of CV';
-                    observer.disconnect();
-                    window._jaPdfObserver = null;
-                } else if (viewer.scrollHeight <= viewer.clientHeight + 30) {
-                    loadNextPage();
-                }
-            }).catch(fallback);
-        }
-
-        var observer = new IntersectionObserver(function (entries) {
-            if (entries.some(function (entry) { return entry.isIntersecting; })) loadNextPage();
-        }, { root: viewer, rootMargin: '300px 0px' });
-        window._jaPdfObserver = observer;
-        observer.observe(sentinel);
-        loadNextPage();
-    }).catch(fallback);
-};
-
-window._jaPdfPreviewId = window._jaPdfPreviewId || 0;
-if (document.getElementById('ja-pdf-preview')) {
-    window._jaPdfPreviewId++;
-    if (typeof pdfjsLib === 'undefined') {
-        if (!window._jaPdfScriptLoading) {
-            window._jaPdfScriptLoading = true;
-            var jaPdfScript = document.createElement('script');
-            jaPdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-            jaPdfScript.onload = function () { window._jaPdfScriptLoading = false; window.jaRenderPdfPreview(); };
-            jaPdfScript.onerror = function () { window._jaPdfScriptLoading = false; window.jaRenderPdfPreview(); };
-            document.head.appendChild(jaPdfScript);
-        }
-    } else {
-        setTimeout(window.jaRenderPdfPreview, 0);
-    }
-}
+    fetch(metaUrl, { credentials: 'same-origin' })
+        .then(function (response) { return response.ok ? response.json() : Promise.reject(); })
+        .then(function (data) {
+            if (!active() || !data.available || !data.pages || !data.page_url_template) { fallback(); return; }
+            viewer.innerHTML = '';
+            for (var page = 1; page <= data.pages; page++) {
+                var image = document.createElement('img');
+                image.loading = page === 1 ? 'eager' : 'lazy';
+                image.decoding = 'async';
+                image.alt = 'CV page ' + page;
+                image.src = data.page_url_template.replace('__PAGE__', page);
+                viewer.appendChild(image);
+            }
+        })
+        .catch(fallback);
+})(window._jaCvPreviewRequestId);
 
 document.querySelectorAll('.ja-tab').forEach(function(tab) {
     tab.addEventListener('click', function() {
