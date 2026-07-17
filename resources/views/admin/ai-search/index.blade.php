@@ -808,7 +808,7 @@ function aiShowLoading() {
 }
 
 function aiOpenApplicant(id) {
-    if (typeof window.jaUnloadPdf === 'function') window.jaUnloadPdf();
+    if (typeof window.jaDisposeApplicantProfile === 'function') window.jaDisposeApplicantProfile();
     var url = "{{ route('admin.job-applications.show', ':id') }}".replace(':id', id);
     var $sidebar = $('#right-sidebar');
     var $backdrop = $('#right-sidebar-backdrop');

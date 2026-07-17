@@ -1071,7 +1071,21 @@ function jaMoveFromDetail(appId, toStatusId, toStatusLabel, currentStatusId) {
 }
 
 /* ── Skills ── */
-$('.select2#skills').select2();
+// The profile HTML is replaced repeatedly. Select2 attaches listeners outside
+// the select element, so it must be explicitly destroyed before a swap.
+window.jaDisposeApplicantProfile = function () {
+    if (typeof window.jaUnloadPdf === 'function') window.jaUnloadPdf();
+    var $skills = $('#right-sidebar-content #skills');
+    if ($skills.length && $.fn.select2 && $skills.data('select2')) {
+        $skills.select2('destroy');
+    }
+};
+
+var $profileSkills = $('#right-sidebar-content #skills');
+if ($profileSkills.length && $.fn.select2) {
+    if ($profileSkills.data('select2')) $profileSkills.select2('destroy');
+    $profileSkills.select2();
+}
 function addSkills(applicationId, callback) {
     var url = "{{ route('admin.job-applications.addSkills', ':id') }}".replace(':id', applicationId);
     $.easyAjax({
@@ -1175,7 +1189,7 @@ function deleteApplication(applicationId) {
         while (c.size > CACHE_LIMIT) c.delete(c.keys().next().value); // evict oldest
     }
     function jaSwapIn(targetId, html) {
-        if (typeof window.jaUnloadPdf === 'function') window.jaUnloadPdf();
+        if (typeof window.jaDisposeApplicantProfile === 'function') window.jaDisposeApplicantProfile();
         $('#right-sidebar-content').html(html);
         var $row = $('[data-id="' + targetId + '"]');
         if ($row.length) { $row[0].scrollIntoView({behavior:'smooth',block:'nearest'}); $row.addClass('table-active'); setTimeout(function() { $row.removeClass('table-active'); }, 1200); }
