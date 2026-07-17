@@ -1065,7 +1065,7 @@ function jaMoveFromDetail(appId, toStatusId, toStatusLabel, currentStatusId) {
         success: function(response) {
             if (response.status === 'success') {
                 $.easyAjax({ type:'GET', url:"{{ route('admin.job-applications.show', ':id') }}".replace(':id', appId),
-                    success: function(res) { if (res.status === 'success') $('#right-sidebar-content').html(res.view); }
+                    success: function(res) { if (res.status === 'success') window.jaRenderApplicantProfile(res.view); }
                 });
                 if (typeof table !== 'undefined') table.draw(false);
                 if (typeof jaLoadTabCounts === 'function') jaLoadTabCounts();
@@ -1198,8 +1198,7 @@ function deleteApplication(applicationId) {
         while (c.size > CACHE_LIMIT) c.delete(c.keys().next().value); // evict oldest
     }
     function jaSwapIn(targetId, html) {
-        if (typeof window.jaDisposeApplicantProfile === 'function') window.jaDisposeApplicantProfile();
-        $('#right-sidebar-content').html(html);
+        window.jaRenderApplicantProfile(html);
         var $row = $('[data-id="' + targetId + '"]');
         if ($row.length) { $row[0].scrollIntoView({behavior:'smooth',block:'nearest'}); $row.addClass('table-active'); setTimeout(function() { $row.removeClass('table-active'); }, 1200); }
     }
@@ -1446,7 +1445,7 @@ function jaSaveJobEdit(appId) {
                     url: "{{ route('admin.job-applications.show', ':id') }}".replace(':id', appId),
                     success: function(r) {
                         if (r.status === 'success') {
-                            $('#right-sidebar-content').html(r.view);
+                            window.jaRenderApplicantProfile(r.view);
                         }
                     }
                 });
