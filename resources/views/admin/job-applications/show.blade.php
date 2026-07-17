@@ -1081,6 +1081,11 @@ window.jaDisposeApplicantProfile = function () {
     }
 };
 
+window.jaRenderApplicantProfile = function (html) {
+    if (typeof window.jaDisposeApplicantProfile === 'function') window.jaDisposeApplicantProfile();
+    $('#right-sidebar-content').html(html);
+};
+
 var $profileSkills = $('#right-sidebar-content #skills');
 if ($profileSkills.length && $.fn.select2) {
     if ($profileSkills.data('select2')) $profileSkills.select2('destroy');
