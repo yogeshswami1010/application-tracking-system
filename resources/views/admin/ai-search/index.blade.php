@@ -315,6 +315,12 @@
                 </div>
                 <div class="modal-body">
                     <p class="text-muted mb-3">This email will be sent separately to <strong id="ai-email-recipient-count">0</strong> selected applicants.</p>
+                    <div id="ai-email-recipient-names" class="mb-3" style="max-height:95px;overflow-y:auto;padding:9px 11px;background:#f8f9fa;border:1px solid #e9ecef;border-radius:6px;font-size:12px;color:#495057"></div>
+                    <div class="form-row align-items-end mb-3">
+                        <div class="col-md-6"><label for="ai-email-template-select">Saved template</label><select id="ai-email-template-select" class="form-control"><option value="">Choose a template…</option></select></div>
+                        <div class="col-md-4"><label for="ai-email-template-name">Template name</label><input id="ai-email-template-name" class="form-control" maxlength="80" placeholder="e.g. Interview invite"></div>
+                        <div class="col-md-2"><button type="button" class="btn btn-outline-primary btn-block" onclick="aiSaveEmailTemplate()">Save</button></div>
+                    </div>
                     <div class="form-group">
                         <label for="ai-email-subject">Subject <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="ai-email-subject" maxlength="191" placeholder="Email subject">
@@ -719,6 +725,9 @@ function aiUpdateBulkActions() {
 function aiOpenEmailModal() {
     if (!aiSelectedApplicantIds.length) return;
     document.getElementById('ai-email-recipient-count').textContent = aiSelectedApplicantIds.length;
+    var names = (aiLastResults || []).filter(function(r) { return aiSelectedApplicantIds.indexOf(Number(r.id)) !== -1; }).map(function(r) { return aiEsc(r.full_name || 'Applicant'); });
+    document.getElementById('ai-email-recipient-names').innerHTML = '<strong>Recipients:</strong> ' + names.join(', ');
+    aiRefreshEmailTemplates();
     var modal = document.getElementById('ai-send-email-modal');
     modal.style.display = 'block';
     modal.style.paddingLeft = '0';
@@ -822,6 +831,19 @@ function aiOpenApplicant(id) {
     window._jaDirectProfileXhr = $.ajax({ type: 'GET', url: url, success: function(response) {
         if (requestId === window._jaDirectProfileRequestId && response.status === 'success') $('#right-sidebar-content').html(response.view);
     }});
+}
+
+function aiEmailTemplates() { try { return JSON.parse(localStorage.getItem('ai_email_templates') || '[]'); } catch (e) { return []; } }
+function aiRefreshEmailTemplates() {
+    var select = document.getElementById('ai-email-template-select'), templates = aiEmailTemplates();
+    select.innerHTML = '<option value="">Choose a template…</option>' + templates.map(function(t, i) { return '<option value="' + i + '">' + aiEsc(t.name) + '</option>'; }).join('');
+    select.onchange = function() { var t = aiEmailTemplates()[this.value]; if (t) { document.getElementById('ai-email-subject').value = t.subject; document.getElementById('ai-email-message').value = t.message; } };
+}
+function aiSaveEmailTemplate() {
+    var name = document.getElementById('ai-email-template-name').value.trim(), subject = document.getElementById('ai-email-subject').value.trim(), message = document.getElementById('ai-email-message').value.trim();
+    if (!name || !subject || !message) { alert('Enter a template name, subject, and message first.'); return; }
+    var templates = aiEmailTemplates(); templates = templates.filter(function(t) { return t.name.toLowerCase() !== name.toLowerCase(); }); templates.push({ name:name, subject:subject, message:message });
+    localStorage.setItem('ai_email_templates', JSON.stringify(templates)); document.getElementById('ai-email-template-name').value = ''; aiRefreshEmailTemplates();
 }
 
 function aiEsc(s) {
