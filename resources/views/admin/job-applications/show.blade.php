@@ -320,10 +320,25 @@ function jaSaveMarketingLabel(appId) {
                     <div id="ja-pdf-loader" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#aaa;z-index:1;">
                         <i class="fa fa-spinner fa-spin" style="font-size:24px;margin-right:10px;"></i> Loading PDF...
                     </div>
-                    <iframe id="ja-pdf-frame" src="{{ $resumeUrl }}" 
+                    <iframe id="ja-pdf-frame" data-src="{{ $resumeUrl }}"
                             style="position:absolute;inset:0;width:100%;height:100%;border:none;z-index:2;opacity:0;transition:opacity .3s;"
-                            onload="document.getElementById('ja-pdf-loader').style.display='none';this.style.opacity='1';">
+                            onload="if(this.getAttribute('src')) { document.getElementById('ja-pdf-loader').style.display='none'; this.style.opacity='1'; }">
                     </iframe>
+                    <script>
+                    // Paint the profile before Chrome starts rendering a potentially large PDF.
+                    // Rapid profile changes cancel the pending CV that is no longer visible.
+                    if (window._jaResumeLoadTimer) clearTimeout(window._jaResumeLoadTimer);
+                    if (window._jaActivePdfFrame) {
+                        try { window._jaActivePdfFrame.setAttribute('src', 'about:blank'); } catch (e) {}
+                    }
+                    window._jaResumeLoadTimer = setTimeout(function () {
+                        var frame = document.getElementById('ja-pdf-frame');
+                        if (frame && !frame.getAttribute('src')) {
+                            window._jaActivePdfFrame = frame;
+                            frame.setAttribute('src', frame.getAttribute('data-src'));
+                        }
+                    }, 350);
+                    </script>
                 </div>
             @else
                 <div class="ja-pdf-no-resume">
@@ -588,7 +603,7 @@ function jaSaveMarketingLabel(appId) {
                                 @if($user->cans('edit_job_applications'))
                                 <div id="ja-job-edit-{{ $application->id }}" style="display:none;width:100%;margin-top:8px;">
                                     <select id="ja-job-select-{{ $application->id }}" class="ja-stage-select" style="width:100%;">
-                                        @foreach(($jobOptions ?? \App\Job::select('id','title')->orderBy('title')->get()) as $jobOption)
+                                        @foreach($jobOptions as $jobOption)
                                             <option value="{{ $jobOption->id }}" @selected($jobOption->id === $application->job_id)>{{ ucwords($jobOption->title) }}</option>
                                         @endforeach
                                     </select>
