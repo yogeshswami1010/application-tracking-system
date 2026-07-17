@@ -969,10 +969,15 @@
 
         var id  = $(this).data('row-id');
         var url = "{{ route('admin.job-applications.show',':id') }}".replace(':id', id);
-        $.easyAjax({
+        var requestId = (window._jaDirectProfileRequestId || 0) + 1;
+        window._jaDirectProfileRequestId = requestId;
+        if (window._jaDirectProfileXhr && window._jaDirectProfileXhr.readyState !== 4) {
+            window._jaDirectProfileXhr.abort();
+        }
+        window._jaDirectProfileXhr = $.ajax({
             type: 'GET', url: url,
             success: function(response) {
-                if (response.status === 'success') {
+                if (requestId === window._jaDirectProfileRequestId && response.status === 'success') {
                     $('#right-sidebar-content').html(response.view);
                 }
             }

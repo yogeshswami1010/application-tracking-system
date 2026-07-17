@@ -812,8 +812,13 @@ function aiOpenApplicant(id) {
     var $backdrop = $('#right-sidebar-backdrop');
     $sidebar.removeClass('translate-x-full').addClass('translate-x-0');
     $backdrop.removeClass('hidden').css({ display:'block', visibility:'visible' });
-    $.easyAjax({ type: 'GET', url: url, success: function(response) {
-        if (response.status === 'success') $('#right-sidebar-content').html(response.view);
+    var requestId = (window._jaDirectProfileRequestId || 0) + 1;
+    window._jaDirectProfileRequestId = requestId;
+    if (window._jaDirectProfileXhr && window._jaDirectProfileXhr.readyState !== 4) {
+        window._jaDirectProfileXhr.abort();
+    }
+    window._jaDirectProfileXhr = $.ajax({ type: 'GET', url: url, success: function(response) {
+        if (requestId === window._jaDirectProfileRequestId && response.status === 'success') $('#right-sidebar-content').html(response.view);
     }});
 }
 
