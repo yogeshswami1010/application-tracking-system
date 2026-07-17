@@ -178,7 +178,17 @@
     }
     .ai-bulk-actions { display:none; align-items:center; gap:10px; margin-left:auto; }
     .ai-bulk-actions.visible { display:flex; }
-    .ai-email-modal textarea { min-height: 170px; resize: vertical; }
+    .ai-email-modal .modal-dialog { max-width:760px; }
+    .ai-email-modal .modal-content { border:0;border-radius:18px;overflow:hidden;box-shadow:0 24px 70px rgba(15,31,61,.22); }
+    .ai-email-modal .modal-header { padding:18px 24px;border-bottom:1px solid #edf0f4; }
+    .ai-email-modal .modal-body { padding:22px 24px;background:#fafbfc; }
+    .ai-email-modal label { font-size:12px;font-weight:700;color:#53627a;margin-bottom:6px; }
+    .ai-email-modal .form-control { height:42px;border:1px solid #dfe5ed;border-radius:9px;box-shadow:none; }
+    .ai-email-modal textarea.form-control { height:auto;min-height:185px;padding:12px;resize:vertical; }
+    .ai-email-modal .modal-footer { padding:15px 24px;border-top:1px solid #edf0f4;background:#fff; }
+    #ai-email-recipient-names { padding:12px 14px!important;background:#f0f6ff!important;border:1px solid #dceaff!important;border-radius:10px!important;color:#334155!important; }
+    .ai-email-modal .form-row { padding:14px;margin:0 0 18px!important;background:#fff;border:1px solid #e7ecf2;border-radius:12px; }
+    .ai-email-modal .form-row .btn { height:42px;border-radius:9px;font-weight:600; }
     .ai-result-rank { font-size: 11px; font-weight: 700; color: #b0b8c4; width: 20px; text-align: center; flex-shrink: 0; }
     .ai-result-rank.top { color: #f59e0b; }
     .ai-result-avatar {
