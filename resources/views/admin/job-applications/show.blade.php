@@ -47,10 +47,7 @@
     }
 
     // Resolve resume URL
-    $resumeUrl = null;
-    if (!empty($application->resume_url)) {
-        $resumeUrl = $application->resume_url;
-    }
+    $resumeUrl = $application->resume_url ?: null;
     if (!$resumeUrl && !empty($answers)) {
         foreach ($answers as $answer) {
             if (!empty($answer->file)) {
@@ -1013,6 +1010,10 @@ function jaSaveMarketingLabel(appId) {
 /* ── Tab switching ── */
 /* Do not let several Chrome PDF viewers run during rapid profile switching. */
 window.jaUnloadPdf = function () {
+    if (window._jaPdfIdleCallback && window.cancelIdleCallback) {
+        window.cancelIdleCallback(window._jaPdfIdleCallback);
+        window._jaPdfIdleCallback = null;
+    }
     if (window._jaPdfLoadTimer) {
         clearTimeout(window._jaPdfLoadTimer);
         window._jaPdfLoadTimer = null;
@@ -1036,9 +1037,12 @@ window.jaUnloadPdf();
         frame.src = frame.dataset.src;
     };
 
-    // The profile UI paints first. Opening another applicant within this
-    // short delay cancels the old PDF load completely.
-    window._jaPdfLoadTimer = setTimeout(loadPdf, 350);
+    // Native PDF rendering is the only expensive browser operation on this
+    // panel. Start it only after the profile has painted and the browser is
+    // idle; quick applicant changes cancel this work before it begins.
+    var schedulePdfLoad = function () { window._jaPdfLoadTimer = setTimeout(loadPdf, 1200); };
+    if (window.requestIdleCallback) window._jaPdfIdleCallback = window.requestIdleCallback(schedulePdfLoad, { timeout: 1800 });
+    else schedulePdfLoad();
 })();
 
 document.querySelectorAll('.ja-tab').forEach(function(tab) {

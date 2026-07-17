@@ -1161,6 +1161,9 @@ class AdminJobApplicationController extends AdminBaseController
                     $q->with('user:id,name')->orderByDesc('created_at');
                 },
                 'onboard',
+                // The CV URL accessor uses this loaded relation. Without it,
+                // rendering a profile performs repeated resume-document queries.
+                'documents:id,documentable_id,documentable_type,name,hashname',
                 'status',
                 'location',
                 'job',

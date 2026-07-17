@@ -67,10 +67,15 @@ class JobApplication extends Model
 
     public function getResumeUrlAttribute()
     {
-        if ($this->documents()->where('name', 'Resume')->first()) {
-            return asset_url_local_s3('documents/' . $this->id . '/' . $this->documents()->where('name', 'Resume')->first()->hashname);
-        }
-        return false;
+        // show.blade.php eager-loads documents. Reuse that collection rather
+        // than issuing two database queries every time this accessor is read.
+        $resume = $this->relationLoaded('documents')
+            ? $this->documents->firstWhere('name', 'Resume')
+            : $this->documents()->where('name', 'Resume')->first();
+
+        return $resume
+            ? asset_url_local_s3('documents/' . $this->id . '/' . $resume->hashname)
+            : false;
     }
 
     public function notes()
