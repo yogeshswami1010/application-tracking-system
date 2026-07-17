@@ -321,7 +321,8 @@
                     </div>
                     <div class="form-group mb-0">
                         <label for="ai-email-message">Message <span class="text-danger">*</span></label>
-                        <textarea class="form-control" id="ai-email-message" maxlength="10000" placeholder="Write your email message here..."></textarea>
+                        <textarea class="form-control" id="ai-email-message" maxlength="10000" placeholder="Write your email message here. Use @{{applicant_name}} to insert each applicant's name."></textarea>
+                        <small class="form-text text-muted">Use <code>@{{applicant_name}}</code> where you want each applicant's name to appear.</small>
                     </div>
                 </div>
                 <div class="modal-footer">

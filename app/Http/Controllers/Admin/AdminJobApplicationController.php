@@ -2902,12 +2902,17 @@ class AdminJobApplicationController extends AdminBaseController
 
         $sent = 0;
         $failed = 0;
-        $message = nl2br(e($data['message']));
-
         foreach ($applications->unique('email') as $application) {
             try {
+                $applicantName = $application->full_name ?: 'Applicant';
+                $personalizedMessage = str_ireplace(
+                    ['{{applicant_name}}', '[applicant_name]', '%applicant_name%'],
+                    $applicantName,
+                    $data['message']
+                );
+
                 Mail::html(
-                    '<p>Hello '.e($application->full_name ?: 'Applicant').',</p><div>'.$message.'</div>',
+                    '<div>'.nl2br(e($personalizedMessage)).'</div>',
                     function ($mail) use ($application, $data) {
                         $mail->to($application->email, $application->full_name)
                             ->subject($data['subject']);
