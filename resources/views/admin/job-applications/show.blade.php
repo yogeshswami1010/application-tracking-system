@@ -845,8 +845,8 @@ function jaSaveMarketingLabel(appId) {
                             <i class="fa fa-plus"></i> Add Client Note
                         </button>
                     </div>
-                    <div id="client-notes-list">
-                        @include('admin.job-applications.partials.client-notes-list', ['clientNotes' => $clientNotes])
+                    <div id="client-notes-list" data-url="{{ route('admin.job-applications.profile-tab', [$application->id, 'client-notes']) }}">
+                        <div style="text-align:center;padding:24px 0;color:#B0B8C4;font-size:12.5px">Open the Client Notes tab to load notes.</div>
                     </div>
                 </div>
 
@@ -1053,6 +1053,19 @@ document.querySelectorAll('.ja-tab').forEach(function(tab) {
         this.classList.add('active');
         var pane = document.getElementById('ja-tab-' + target);
         if (pane) pane.style.display = 'block';
+
+        if (target === 'client-notes') {
+            var $clientNotes = $('#client-notes-list');
+            var notesUrl = $clientNotes.data('url');
+            if (notesUrl && !$clientNotes.data('loaded') && !$clientNotes.data('loading')) {
+                $clientNotes.data('loading', true).html('<div style="text-align:center;padding:24px 0;color:#B0B8C4;font-size:12.5px"><i class="fa fa-spinner fa-spin"></i> Loading client notes...</div>');
+                $.get(notesUrl, function(response) {
+                    if (response.status === 'success') {
+                        $clientNotes.html(response.view).data('loaded', true);
+                    }
+                }).always(function() { $clientNotes.data('loading', false); });
+            }
+        }
     });
 });
 
