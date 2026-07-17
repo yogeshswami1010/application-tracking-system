@@ -119,12 +119,17 @@ return [
             resource_path('views/vendor/mail'),
         ],
     ],
-     'ai_search_smtp' => [
+    // Dedicated credentials used only when emailing applicants from AI Search.
+    'ai_search_smtp' => [
         'transport' => 'smtp',
-        'host' => env('AI_SEARCH_MAIL_HOST'),
-        'port' => env('AI_SEARCH_MAIL_PORT'),
+        'host' => env('AI_SEARCH_MAIL_HOST', 'smtp.zoho.com'),
+        'port' => env('AI_SEARCH_MAIL_PORT', 587),
         'encryption' => env('AI_SEARCH_MAIL_ENCRYPTION', 'tls'),
         'username' => env('AI_SEARCH_MAIL_USERNAME'),
         'password' => env('AI_SEARCH_MAIL_PASSWORD'),
+        'from' => [
+            'address' => env('AI_SEARCH_MAIL_FROM_ADDRESS'),
+            'name' => env('AI_SEARCH_MAIL_FROM_NAME', 'Consortium Staffing Solution'),
+        ],
     ],
 ];

@@ -2868,7 +2868,13 @@ class AdminJobApplicationController extends AdminBaseController
             return Reply::error('None of the selected applicants has an email address.');
         }
 
-        // --- Temporarily switch mail config to Gmail SMTP for this request only ---
+        // Switch only this request to the dedicated AI Search SMTP configuration.
+        // Reading from config (rather than env here) also works with config caching.
+        $aiSearchMail = config('mail.ai_search_smtp');
+        if (empty($aiSearchMail['host']) || empty($aiSearchMail['username']) || empty($aiSearchMail['password']) || empty($aiSearchMail['from']['address'])) {
+            return Reply::error('AI Search email is not configured. Please add the Zoho SMTP credentials in the environment settings.');
+        }
+
         $originalConfig = [
             'driver' => config('mail.driver'),
             'host' => config('mail.host'),
@@ -2881,15 +2887,12 @@ class AdminJobApplicationController extends AdminBaseController
 
         config([
             'mail.driver' => 'smtp',
-            'mail.host' => env('AI_SEARCH_MAIL_HOST'),
-            'mail.port' => env('AI_SEARCH_MAIL_PORT'),
-            'mail.encryption' => env('AI_SEARCH_MAIL_ENCRYPTION', 'tls'),
-            'mail.username' => env('AI_SEARCH_MAIL_USERNAME'),
-            'mail.password' => env('AI_SEARCH_MAIL_PASSWORD'),
-            'mail.from' => [
-                'address' => env('AI_SEARCH_MAIL_FROM_ADDRESS'),
-                'name' => env('AI_SEARCH_MAIL_FROM_NAME'),
-            ],
+            'mail.host' => $aiSearchMail['host'],
+            'mail.port' => $aiSearchMail['port'],
+            'mail.encryption' => $aiSearchMail['encryption'],
+            'mail.username' => $aiSearchMail['username'],
+            'mail.password' => $aiSearchMail['password'],
+            'mail.from' => $aiSearchMail['from'],
         ]);
 
         // Force the mailer to rebuild with the new config
@@ -2904,7 +2907,7 @@ class AdminJobApplicationController extends AdminBaseController
         foreach ($applications->unique('email') as $application) {
             try {
                 Mail::html(
-                      '</p><div>'.$message.'</div>',
+                    '<p>Hello '.e($application->full_name ?: 'Applicant').',</p><div>'.$message.'</div>',
                     function ($mail) use ($application, $data) {
                         $mail->to($application->email, $application->full_name)
                             ->subject($data['subject']);
