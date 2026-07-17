@@ -56,6 +56,12 @@
             border-radius: 0;
         }
 
+        .ra-scroll { scrollbar-width: auto; scrollbar-color: #111 #E8E6E1; }
+        .ra-scroll::-webkit-scrollbar { width: 12px; height: 12px; }
+        .ra-scroll::-webkit-scrollbar-track { background: #E8E6E1; }
+        .ra-scroll::-webkit-scrollbar-thumb { background: #111; border: 2px solid #E8E6E1; border-radius: 10px; }
+        .ra-scroll::-webkit-scrollbar-thumb:hover { background: #000; }
+
         .btn-group-xs > .btn, .btn-xs {
             padding  : .25rem .4rem;
             font-size  : .875rem;
