@@ -1150,8 +1150,45 @@ class AdminJobApplicationController extends AdminBaseController
         return Reply::success(__('messages.recordDeleted'));
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
+        // The normal sidebar path is intentionally lightweight. Rendering every
+        // history, note, script, and PDF preview for each click made rapid
+        // applicant browsing lock the browser. The complete profile remains
+        // available with ?full=1 when a recruiter explicitly needs it.
+        if (! $request->boolean('full')) {
+            $application = JobApplication::withTrashed()
+                ->with([
+                    'status:id,status,color',
+                    'location:id,location',
+                    'job:id,title,company_id',
+                    'job.company:id,company_name',
+                ])
+                ->find($id);
+
+            if (! $application) {
+                return Reply::error('Application not found.');
+            }
+
+            $resumeUrl = $application->resume_url;
+            if (! $resumeUrl) {
+                $resumeAnswer = JobApplicationAnswer::where('job_id', $application->job_id)
+                    ->where('job_application_id', $application->id)
+                    ->whereNotNull('file')
+                    ->first(['file', 'file_url']);
+                if ($resumeAnswer) {
+                    $resumeUrl = $resumeAnswer->file_url ?: url('user-uploads/documents/' . basename($resumeAnswer->file));
+                }
+            }
+
+            $view = view('admin.job-applications.show-fast', array_merge($this->data, [
+                'application' => $application,
+                'resumeUrl' => $resumeUrl,
+            ]))->render();
+
+            return Reply::dataOnly(['status' => 'success', 'view' => $view]);
+        }
+
         $this->application = JobApplication::withTrashed()
             ->with([
                 'schedule',
