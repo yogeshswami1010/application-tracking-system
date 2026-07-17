@@ -265,6 +265,7 @@ Route::middleware('auth')->group(function () {
             Route::post('job-applications/bulk-status-update',            [AdminJobApplicationController::class, 'bulkStatusUpdate'])->name('job-applications.bulk-status-update');
             Route::post('job-applications/bulk-restore-knockout',         [AdminJobApplicationController::class, 'bulkRestoreKnockout'])->name('job-applications.bulk-restore-knockout');
             Route::get('job-applications/job-statuses',                   [AdminJobApplicationController::class, 'jobStatuses'])->name('job-applications.job-statuses');
+            Route::get('job-applications/{id}/profile-tab/{tab}',         [AdminJobApplicationController::class, 'profileTab'])->name('job-applications.profile-tab');
             Route::post('job-applications/bulk-parse-resume',             [AdminJobApplicationController::class, 'bulkParseResume'])->name('job-applications.bulk-parse-resume');
 
             // Resource route LAST — has wildcard {job_application} that catches everything

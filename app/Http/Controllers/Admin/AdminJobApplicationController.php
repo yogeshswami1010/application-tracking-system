@@ -1155,8 +1155,7 @@ class AdminJobApplicationController extends AdminBaseController
         $this->application = JobApplication::withTrashed()
             ->with([
                 'schedule',
-                'schedule.employee',
-                'schedule.comments.user',
+                'schedule',
                 'notes' => function ($q) {
                     $q->with('user:id,name')->orderByDesc('created_at');
                 },
@@ -1173,9 +1172,6 @@ class AdminJobApplicationController extends AdminBaseController
                 'job.currency', // used by the salary badge in the job-description modal
                 'job.skills.skill', // avoids re-querying skills in the job-description modal
                 'schedule.employee.user:id,name', // interviewers shown in the schedule tab
-                'statusHistories' => function ($query) {
-                    $query->latest()->limit(30)->with(['fromStatus', 'toStatus', 'user']);
-                },
             ])
             ->find($id);
 
@@ -1192,29 +1188,11 @@ class AdminJobApplicationController extends AdminBaseController
 
         // Previous applications (same email) — eager load answers+question and
         // notes+user so the blade never issues a query per row.
-        $this->previousApps = JobApplication::where('email', $this->application->email)
-            ->where('is_candidate', 0)
-            ->where('id', '!=', $this->application->id)
-            ->with([
-                'job:id,title',
-                'status:id,status,color',
-                'location:id,location',
-                'answers' => function ($q) {
-                    $q->whereNotNull('answer')->with('question');
-                },
-                'notes' => function ($q) {
-                    $q->with('user:id,name')->orderByDesc('created_at');
-                },
-            ])
-            ->orderByDesc('created_at')
-            ->limit(5)
-            ->get();
-
-        $this->clientNotes = \App\JobClientNote::with('user:id,name')
-            ->where('job_id', $this->application->job_id)
-            ->orderByDesc('created_at')
-            ->limit(50)
-            ->get();
+        $this->previousApps = collect();
+        $this->clientNotes = collect();
+        $this->hasHistory = \App\JobApplicationStatusHistory::where('job_application_id', $this->application->id)->exists()
+            || JobApplication::where('email', $this->application->email)->where('is_candidate', 0)->where('id', '!=', $this->application->id)->exists();
+        $this->hasSchedule = ! is_null($this->application->schedule);
 
         // Pass pipeline statuses to the view to avoid querying them again while rendering.
         $this->allStatuses = ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
@@ -1236,6 +1214,27 @@ class AdminJobApplicationController extends AdminBaseController
         $view = view('admin.job-applications.show', $this->data)->render();
 
         return Reply::dataOnly(['status' => 'success', 'view' => $view]);
+    }
+
+    public function profileTab($id, $tab)
+    {
+        abort_if(! $this->user->cans('view_job_applications'), 403);
+        $application = JobApplication::withTrashed()->findOrFail($id);
+
+        if ($tab === 'client-notes') {
+            $clientNotes = \App\JobClientNote::with('user:id,name')->where('job_id', $application->job_id)->latest()->limit(50)->get();
+            return Reply::dataOnly(['status' => 'success', 'view' => view('admin.job-applications.partials.client-notes-list', compact('clientNotes'))->render()]);
+        }
+        if ($tab === 'schedule' && $application->schedule) {
+            $schedule = $application->schedule()->with(['employee.user:id,name', 'comments.user:id,name'])->first();
+            return Reply::dataOnly(['status' => 'success', 'view' => view('admin.job-applications.partials.profile-schedule', compact('schedule'))->render()]);
+        }
+        if ($tab === 'history') {
+            $statusHistories = $application->statusHistories()->latest()->limit(30)->with(['fromStatus', 'toStatus', 'user'])->get();
+            $previousApps = JobApplication::where('email', $application->email)->where('is_candidate', 0)->where('id', '!=', $application->id)->with(['job:id,title', 'status:id,status,color', 'location:id,location'])->latest()->limit(5)->get();
+            return Reply::dataOnly(['status' => 'success', 'view' => view('admin.job-applications.partials.profile-history', compact('statusHistories', 'previousApps'))->render()]);
+        }
+        return Reply::error('Tab not found.');
     }
 
     public function updateIndex(Request $request) 
