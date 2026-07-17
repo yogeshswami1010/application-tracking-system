@@ -113,7 +113,11 @@
 .ja-tab.active { color:#2563EB;border-bottom-color:#2563EB; }
 .ja-tab:hover:not(.active) { color:#1A1E2E; }
 .ja-tab-badge { display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:20px;background:#F0EEE9;font-size:10px;font-weight:600;color:#8A94A6; }
-.ja-right-scroll { flex:1;overflow-y:auto;padding:12px; }
+.ja-right-scroll { flex:1;overflow-y:auto;padding:12px;scrollbar-width:auto;scrollbar-color:#111 #E8E6E1; }
+.ja-right-scroll::-webkit-scrollbar { width:12px; }
+.ja-right-scroll::-webkit-scrollbar-track { background:#E8E6E1;border-radius:10px; }
+.ja-right-scroll::-webkit-scrollbar-thumb { background:#111;border-radius:10px;border:2px solid #E8E6E1; }
+.ja-right-scroll::-webkit-scrollbar-thumb:hover { background:#000; }
 .ja-card { background:#fff;border:1px solid #E8E6E1;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 3px rgba(15,31,61,.04); }
 .ja-card-title { font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#B0B8C4;margin-bottom:12px;display:flex;align-items:center;gap:6px; }
 .ja-info-row { display:flex;align-items:flex-start;justify-content:space-between;padding:7px 0;border-bottom:1px solid #F0EEE9; }
