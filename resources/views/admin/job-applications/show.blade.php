@@ -304,7 +304,12 @@ function jaSaveMarketingLabel(appId) {
             </div>
             @if($resumeUrl)
                 <div id="ja-pdf-container" style="flex:1;min-height:0;position:relative;overflow:hidden;background:#525659;">
-                    <div id="ja-pdf-loading" class="ja-pdf-loading"><i class="fa fa-spinner fa-spin" style="font-size:22px;"></i><span>Loading CV...</span></div>
+                    <div id="ja-pdf-ready" class="ja-pdf-loading" style="pointer-events:auto;">
+                        <i class="fa fa-file-pdf-o" style="font-size:28px;"></i>
+                        <span>CV ready to view</span>
+                        <button type="button" class="ja-pdf-btn ja-pdf-btn-primary" onclick="jaLoadApplicantPdf()"><i class="fa fa-eye"></i> View CV</button>
+                    </div>
+                    <div id="ja-pdf-loading" class="ja-pdf-loading" style="display:none"><i class="fa fa-spinner fa-spin" style="font-size:22px;"></i><span>Loading CV...</span></div>
                     <div id="ja-pdf-error" style="display:none;position:absolute;inset:0;z-index:3;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#d1d5db;background:#525659;"><i class="fa fa-exclamation-triangle" style="font-size:28px"></i><span style="font-size:13px">Couldn't render this PDF.</span><a href="{{ $resumeUrl }}" target="_blank" class="ja-pdf-btn ja-pdf-btn-primary">Open CV</a></div>
                     <div id="ja-pdf-scroll" style="position:absolute;inset:0;overflow:auto;display:none;justify-content:center;padding:16px;"><canvas id="ja-pdf-canvas" style="background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.35)"></canvas></div>
                 </div>
@@ -1005,32 +1010,47 @@ window.jaUnloadPdf = function () {
 window.jaUnloadPdf();
 (function () {
     var container = document.getElementById('ja-pdf-container');
+    var ready = document.getElementById('ja-pdf-ready');
     var loading = document.getElementById('ja-pdf-loading');
     var scroll = document.getElementById('ja-pdf-scroll');
     var canvas = document.getElementById('ja-pdf-canvas');
     var error = document.getElementById('ja-pdf-error');
     if (!container || !canvas || !window.pdfjsLib) return;
+    var started = false;
 
     var loadPdf = function () {
-        pdfjsLib.getDocument({ url: @json($resumeUrl), withCredentials: true }).promise.then(function(pdf) {
+        pdfjsLib.getDocument({
+            url: @json($resumeUrl),
+            withCredentials: true,
+            // Keep exceptionally large embedded images from exhausting the
+            // renderer while a recruiter is browsing profiles.
+            maxImageSize: 4096 * 4096,
+            stopAtErrors: true
+        }).promise.then(function(pdf) {
             if (document.getElementById('ja-pdf-container') !== container) { pdf.destroy(); return; }
             window._jaPdfDoc = pdf;
             return pdf.getPage(1);
         }).then(function(page) {
             if (!page || document.getElementById('ja-pdf-container') !== container) return;
             var base = page.getViewport({scale:1});
-            var scale = Math.max(.7, Math.min(1.5, (container.clientWidth - 32) / base.width));
+            var scale = Math.max(.7, Math.min(1.15, (container.clientWidth - 32) / base.width));
             var viewport = page.getViewport({scale:scale});
             canvas.width = viewport.width; canvas.height = viewport.height;
             if (loading) loading.style.display = 'none'; scroll.style.display = 'flex';
             window._jaPdfRenderTask = page.render({canvasContext:canvas.getContext('2d'), viewport:viewport});
-            return window._jaPdfRenderTask.promise;
+            return window._jaPdfRenderTask.promise.then(function () { page.cleanup(); });
         }).catch(function() { if (loading) loading.style.display = 'none'; if (error) error.style.display = 'flex'; });
     };
 
-    var schedulePdfLoad = function () { window._jaPdfLoadTimer = setTimeout(loadPdf, 1200); };
-    if (window.requestIdleCallback) window._jaPdfIdleCallback = window.requestIdleCallback(schedulePdfLoad, { timeout: 1800 });
-    else schedulePdfLoad();
+    // Do not render a PDF automatically during profile navigation. Complex
+    // PDFs can block Chrome's main thread; rendering starts only on request.
+    window.jaLoadApplicantPdf = function () {
+        if (started) return;
+        started = true;
+        if (ready) ready.style.display = 'none';
+        if (loading) loading.style.display = 'flex';
+        window._jaPdfLoadTimer = setTimeout(loadPdf, 0);
+    };
 })();
 
 document.querySelectorAll('.ja-tab').forEach(function(tab) {
