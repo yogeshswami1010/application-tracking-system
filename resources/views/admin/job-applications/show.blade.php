@@ -480,7 +480,7 @@ function jaSaveMarketingLabel(appId) {
                                     <option value="">Select stage…</option>
                                     @foreach($allStatuses as $stageOption)
                                         @if($stageOption->id !== $currentStatusId)
-                                        <option value="{{ $stageOption->id }}">{{ ucwords(str_replace('_', ' ', $stageOption->status)) }}</option>
+                                        <option value="{{ $stageOption->id }}" data-color="{{ $stageOption->color ?? '#6B7280' }}">{{ ucwords(str_replace('_', ' ', $stageOption->status)) }}</option>
                                         @endif
                                     @endforeach
                                 </select>
@@ -1086,9 +1086,26 @@ function jaMoveFromDetail(appId, toStatusId, toStatusLabel, currentStatusId) {
         data: { _token: '{{ csrf_token() }}', ids: [appId], status_id: toStatusId },
         success: function(response) {
             if (response.status === 'success') {
-                $.easyAjax({ type:'GET', url:"{{ route('admin.job-applications.show', ':id') }}".replace(':id', appId),
-                    success: function(res) { if (res.status === 'success') window.jaRenderApplicantProfile(res.view); }
+                var select = document.getElementById('stage-mover-select-' + appId);
+                var option = select && select.options[select.selectedIndex];
+                var color = option ? (option.getAttribute('data-color') || '#6B7280') : '#6B7280';
+
+                // A stage update must not rebuild the complete profile. That
+                // would recreate the PDF, Select2, and every event handler.
+                document.querySelectorAll('.ja-pill-stage').forEach(function (pill) {
+                    pill.style.background = color;
+                    pill.textContent = toStatusLabel;
                 });
+                document.querySelectorAll('.ja-current-badge').forEach(function (badge) {
+                    badge.style.background = color;
+                    badge.innerHTML = '<i class="fa fa-check" style="font-size:9px"></i> ' + toStatusLabel;
+                });
+                if (select) {
+                    select.value = '';
+                    Array.prototype.slice.call(select.options).forEach(function (stage) {
+                        if (stage.value === String(toStatusId)) stage.remove();
+                    });
+                }
                 if (typeof table !== 'undefined') table.draw(false);
                 if (typeof jaLoadTabCounts === 'function') jaLoadTabCounts();
             }
@@ -1115,7 +1132,19 @@ window.jaRenderApplicantProfile = function (html) {
 var $profileSkills = $('#right-sidebar-content #skills');
 if ($profileSkills.length && $.fn.select2) {
     if ($profileSkills.data('select2')) $profileSkills.select2('destroy');
-    $profileSkills.select2();
+    $profileSkills.select2({
+        width: '100%',
+        placeholder: 'Search skills...',
+        ajax: {
+            url: "{{ route('admin.job-applications.skill-search') }}",
+            dataType: 'json',
+            delay: 250,
+            data: function (params) { return { term: params.term || '' }; },
+            processResults: function (data) { return data; }
+        },
+        minimumInputLength: 1,
+        dropdownParent: $('#right-sidebar-content')
+    });
 }
 function addSkills(applicationId, callback) {
     var url = "{{ route('admin.job-applications.addSkills', ':id') }}".replace(':id', applicationId);

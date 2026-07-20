@@ -252,6 +252,7 @@ Route::middleware('auth')->group(function () {
             Route::post('job-applications/archive-job-application/{application}',   [AdminJobApplicationController::class, 'archiveJobApplication'])->name('job-applications.archiveJobApplication');
             Route::post('job-applications/unarchive-job-application/{application}', [AdminJobApplicationController::class, 'unarchiveJobApplication'])->name('job-applications.unarchiveJobApplication');
             Route::post('job-applications/add-skills/{applicationId}',    [AdminJobApplicationController::class, 'addSkills'])->name('job-applications.addSkills');
+            Route::get('job-applications/skill-search',                   [AdminJobApplicationController::class, 'profileSkillSearch'])->name('job-applications.skill-search');
             Route::post('job-applications/ai-compare',                    [AdminJobApplicationController::class, 'aiCompare'])->name('job-applications.ai-compare');
             Route::post('job-applications/ai-update-status',              [AdminJobApplicationController::class, 'aiUpdateStatus'])->name('job-applications.ai-update-status');
             Route::get('job-applications/ai-compare-applicants',          [AdminJobApplicationController::class, 'aiCompareApplicants'])->name('job-applications.ai-compare-applicants');

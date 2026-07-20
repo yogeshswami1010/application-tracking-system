@@ -1184,7 +1184,16 @@ class AdminJobApplicationController extends AdminBaseController
             return Reply::error('Application not found.');
         }
 
-        $this->skills = Skill::select('id', 'name')->get();
+        // Rendering every skill as an <option> and initializing Select2 on it
+        // blocks the browser when the skills catalogue is large. The profile
+        // needs only its selected options; Select2 searches the rest by AJAX.
+        $selectedSkillIds = collect((array) $this->application->skills)
+            ->filter(fn ($id) => is_numeric($id))
+            ->map(fn ($id) => (int) $id)
+            ->values();
+        $this->skills = $selectedSkillIds->isEmpty()
+            ? collect()
+            : Skill::select('id', 'name')->whereIn('id', $selectedSkillIds)->orderBy('name')->get();
 
         // Answers remain for the existing Q&A tab and resume-upload fallback.
         // History and notes are intentionally not part of this first response.
@@ -1256,6 +1265,22 @@ class AdminJobApplicationController extends AdminBaseController
             return Reply::dataOnly(['status' => 'success', 'view' => view('admin.job-applications.partials.profile-history', compact('statusHistories', 'previousApps'))->render()]);
         }
         return Reply::error('Tab not found.');
+    }
+
+    public function profileSkillSearch(Request $request)
+    {
+        abort_if(! $this->user->cans('view_job_applications'), 403);
+
+        $term = trim((string) $request->input('term', ''));
+        $skills = Skill::query()
+            ->select('id', 'name')
+            ->when($term !== '', fn ($query) => $query->where('name', 'like', '%' . $term . '%'))
+            ->orderBy('name')
+            ->limit(25)
+            ->get()
+            ->map(fn ($skill) => ['id' => $skill->id, 'text' => $skill->name]);
+
+        return response()->json(['results' => $skills]);
     }
 
     public function updateIndex(Request $request) 
