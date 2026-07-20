@@ -28,23 +28,9 @@
     $currentStatus = $allStatuses->firstWhere('id', $currentStatusId);
 
     // ── Previous applications (same email) ──
-    if (!isset($previousApps)) {
-        $previousApps = \App\JobApplication::where('email', $application->email)
-            ->where('is_candidate', 0)
-            ->where('id', '!=', $application->id)
-            ->with(['job:id,title', 'status:id,status,color', 'location:id,location'])
-            ->orderByDesc('created_at')
-            ->limit(5) // was missing: unbounded query on every profile open
-            ->get();
-    }
+    $previousApps = collect();
 
-    if (!isset($clientNotes)) {
-        $clientNotes = \App\JobClientNote::with('user:id,name')
-            ->where('job_id', $application->job_id)
-            ->orderByDesc('created_at')
-            ->limit(50)
-            ->get();
-    }
+    $clientNotes = collect();
 
     // Resolve resume URL
     $resumeUrl = $application->resume_url ?: null;
@@ -113,6 +99,7 @@
 .ja-tab.active { color:#2563EB;border-bottom-color:#2563EB; }
 .ja-tab:hover:not(.active) { color:#1A1E2E; }
 .ja-tab-badge { display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:20px;background:#F0EEE9;font-size:10px;font-weight:600;color:#8A94A6; }
+.ja-tab-loading { text-align:center;padding:24px 0;color:#B0B8C4;font-size:12.5px; }
 .ja-right-scroll { flex:1;overflow-y:auto;padding:12px;scrollbar-width:auto;scrollbar-color:#111 #E8E6E1; }
 .ja-right-scroll::-webkit-scrollbar { width:12px; }
 .ja-right-scroll::-webkit-scrollbar-track { background:#E8E6E1;border-radius:10px; }
@@ -298,11 +285,9 @@ function jaSaveMarketingLabel(appId) {
                         <i class="fa fa-question-circle-o" style="font-size:11px"></i> @lang('modules.front.additionalDetails')
                     </div>
                     @endif
-                    @if($previousApps->isNotEmpty() || $application->statusHistories->isNotEmpty())
-                        <div class="ja-tab" data-tab="history">
-                            <i class="fa fa-history"></i> History
-                        </div>
-                    @endif
+                    <div class="ja-tab" data-tab="history">
+                        <i class="fa fa-history"></i> History
+                    </div>
                       @if(!is_null($application->schedule))
                         <div class="ja-tab" data-tab="schedule">
                             <i class="fa fa-calendar" stylfe="font-size:11px"></i> @lang('modules.interviewSchedule.scheduleDetail')
@@ -339,15 +324,9 @@ function jaSaveMarketingLabel(appId) {
                 </div>
                 <div class="ja-tab" data-tab="notes">
                     <i class="fa fa-sticky-note-o" style="font-size:11px"></i> @lang('modules.jobApplication.applicantNotes')
-                    @if($application->notes->count() > 0)
-                        <span class="ja-tab-badge">{{ $application->notes->count() }}</span>
-                    @endif
                 </div>
                 <div class="ja-tab" data-tab="client-notes">
                     <i class="fa fa-building" style="font-size:11px"></i> Client Notes
-                    @if($clientNotes->count() > 0)
-                        <span class="ja-tab-badge">{{ $clientNotes->count() }}</span>
-                    @endif
                 </div>
                 
               
@@ -357,7 +336,10 @@ function jaSaveMarketingLabel(appId) {
             <div class="ja-right-scroll">
 
                 {{-- ── HISTORY TAB ── --}}
-                @if($previousApps->isNotEmpty() || $application->statusHistories->isNotEmpty())
+                <div id="ja-tab-history" class="ja-tab-pane" style="display:none" data-url="{{ route('admin.job-applications.profile-tab', [$application->id, 'history']) }}">
+                    <div class="ja-tab-loading">Open the History tab to load activity.</div>
+                </div>
+                @if(false)
                 <div id="ja-tab-history" class="ja-tab-pane" style="display:none">
 
                 @if($application->statusHistories->isNotEmpty())
@@ -824,10 +806,8 @@ function jaSaveMarketingLabel(appId) {
                         </button>
                     </div>
                     @endif
-                    <div id="applicant-notes">
-                        @include('admin.job-applications.partials.applicant-notes-list', [
-                            'notes' => $application->notes // already eager-loaded by controller (same ordering + user)
-                        ])
+                    <div id="applicant-notes" data-url="{{ route('admin.job-applications.profile-tab', [$application->id, 'notes']) }}">
+                        <div class="ja-tab-loading">Open the Applicant Notes tab to load notes.</div>
                     </div>
                 </div>
 
@@ -1062,16 +1042,17 @@ document.querySelectorAll('.ja-tab').forEach(function(tab) {
         var pane = document.getElementById('ja-tab-' + target);
         if (pane) pane.style.display = 'block';
 
-        if (target === 'client-notes') {
-            var $clientNotes = $('#client-notes-list');
-            var notesUrl = $clientNotes.data('url');
-            if (notesUrl && !$clientNotes.data('loaded') && !$clientNotes.data('loading')) {
-                $clientNotes.data('loading', true).html('<div style="text-align:center;padding:24px 0;color:#B0B8C4;font-size:12.5px"><i class="fa fa-spinner fa-spin"></i> Loading client notes...</div>');
-                $.get(notesUrl, function(response) {
+        if (target === 'history' || target === 'notes' || target === 'client-notes') {
+            var selector = target === 'notes' ? '#applicant-notes' : (target === 'client-notes' ? '#client-notes-list' : '#ja-tab-history');
+            var $tabContent = $(selector);
+            var tabUrl = $tabContent.data('url');
+            if (tabUrl && !$tabContent.data('loaded') && !$tabContent.data('loading')) {
+                $tabContent.data('loading', true).html('<div class="ja-tab-loading"><i class="fa fa-spinner fa-spin"></i> Loading...</div>');
+                $.get(tabUrl, function(response) {
                     if (response.status === 'success') {
-                        $clientNotes.html(response.view).data('loaded', true);
+                        $tabContent.html(response.view).data('loaded', true);
                     }
-                }).always(function() { $clientNotes.data('loading', false); });
+                }).always(function() { $tabContent.data('loading', false); });
             }
         }
     });

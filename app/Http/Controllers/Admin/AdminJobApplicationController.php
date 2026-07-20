@@ -1157,12 +1157,15 @@ class AdminJobApplicationController extends AdminBaseController
     public function show($id)
     {
         $this->application = JobApplication::withTrashed()
+            // Do not hydrate CV search/index payloads for the profile drawer.
+            // They are large and are not rendered in the initial Details view.
+            ->select([
+                'id', 'full_name', 'email', 'phone', 'address', 'gender', 'dob',
+                'country', 'state', 'city', 'photo', 'skills', 'skype_id',
+                'cover_letter', 'job_id', 'status_id', 'location_id',
+                'is_marketing', 'marketing_label', 'created_at', 'updated_at',
+            ])
             ->with([
-                'schedule',
-                'schedule',
-                'notes' => function ($q) {
-                    $q->with('user:id,name')->orderByDesc('created_at');
-                },
                 'onboard',
                 // The CV URL accessor uses this loaded relation. Without it,
                 // rendering a profile performs repeated resume-document queries.
@@ -1174,8 +1177,6 @@ class AdminJobApplicationController extends AdminBaseController
                 'job.company',
                 'job.location',
                 'job.currency', // used by the salary badge in the job-description modal
-                'job.skills.skill', // avoids re-querying skills in the job-description modal
-                'schedule.employee.user:id,name', // interviewers shown in the schedule tab
             ])
             ->find($id);
 
@@ -1185,6 +1186,8 @@ class AdminJobApplicationController extends AdminBaseController
 
         $this->skills = Skill::select('id', 'name')->get();
 
+        // Answers remain for the existing Q&A tab and resume-upload fallback.
+        // History and notes are intentionally not part of this first response.
         $this->answers = JobApplicationAnswer::with(['question'])
             ->where('job_id', $this->application->job_id)
             ->where('job_application_id', $this->application->id)
@@ -1194,9 +1197,6 @@ class AdminJobApplicationController extends AdminBaseController
         // notes+user so the blade never issues a query per row.
         $this->previousApps = collect();
         $this->clientNotes = collect();
-        $this->hasHistory = \App\JobApplicationStatusHistory::where('job_application_id', $this->application->id)->exists()
-            || JobApplication::where('email', $this->application->email)->where('is_candidate', 0)->where('id', '!=', $this->application->id)->exists();
-        $this->hasSchedule = ! is_null($this->application->schedule);
 
         // Pass pipeline statuses to the view to avoid querying them again while rendering.
         $this->allStatuses = ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
@@ -1231,6 +1231,20 @@ class AdminJobApplicationController extends AdminBaseController
         if ($tab === 'client-notes') {
             $clientNotes = \App\JobClientNote::with('user:id,name')->where('job_id', $application->job_id)->latest()->limit(50)->get();
             return Reply::dataOnly(['status' => 'success', 'view' => view('admin.job-applications.partials.client-notes-list', compact('clientNotes'))->render()]);
+        }
+        if ($tab === 'notes') {
+            $notes = ApplicantNote::with('user:id,name')
+                ->where('job_application_id', $application->id)
+                ->latest('id')
+                ->get();
+
+            return Reply::dataOnly([
+                'status' => 'success',
+                'view' => view('admin.job-applications.partials.applicant-notes-list', [
+                    'notes' => $notes,
+                    'user' => $this->user,
+                ])->render(),
+            ]);
         }
         if ($tab === 'schedule' && $application->schedule) {
             $schedule = $application->schedule()->with(['employee.user:id,name', 'comments.user:id,name'])->first();
