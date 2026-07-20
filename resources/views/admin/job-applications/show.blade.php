@@ -655,7 +655,8 @@
                 </div>
             </div>
              @if($resumeUrl)
-                <embed src="{{ $resumeUrl }}" type="application/pdf" class="ja-pdf-frame">
+                <div id="ja-pdf-loading" style="flex:1;display:flex;align-items:center;justify-content:center;background:#525659;color:#d1d5db;font-size:13px"><i class="fa fa-spinner fa-spin" style="margin-right:8px"></i> Loading CV...</div>
+                <embed id="ja-pdf-embed" src="about:blank" data-src="{{ $resumeUrl }}" type="application/pdf" class="ja-pdf-frame" style="display:none">
             @else
                 <div class="ja-pdf-no-resume">
                     <i class="fa fa-file-pdf-o"></i>
@@ -2222,6 +2223,25 @@ function jaSaveInfoEdit(appId) {
         }
     });
 }
+</script>
+
+<script>
+window.jaDisposeApplicantProfile = function () {
+    if (window._jaPdfEmbedTimer) { clearTimeout(window._jaPdfEmbedTimer); window._jaPdfEmbedTimer = null; }
+    var embed = document.getElementById('ja-pdf-embed');
+    if (embed) {
+        try { embed.src = 'about:blank'; } catch (e) {}
+        try { embed.remove(); } catch (e) {}
+    }
+};
+window._jaPdfEmbedTimer = setTimeout(function () {
+    var embed = document.getElementById('ja-pdf-embed');
+    if (!embed || !embed.dataset.src) return;
+    embed.src = embed.dataset.src;
+    embed.style.display = 'block';
+    var loading = document.getElementById('ja-pdf-loading');
+    if (loading) loading.remove();
+}, 1000);
 </script>
 
 @if(!is_null($application->skype_id))
