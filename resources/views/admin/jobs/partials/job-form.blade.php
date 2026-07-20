@@ -418,6 +418,10 @@
                                 </div>
                                 <input type="text" class="form-control w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-[13px] text-[#0F1F3D] placeholder:text-gray-300 outline-none transition-all focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10" name="title" id="title" value="{{ $job ? $job->title : '' }}">
                             </div>
+                            <div class="form-group mb-0">
+                                <label for="job_code" class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">Job Code</label>
+                                <input type="text" class="form-control w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-[13px] text-[#0F1F3D] placeholder:text-gray-300 outline-none transition-all focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10" name="job_code" id="job_code" maxlength="100" value="{{ $job ? $job->job_code : '' }}" placeholder="e.g. CSR-2026-001">
+                            </div>
                             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                                 <div class="form-group mb-0 flex min-h-0 flex-col">
                                     <label for="job_type" class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">@lang('modules.jobs.jobType')</label>

@@ -15,6 +15,7 @@ class StoreJob extends CoreRequest
     {
         $rules = [
             'title'              => 'required',
+            'job_code'           => 'nullable|string|max:100',
             'job_description'    => 'required',
             'total_positions'    => 'required|numeric',
             'start_date'         => 'required|date',

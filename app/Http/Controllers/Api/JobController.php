@@ -113,6 +113,7 @@ class JobController extends Controller
 
             $data[] = [
                 'id'          => $job->id,
+                'job_code'    => $job->job_code,
                 'job_title'   => $job->title,
                 'slug'        => $job->slug,
                 'location'    => $job->jobLocation->pluck('location')->implode(', '),

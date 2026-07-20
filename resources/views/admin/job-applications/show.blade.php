@@ -960,7 +960,7 @@ function jaSaveMarketingLabel(appId) {
                         } elseif ($modalJob->pay_type == 'Exact Amount') {
                             $modalSalaryText = $modalCurrencySymbol . number_format($modalJob->starting_salary) . ' /' . $modalJob->pay_according;
                         }
-                    }
+                    } 
                 @endphp
                 @if($modalSalaryText)
                 <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:600;background:#ECFDF5;color:#065F46"><i class="fa fa-money" style="font-size:10px"></i>{{ $modalSalaryText }}</span>
