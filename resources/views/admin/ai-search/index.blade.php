@@ -838,8 +838,6 @@ function aiShowLoading() {
 
 function aiOpenApplicant(id) {
     if (typeof window.jaDisposeApplicantProfile === 'function') window.jaDisposeApplicantProfile();
-    $('#right-sidebar').addClass('translate-x-full').removeClass('translate-x-0');
-    $('#right-sidebar-backdrop').addClass('hidden').css('display', 'none');
     var url = "{{ route('admin.job-applications.show', ':id') }}".replace(':id', id);
     var $sidebar = $('#right-sidebar');
     var $backdrop = $('#right-sidebar-backdrop');

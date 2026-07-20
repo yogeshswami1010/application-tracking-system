@@ -969,8 +969,6 @@
 
         var id  = $(this).data('row-id');
         if (typeof window.jaDisposeApplicantProfile === 'function') window.jaDisposeApplicantProfile();
-        $('#right-sidebar').addClass('translate-x-full').removeClass('translate-x-0');
-        $('#right-sidebar-backdrop').addClass('hidden').css('display', 'none');
         var url = "{{ route('admin.job-applications.show',':id') }}".replace(':id', id);
         var requestId = (window._jaDirectProfileRequestId || 0) + 1;
         window._jaDirectProfileRequestId = requestId;
