@@ -958,7 +958,7 @@
     // ── Show detail sidebar ──────────────────────────────────────
     // jaRebuildIds() is called here too so the counter is correct
     // even if somehow drawCallback hasn't fired yet.
-    $('#myTable').on('click', '.show-detail', function() {
+    $('#myTable').off('click.jaProfile', '.show-detail').on('click.jaProfile', '.show-detail', function() {
         var $sidebar  = $('#right-sidebar');
         var $backdrop = $('#right-sidebar-backdrop');
         $sidebar.removeClass('translate-x-full').addClass('translate-x-0');
