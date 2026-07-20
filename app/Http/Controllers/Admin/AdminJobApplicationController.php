@@ -358,6 +358,7 @@ class AdminJobApplicationController extends AdminBaseController
             'job_applications.location_id',   // ← this was the ambiguous one
             'job_applications.created_at'
         )
+            ->selectRaw("EXISTS (SELECT 1 FROM job_application_answers jaa INNER JOIN questions q ON q.id = jaa.question_id WHERE jaa.job_application_id = job_applications.id AND q.type = 'radio' AND q.is_knockout = 1 AND q.knockout_answer IS NOT NULL AND LOWER(TRIM(jaa.answer)) = LOWER(TRIM(q.knockout_answer))) as is_knockout")
             ->with([
                 'location',
                 'job.skills',
@@ -547,6 +548,9 @@ class AdminJobApplicationController extends AdminBaseController
                 return ucwords($row->location?->location ?? '—');
             })
             ->editColumn('status', function ($row) {
+                if ((bool) $row->is_knockout) {
+                    return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold text-white" style="background:#dc2626"><i class="fa fa-user-times" style="font-size:10px"></i> Knockout</span>';
+                }
                 $color = $row->status?->color ?? '#6B7280';
                 $label = ucwords(str_replace('_', ' ', $row->status?->status ?? ''));
                 return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold text-white" style="background:' . $color . '">' . $label . '</span>';
