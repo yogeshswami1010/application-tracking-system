@@ -969,6 +969,7 @@
 
         var id  = $(this).data('row-id');
         if (typeof window.jaDisposeApplicantProfile === 'function') window.jaDisposeApplicantProfile();
+        $('#right-sidebar-content').html('<div style="height:100%;min-height:320px;display:flex;align-items:center;justify-content:center;color:#8892A0;font-size:13px"><i class="fa fa-spinner fa-spin" style="font-size:20px;margin-right:10px"></i> Loading applicant profile...</div>');
         var url = "{{ route('admin.job-applications.show',':id') }}".replace(':id', id);
         var requestId = (window._jaDirectProfileRequestId || 0) + 1;
         window._jaDirectProfileRequestId = requestId;
