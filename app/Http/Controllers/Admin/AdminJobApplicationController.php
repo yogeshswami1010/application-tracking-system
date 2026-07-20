@@ -1211,6 +1211,9 @@ class AdminJobApplicationController extends AdminBaseController
         $this->jobOptions = \Illuminate\Support\Facades\Cache::remember('ja_job_options_v1', 300, function () {
             return Job::select('id', 'title')->orderBy('title')->get();
         });
+        $this->allJobs = \Illuminate\Support\Facades\Cache::remember('ja_all_jobs_with_location_v1', 300, function () {
+            return Job::orderBy('title')->with('location')->get();
+        });
         $this->mentionUsers = \Illuminate\Support\Facades\Cache::remember('ja_mention_users_v1', 300, function () {
             return User::select('id', 'name')->orderBy('name')->get();
         });

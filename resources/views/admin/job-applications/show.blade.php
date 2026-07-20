@@ -11,8 +11,9 @@
     };
     $stagePillBg = $application->status?->color ?? '#6366F1';
     $initials = collect(explode(' ', $application->full_name))->map(fn($w) => strtoupper(substr($w,0,1)))->take(2)->join('');
-    $allStatuses = \App\ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
-    if ($application->job_id) {
+    $allStatusesProvided = isset($allStatuses);
+    if (!$allStatusesProvided) $allStatuses = \App\ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
+    if ($application->job_id && !$allStatusesProvided) {
         try {
             $jobSpecific = \App\ApplicationStatus::where('job_id', $application->job_id)->orderBy('position')->get();
             $globalIds   = $allStatuses->pluck('id');
@@ -33,10 +34,10 @@
     }
 
     // All jobs for the assign dropdown
-    $allJobs = \App\Job::orderBy('title')->with('location')->get();
+    if (!isset($allJobs)) $allJobs = \App\Job::orderBy('title')->with('location')->get();
 
     // Client notes — shared across all applicants on the same job
-    $clientNotes = $application->job_id
+    if (!isset($clientNotes)) $clientNotes = $application->job_id
         ? \App\JobClientNote::with('user:id,name')
             ->where('job_id', $application->job_id)
             ->orderByDesc('created_at')
@@ -44,7 +45,7 @@
         : collect();
 
     // Previous applications (same email) — for the History tab
-    $previousApps = \App\JobApplication::where('email', $application->email)
+    if (!isset($previousApps)) $previousApps = \App\JobApplication::where('email', $application->email)
         ->where('is_candidate', 0)
         ->where('id', '!=', $application->id)
         ->with(['job:id,title', 'status:id,status,color'])
