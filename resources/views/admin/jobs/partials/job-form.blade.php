@@ -876,9 +876,10 @@
     {{-- Questions list --}}
     <div id="question-list" class="space-y-3 px-5 pb-4">
         @foreach ($questions as $question)
+            @php $isResumeQuestion = strtolower(trim($question->question)) === 'upload resume'; @endphp
             <label
                 data-question-text="{{ strtolower($question->question) }}"
-                class="question-item flex items-start justify-between gap-4 rounded-xl border border-gray-200 bg-white p-4 cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition">
+                class="question-item flex items-start justify-between gap-4 rounded-xl border border-gray-200 bg-white p-4 cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition {{ $isResumeQuestion ? 'border-blue-300 bg-blue-50/40' : '' }}">
 
                 <div class="flex items-start gap-3 flex-1">
                     <div class="pt-0.5">
@@ -886,7 +887,8 @@
                                name="question[]"
                                value="{{ $question->id }}"
                                class="question-checkbox h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                               @if(in_array($question->id, $jobQuestion ?? [])) checked @endif
+                               @if($isResumeQuestion || in_array($question->id, $jobQuestion ?? [])) checked @endif
+                               @if($isResumeQuestion) onclick="return false;" @endif
                                onchange="updateSelectedCount()">
                     </div>
                     <div class="flex-1">
@@ -899,6 +901,9 @@
                             </span>
                             @if($question->required == 'yes')
                                 <span class="rounded bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700">Required</span>
+                            @endif
+                            @if($isResumeQuestion)
+                                <span class="rounded bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">Always required</span>
                             @endif
                             @if($question->is_knockout)
                                 <span class="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">Knockout</span>

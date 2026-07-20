@@ -259,7 +259,7 @@ class AdminJobsController extends AdminBaseController
         }
 
         // Save Question for job
-        $job->questions()->sync($request->question);
+        $job->questions()->sync($this->jobQuestionsWithResume($request->question));
 
       // Handle manual location entry
         if ($request->filled('location_new')) {
@@ -437,7 +437,7 @@ class AdminJobsController extends AdminBaseController
         }
 
         // Update Question for job
-        $job->questions()->sync($request->question);
+        $job->questions()->sync($this->jobQuestionsWithResume($request->question));
 
         JobJobLocation::where('job_id', $job->id)->delete();
        // Handle manual location entry
@@ -1253,6 +1253,19 @@ class AdminJobsController extends AdminBaseController
             'free_tier_requests',
             'free_tier_input_token_count',
         ]);
+    }
+
+    /** Always attach the required Upload Resume question to every job. */
+    private function jobQuestionsWithResume($questionIds): array
+    {
+        $questionIds = array_filter((array) $questionIds);
+        $resumeQuestionId = Question::whereRaw('LOWER(TRIM(question)) = ?', ['upload resume'])->value('id');
+
+        if ($resumeQuestionId) {
+            $questionIds[] = $resumeQuestionId;
+        }
+
+        return array_values(array_unique($questionIds));
     }
 
     private function maskApiKey(string $key): string
