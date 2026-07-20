@@ -92,7 +92,10 @@
 .ja-pdf-no-resume i { font-size:48px;opacity:.35;display:block;margin-bottom:14px; }
 .ja-pdf-no-resume p { font-size:13px;opacity:.6; }
     .ja-pdf-frame { position:absolute;inset:0;z-index:1;border:0;width:100%;height:100%;display:block;background:#525659; }
-    .ja-pdf-loading { position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;color:#d1d5db;background:#525659;font-size:12px;pointer-events:none; }
+.ja-pdf-loading { position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;color:#d1d5db;background:#525659;font-size:12px;pointer-events:none; }
+#ja-pdf-scroll::-webkit-scrollbar { width:14px; }
+#ja-pdf-scroll::-webkit-scrollbar-track { background:#D1D5DB; }
+#ja-pdf-scroll::-webkit-scrollbar-thumb { background:#111;border-radius:10px;border:2px solid #D1D5DB; }
 .ja-right-panel { display:flex;flex-direction:column;overflow:hidden;background:#F8F7F4; }
 .ja-tabs { display:flex;background:#fff;border-bottom:1px solid #E8E6E1;flex-shrink:0;padding:0 16px;}
 .ja-tab { padding:11px 13px;font-size:12.5px;font-weight:600;color:#8A94A6;cursor:pointer;border-bottom:2.5px solid transparent;white-space:nowrap;display:flex;align-items:center;gap:5px;transition:color .15s;flex-shrink:0; }
@@ -311,7 +314,9 @@ function jaSaveMarketingLabel(appId) {
                     </div>
                     <div id="ja-pdf-loading" class="ja-pdf-loading" style="display:none"><i class="fa fa-spinner fa-spin" style="font-size:22px;"></i><span>Loading CV...</span></div>
                     <div id="ja-pdf-error" style="display:none;position:absolute;inset:0;z-index:3;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#d1d5db;background:#525659;"><i class="fa fa-exclamation-triangle" style="font-size:28px"></i><span style="font-size:13px">Couldn't render this PDF.</span><a href="{{ $resumeUrl }}" target="_blank" class="ja-pdf-btn ja-pdf-btn-primary">Open CV</a></div>
-                    <div id="ja-pdf-scroll" style="position:absolute;inset:0;overflow:auto;display:none;justify-content:center;padding:16px;"><canvas id="ja-pdf-canvas" style="background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.35)"></canvas></div>
+                    <div id="ja-pdf-scroll" style="position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;display:none;padding:16px;scrollbar-width:auto;scrollbar-color:#111 #D1D5DB;">
+                        <div id="ja-pdf-pages" style="display:flex;flex-direction:column;align-items:center;gap:16px;"></div>
+                    </div>
                 </div>
             @else
                 <div class="ja-pdf-no-resume">
@@ -1004,6 +1009,7 @@ window.jaUnloadPdf = function () {
         window._jaPdfLoadTimer = null;
     }
     if (window._jaPdfRenderTask) { try { window._jaPdfRenderTask.cancel(); } catch (e) {} window._jaPdfRenderTask = null; }
+    if (window._jaPdfObserver) { try { window._jaPdfObserver.disconnect(); } catch (e) {} window._jaPdfObserver = null; }
     if (window._jaPdfDoc) { try { window._jaPdfDoc.destroy(); } catch (e) {} window._jaPdfDoc = null; }
 };
 
@@ -1013,9 +1019,9 @@ window.jaUnloadPdf();
     var ready = document.getElementById('ja-pdf-ready');
     var loading = document.getElementById('ja-pdf-loading');
     var scroll = document.getElementById('ja-pdf-scroll');
-    var canvas = document.getElementById('ja-pdf-canvas');
+    var pages = document.getElementById('ja-pdf-pages');
     var error = document.getElementById('ja-pdf-error');
-    if (!container || !canvas || !window.pdfjsLib) return;
+    if (!container || !pages || !window.pdfjsLib) return;
     var started = false;
 
     var loadPdf = function () {
@@ -1034,11 +1040,68 @@ window.jaUnloadPdf();
             if (!page || document.getElementById('ja-pdf-container') !== container) return;
             var base = page.getViewport({scale:1});
             var scale = Math.max(.7, Math.min(1.15, (container.clientWidth - 32) / base.width));
-            var viewport = page.getViewport({scale:scale});
-            canvas.width = viewport.width; canvas.height = viewport.height;
-            if (loading) loading.style.display = 'none'; scroll.style.display = 'flex';
-            window._jaPdfRenderTask = page.render({canvasContext:canvas.getContext('2d'), viewport:viewport});
-            return window._jaPdfRenderTask.promise.then(function () { page.cleanup(); });
+            var pageHeight = Math.ceil(base.height * scale);
+            var pageWidth = Math.ceil(base.width * scale);
+
+            // Add lightweight placeholders for every page. This gives the CV
+            // its complete vertical scrollbar immediately, but only paints a
+            // page when it is close to the visible area.
+            for (var number = 1; number <= pdf.numPages; number++) {
+                var holder = document.createElement('div');
+                holder.className = 'ja-pdf-page';
+                holder.dataset.page = number;
+                holder.style.cssText = 'width:' + pageWidth + 'px;min-height:' + pageHeight + 'px;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;color:#9CA3AF;font-size:12px;';
+                holder.innerHTML = '<i class="fa fa-spinner fa-spin" style="margin-right:6px"></i> Loading page ' + number + ' of ' + pdf.numPages;
+                pages.appendChild(holder);
+            }
+
+            var renderingPage = false;
+            var pendingPages = [];
+            var renderPage = function (holder) {
+                if (holder.dataset.rendered || holder.dataset.rendering || document.getElementById('ja-pdf-container') !== container) return;
+                if (renderingPage) {
+                    if (pendingPages.indexOf(holder) === -1) pendingPages.push(holder);
+                    return;
+                }
+                renderingPage = true;
+                holder.dataset.rendering = '1';
+                var pageNumber = Number(holder.dataset.page);
+                pdf.getPage(pageNumber).then(function (pdfPage) {
+                    if (document.getElementById('ja-pdf-container') !== container) return;
+                    var viewport = pdfPage.getViewport({scale:scale});
+                    var canvas = document.createElement('canvas');
+                    canvas.width = Math.floor(viewport.width);
+                    canvas.height = Math.floor(viewport.height);
+                    canvas.style.cssText = 'display:block;width:100%;height:auto;';
+                    window._jaPdfRenderTask = pdfPage.render({canvasContext:canvas.getContext('2d'), viewport:viewport});
+                    return window._jaPdfRenderTask.promise.then(function () {
+                        holder.innerHTML = '';
+                        holder.appendChild(canvas);
+                        holder.dataset.rendered = '1';
+                        pdfPage.cleanup();
+                    });
+                }).catch(function () {
+                    holder.innerHTML = '<span>Could not render page ' + pageNumber + '.</span>';
+                }).then(function () {
+                    renderingPage = false;
+                    holder.dataset.rendering = '';
+                    if (pendingPages.length) renderPage(pendingPages.shift());
+                }, function () {
+                    renderingPage = false;
+                    holder.dataset.rendering = '';
+                    if (pendingPages.length) renderPage(pendingPages.shift());
+                });
+            };
+
+            if (loading) loading.style.display = 'none';
+            scroll.style.display = 'block';
+            window._jaPdfObserver = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting) renderPage(entry.target);
+                });
+            }, { root: scroll, rootMargin: '400px 0px' });
+            Array.prototype.forEach.call(pages.children, function (holder) { window._jaPdfObserver.observe(holder); });
+            renderPage(pages.firstElementChild);
         }).catch(function() { if (loading) loading.style.display = 'none'; if (error) error.style.display = 'flex'; });
     };
 
