@@ -313,7 +313,8 @@ function jaSaveMarketingLabel(appId) {
                         <button type="button" class="ja-pdf-btn ja-pdf-btn-primary" onclick="jaLoadApplicantPdf()"><i class="fa fa-eye"></i> View CV</button>
                     </div>
                     <div id="ja-pdf-loading" class="ja-pdf-loading" style="display:none"><i class="fa fa-spinner fa-spin" style="font-size:22px;"></i><span>Loading CV...</span></div>
-                    <div id="ja-pdf-error" style="display:none;position:absolute;inset:0;z-index:3;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#d1d5db;background:#525659;"><i class="fa fa-exclamation-triangle" style="font-size:28px"></i><span style="font-size:13px">Couldn't render this PDF.</span><a href="{{ $resumeUrl }}" target="_blank" class="ja-pdf-btn ja-pdf-btn-primary">Open CV</a></div>
+                    <div id="ja-pdf-error" style="display:none;position:absolute;inset:0;z-index:3;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#d1d5db;background:#525659;"><i class="fa fa-exclamation-triangle" style="font-size:28px"></i><span style="font-size:13px">Couldn't render this PDF.</span><button type="button" class="ja-pdf-btn ja-pdf-btn-primary" onclick="jaShowNativeApplicantPdf()">Show PDF</button></div>
+                    <iframe id="ja-pdf-frame" class="ja-pdf-frame" title="Applicant CV" style="display:none"></iframe>
                     <div id="ja-pdf-scroll" style="position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;display:none;padding:16px;scrollbar-width:auto;scrollbar-color:#111 #D1D5DB;">
                         <div id="ja-pdf-pages" style="display:flex;flex-direction:column;align-items:center;gap:16px;"></div>
                     </div>
@@ -1011,6 +1012,8 @@ window.jaUnloadPdf = function () {
     if (window._jaPdfRenderTask) { try { window._jaPdfRenderTask.cancel(); } catch (e) {} window._jaPdfRenderTask = null; }
     if (window._jaPdfObserver) { try { window._jaPdfObserver.disconnect(); } catch (e) {} window._jaPdfObserver = null; }
     if (window._jaPdfDoc) { try { window._jaPdfDoc.destroy(); } catch (e) {} window._jaPdfDoc = null; }
+    var oldFrame = document.getElementById('ja-pdf-frame');
+    if (oldFrame) oldFrame.src = 'about:blank';
 };
 
 window.jaUnloadPdf();
@@ -1021,8 +1024,19 @@ window.jaUnloadPdf();
     var scroll = document.getElementById('ja-pdf-scroll');
     var pages = document.getElementById('ja-pdf-pages');
     var error = document.getElementById('ja-pdf-error');
+    var frame = document.getElementById('ja-pdf-frame');
     if (!container || !pages || !window.pdfjsLib) return;
     var started = false;
+
+    window.jaShowNativeApplicantPdf = function () {
+        if (!frame) return;
+        if (ready) ready.style.display = 'none';
+        if (loading) loading.style.display = 'none';
+        if (error) error.style.display = 'none';
+        if (scroll) scroll.style.display = 'none';
+        frame.style.display = 'block';
+        if (!frame.src || frame.src === 'about:blank') frame.src = @json($resumeUrl) + '#view=FitH';
+    };
 
     var loadPdf = function () {
         pdfjsLib.getDocument({
@@ -1102,7 +1116,11 @@ window.jaUnloadPdf();
             }, { root: scroll, rootMargin: '400px 0px' });
             Array.prototype.forEach.call(pages.children, function (holder) { window._jaPdfObserver.observe(holder); });
             renderPage(pages.firstElementChild);
-        }).catch(function() { if (loading) loading.style.display = 'none'; if (error) error.style.display = 'flex'; });
+        }).catch(function() {
+            // Some protected or external file URLs cannot be fetched by
+            // PDF.js. Let the browser's PDF viewer handle those files.
+            window.jaShowNativeApplicantPdf();
+        });
     };
 
     // Do not render a PDF automatically during profile navigation. Complex
