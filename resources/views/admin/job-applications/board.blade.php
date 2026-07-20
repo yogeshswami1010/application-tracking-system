@@ -605,7 +605,8 @@
 
                 if (isDragging == 0) {
                     if (typeof window.jaDisposeApplicantProfile === 'function') window.jaDisposeApplicantProfile();
-                    $('#right-sidebar').css('visibility', 'hidden');
+                    $('#right-sidebar').addClass('translate-x-full').removeClass('translate-x-0');
+                    $('#right-sidebar-backdrop').addClass('hidden').css('display', 'none');
                     var $sidebar = $('#right-sidebar');
                     var $backdrop = $('#right-sidebar-backdrop');
                     $sidebar.removeClass('translate-x-full').addClass('translate-x-0');
@@ -620,7 +621,7 @@
                     window._jaDirectProfileXhr = $.ajax({
                         type: 'GET', url: url,
                         success: function (response) {
-                            if (requestId === window._jaDirectProfileRequestId && response.status == 'success') { $('#right-sidebar').css('visibility', 'visible'); $('#right-sidebar-content').html(response.view); }
+                            if (requestId === window._jaDirectProfileRequestId && response.status == 'success') { $('#right-sidebar').removeClass('translate-x-full').addClass('translate-x-0'); $('#right-sidebar-backdrop').removeClass('hidden').css('display', 'block'); $('#right-sidebar-content').html(response.view); }
                         }
                     });
                 }

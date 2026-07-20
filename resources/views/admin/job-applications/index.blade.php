@@ -969,7 +969,8 @@
 
         var id  = $(this).data('row-id');
         if (typeof window.jaDisposeApplicantProfile === 'function') window.jaDisposeApplicantProfile();
-        $('#right-sidebar').css('visibility', 'hidden');
+        $('#right-sidebar').addClass('translate-x-full').removeClass('translate-x-0');
+        $('#right-sidebar-backdrop').addClass('hidden').css('display', 'none');
         var url = "{{ route('admin.job-applications.show',':id') }}".replace(':id', id);
         var requestId = (window._jaDirectProfileRequestId || 0) + 1;
         window._jaDirectProfileRequestId = requestId;
@@ -980,7 +981,8 @@
             type: 'GET', url: url,
             success: function(response) {
                 if (requestId === window._jaDirectProfileRequestId && response.status === 'success') {
-                    $('#right-sidebar').css('visibility', 'visible');
+                    $('#right-sidebar').removeClass('translate-x-full').addClass('translate-x-0');
+                    $('#right-sidebar-backdrop').removeClass('hidden').css('display', 'block');
                     $('#right-sidebar-content').html(response.view);
                 }
             }
