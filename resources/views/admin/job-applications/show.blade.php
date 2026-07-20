@@ -320,7 +320,8 @@ function jaSaveMarketingLabel(appId) {
             @if($resumeUrl)
                 <div id="ja-pdf-container" style="flex:1;min-height:0;position:relative;overflow:hidden;background:#525659;">
                     <div id="ja-pdf-loading" class="ja-pdf-loading"><i class="fa fa-spinner fa-spin" style="font-size:22px;"></i><span>Loading CV...</span></div>
-                    <iframe id="ja-pdf-frame" class="ja-pdf-frame" src="about:blank" data-src="{{ $resumeUrl }}#view=FitH" title="Applicant CV" loading="lazy"></iframe>
+                    <div id="ja-pdf-error" style="display:none;position:absolute;inset:0;z-index:3;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#d1d5db;background:#525659;"><i class="fa fa-exclamation-triangle" style="font-size:28px"></i><span style="font-size:13px">Couldn't render this PDF.</span><a href="{{ $resumeUrl }}" target="_blank" class="ja-pdf-btn ja-pdf-btn-primary">Open CV</a></div>
+                    <div id="ja-pdf-scroll" style="position:absolute;inset:0;overflow:auto;display:none;justify-content:center;padding:16px;"><canvas id="ja-pdf-canvas" style="background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.35)"></canvas></div>
                 </div>
             @else
                 <div class="ja-pdf-no-resume">
@@ -1008,7 +1009,6 @@ function jaSaveMarketingLabel(appId) {
 
 <script>
 /* ── Tab switching ── */
-/* Do not let several Chrome PDF viewers run during rapid profile switching. */
 window.jaUnloadPdf = function () {
     if (window._jaPdfIdleCallback && window.cancelIdleCallback) {
         window.cancelIdleCallback(window._jaPdfIdleCallback);
@@ -1018,28 +1018,36 @@ window.jaUnloadPdf = function () {
         clearTimeout(window._jaPdfLoadTimer);
         window._jaPdfLoadTimer = null;
     }
-    var activeFrame = document.getElementById('ja-pdf-frame');
-    if (activeFrame && activeFrame.src !== 'about:blank') activeFrame.src = 'about:blank';
+    if (window._jaPdfRenderTask) { try { window._jaPdfRenderTask.cancel(); } catch (e) {} window._jaPdfRenderTask = null; }
+    if (window._jaPdfDoc) { try { window._jaPdfDoc.destroy(); } catch (e) {} window._jaPdfDoc = null; }
 };
 
 window.jaUnloadPdf();
 (function () {
-    var frame = document.getElementById('ja-pdf-frame');
+    var container = document.getElementById('ja-pdf-container');
     var loading = document.getElementById('ja-pdf-loading');
-    if (!frame || !frame.dataset.src) return;
+    var scroll = document.getElementById('ja-pdf-scroll');
+    var canvas = document.getElementById('ja-pdf-canvas');
+    var error = document.getElementById('ja-pdf-error');
+    if (!container || !canvas || !window.pdfjsLib) return;
 
     var loadPdf = function () {
-        if (document.getElementById('ja-pdf-frame') !== frame) return;
-        frame.addEventListener('load', function onPdfLoaded() {
-            frame.removeEventListener('load', onPdfLoaded);
-            if (loading) loading.style.display = 'none';
-        });
-        frame.src = frame.dataset.src;
+        pdfjsLib.getDocument({ url: @json($resumeUrl), withCredentials: true }).promise.then(function(pdf) {
+            if (document.getElementById('ja-pdf-container') !== container) { pdf.destroy(); return; }
+            window._jaPdfDoc = pdf;
+            return pdf.getPage(1);
+        }).then(function(page) {
+            if (!page || document.getElementById('ja-pdf-container') !== container) return;
+            var base = page.getViewport({scale:1});
+            var scale = Math.max(.7, Math.min(1.5, (container.clientWidth - 32) / base.width));
+            var viewport = page.getViewport({scale:scale});
+            canvas.width = viewport.width; canvas.height = viewport.height;
+            if (loading) loading.style.display = 'none'; scroll.style.display = 'flex';
+            window._jaPdfRenderTask = page.render({canvasContext:canvas.getContext('2d'), viewport:viewport});
+            return window._jaPdfRenderTask.promise;
+        }).catch(function() { if (loading) loading.style.display = 'none'; if (error) error.style.display = 'flex'; });
     };
 
-    // Native PDF rendering is the only expensive browser operation on this
-    // panel. Start it only after the profile has painted and the browser is
-    // idle; quick applicant changes cancel this work before it begins.
     var schedulePdfLoad = function () { window._jaPdfLoadTimer = setTimeout(loadPdf, 1200); };
     if (window.requestIdleCallback) window._jaPdfIdleCallback = window.requestIdleCallback(schedulePdfLoad, { timeout: 1800 });
     else schedulePdfLoad();
