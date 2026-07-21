@@ -262,7 +262,8 @@ class InterviewScheduleController extends AdminBaseController
 
         // Update Schedule Status
         $jobApplication = $interviewSchedule->jobApplication;
-        $jobApplication->status_id = 3;
+        $jobApplication->status_id = ApplicationStatus::findForJob((int) $jobApplication->job_id, 'interview')?->id
+            ?? $jobApplication->status_id;
         $jobApplication->save();
 
         if ($request->comment) {

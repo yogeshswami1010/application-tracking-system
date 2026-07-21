@@ -11,15 +11,9 @@
     };
     $stagePillBg = $application->status?->color ?? '#6366F1';
     $initials = collect(explode(' ', $application->full_name))->map(fn($w) => strtoupper(substr($w,0,1)))->take(2)->join('');
-    $allStatuses = \App\ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
-    if ($application->job_id) {
-        try {
-            $jobSpecific = \App\ApplicationStatus::where('job_id', $application->job_id)->orderBy('position')->get();
-            $globalIds   = $allStatuses->pluck('id');
-            $extra       = $jobSpecific->filter(fn($s) => !$globalIds->contains($s->id));
-            $allStatuses = $allStatuses->concat($extra);
-        } catch (\Exception $e) {}
-    }
+    $allStatuses = $application->job_id
+        ? \App\ApplicationStatus::where('job_id', $application->job_id)->orderBy('position')->get()
+        : collect();
     $currentStatusId = $application->status_id;
 
     if (!$currentStatusId) {

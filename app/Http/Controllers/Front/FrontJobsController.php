@@ -370,7 +370,7 @@ class FrontJobsController extends FrontBaseController
             $jobApplication->location_id = $jobLocationData->location_id;
         }
 
-        $jobApplication->status_id = 1;
+        $jobApplication->status_id = \App\ApplicationStatus::initialForJob((int) $request->job_id)?->id;
         $jobApplication->email     = $request->email;
         $jobApplication->phone     = $request->phone;
 

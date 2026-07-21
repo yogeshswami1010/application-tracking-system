@@ -137,7 +137,9 @@ class AdminApplicationStatusController extends AdminBaseController
             foreach ($request->applicationIds as $applicationId) {
                 $application = JobApplication::where('id', $applicationId)->first();
 
-                $application->status_id = 1;
+                $application->status_id = $application->job_id
+                    ? ApplicationStatus::initialForJob((int) $application->job_id)?->id
+                    : $application->status_id;
 
                 $application->save();
 

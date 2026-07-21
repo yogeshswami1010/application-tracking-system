@@ -320,8 +320,10 @@ class AdminJobApplicationController extends AdminBaseController
     {
         abort_if(! $this->user->cans('edit_job_applications'), 403);
 
-        $this->statuses = ApplicationStatus::all();
         $this->application = JobApplication::find($id);
+        $this->statuses = $this->application?->job_id
+            ? ApplicationStatus::where('job_id', $this->application->job_id)->orderBy('position')->get()
+            : collect();
         $this->jobQuestion = $this->application->job->questions;
 
         $this->jobs = Job::select(
@@ -447,14 +449,9 @@ class AdminJobApplicationController extends AdminBaseController
         // Load statuses for the action column: global defaults always first,
         // then any job-specific custom statuses appended after.
         $jobFilterId    = (int) $request->input('jobs', 0);
-        $actionStatuses = ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
+        $actionStatuses = collect();
         if ($jobFilterId > 0) {
-            try {
-                $jobSpecific = ApplicationStatus::where('job_id', $jobFilterId)->orderBy('position')->get();
-                $globalIds   = $actionStatuses->pluck('id');
-                $extra       = $jobSpecific->filter(fn($s) => !$globalIds->contains($s->id));
-                $actionStatuses = $actionStatuses->concat($extra);
-            } catch (\Exception $e) {}
+            $actionStatuses = ApplicationStatus::where('job_id', $jobFilterId)->orderBy('position')->get();
         }
 
         // Build next-stage map from action statuses
@@ -471,11 +468,8 @@ class AdminJobApplicationController extends AdminBaseController
         }
 
         // Find rejected & applied — check action statuses first, then fall back to global
-        $globalStatuses = ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
-        $rejectedStatus = $actionStatuses->firstWhere('status', 'rejected')
-            ?? $globalStatuses->firstWhere('status', 'rejected');
-        $appliedStatus  = $actionStatuses->firstWhere('status', 'applied')
-            ?? $globalStatuses->firstWhere('status', 'applied');
+        $rejectedStatus = $actionStatuses->first(fn ($status) => strcasecmp($status->status, 'rejected') === 0);
+        $appliedStatus  = $actionStatuses->first();
 
         $canEdit   = $this->user->cans('edit_job_applications');
         $canView   = $this->user->cans('view_job_applications');
@@ -565,21 +559,18 @@ class AdminJobApplicationController extends AdminBaseController
         $jobId = (int) $request->input('job_id', 0);
 
         // Always load global (default) statuses
-        try {
-            $global = ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
-        } catch (\Exception $e) {
-            $global = ApplicationStatus::orderBy('position')->get();
-        }
+        $global = ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
 
         // If a job is selected, append its custom statuses after the global ones
         $statuses = $global;
         if ($jobId > 0) {
             try {
+                ApplicationStatus::ensureDefaultsForJob($jobId);
                 $jobSpecific = ApplicationStatus::where('job_id', $jobId)->orderBy('position')->get();
                 // Only append job-specific ones that are not already in global (by ID)
                 $globalIds = $global->pluck('id');
                 $extra     = $jobSpecific->filter(fn($s) => !$globalIds->contains($s->id));
-                $statuses  = $global->concat($extra);
+                $statuses  = $jobSpecific;
             } catch (\Exception $e) {
                 // job_id column missing — just use global
             }
@@ -682,7 +673,11 @@ class AdminJobApplicationController extends AdminBaseController
     {
         abort_if(!$this->user->cans('edit_job_applications'), 403);
 
-        $apps = JobApplication::whereIn('id', $request->ids)->get(['id', 'status_id']);
+        $status = ApplicationStatus::whereNotNull('job_id')->findOrFail((int) $request->status_id);
+        $apps = JobApplication::whereIn('id', $request->ids)->get(['id', 'job_id', 'status_id']);
+        if ($apps->contains(fn ($app) => (int) $app->job_id !== (int) $status->job_id)) {
+            return Reply::error('The selected status belongs to a different job. Select one job before moving applicants.');
+        }
         foreach ($apps as $app) {
             $this->logStatusChange($app->id, $app->status_id, (int) $request->status_id, $this->user->id);
         }
@@ -695,17 +690,14 @@ class AdminJobApplicationController extends AdminBaseController
     {
         abort_if(!$this->user->cans('edit_job_applications'), 403);
 
-        $appliedStatus = ApplicationStatus::where('status', 'applied')->first();
-
-        if ($appliedStatus) {
-            $apps = JobApplication::whereIn('id', $request->ids)->get(['id', 'status_id']);
-            foreach ($apps as $app) {
-                $this->logStatusChange($app->id, $app->status_id, $appliedStatus->id, $this->user->id);
-            }
-
-            JobApplication::whereIn('id', $request->ids)->update([
-                'status_id' => $appliedStatus->id
-            ]);
+        $apps = JobApplication::whereIn('id', $request->ids)->get(['id', 'job_id', 'status_id']);
+        foreach ($apps as $app) {
+            if (!$app->job_id) continue;
+            $initialStatus = ApplicationStatus::initialForJob((int) $app->job_id);
+            if (!$initialStatus) continue;
+            $this->logStatusChange($app->id, $app->status_id, $initialStatus->id, $this->user->id);
+            $app->status_id = $initialStatus->id;
+            $app->save();
         }
 
         return Reply::success(__('messages.updatedSuccessfully'));
@@ -751,9 +743,9 @@ class AdminJobApplicationController extends AdminBaseController
         $interviewSchedule->save();
 
         // Update Schedule Status
-        $status = ApplicationStatus::where('status', 'interview')->first();
         $jobApplication = $interviewSchedule->jobApplication;
-        $jobApplication->status_id = $status->id;
+        $status = ApplicationStatus::findForJob((int) $jobApplication->job_id, 'interview');
+        $jobApplication->status_id = $status?->id ?? $jobApplication->status_id;
         $jobApplication->save();
 
         if ($request->comment) {
@@ -842,7 +834,9 @@ class AdminJobApplicationController extends AdminBaseController
         ->map(fn($word) => ucfirst(strtolower($word)))
         ->join(' ');
         $jobApplication->job_id = $request->job_id;
-       $jobApplication->status_id = ($request->entry_type === 'candidate') ? null : 1; // applied status id
+        $jobApplication->status_id = ($request->entry_type === 'candidate')
+            ? null
+            : ApplicationStatus::initialForJob((int) $request->job_id)?->id;
         $jobApplication->email = $request->email;
         $jobApplication->location_id = $request->location_id;
         $jobApplication->phone = $request->phone;
@@ -921,7 +915,7 @@ class AdminJobApplicationController extends AdminBaseController
         }
 
         if ($knockoutTriggered) {
-            $rejectedStatus = ApplicationStatus::where('status', 'rejected')->first();
+            $rejectedStatus = ApplicationStatus::findForJob((int) $jobApplication->job_id, 'rejected');
             if ($rejectedStatus) {
                 $oldStatusId = $jobApplication->status_id;
                 $jobApplication->status_id = $rejectedStatus->id;
@@ -1002,11 +996,13 @@ class AdminJobApplicationController extends AdminBaseController
         $mailSetting = ApplicationSetting::select('id', 'mail_setting')->first()->mail_setting;
 
         $jobApplication = JobApplication::with(['documents'])->findOrFail($id);
+        $selectedStatus = ApplicationStatus::where('job_id', (int) $request->job_id)
+            ->findOrFail((int) $request->status_id);
         $jobApplication->full_name = collect(explode(' ', trim($request->full_name)))
         ->map(fn($word) => ucfirst(strtolower($word)))
         ->join(' ');
         $jobApplication->job_id = $request->job_id;
-        $jobApplication->status_id = $request->status_id;
+        $jobApplication->status_id = $selectedStatus->id;
         $jobApplication->location_id = $request->location_id;
         $jobApplication->email = $request->email;
         $jobApplication->phone = $request->phone;
@@ -1129,7 +1125,7 @@ class AdminJobApplicationController extends AdminBaseController
         }
 
         if ($knockoutTriggered) {
-            $rejectedStatus = ApplicationStatus::where('status', 'rejected')->first();
+            $rejectedStatus = ApplicationStatus::findForJob((int) $jobApplication->job_id, 'rejected');
             if ($rejectedStatus) {
                 $jobApplication->status_id = $rejectedStatus->id;
                 $jobApplication->save();
@@ -1207,12 +1203,9 @@ class AdminJobApplicationController extends AdminBaseController
         $this->clientNotes = collect();
 
         // Pass pipeline statuses to the view to avoid querying them again while rendering.
-        $this->allStatuses = ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
-        if ($this->application->job_id) {
-            $jobStatuses = ApplicationStatus::where('job_id', $this->application->job_id)->orderBy('position')->get();
-            $globalIds = $this->allStatuses->pluck('id');
-            $this->allStatuses = $this->allStatuses->concat($jobStatuses->filter(fn ($status) => ! $globalIds->contains($status->id)));
-        }
+        $this->allStatuses = $this->application->job_id
+            ? ApplicationStatus::where('job_id', $this->application->job_id)->orderBy('position')->get()
+            : ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
 
         // Static-ish lookup lists used inside the blade. Cached for 5 minutes so
         // opening profiles back-to-back doesn't re-run these on every request.
@@ -1339,7 +1332,9 @@ class AdminJobApplicationController extends AdminBaseController
     {
         abort_if(! $this->user->cans('view_job_applications'), 403);
 
-        $this->boardColumns = ApplicationStatus::all();
+        // The unfiltered view uses the global labels only. Selecting a job
+        // replaces these with that job's fully dynamic pipeline via AJAX.
+        $this->boardColumns = ApplicationStatus::whereNull('job_id')->orderBy('position')->get();
         $this->locations = JobLocation::all();
         $this->jobs = Job::all();
         $this->skills = Skill::all();
@@ -1638,9 +1633,11 @@ class AdminJobApplicationController extends AdminBaseController
         ]);
 
         $jobApplication = JobApplication::withTrashed()->findOrFail((int) $validated['application_id']);
+        $selectedStatus = ApplicationStatus::where('job_id', (int) $jobApplication->job_id)
+            ->findOrFail((int) $validated['status_id']);
         $oldStatusId = $jobApplication->status_id;
         $isStatusDirty = $jobApplication->isDirty('status_id');
-        $jobApplication->status_id = (int) $validated['status_id'];
+        $jobApplication->status_id = $selectedStatus->id;
         $jobApplication->save();
 
         $this->logStatusChange($jobApplication->id, $oldStatusId, (int) $validated['status_id'], $this->user->id);

@@ -33,7 +33,7 @@ class AdminApplicationArchiveController extends AdminBaseController
         $this->companies = Company::select('id', 'company_name')->orderBy('company_name')->get();
         $this->jobs      = Job::select('id', 'title')->orderBy('title')->get();
         $this->locations = JobLocation::select('id', 'location')->orderBy('location')->get();
-        $this->statuses = ApplicationStatus::select('id', 'status')->orderBy('id')->get();
+        $this->statuses = ApplicationStatus::whereNotNull('job_id')->select('id', 'job_id', 'status')->orderBy('position')->get();
 
 
         $this->questions = Question::select('id', 'question')->orderBy('question')->get();

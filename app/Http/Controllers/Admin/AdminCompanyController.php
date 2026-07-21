@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\ApplicationStatus;
 use App\Company;
 use App\Helper\Files;
 use App\Helper\Reply;
@@ -116,12 +115,11 @@ class AdminCompanyController extends AdminBaseController
             $q->where('company_id', $companyId);
         })->count();
 
-        $hiredStatusId = ApplicationStatus::where('status', 'hired')->value('id');
-        $this->companyHiredCount = $hiredStatusId
-            ? JobApplication::where('status_id', $hiredStatusId)->whereHas('job', function ($q) use ($companyId) {
+        $this->companyHiredCount = JobApplication::whereHas('status', function ($query) {
+                $query->whereRaw('LOWER(status) = ?', ['hired']);
+            })->whereHas('job', function ($q) use ($companyId) {
                 $q->where('company_id', $companyId);
-            })->count()
-            : 0;
+            })->count();
 
         return view('admin.company.show', $this->data);
     }

@@ -1157,14 +1157,13 @@
                         </div>
                         @empty
                         <div id="js-status-empty" class="py-5 text-center">
-                            <p class="text-[12px] text-[#8892A0]">No custom statuses yet.</p>
-                            <p class="mt-0.5 text-[11px] text-[#B0B8C4]">Global statuses will be used.</p>
+                            <p class="text-[12px] text-[#8892A0]">No pipeline statuses yet.</p>
                         </div>
                         @endforelse
                     </div>
 
                     <p class="border-t border-[#F5F4F0] px-4 py-2.5 text-[10.5px] text-[#B0B8C4]">
-                        Drag to reorder &middot; leave empty to use global statuses
+                        Drag to reorder &middot; statuses assigned to applicants cannot be removed
                     </p>
                 </div>
 

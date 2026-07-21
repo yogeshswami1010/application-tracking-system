@@ -148,6 +148,13 @@ class AdminJobsController extends AdminBaseController
         $this->questions = $this->getQuestionsForCategory($selectedCategoryId);
         $this->jobUsageCounts = $this->getQuestionJobUsageCounts($this->questions->pluck('id')->toArray()); 
         $this->companies = Company::all();
+        $this->jobStatuses = collect(ApplicationStatus::DEFAULT_PIPELINE)->map(function ($status, $index) {
+            return new ApplicationStatus([
+                'status' => $status['status'],
+                'color' => $status['color'],
+                'position' => $index + 1,
+            ]);
+        });
 
         return view('admin.jobs.create', $this->data);
     }
@@ -468,35 +475,67 @@ class AdminJobsController extends AdminBaseController
         $colors = $request->input('job_status_color', []);
         $ids    = $request->input('job_status_id', []);
 
+        if (count(array_filter($names, fn ($name) => trim((string) $name) !== '')) === 0) {
+            ApplicationStatus::ensureDefaultsForJob($jobId);
+            return;
+        }
+
+        $normalizedNames = array_map(fn ($name) => mb_strtolower(trim((string) $name)), array_filter($names, fn ($name) => trim((string) $name) !== ''));
+        if (count($normalizedNames) !== count(array_unique($normalizedNames))) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'job_status_name' => 'Pipeline status names must be unique within a job.',
+            ]);
+        }
+
         // Delete rows that were removed in the form
         $submittedIds = array_values(array_filter($ids, fn ($v) => is_numeric($v) && (int) $v > 0));
 
-        try {
-            ApplicationStatus::where('job_id', $jobId)
-                ->when(count($submittedIds), fn ($q) => $q->whereNotIn('id', $submittedIds))
-                ->delete();
+        $removedStatuses = ApplicationStatus::where('job_id', $jobId)
+            ->when(count($submittedIds), fn ($q) => $q->whereNotIn('id', $submittedIds))
+            ->get();
 
-            foreach ($names as $index => $name) {
-                $name = trim((string) $name);
-                if ($name === '') continue;
-
-                $color    = $colors[$index] ?? '#2563EB';
-                $statusId = $ids[$index] ?? null;
-
-                if (is_numeric($statusId) && (int) $statusId > 0) {
-                    ApplicationStatus::where('id', (int) $statusId)
-                        ->where('job_id', $jobId)
-                        ->update(['status' => $name, 'color' => $color, 'position' => $index + 1]);
-                } else {
-                    ApplicationStatus::create([
-                        'job_id'   => $jobId,
-                        'status'   => $name,
-                        'color'    => $color,
-                        'position' => $index + 1,
-                    ]);
-                }
+        foreach ($removedStatuses as $removedStatus) {
+            $usedInHistory = DB::table('job_application_status_histories')
+                ->where('from_status_id', $removedStatus->id)
+                ->orWhere('to_status_id', $removedStatus->id)
+                ->exists();
+            if ($removedStatus->applications()->withTrashed()->exists() || $usedInHistory) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'job_status_name' => 'The status "'.$removedStatus->status.'" cannot be removed because it is used by applicants or their status history.',
+                ]);
             }
+        }
+
+        try {
+            DB::transaction(function () use ($removedStatuses, $names, $colors, $ids, $jobId) {
+                ApplicationStatus::whereIn('id', $removedStatuses->pluck('id'))->delete();
+
+                foreach ($names as $index => $name) {
+                    $name = trim((string) $name);
+                    if ($name === '') continue;
+
+                    $color    = $colors[$index] ?? '#2563EB';
+                    $statusId = $ids[$index] ?? null;
+
+                    if (is_numeric($statusId) && (int) $statusId > 0) {
+                        ApplicationStatus::where('id', (int) $statusId)
+                            ->where('job_id', $jobId)
+                            ->update(['status' => $name, 'color' => $color, 'position' => $index + 1]);
+                    } else {
+                        ApplicationStatus::create([
+                            'job_id'   => $jobId,
+                            'status'   => $name,
+                            'color'    => $color,
+                            'position' => $index + 1,
+                        ]);
+                    }
+                }
+            });
         } catch (\Exception $e) {
+            report($e);
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'job_status_name' => 'The pipeline could not be saved. No applicant statuses were changed.',
+            ]);
             // job_id column not yet migrated — skip silently
         }
     }
@@ -714,24 +753,23 @@ class AdminJobsController extends AdminBaseController
 
         $jobApplicationRec = JobApplication::select('job_applications.id as application')
             ->with('jobs')
-            ->where('job_applications.status_id', '!=', ApplicationStatus::where('status', 'hired')->first()->id)
             ->join('jobs', 'jobs.id', 'job_applications.job_id')
             ->leftjoin('job_skills', 'jobs.id', 'job_skills.job_id')
             ->leftjoin('job_locations', 'job_locations.id', 'jobs.location_id')
             ->leftjoin('application_status', 'application_status.id', 'job_applications.status_id')
             ->distinct()
             ->where('job_applications.job_id', $request->jobId)
+            ->whereRaw('LOWER(application_status.status) != ?', ['hired'])
             ->where('application_status.status', '!=', 'rejected')
             ->pluck('application')->toArray();
 
         $jobApplications = JobApplication::select('job_applications.id', 'job_applications.full_name', 'job_applications.email', 'jobs.title', 'job_locations.location', 'application_status.status', 'application_status.color')
             ->with('jobs')
-            ->where('job_applications.status_id', '!=', ApplicationStatus::where('status', 'hired')->first()->id)
-
             ->join('jobs', 'jobs.id', 'job_applications.job_id')
             ->leftjoin('job_skills', 'jobs.id', 'job_skills.job_id')
             ->leftjoin('job_locations', 'job_locations.id', 'jobs.location_id')
             ->leftjoin('application_status', 'application_status.id', 'job_applications.status_id')
+            ->whereRaw('LOWER(application_status.status) != ?', ['hired'])
             ->distinct();
 
         // Filter by status
