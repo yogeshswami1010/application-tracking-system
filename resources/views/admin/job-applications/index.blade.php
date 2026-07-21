@@ -452,6 +452,26 @@
     var jaShowKO         = false;
     var jaSelectedIds    = new Set();
     var table;
+    var jaFilterStorageKey = 'job-application-filters-v1-{{ auth()->id() }}';
+
+    function jaReadSavedFilters() {
+        try { return JSON.parse(sessionStorage.getItem(jaFilterStorageKey)) || {}; }
+        catch (e) { return {}; }
+    }
+
+    function jaSaveFilters() {
+        try {
+            sessionStorage.setItem(jaFilterStorageKey, JSON.stringify({
+                status: $('#status').val() || 'all',
+                company: $('#company').val() || 'all',
+                location: $('#location').val() || 'all',
+                jobs: $('#jobs').val() || 'all',
+                questions: $('#questions').val() || 'all',
+                question_value: $('#question-value').val() || '',
+                knockout: !!jaShowKO
+            }));
+        } catch (e) {}
+    }
 
     // ── Prev/Next: ordered ID list (populated in drawCallback) ───
     var jaApplicantIds = [];
@@ -495,6 +515,7 @@
         document.getElementById('ja-ko-banner').classList.remove('show');
 
         $('#status').val(stageId).trigger('change.select2');
+        jaSaveFilters();
         tableLoad('filter');
         jaRenderBulkBar();
         jaTableSyncFilterBadge();
@@ -515,6 +536,7 @@
         document.getElementById('ja-ko-banner').classList.remove('show');
 
         $('#status').val('all').trigger('change.select2');
+        jaSaveFilters();
         tableLoad('filter');
         jaRenderBulkBar();
         jaTableSyncFilterBadge();
@@ -532,6 +554,7 @@
         document.getElementById('ja-ko-banner').classList.add('show');
 
         $('#status').val('all').trigger('change.select2');
+        jaSaveFilters();
         tableLoad('knockout');
         jaRenderBulkBar();
     }
@@ -936,6 +959,7 @@
     function jaApplyFilters() {
         clearTimeout(jaFilterDebounce);
         jaFilterDebounce = setTimeout(function() {
+            jaSaveFilters();
             jaSelectedIds = new Set();
             jaRenderBulkBar();
             tableLoad('filter');
@@ -952,7 +976,8 @@
         jaApplyFilters();
     });
     $('#reset-filters').on('click', function() {
-        window.location.reload();
+        try { sessionStorage.removeItem(jaFilterStorageKey); } catch (e) {}
+        window.location.href = '{{ route('admin.job-applications.table') }}';
     });
 
     // ── Show detail sidebar ──────────────────────────────────────
@@ -1144,21 +1169,43 @@
     // ── Init — no job selected, show all applicants ──────────────
     // Read status from URL
 const params = new URLSearchParams(window.location.search);
-const statusFromUrl = params.get('status') || 'all';
+const savedFilters = jaReadSavedFilters();
+const statusFromUrl = params.get('status');
+const restoredStatus = statusFromUrl || savedFilters.status || 'all';
 
-jaShowKO = false;
-jaActiveStageId = statusFromUrl;
+function jaRestoreSelect(selector, value) {
+    var wanted = value == null ? 'all' : String(value);
+    var $select = $(selector);
+    $select.find('option').each(function() {
+        if (String(this.value) === wanted) {
+            $select.val(wanted).trigger('change.select2');
+            return false;
+        }
+    });
+}
 
-$('#status').val(statusFromUrl).trigger('change.select2');
+jaRestoreSelect('#company', savedFilters.company);
+jaRestoreSelect('#location', savedFilters.location);
+jaRestoreSelect('#jobs', savedFilters.jobs);
+jaRestoreSelect('#questions', savedFilters.questions);
+$('#question-value').val(savedFilters.question_value || '');
+if (($('#questions').val() || 'all') !== 'all') {
+    $('#question_value').removeClass('hidden');
+}
 
-if (statusFromUrl === 'all') {
+jaShowKO = !statusFromUrl && savedFilters.knockout === true;
+jaActiveStageId = restoredStatus;
+jaRestoreSelect('#status', restoredStatus);
+
+if (jaShowKO) {
+    document.getElementById('ja-ko-tab-btn').classList.add('active');
+    document.getElementById('ja-ko-banner').classList.add('show');
+} else if (restoredStatus === 'all') {
     document.getElementById('ja-tab-all').classList.add('active');
 } else {
     setTimeout(function () {
-        var btn = document.querySelector('[data-stage-id="' + statusFromUrl + '"]');
-        if (btn) {
-            btn.classList.add('active');
-        }
+        var btn = document.querySelector('[data-stage-id="' + restoredStatus + '"]');
+        if (btn) btn.classList.add('active');
     }, 300);
 }
 
