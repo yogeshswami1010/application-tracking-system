@@ -307,12 +307,7 @@ function jaSaveMarketingLabel(appId) {
             </div>
             @if($resumeUrl)
                 <div id="ja-pdf-container" style="flex:1;min-height:0;position:relative;overflow:hidden;background:#525659;">
-                    <div id="ja-pdf-ready" class="ja-pdf-loading" style="pointer-events:auto;">
-                        <i class="fa fa-file-pdf-o" style="font-size:28px;"></i>
-                        <span>CV ready to view</span>
-                        <button type="button" class="ja-pdf-btn ja-pdf-btn-primary" onclick="jaLoadApplicantPdf()"><i class="fa fa-eye"></i> View CV</button>
-                    </div>
-                    <div id="ja-pdf-loading" class="ja-pdf-loading" style="display:none"><i class="fa fa-spinner fa-spin" style="font-size:22px;"></i><span>Loading CV...</span></div>
+                    <div id="ja-pdf-loading" class="ja-pdf-loading"><i class="fa fa-spinner fa-spin" style="font-size:22px;"></i><span>Loading CV...</span></div>
                     <div id="ja-pdf-error" style="display:none;position:absolute;inset:0;z-index:3;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#d1d5db;background:#525659;"><i class="fa fa-exclamation-triangle" style="font-size:28px"></i><span style="font-size:13px">Couldn't render this PDF.</span><button type="button" class="ja-pdf-btn ja-pdf-btn-primary" onclick="jaShowNativeApplicantPdf()">Show PDF</button></div>
                     <iframe id="ja-pdf-frame" class="ja-pdf-frame" title="Applicant CV" style="display:none"></iframe>
                     <div id="ja-pdf-scroll" style="position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;display:none;padding:16px;scrollbar-width:auto;scrollbar-color:#111 #D1D5DB;">
@@ -1123,8 +1118,6 @@ window.jaUnloadPdf();
         });
     };
 
-    // Do not render a PDF automatically during profile navigation. Complex
-    // PDFs can block Chrome's main thread; rendering starts only on request.
     window.jaLoadApplicantPdf = function () {
         if (started) return;
         started = true;
@@ -1132,6 +1125,9 @@ window.jaUnloadPdf();
         if (loading) loading.style.display = 'flex';
         window._jaPdfLoadTimer = setTimeout(loadPdf, 0);
     };
+
+    // Display the CV immediately when the applicant profile opens.
+    window.jaLoadApplicantPdf();
 })();
 
 document.querySelectorAll('.ja-tab').forEach(function(tab) {
