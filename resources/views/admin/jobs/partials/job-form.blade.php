@@ -1081,13 +1081,6 @@
                         </div>
                     </div> -->
 
-                    <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                        <button type="button" id="save-form" class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2563EB] px-8 py-3 text-[13.5px] font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/25 focus:outline-none focus:ring-2 focus:ring-blue-500/30 active:translate-y-0">
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                            @lang('app.save')
-                        </button>
-                        <a href="{{ route('admin.jobs.index') }}" class="inline-flex items-center justify-center rounded-xl px-6 py-3 text-[13.5px] font-semibold text-[#8892A0] transition hover:bg-gray-100 hover:text-slate-700">@lang('app.cancel')</a>
-                    </div>
                 </form>
             </div>
 
@@ -1165,6 +1158,15 @@
                     <p class="border-t border-[#F5F4F0] px-4 py-2.5 text-[10.5px] text-[#B0B8C4]">
                         Drag to reorder &middot; statuses assigned to applicants cannot be removed
                     </p>
+                </div>
+
+                {{-- Form actions sit directly below the pipeline on create and edit. --}}
+                <div class="flex w-full flex-col gap-2 sm:flex-row xl:flex-col">
+                    <button type="button" id="save-form" class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#2563EB] px-6 py-3 text-[13.5px] font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/25 focus:outline-none focus:ring-2 focus:ring-blue-500/30 active:translate-y-0">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                        @lang('app.save')
+                    </button>
+                    <a href="{{ route('admin.jobs.index') }}" class="inline-flex w-full items-center justify-center rounded-xl border border-[#E2DED8] bg-white px-6 py-3 text-[13.5px] font-semibold text-[#8892A0] transition hover:bg-gray-100 hover:text-slate-700">@lang('app.cancel')</a>
                 </div>
 
             </div>
