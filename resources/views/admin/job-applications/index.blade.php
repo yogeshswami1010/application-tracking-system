@@ -1127,11 +1127,12 @@
             },
             error: function(xhr) {
                 console.error('jaRefreshLocations failed:', xhr.status, xhr.responseText);
+                if (typeof callback === 'function') callback();
             }
         });
     }
 
-    function jaRefreshJobs(companyId, locationId) {
+    function jaRefreshJobs(companyId, locationId, callback) {
         var saved = jaReadSavedFilters();
         var sameCompany = String(saved.company || 'all') === String(companyId || 'all');
         var sameLocation = String(saved.location || 'all') === String(locationId || 'all');
@@ -1155,12 +1156,15 @@
                 if (!$('#jobs option').filter(function () { return String(this.value) === desiredJob; }).length) {
                     desiredJob = 'all';
                 }
-                $('#jobs').val(desiredJob).trigger('change');
+                $('#jobs').val(desiredJob).trigger(typeof callback === 'function' ? 'change.select2' : 'change');
 
-                jaLoadJobStatuses(desiredJob);
+                if (typeof callback === 'function') {
+                    jaLoadJobStatuses(desiredJob, callback);
+                }
             },
             error: function(xhr) {
                 console.error('jaRefreshJobs failed:', xhr.status, xhr.responseText);
+                if (typeof callback === 'function') callback();
             }
         });
     }
@@ -1225,9 +1229,24 @@ if (jaShowKO) {
     }, 300);
 }
 
-tableLoad('load');
-jaLoadTabCounts();
-jaTableSyncFilterBadge();
+function jaFinishInitialFilterLoad() {
+    tableLoad('load');
+    jaLoadTabCounts();
+    jaTableSyncFilterBadge();
+}
+
+// Rebuild dependent dropdown options on restoration, exactly as if the user
+// had selected Company → Location → Job manually. This removes unrelated jobs
+// from the Jobs dropdown instead of merely restoring its selected value.
+if ((savedFilters.company || 'all') !== 'all') {
+    jaRefreshLocations(savedFilters.company, function () {
+        jaRefreshJobs(savedFilters.company, $('#location').val(), jaFinishInitialFilterLoad);
+    });
+} else if ((savedFilters.location || 'all') !== 'all') {
+    jaRefreshJobs('all', savedFilters.location, jaFinishInitialFilterLoad);
+} else {
+    jaFinishInitialFilterLoad();
+}
  
 
 
@@ -1385,7 +1404,7 @@ jaTableSyncFilterBadge();
     }
 
     // ── Load job statuses → rebuild both status dropdown + tab bar ─
-    function jaLoadJobStatuses(jobId) {
+    function jaLoadJobStatuses(jobId, callback) {
         if (!jobId || jobId === 'all' || parseInt(jobId, 10) === 0) {
             // No job selected: clear stage tabs, reset status dropdown to global
             jaRebuildStageTabs([]);
@@ -1396,6 +1415,7 @@ jaTableSyncFilterBadge();
             defaultHtml += '<option value="{{ $col->id }}">{{ ucfirst($col->status) }}</option>';
             @endforeach
             $('#status').select2('destroy').html(defaultHtml).select2({ width: '100%' });
+            if (typeof callback === 'function') callback();
             return;
         }
 
@@ -1420,6 +1440,23 @@ jaTableSyncFilterBadge();
                 // Rebuild stage tab bar (jaApplyStoredOrder is called inside)
                 jaRebuildStageTabs(statuses);
 
+                if (typeof callback === 'function') {
+                    var saved = jaReadSavedFilters();
+                    var desiredStatus = String(saved.status || 'all');
+                    var hasDesiredStatus = statuses.some(function (status) {
+                        return String(status.id) === desiredStatus;
+                    });
+                    if (!hasDesiredStatus) desiredStatus = 'all';
+                    $('#status').val(desiredStatus).trigger('change.select2');
+                    document.querySelectorAll('.ja-stage-tab').forEach(function (tab) { tab.classList.remove('active'); });
+                    var restoredTab = desiredStatus === 'all'
+                        ? document.getElementById('ja-tab-all')
+                        : document.querySelector('[data-stage-id="' + desiredStatus + '"]');
+                    if (restoredTab) restoredTab.classList.add('active');
+                    callback();
+                    return;
+                }
+
                 // Auto-activate first tab respecting the saved order
                 var firstTab = document.querySelector('#ja-stage-tabs-draggable .ja-stage-tab[draggable="true"]');
                 if (firstTab) {
@@ -1429,6 +1466,9 @@ jaTableSyncFilterBadge();
                         firstTab.getAttribute('data-stage-slug')
                     );
                 }
+            },
+            error: function () {
+                if (typeof callback === 'function') callback();
             }
         });
     }
