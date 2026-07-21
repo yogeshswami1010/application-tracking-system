@@ -41,6 +41,12 @@
                 <span class="ra-nl">Candidate Marketing</span>
             </a>
         @endif
+        @if($user->hasRole('admin'))
+            <a href="{{ route('admin.trash.index') }}" class="ra-nav-link {{ request()->is('admin/trash*') ? 'on' : '' }}">
+                <span class="ra-ni" aria-hidden="true"><x-ra-sidebar-icon name="trash" /></span>
+                <span class="ra-nl">Trash</span>
+            </a>
+        @endif
  
         @if(in_array("view_job_applications", $userPermissions))
             <a href="{{ route('admin.ai-search') }}" class="ra-nav-link {{ request()->is('admin/ai-search*') ? 'on' : '' }}">

@@ -3,9 +3,12 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ApplicantNote extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'note_text',
         'user_id',
@@ -24,6 +27,6 @@ class ApplicantNote extends Model
 
     public function jobApplication()
     {
-        return $this->belongsTo(JobApplication::class);
+        return $this->belongsTo(JobApplication::class)->withTrashed();
     }
 }

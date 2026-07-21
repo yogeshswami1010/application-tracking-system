@@ -13,7 +13,6 @@ use App\Company;
 use App\Question;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Excel as ExcelExcel;
 use Maatwebsite\Excel\Facades\Excel;
 use Yajra\DataTables\Facades\DataTables;
@@ -47,6 +46,7 @@ class AdminApplicationArchiveController extends AdminBaseController
         abort_if(! $this->user->cans('view_job_applications'), 403);
 
         $jobApplications = JobApplication::withTrashed()
+            ->whereNull('moved_to_trash_at')
             ->with([
                 'job',
                 'location',
@@ -186,10 +186,8 @@ class AdminApplicationArchiveController extends AdminBaseController
 
         $jobApplication = JobApplication::withTrashed()->findOrFail($id);
 
-        if ($jobApplication->photo) {
-            Storage::delete('candidate-photos/' . $jobApplication->photo);
-        }
-
+        $jobApplication->moved_to_trash_at = now();
+        $jobApplication->save();
         $jobApplication->delete();
 
         return Reply::success(__('messages.recordDeleted'));
@@ -241,7 +239,9 @@ class AdminApplicationArchiveController extends AdminBaseController
 
     public function deleteRecords(Request $request, $id)
     {
-        JobApplication::whereIn('id', explode(',', $id))->forceDelete();
+        JobApplication::withTrashed()
+            ->whereIn('id', explode(',', $id))
+            ->update(['moved_to_trash_at' => now(), 'deleted_at' => now()]);
 
         return Reply::success(__('messages.recordDeleted'));
     }

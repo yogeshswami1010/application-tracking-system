@@ -39,7 +39,9 @@ class JobApplicationArchiveExport implements FromCollection, WithHeadings, WithE
             'job_applications.created_at'
         )
             ->leftJoin('jobs', 'jobs.id', '=', 'job_applications.job_id')
-            ->leftJoin('application_status', 'application_status.id', '=', 'job_applications.status_id')->onlyTrashed();
+            ->leftJoin('application_status', 'application_status.id', '=', 'job_applications.status_id')
+            ->onlyTrashed()
+            ->whereNull('job_applications.moved_to_trash_at');
 
         // Filter by skills
         if ($this->filters['skill'] !== 'undefined') {

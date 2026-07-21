@@ -1145,11 +1145,10 @@ class AdminJobApplicationController extends AdminBaseController
 
         $jobApplication = JobApplication::findOrFail($id);
 
-        if ($jobApplication->photo) {
-            Storage::delete('candidate-photos/'.$jobApplication->photo);
-        }
-
-        $jobApplication->forceDelete();
+        // Keep the application and its files recoverable from Trash.
+        $jobApplication->moved_to_trash_at = now();
+        $jobApplication->save();
+        $jobApplication->delete();
 
         return Reply::success(__('messages.recordDeleted'));
     }

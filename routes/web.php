@@ -34,6 +34,7 @@ use App\Http\Controllers\Admin\AdminWorkExperienceController;
 use App\Http\Controllers\Admin\AdminZoomMeetingController;
 use App\Http\Controllers\Admin\AiSearchPromptController;
 use App\Http\Controllers\Admin\ApplicantNoteController;
+use App\Http\Controllers\Admin\TrashController;
 use App\Http\Controllers\Admin\ApplicationSettingsController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CompanySettingsController;
@@ -116,6 +117,9 @@ Route::middleware('auth')->group(function () {
         ->group(function () { 
 
             Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+            Route::get('trash', [TrashController::class, 'index'])->name('trash.index');
+            Route::post('trash/{type}/{id}/restore', [TrashController::class, 'restore'])->name('trash.restore');
+            Route::delete('trash/{type}/{id}', [TrashController::class, 'destroy'])->name('trash.destroy');
             // In routes/web.php (inside admin middleware group)
             Route::post('job-client-notes/store',           [AdminJobClientNoteController::class, 'store'])->name('job-client-notes.store');
             Route::post('job-client-notes/{id}/update',     [AdminJobClientNoteController::class, 'update'])->name('job-client-notes.update');

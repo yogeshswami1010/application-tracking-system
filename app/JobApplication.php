@@ -26,6 +26,7 @@ class JobApplication extends Model
     protected $casts = [
         'dob' => 'datetime',
         'skills' => 'array',
+        'moved_to_trash_at' => 'datetime',
     ];
 
     protected $appends = ['resume_url', 'photo_url'];
