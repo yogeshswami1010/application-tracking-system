@@ -495,20 +495,21 @@ class AdminJobsController extends AdminBaseController
             ->get();
 
         foreach ($removedStatuses as $removedStatus) {
-            $usedInHistory = DB::table('job_application_status_histories')
-                ->where('from_status_id', $removedStatus->id)
-                ->orWhere('to_status_id', $removedStatus->id)
-                ->exists();
-            if ($removedStatus->applications()->withTrashed()->exists() || $usedInHistory) {
+            if ($removedStatus->applications()->withTrashed()->exists()) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
-                    'job_status_name' => 'The status "'.$removedStatus->status.'" cannot be removed because it is used by applicants or their status history.',
+                    'job_status_name' => 'The status "'.$removedStatus->status.'" cannot be removed because one or more applicants are currently assigned to it. Move those applicants first.',
                 ]);
             }
         }
 
         try {
             DB::transaction(function () use ($removedStatuses, $names, $colors, $ids, $jobId) {
-                ApplicationStatus::whereIn('id', $removedStatuses->pluck('id'))->delete();
+                $removedIds = $removedStatuses->pluck('id');
+                DB::table('job_application_status_histories')
+                    ->whereIn('from_status_id', $removedIds)
+                    ->orWhereIn('to_status_id', $removedIds)
+                    ->delete();
+                ApplicationStatus::whereIn('id', $removedIds)->delete();
 
                 foreach ($names as $index => $name) {
                     $name = trim((string) $name);
