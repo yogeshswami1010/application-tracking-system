@@ -291,7 +291,7 @@
 .ja-stage-select {
     flex: 1; width: 100%; padding: 7px 10px; border-radius: 9px;
     border: 1.5px solid #E2DED8; background: #fff;
-    font-size: 12.5px; font-weight: 500; color: #5A6478;
+    font-size: 12.5px; font-weight: 500; color: #5A6478; 
     cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif;
     transition: border-color .15s;
 }

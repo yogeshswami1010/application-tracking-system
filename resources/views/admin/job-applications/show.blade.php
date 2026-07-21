@@ -112,7 +112,7 @@
 .ja-info-val a:hover { text-decoration:underline; }
 .ja-stage-row { display:flex;align-items:center;gap:8px; }
 .ja-current-badge { display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;font-size:11.5px;font-weight:600;color:#fff;flex-shrink:0; }
-.ja-stage-select { flex:1; width: 100%; padding:7px 10px;border-radius:9px;border:1.5px solid #E2DED8;background:#fff;font-size:12.5px;font-weight:500;color:#5A6478;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:border-color .15s; }
+.ja-stage-select { flex:1; width: 100%; padding:7px 10px;border-radius:9px;border:1.5px solid #E2DED8;background:#fff;font-size:12.5px;font-weight:500;color:#5A6478;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:border-color .15s; } 
 .ja-stage-select:hover,.ja-stage-select:focus { border-color:#2563EB;outline:none; }
 .ja-note { background:#fff;border-radius:0 10px 10px 0;border:1px solid #E8E6E1;border-left:3px solid #2563EB;padding:10px 13px;margin-bottom:8px; }
 .ja-note-meta { display:flex;align-items:center;justify-content:space-between;margin-bottom:5px; }
