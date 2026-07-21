@@ -1093,6 +1093,10 @@
     // ── Company → Location → Jobs cascade ────────────────────────
 
     function jaRefreshLocations(companyId, callback) {
+        var saved = jaReadSavedFilters();
+        var desiredLocation = String(saved.company || 'all') === String(companyId || 'all')
+            ? String(saved.location || 'all')
+            : 'all';
         $.ajax({
             url: "{{ route('admin.job-applications.get-locations') }}",
             type: 'GET',
@@ -1112,8 +1116,12 @@
                 // Re-init Select2
                 $('#location').select2({ width: '100%' });
 
-                // Reset to "all" when company changes
-                $('#location').val('all').trigger('change.select2');
+                // Keep the restored location only when it is valid for this
+                // company; otherwise reset the dependent filter.
+                if (!$('#location option').filter(function () { return String(this.value) === desiredLocation; }).length) {
+                    desiredLocation = 'all';
+                }
+                $('#location').val(desiredLocation).trigger('change.select2');
 
                 if (typeof callback === 'function') callback();
             },
@@ -1124,6 +1132,10 @@
     }
 
     function jaRefreshJobs(companyId, locationId) {
+        var saved = jaReadSavedFilters();
+        var sameCompany = String(saved.company || 'all') === String(companyId || 'all');
+        var sameLocation = String(saved.location || 'all') === String(locationId || 'all');
+        var desiredJob = sameCompany && sameLocation ? String(saved.jobs || 'all') : 'all';
         $.ajax({
             url: "{{ route('admin.job-applications.get-jobs') }}",
             type: 'GET',
@@ -1138,10 +1150,14 @@
 
                 $('#jobs').html(data.jobs);
                 $('#jobs').select2({ width: '100%' });
-                $('#jobs').val('all').trigger('change');
+                // Do not lose the saved job when rebuilding its options for
+                // the restored location. Invalid combinations fall back to All.
+                if (!$('#jobs option').filter(function () { return String(this.value) === desiredJob; }).length) {
+                    desiredJob = 'all';
+                }
+                $('#jobs').val(desiredJob).trigger('change');
 
-                // Reset job stages since no job is selected
-                jaLoadJobStatuses('all');
+                jaLoadJobStatuses(desiredJob);
             },
             error: function(xhr) {
                 console.error('jaRefreshJobs failed:', xhr.status, xhr.responseText);
