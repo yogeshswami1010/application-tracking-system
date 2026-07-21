@@ -33,18 +33,16 @@
                 <span class="ra-ni" aria-hidden="true"><x-ra-sidebar-icon name="job-applications" /></span>
                 <span class="ra-nl">@lang('menu.jobApplications')</span>
             </a>
+            <a href="{{ route('admin.applications-archive.index') }}" class="ra-nav-link {{ request()->is('admin/applications-archive*') ? 'on' : '' }}">
+                <span class="ra-ni" aria-hidden="true"><x-ra-sidebar-icon name="candidate-database" /></span>
+                <span class="ra-nl">@lang('menu.candidateDatabase')</span>
+            </a>
            
         @endif
         @if($user->cans('view_job_applications'))
             <a href="{{ route('admin.candidate-marketing.index') }}" class="ra-nav-link {{ request()->is('admin/candidate-marketing*') ? 'on' : '' }}">
                 <span class="ra-ni" aria-hidden="true"><x-ra-sidebar-icon name="job-applications" /></span>
                 <span class="ra-nl">Candidate Marketing</span>
-            </a>
-        @endif
-        @if($user->hasRole('admin'))
-            <a href="{{ route('admin.trash.index') }}" class="ra-nav-link {{ request()->is('admin/trash*') ? 'on' : '' }}">
-                <span class="ra-ni" aria-hidden="true"><x-ra-sidebar-icon name="trash" /></span>
-                <span class="ra-nl">Trash</span>
             </a>
         @endif
  
@@ -234,6 +232,12 @@
         </div>
 
         <div class="ra-sec-title">@lang('menu.miscellaneous')</div>
+        @if($user->hasRole('admin'))
+            <a href="{{ route('admin.trash.index') }}" class="ra-nav-link {{ request()->is('admin/trash*') ? 'on' : '' }}">
+                <span class="ra-ni" aria-hidden="true"><x-ra-sidebar-icon name="trash" /></span>
+                <span class="ra-nl">Trash</span>
+            </a>
+        @endif
         <a href="{{ url('/') }}" target="_blank" rel="noopener noreferrer" class="ra-nav-link">
             <span class="ra-ni" aria-hidden="true"><x-ra-sidebar-icon name="front-website" /></span>
             <span class="ra-nl">@lang('menu.frontWebsite')</span>
@@ -263,10 +267,6 @@
             <a href="{{ route('admin.locations.index') }}" class="ra-nav-link {{ request()->is('admin/locations*') ? 'on' : '' }}">
                 <span class="ra-ni" aria-hidden="true"><x-ra-sidebar-icon name="locations" /></span>
                 <span class="ra-nl">@lang('menu.locations')</span>
-            </a>
-             <a href="{{ route('admin.applications-archive.index') }}" class="ra-nav-link {{ request()->is('admin/applications-archive*') ? 'on' : '' }}">
-                <span class="ra-ni" aria-hidden="true"><x-ra-sidebar-icon name="candidate-database" /></span>
-                <span class="ra-nl">@lang('menu.candidateDatabase')</span>
             </a>
         @endif
     </div>
