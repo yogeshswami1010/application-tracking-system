@@ -565,7 +565,6 @@ class AdminJobApplicationController extends AdminBaseController
         $statuses = $global;
         if ($jobId > 0) {
             try {
-                ApplicationStatus::ensureDefaultsForJob($jobId);
                 $jobSpecific = ApplicationStatus::where('job_id', $jobId)->orderBy('position')->get();
                 // Only append job-specific ones that are not already in global (by ID)
                 $globalIds = $global->pluck('id');

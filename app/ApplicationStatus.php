@@ -69,7 +69,15 @@ class ApplicationStatus extends Model
 
     public static function initialForJob(int $jobId): ?self
     {
-        self::ensureDefaultsForJob($jobId);
-        return self::where('job_id', $jobId)->orderBy('position')->orderBy('id')->first();
+        $status = self::where('job_id', $jobId)->orderBy('position')->orderBy('id')->first();
+
+        // Only repair legacy jobs that have no pipeline at all. Never recreate
+        // an individual default stage that a user deliberately removed.
+        if (!$status) {
+            self::ensureDefaultsForJob($jobId);
+            $status = self::where('job_id', $jobId)->orderBy('position')->orderBy('id')->first();
+        }
+
+        return $status;
     }
 }
