@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use RuntimeException;
 use Symfony\Component\Process\ExecutableFinder;
@@ -55,20 +56,43 @@ class ResumePdfConverter
     private function convertWithLibreOffice(string $input, string $directory, string $output): bool
     {
         $finder = new ExecutableFinder();
+        $profileDirectory = $directory.'/libreoffice-profile';
+        File::ensureDirectoryExists($profileDirectory);
+        $profileUri = 'file:///'.ltrim(str_replace('\\', '/', $profileDirectory), '/');
         $candidates = array_filter([
             config('services.resume_conversion.libreoffice_binary'),
             $finder->find('soffice'),
             $finder->find('libreoffice'),
+            '/usr/bin/libreoffice',
+            '/usr/bin/soffice',
             'C:\\Program Files\\LibreOffice\\program\\soffice.exe',
             'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe',
         ]);
 
         foreach ($candidates as $binary) {
             if (str_contains($binary, DIRECTORY_SEPARATOR) && !is_file($binary)) continue;
-            $process = new Process([$binary, '--headless', '--convert-to', 'pdf', '--outdir', $directory, $input]);
+            $process = new Process([
+                $binary,
+                '--headless',
+                '--nologo',
+                '--nodefault',
+                '--nofirststartwizard',
+                '-env:UserInstallation='.$profileUri,
+                '--convert-to', 'pdf',
+                '--outdir', $directory,
+                $input,
+            ]);
             $process->setTimeout(60);
             $process->run();
             if ($process->isSuccessful() && is_file($output)) return true;
+
+            Log::warning('LibreOffice resume conversion failed.', [
+                'binary' => $binary,
+                'exit_code' => $process->getExitCode(),
+                'stdout' => trim($process->getOutput()),
+                'stderr' => trim($process->getErrorOutput()),
+                'output_created' => is_file($output),
+            ]);
         }
         return false;
     }
