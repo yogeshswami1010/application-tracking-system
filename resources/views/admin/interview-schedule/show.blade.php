@@ -38,15 +38,15 @@
         <div class="int-grid">
             <div class="int-col-4">
                 <span class="int-label">@lang('app.name')</span>
-                <p class="int-value">{{ ucwords($schedule->jobApplication->full_name) }}</p>
+                <p class="int-value">{{ ucwords($schedule->jobApplication?->full_name ?? '--') }}</p>
             </div>
             <div class="int-col-4">
                 <span class="int-label">@lang('app.email')</span>
-                <p class="int-value">{{ $schedule->jobApplication->email }}</p>
+                <p class="int-value">{{ $schedule->jobApplication?->email ?? '--' }}</p>
             </div>
             <div class="int-col-4">
                 <span class="int-label">@lang('app.phone')</span>
-                <p class="int-value">{{ $schedule->jobApplication->phone }}</p>
+                <p class="int-value">{{ $schedule->jobApplication?->phone ?? '--' }}</p>
             </div>
         </div>
     </div>
@@ -61,13 +61,20 @@
         <div class="int-grid">
             <div class="int-col-12">
                 <span class="int-label">@lang('modules.interviewSchedule.job')</span>
-                <p class="int-value">{{ ucwords($schedule->jobApplication->job->title) . ' (' . ucwords($schedule->jobApplication->job->location->location) . ')' }}</p>
+                @php
+                    $scheduledJob = $schedule->jobApplication?->job;
+                    $scheduledLocation = $scheduledJob?->location?->location;
+                @endphp
+                <p class="int-value">
+                    {{ ucwords($scheduledJob?->title ?? '--') }}
+                    @if($scheduledLocation) ({{ ucwords($scheduledLocation) }}) @endif
+                </p>
             </div>
             <div class="int-col-6">
                 <span class="int-label">@lang('modules.interviewSchedule.interviewType')</span>
                 <p class="int-value">{{ $schedule->interview_type == 'online' ? __('app.online') : __('app.offline') }}</p>
             </div>
-            @if ($schedule->interview_type == 'online' && $schedule->meeting->status != 'meeting' && $schedule->meeting->status != 'canceled')
+            @if ($schedule->interview_type == 'online' && $schedule->meeting && $schedule->meeting->status != 'meeting' && $schedule->meeting->status != 'canceled')
                 <div class="int-col-6">
                     <span class="int-label">@lang('app.actions')</span>
                     <div class="int-actions">
@@ -107,7 +114,7 @@
         <div class="int-head"><h5>@lang('modules.interviewSchedule.assignedEmployee')</h5></div>
         @forelse($schedule->employee as $emp)
             <div class="int-employee-row">
-                <span class="int-value">{{ ucwords($emp->user->name) }}</span>
+                <span class="int-value">{{ ucwords($emp->user?->name ?? '--') }}</span>
                 @if ($emp->user_accept_status == 'accept')
                     <span class="badge badge-success">{{ ucwords($emp->user_accept_status) }}</span>
                 @elseif($emp->user_accept_status == 'refuse')
@@ -121,7 +128,7 @@
         @endforelse
     </div>
 
-    @if ($zoom_setting->enable_zoom == 1 && $schedule->interview_type == 'online')
+    @if ($zoom_setting?->enable_zoom == 1 && $schedule->interview_type == 'online' && $schedule->meeting)
         <div class="int-card">
             <div class="int-head"><h5>@lang('app.zoomMeeting')</h5></div>
             <div class="int-grid">
@@ -148,18 +155,17 @@
         </div>
     @endif
 
-    @if ($schedule->jobApplication->schedule->comments == 'interview' && count($application->schedule->comments) > 0)
+    @if ($schedule->comments->isNotEmpty())
         <div class="int-card">
             <div class="int-head"><h5>@lang('modules.interviewSchedule.comments')</h5></div>
-            @forelse($schedule->jobApplication->schedule->comments as $comment)
+            @foreach($schedule->comments as $comment)
                 <div class="int-employee-row">
                     <div>
-                        <p class="int-value">{{ $comment->user->name }}</p>
+                        <p class="int-value">{{ $comment->user?->name ?? '--' }}</p>
                         <p class="text-muted">{{ $comment->comment }}</p>
                     </div>
                 </div>
-            @empty
-            @endforelse
+            @endforeach
         </div>
     @endif
 

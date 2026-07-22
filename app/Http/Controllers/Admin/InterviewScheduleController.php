@@ -440,7 +440,13 @@ class InterviewScheduleController extends AdminBaseController
     public function show(Request $request, $id)
     {
         abort_if(! $this->user->cans('view_schedule'), 403);
-        $this->schedule = InterviewSchedule::with(['jobApplication', 'user'])->find($id);
+        $this->schedule = InterviewSchedule::with([
+            'jobApplication.job.location',
+            'user',
+            'meeting',
+            'employee.user',
+            'comments.user',
+        ])->findOrFail($id);
         $this->currentDateTimestamp = Carbon::now()->timestamp;
         $this->tableData = null;
         $this->zoom_setting = ZoomSetting::first();
