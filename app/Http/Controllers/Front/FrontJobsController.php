@@ -376,6 +376,26 @@ class FrontJobsController extends FrontBaseController
             }
         }
 
+        // Some job forms collect the CV through a file-type custom question
+        // instead of the dedicated resume field. Convert those uploads too.
+        $questionUploads = [];
+        try {
+            foreach ((array) $request->file('answer', []) as $questionId => $upload) {
+                if (!$upload) continue;
+                $questionUploads[$questionId] = $resumeConverter->convert($upload);
+            }
+        } catch (\Throwable $e) {
+            foreach ($questionUploads as $convertedUpload) $resumeConverter->cleanup($convertedUpload);
+            report($e);
+            throw ValidationException::withMessages([
+                'answer.'.$questionId => 'The uploaded Word document could not be converted to PDF. Please upload a valid DOC, DOCX, or PDF file.',
+            ]);
+        }
+
+        $uploadQuestions = empty($questionUploads)
+            ? collect()
+            : \App\Question::whereIn('id', array_keys($questionUploads))->get()->keyBy('id');
+
         $jobApplication           = new JobApplication();
         $jobApplication->full_name = $request->full_name;
         $jobApplication->job_id   = $request->job_id;
@@ -440,7 +460,24 @@ class FrontJobsController extends FrontBaseController
                 $answer->question_id        = $key;
 
                 if ($request->hasFile('answer.' . $key)) {
-                    $answer->file = Files::uploadLocalOrS3($value, 'documents');
+                    $questionUpload = $questionUploads[$key] ?? $value;
+                    $questionText = (string) optional($uploadQuestions->get($key))->question;
+                    $isResumeQuestion = (bool) preg_match('/\b(resume|cv|curriculum\s+vitae)\b/i', $questionText);
+
+                    try {
+                        if ($isResumeQuestion) {
+                            $hashname = Files::uploadLocalOrS3($questionUpload, 'documents/'.$jobApplication->id);
+                            $answer->file = $jobApplication->id.'/'.$hashname;
+                            $jobApplication->documents()->updateOrCreate(
+                                ['name' => 'Resume'],
+                                ['hashname' => $hashname]
+                            );
+                        } else {
+                            $answer->file = Files::uploadLocalOrS3($questionUpload, 'documents');
+                        }
+                    } finally {
+                        $resumeConverter->cleanup($questionUpload);
+                    }
                 } else {
                     $answer->answer = $value;
                 }

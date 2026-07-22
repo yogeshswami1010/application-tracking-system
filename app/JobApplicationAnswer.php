@@ -27,6 +27,6 @@ class JobApplicationAnswer extends Model
             return asset('avatar.png');
         }
         
-        return asset_url_local_s3('documents/' . $this->file);
+        return asset_url_local_s3('documents/' . ltrim($this->file, '/'));
     }
 }
