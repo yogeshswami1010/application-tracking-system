@@ -2,6 +2,10 @@
 
 return [
 
+    'resume_conversion' => [
+        'libreoffice_binary' => env('LIBREOFFICE_BINARY'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services

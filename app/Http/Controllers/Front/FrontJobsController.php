@@ -36,6 +36,8 @@ use App\Http\Requests\FrontJobApplication;
 use Illuminate\Support\Facades\Notification;
 use App\Http\Controllers\Front\FrontBaseController;
 use App\JobJobLocation;
+use App\Services\ResumePdfConverter;
+use Illuminate\Validation\ValidationException;
 
 class FrontJobsController extends FrontBaseController
 {
@@ -361,6 +363,19 @@ class FrontJobsController extends FrontBaseController
 
     public function saveApplication(FrontJobApplication $request)
     {
+        $resumeUpload = $request->file('resume');
+        $resumeConverter = app(ResumePdfConverter::class);
+        if ($resumeUpload) {
+            try {
+                $resumeUpload = $resumeConverter->convert($resumeUpload);
+            } catch (\Throwable $e) {
+                report($e);
+                throw ValidationException::withMessages([
+                    'resume' => 'The Word resume could not be converted to PDF. Please upload a valid DOC, DOCX, or PDF file.',
+                ]);
+            }
+        }
+
         $jobApplication           = new JobApplication();
         $jobApplication->full_name = $request->full_name;
         $jobApplication->job_id   = $request->job_id;
@@ -397,12 +412,16 @@ class FrontJobsController extends FrontBaseController
 
         $jobApplication->save();
 
-        if ($request->hasFile('resume')) {
-            $hashname = Files::uploadLocalOrS3($request->resume, 'documents/' . $jobApplication->id, null, null, false);
-            $jobApplication->documents()->create([
-                'name'     => 'Resume',
-                'hashname' => $hashname,
-            ]);
+        if ($resumeUpload) {
+            try {
+                $hashname = Files::uploadLocalOrS3($resumeUpload, 'documents/' . $jobApplication->id, null, null, false);
+                $jobApplication->documents()->create([
+                    'name'     => 'Resume',
+                    'hashname' => $hashname,
+                ]);
+            } finally {
+                $resumeConverter->cleanup($resumeUpload);
+            }
         }
 
         if ($request->linkedinPhoto) {
