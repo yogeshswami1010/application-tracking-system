@@ -440,8 +440,11 @@ function jaSaveMarketingLabel(appId) {
                     {{-- Quick actions --}}
                     <div class="ja-card">
                         <div class="ja-action-btns">
-                            @if($user->cans('add_schedule') && $application->status?->status == 'interview' && is_null($application->schedule))
-                            <a onclick="createSchedule('{{ $application->id }}')" href="javascript:;" class="ja-btn ja-btn-blue">
+                            @if($user->cans('add_schedule') && is_null($application->schedule))
+                            @php($isInterviewStage = stripos((string) $application->status?->status, 'interview') !== false)
+                            <a id="schedule-interview-action-{{ $application->id }}"
+                               onclick="createSchedule('{{ $application->id }}')" href="javascript:;"
+                               class="ja-btn ja-btn-blue" @if(!$isInterviewStage) style="display:none" @endif>
                                 <i class="fa fa-calendar-plus-o"></i> @lang('modules.interviewSchedule.scheduleInterview')
                             </a>
                             @endif
@@ -1171,6 +1174,10 @@ function jaMoveFromDetail(appId, toStatusId, toStatusLabel, currentStatusId) {
                     badge.style.background = color;
                     badge.innerHTML = '<i class="fa fa-check" style="font-size:9px"></i> ' + toStatusLabel;
                 });
+                var scheduleAction = document.getElementById('schedule-interview-action-' + appId);
+                if (scheduleAction) {
+                    scheduleAction.style.display = String(toStatusLabel).toLowerCase().includes('interview') ? '' : 'none';
+                }
                 if (select) {
                     select.value = '';
                     Array.prototype.slice.call(select.options).forEach(function (stage) {
