@@ -423,7 +423,7 @@
             <div class="modal-body max-h-[min(60vh,420px)] overflow-y-auto p-6 text-[13px] text-[#1A1E2E]">Loading...</div>
             <div class="flex items-center justify-end gap-2.5 border-t border-[#F0EEE9] px-6 py-3.5">
                 <button type="button" class="rounded-[9px] bg-[#F1F3F7] px-5 py-2.5 text-[13px] font-semibold text-[#5A6478]" onclick="$('#scheduleDetailModal').addClass('hidden')">@lang('app.close')</button>
-                <button type="button" class="rounded-[9px] bg-[#2563EB] px-6 py-2.5 text-[13px] font-bold text-white">@lang('app.save')</button>
+                <button type="button" id="job-application-modal-save" class="rounded-[9px] bg-[#2563EB] px-6 py-2.5 text-[13px] font-bold text-white">@lang('app.save')</button>
             </div>
         </div>
     </div>
@@ -1067,6 +1067,7 @@
     function createSchedule(id) {
         var url = "{{ route('admin.job-applications.create-schedule',':id') }}".replace(':id', id);
         $('#modelHeading').html('Schedule');
+        $('#job-application-modal-save').addClass('save-schedule');
         $.ajaxModal('#scheduleDetailModal', url);
     }
 
@@ -1077,7 +1078,7 @@
             event.preventDefault();
             $.easyAjax({
                 url: '{{ route('admin.job-applications.store-schedule') }}',
-                container: '#createSchedule',
+                container: '#scheduleDetailModal',
                 type: 'POST',
                 data: $('#createSchedule').serialize(),
                 redirect: false,

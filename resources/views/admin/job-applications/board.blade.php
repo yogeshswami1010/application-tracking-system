@@ -374,7 +374,7 @@
                 </div>
                 <div class="flex items-center justify-end gap-2.5 border-t border-[#F0EEE9] px-6 py-3.5">
                     <button type="button" class="rounded-[9px] bg-[#F1F3F7] px-5 py-2.5 text-[13px] font-semibold text-[#5A6478] transition hover:bg-[#E5E7ED]" onclick="$('#scheduleDetailModal').addClass('hidden')">@lang('app.close')</button>
-                    <button type="button" class="rounded-[9px] bg-[#2563EB] px-6 py-2.5 text-[13px] font-bold text-white shadow-sm transition hover:bg-[#1d4ed8] hover:shadow-[0_4px_14px_rgba(37,99,235,0.38)]">@lang('app.save')</button>
+                    <button type="button" id="job-application-modal-save" class="rounded-[9px] bg-[#2563EB] px-6 py-2.5 text-[13px] font-bold text-white shadow-sm transition hover:bg-[#1d4ed8] hover:shadow-[0_4px_14px_rgba(37,99,235,0.38)]">@lang('app.save')</button>
                 </div>
             </div>
         </div>
@@ -629,11 +629,30 @@
         function createSchedule(id) {
             var url = "{{ route('admin.job-applications.create-schedule',':id') }}".replace(':id', id);
             $('#modelHeading').html('Schedule');
+            $('#job-application-modal-save').addClass('save-schedule');
             $.ajaxModal('#scheduleDetailModal', url);
         }
 
+        $(document).off('click.jobApplicationSchedule', '.save-schedule')
+            .on('click.jobApplicationSchedule', '.save-schedule', function (event) {
+                event.preventDefault();
+                $.easyAjax({
+                    url: '{{ route('admin.job-applications.store-schedule') }}',
+                    container: '#scheduleDetailModal',
+                    type: 'POST',
+                    data: $('#createSchedule').serialize(),
+                    redirect: false,
+                    disableButton: true,
+                    buttonSelector: '.save-schedule',
+                    success: function (response) {
+                        if (response.status === 'success') window.location.reload();
+                    }
+                });
+            });
+
         function createApplicationStatus() {
             $('#modelHeading').html('Application Status');
+            $('#job-application-modal-save').removeClass('save-schedule');
             $.ajaxModal('#scheduleDetailModal', "{{ route('admin.application-status.create') }}");
         }
 
@@ -670,6 +689,7 @@
         function editStatus(id) {
             var url = "{{ route('admin.application-status.edit', ':id') }}".replace(':id', id);
             $('#modelHeading').html('Application Status');
+            $('#job-application-modal-save').removeClass('save-schedule');
             $.ajaxModal('#scheduleDetailModal', url);
         }
 

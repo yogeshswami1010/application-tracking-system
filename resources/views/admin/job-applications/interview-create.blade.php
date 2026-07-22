@@ -144,11 +144,6 @@
     </form>
 
 </div>
-<div class="flex items-center justify-end space-x-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
-    <button type="button" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2" onclick="$(this).closest('.modal').addClass('hidden')">@lang('app.close')</button>
-    <button type="button" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 save-schedule">@lang('app.submit')</button>
-</div>
-
 <script src="{{ asset('assets/node_modules_files/moment/moment.js') }}" type="text/javascript"></script>
 <script src="{{ asset('assets/node_modules_files/multiselect/js/jquery.multi-select.js') }}"></script>
 <script src="{{ asset('assets/node_modules_files/bootstrap-material-datetimepicker/js/bootstrap-material-datetimepicker.js') }}" type="text/javascript"></script>
