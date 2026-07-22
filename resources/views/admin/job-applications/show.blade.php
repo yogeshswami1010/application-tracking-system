@@ -1574,6 +1574,14 @@ function jaSaveInfoEdit(appId) {
 function jaOpenSmsModal(appId) {
     var modal = document.getElementById('ja-sms-modal-' + appId);
     if (!modal) return;
+    modal._jaOriginalParent = modal.parentNode;
+    document.body.appendChild(modal);
+    document.querySelectorAll('#ja-pdf-frame, #ja-pdf-container iframe, #ja-pdf-container embed, #ja-pdf-container object').forEach(function (viewer) {
+        viewer.dataset.jaSmsVisibility = viewer.style.visibility || '';
+        viewer.dataset.jaSmsDisplay = viewer.style.display || '';
+        viewer.style.visibility = 'hidden';
+        viewer.style.display = 'none';
+    });
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     var field = document.getElementById('ja-sms-message-' + appId);
@@ -1590,6 +1598,15 @@ function jaCloseSmsModal(appId) {
     if (!modal) return;
     modal.classList.add('hidden');
     modal.classList.remove('flex');
+    document.querySelectorAll('#ja-pdf-frame, #ja-pdf-container iframe, #ja-pdf-container embed, #ja-pdf-container object').forEach(function (viewer) {
+        viewer.style.visibility = viewer.dataset.jaSmsVisibility || '';
+        viewer.style.display = viewer.dataset.jaSmsDisplay || '';
+        delete viewer.dataset.jaSmsVisibility;
+        delete viewer.dataset.jaSmsDisplay;
+    });
+    if (modal._jaOriginalParent && document.contains(modal._jaOriginalParent)) {
+        modal._jaOriginalParent.appendChild(modal);
+    }
 }
 
 function jaSendApplicantSms(appId) {
