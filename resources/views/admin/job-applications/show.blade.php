@@ -59,7 +59,7 @@
 .ja-two-col-wrap {
     display: flex; flex-direction: column;
     height: 100vh; background: #F8F7F4;
-    font-family: 'Plus Jakarta Sans', sans-serif; overflow: hidden;
+    font-family: 'Plus Jakarta Sans', sans-serif; overflow: hidden; position: relative;
 }
 .ja-header {
     display: flex; align-items: center; gap: 12px;
@@ -479,7 +479,7 @@ function jaSaveMarketingLabel(appId) {
                         </div>
 
                         @if($user->cans('edit_job_applications') && $application->phone)
-                        <div id="ja-sms-modal-{{ $application->id }}" class="fixed inset-0 z-[300] hidden items-center justify-center bg-black/50 p-4">
+                        <div id="ja-sms-modal-{{ $application->id }}" class="absolute inset-0 z-[300] hidden items-center justify-center bg-black/50 p-4">
                             <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" onclick="event.stopPropagation()">
                                 <div class="mb-4 flex items-center justify-between">
                                     <h3 class="text-[16px] font-bold text-[#1A1E2E]">Send SMS to {{ $application->full_name }}</h3>
@@ -1575,8 +1575,10 @@ function jaOpenSmsModal(appId) {
     var modal = document.getElementById('ja-sms-modal-' + appId);
     if (!modal) return;
     modal._jaOriginalParent = modal.parentNode;
-    document.body.appendChild(modal);
-    document.querySelectorAll('#ja-pdf-frame, #ja-pdf-container iframe, #ja-pdf-container embed, #ja-pdf-container object').forEach(function (viewer) {
+    var profile = modal.closest('.ja-two-col-wrap');
+    modal._jaProfile = profile;
+    if (profile) profile.appendChild(modal);
+    (profile || document).querySelectorAll('#ja-pdf-frame, #ja-pdf-container iframe, #ja-pdf-container embed, #ja-pdf-container object').forEach(function (viewer) {
         viewer.dataset.jaSmsVisibility = viewer.style.visibility || '';
         viewer.dataset.jaSmsDisplay = viewer.style.display || '';
         viewer.style.visibility = 'hidden';
@@ -1598,7 +1600,7 @@ function jaCloseSmsModal(appId) {
     if (!modal) return;
     modal.classList.add('hidden');
     modal.classList.remove('flex');
-    document.querySelectorAll('#ja-pdf-frame, #ja-pdf-container iframe, #ja-pdf-container embed, #ja-pdf-container object').forEach(function (viewer) {
+    (modal._jaProfile || document).querySelectorAll('#ja-pdf-frame, #ja-pdf-container iframe, #ja-pdf-container embed, #ja-pdf-container object').forEach(function (viewer) {
         viewer.style.visibility = viewer.dataset.jaSmsVisibility || '';
         viewer.style.display = viewer.dataset.jaSmsDisplay || '';
         delete viewer.dataset.jaSmsVisibility;
