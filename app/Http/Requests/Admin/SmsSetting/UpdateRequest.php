@@ -4,6 +4,7 @@ namespace App\Http\Requests\Admin\SmsSetting;
 
 use App\Package;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateRequest extends FormRequest
 {
@@ -24,9 +25,12 @@ class UpdateRequest extends FormRequest
         }
 
         return [
-            'nexmo_key' => 'required_if:nexmo_status,active',
-            'nexmo_secret' => 'required_if:nexmo_status,active',
-            'nexmo_from' => 'required_if:nexmo_status,active|between:3,18',
+            'sms_provider' => 'required|in:vonage,telnyx',
+            'nexmo_key' => [Rule::requiredIf($this->nexmo_status === 'active' && $this->sms_provider === 'vonage'), 'nullable'],
+            'nexmo_secret' => [Rule::requiredIf($this->nexmo_status === 'active' && $this->sms_provider === 'vonage'), 'nullable'],
+            'nexmo_from' => [Rule::requiredIf($this->nexmo_status === 'active' && $this->sms_provider === 'vonage'), 'nullable', 'between:3,18'],
+            'telnyx_api_key' => [Rule::requiredIf($this->nexmo_status === 'active' && $this->sms_provider === 'telnyx'), 'nullable', 'string'],
+            'telnyx_from_number' => [Rule::requiredIf($this->nexmo_status === 'active' && $this->sms_provider === 'telnyx'), 'nullable', 'regex:/^\+?1?\d{10}$/'],
         ];
     }
 }

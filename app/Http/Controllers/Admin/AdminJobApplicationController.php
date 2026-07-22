@@ -23,6 +23,7 @@ use App\Notifications\CandidateStatusChange;
 use App\Notifications\ScheduleInterview;
 use App\Question;
 use App\Services\ResumeTextExtractor;
+use App\Services\TelnyxSmsService;
 use App\Skill;
 use App\Support\RaDataTableHtml;
 use App\Services\Zoom\ZoomApiClient;
@@ -706,6 +707,27 @@ class AdminJobApplicationController extends AdminBaseController
 
         return Reply::success(__('messages.updatedSuccessfully'));
     }
+
+    public function sendSms(Request $request, int $id, TelnyxSmsService $sms): mixed
+    {
+        abort_if(!$this->user->cans('edit_job_applications'), 403);
+        $request->validate(['message' => ['required', 'string', 'max:1600']]);
+
+        $application = JobApplication::findOrFail($id);
+        if (!$application->phone) return Reply::error('This applicant does not have a phone number.');
+
+        try {
+            $sms->send($application->phone, trim($request->message));
+        } catch (\Throwable $e) {
+            Log::warning('Applicant SMS failed.', [
+                'job_application_id' => $application->id,
+                'error' => $e->getMessage(),
+            ]);
+            return Reply::error($e->getMessage());
+        }
+
+        return Reply::success('SMS sent successfully.');
+    }
     public function createSchedule(Request $request, $id)
     {
         abort_if(! $this->user->cans('add_schedule'), 403);
@@ -1157,6 +1179,7 @@ class AdminJobApplicationController extends AdminBaseController
             ])
             ->with([
                 'onboard',
+                'schedule',
                 // The CV URL accessor uses this loaded relation. Without it,
                 // rendering a profile performs repeated resume-document queries.
                 'documents:id,documentable_id,documentable_type,name,hashname',

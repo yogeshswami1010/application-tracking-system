@@ -26,13 +26,25 @@
                         <svg class="h-[18px] w-[18px]" fill="none" stroke="#2563EB" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
                     </div>
                     <div>
-                        <h2 class="text-[15px] font-bold text-[#1A1E2E]">@lang('app.sms.nexmoStatus')</h2>
-                        <p class="text-[12px] text-[#8892A0]">Nexmo / Vonage</p>
+                        <h2 class="text-[15px] font-bold text-[#1A1E2E]">SMS Status</h2>
+                        <p class="text-[12px] text-[#8892A0]">Enable applicant text messages</p>
                     </div>
                 </div>
                 <div class="p-6">
                     <div class="switchery-demo max-w-xs">
-                        <input id="nexmo_status" name="nexmo_status" type="checkbox" @if ($credentials->nexmo_status == 'active') checked @endif value="active" class="js-switch change-language-setting" data-color="#2563EB" data-size="small" data-setting-id="{{ $credentials->id }}" onchange="toggle('#nexmo-credentials');">
+                        <input id="nexmo_status" name="nexmo_status" type="checkbox" @if ($credentials->nexmo_status == 'active') checked @endif value="active" class="js-switch change-language-setting" data-color="#2563EB" data-size="small" data-setting-id="{{ $credentials->id }}" onchange="showProviderCredentials();">
+                    </div>
+                </div>
+            </div>
+
+            <div class="bs-set-card mb-4">
+                <div class="space-y-4 p-6">
+                    <div>
+                        <label for="sms_provider" class="bs-set-lbl">SMS Provider</label>
+                        <select name="sms_provider" id="sms_provider" class="bs-f-input">
+                            <option value="telnyx" @selected(($credentials->sms_provider ?? 'vonage') === 'telnyx')>Telnyx</option>
+                            <option value="vonage" @selected(($credentials->sms_provider ?? 'vonage') === 'vonage')>Vonage / Nexmo</option>
+                        </select>
                     </div>
                 </div>
             </div>
@@ -63,6 +75,26 @@
                 </div>
             </div>
 
+            <div id="telnyx-credentials" class="bs-set-card mb-4">
+                <div class="bs-set-card-hd">
+                    <div>
+                        <h2 class="text-[15px] font-bold text-[#1A1E2E]">Telnyx Credentials</h2>
+                        <p class="text-[12px] text-[#8892A0]">API key and SMS-enabled sender number</p>
+                    </div>
+                </div>
+                <div class="space-y-4 p-6">
+                    <div>
+                        <label for="telnyx_api_key" class="bs-set-lbl">Telnyx API Key</label>
+                        <input type="password" name="telnyx_api_key" id="telnyx_api_key" class="bs-f-input" value="{{ $credentials->telnyx_api_key }}" autocomplete="new-password">
+                    </div>
+                    <div>
+                        <label for="telnyx_from_number" class="bs-set-lbl">Telnyx Sender Number</label>
+                        <input type="text" name="telnyx_from_number" id="telnyx_from_number" class="bs-f-input" value="{{ $credentials->telnyx_from_number }}" placeholder="+14165551234">
+                        <p class="mt-1 text-[11px] text-[#8892A0]">Use the SMS-enabled number assigned to your Telnyx Messaging Profile.</p>
+                    </div>
+                </div>
+            </div>
+
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <button type="button" id="save-form" class="inline-flex items-center justify-center gap-2 rounded-[11px] bg-[#2563EB] px-8 py-3 text-[13.5px] font-bold text-white shadow-sm transition hover:bg-[#1d4ed8]">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
@@ -81,7 +113,14 @@
             $(elementBox).slideToggle();
         }
 
-        $('#nexmo_status').is(':checked') ? $('#nexmo-credentials').show() : $('#nexmo-credentials').hide();
+        function showProviderCredentials() {
+            var provider = $('#sms_provider').val();
+            var enabled = $('#nexmo_status').is(':checked');
+            $('#nexmo-credentials').toggle(enabled && provider === 'vonage');
+            $('#telnyx-credentials').toggle(enabled && provider === 'telnyx');
+        }
+        $('#sms_provider').on('change', showProviderCredentials);
+        showProviderCredentials();
 
         var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
         $('.js-switch').each(function () {

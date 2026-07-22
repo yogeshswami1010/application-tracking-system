@@ -25,9 +25,12 @@ class AdminSmsSettingsController extends AdminBaseController
 
         // Save SMS Credentials
         $smsSetting->nexmo_status = $request->nexmo_status;
+        $smsSetting->sms_provider = $request->sms_provider;
         $smsSetting->nexmo_key = $request->nexmo_key;
         $smsSetting->nexmo_secret = $request->nexmo_secret;
         $smsSetting->nexmo_from = $request->nexmo_from;
+        $smsSetting->telnyx_api_key = $request->telnyx_api_key;
+        $smsSetting->telnyx_from_number = $request->telnyx_from_number;
 
         $smsSetting->save();
         

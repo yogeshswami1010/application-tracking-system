@@ -20,6 +20,15 @@
     }
     $currentStatusId = $application->status_id;
     $currentStatus = $allStatuses->firstWhere('id', $currentStatusId);
+    $smsFirstName = trim(explode(' ', trim($application->full_name))[0] ?? $application->full_name);
+    $defaultSmsMessage = 'Hi '.$smsFirstName.', ';
+    if ($application->schedule?->schedule_date) {
+        $defaultSmsMessage .= 'your interview for '.($application->job?->title ?? 'the position')
+            .' is scheduled for '.$application->schedule->schedule_date->format('M j, Y \a\t g:i A').'.';
+    } else {
+        $defaultSmsMessage .= 'we are contacting you regarding your application for '
+            .($application->job?->title ?? 'the position').'.';
+    }
 
     // ── Previous applications (same email) ──
     $previousApps = collect();
@@ -457,12 +466,35 @@ function jaSaveMarketingLabel(appId) {
                                 <i class="fa fa-rocket"></i> @lang('app.startOnboard')
                             </a>
                             @endif
+                            @if($user->cans('edit_job_applications') && $application->phone)
+                            <button type="button" onclick="jaOpenSmsModal({{ $application->id }})" class="ja-btn ja-btn-blue">
+                                <i class="fa fa-commenting-o"></i> Send SMS
+                            </button>
+                            @endif
                             @if(auth()->user()->hasRole('admin'))
                             <button type="button" onclick="deleteApplication({{ $application->id }})" class="ja-btn ja-btn-red">
                                 <i class="fa fa-trash-o"></i> @lang('app.delete')
                             </button>
                             @endif
                         </div>
+
+                        @if($user->cans('edit_job_applications') && $application->phone)
+                        <div id="ja-sms-modal-{{ $application->id }}" class="fixed inset-0 z-[300] hidden items-center justify-center bg-black/50 p-4">
+                            <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" onclick="event.stopPropagation()">
+                                <div class="mb-4 flex items-center justify-between">
+                                    <h3 class="text-[16px] font-bold text-[#1A1E2E]">Send SMS to {{ $application->full_name }}</h3>
+                                    <button type="button" onclick="jaCloseSmsModal({{ $application->id }})" class="text-xl text-gray-400">&times;</button>
+                                </div>
+                                <div class="mb-3 text-[12px] text-[#5A6478]">To: {{ $application->phone }}</div>
+                                <textarea id="ja-sms-message-{{ $application->id }}" maxlength="1600" rows="6" class="w-full rounded-xl border border-[#D9E1EC] p-3 text-[13px] focus:border-blue-500 focus:outline-none">{{ $defaultSmsMessage }}</textarea>
+                                <div id="ja-sms-count-{{ $application->id }}" class="mt-1 text-right text-[11px] text-[#8892A0]">{{ strlen($defaultSmsMessage) }}/1600</div>
+                                <div class="mt-5 flex justify-end gap-3">
+                                    <button type="button" onclick="jaCloseSmsModal({{ $application->id }})" class="rounded-lg bg-gray-100 px-4 py-2 text-[13px] font-semibold text-gray-600">Cancel</button>
+                                    <button type="button" id="ja-send-sms-btn-{{ $application->id }}" onclick="jaSendApplicantSms({{ $application->id }})" class="rounded-lg bg-blue-600 px-5 py-2 text-[13px] font-bold text-white">Send SMS</button>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
 
                         {{-- Stage mover --}}
                         @if($user->cans('edit_job_applications'))
@@ -1539,6 +1571,62 @@ function jaSaveInfoEdit(appId) {
         }
     });
 }
+function jaOpenSmsModal(appId) {
+    var modal = document.getElementById('ja-sms-modal-' + appId);
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    var field = document.getElementById('ja-sms-message-' + appId);
+    if (field) {
+        field.focus();
+        field.oninput = function () {
+            document.getElementById('ja-sms-count-' + appId).textContent = field.value.length + '/1600';
+        };
+    }
+}
+
+function jaCloseSmsModal(appId) {
+    var modal = document.getElementById('ja-sms-modal-' + appId);
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+function jaSendApplicantSms(appId) {
+    var field = document.getElementById('ja-sms-message-' + appId);
+    var button = document.getElementById('ja-send-sms-btn-' + appId);
+    var message = field ? field.value.trim() : '';
+    if (!message) {
+        if (typeof toastr !== 'undefined') toastr.error('Please enter an SMS message.');
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = 'Sending...';
+    $.ajax({
+        type: 'POST',
+        url: "{{ route('admin.job-applications.send-sms', ':id') }}".replace(':id', appId),
+        data: { _token: '{{ csrf_token() }}', message: message },
+        success: function (response) {
+            if (response.status === 'success') {
+                jaCloseSmsModal(appId);
+                if (typeof toastr !== 'undefined') toastr.success(response.message || 'SMS sent successfully.');
+            } else if (typeof toastr !== 'undefined') {
+                toastr.error(response.message || 'SMS could not be sent.');
+            }
+        },
+        error: function (xhr) {
+            var response = xhr.responseJSON || {};
+            var validation = response.errors && response.errors.message ? response.errors.message[0] : null;
+            if (typeof toastr !== 'undefined') toastr.error(validation || response.message || 'SMS could not be sent.');
+        },
+        complete: function () {
+            button.disabled = false;
+            button.textContent = 'Send SMS';
+        }
+    });
+}
+
 /* ── Applied For (job) inline edit ── */
 function jaToggleJobEdit(appId) {
     var view = document.getElementById('ja-job-view-' + appId);
