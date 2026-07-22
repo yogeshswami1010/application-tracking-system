@@ -716,18 +716,18 @@ class AdminJobApplicationController extends AdminBaseController
     public function storeSchedule(StoreRequest $request)
     {
         abort_if(! $this->user->cans('add_schedule'), 403);
-        $this->setZoomConfigs();
 
         $dateTime = $request->scheduleDate.' '.$request->scheduleTime;
         $dateTime = Carbon::createFromFormat('Y-m-d H:i', $dateTime);
         if ($request->interview_type == 'online') {
+            $this->setZoomConfigs();
             $data = $request->all();
             $meeting = new ZoomMeeting;
             $data['meeting_name'] = $request->meeting_title;
             $data['start_date_time'] = $dateTime;
             $data['end_date_time'] = $request->end_date.' '.$request->end_time;
             $meeting = $meeting->create($data);
-            $host = User::find($request->create_by);
+            $host = User::find($request->created_by);
             $zoom = app(ZoomApiClient::class);
             $meetings = $this->createMeeting($zoom, $meeting, null, null, $host);
         } else {
@@ -759,19 +759,10 @@ class AdminJobApplicationController extends AdminBaseController
 
         if (! empty($request->employees)) {
             $interviewSchedule->employees()->attach($request->employees);
-
-            // Mail to employee for inform interview schedule
-            //Notification::send($interviewSchedule->employees, new ScheduleInterview($jobApplication, $meetings));
-            if (false) Notification::send($interviewSchedule->employees, new ScheduleInterview($jobApplication, $meetings));
-
         }
         if (! $request->interview_type) {
             $meeting = '';
         }
-        // mail to candidate for inform interview schedule
-        //Notification::send($jobApplication, new CandidateScheduleInterview($jobApplication, $interviewSchedule, $meetings));
-        if (false) Notification::send($jobApplication, new CandidateScheduleInterview($jobApplication, $interviewSchedule, $meetings));
-
         return Reply::redirect(route('admin.interview-schedule.index'), __('menu.interviewSchedule').' '.__('messages.createdSuccessfully'));
     }
 

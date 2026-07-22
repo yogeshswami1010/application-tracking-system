@@ -28,7 +28,6 @@ class StoreRequest extends CoreRequest
             $data= [
                 'meeting_title' => 'required',
                 "candidates"    => "required",
-                "employees.0"      => "required",
                 "scheduleDate"    => "required",
                 "scheduleTime"    => "required",
                 "end_date"    => "required",
@@ -37,7 +36,6 @@ class StoreRequest extends CoreRequest
         }else{
             $data = [
             "candidates"    => "required",
-            "employees.0"      => "required",
             "scheduleDate"    => "required",
             "scheduleTime"    => "required",
         ];

@@ -1070,6 +1070,25 @@
         $.ajaxModal('#scheduleDetailModal', url);
     }
 
+    // The schedule form is loaded into a modal after this page is ready, so
+    // bind its Save action through the document instead of the modal fragment.
+    $(document).off('click.jobApplicationSchedule', '.save-schedule')
+        .on('click.jobApplicationSchedule', '.save-schedule', function (event) {
+            event.preventDefault();
+            $.easyAjax({
+                url: '{{ route('admin.job-applications.store-schedule') }}',
+                container: '#createSchedule',
+                type: 'POST',
+                data: $('#createSchedule').serialize(),
+                redirect: false,
+                disableButton: true,
+                buttonSelector: '.save-schedule',
+                success: function (response) {
+                    if (response.status === 'success') window.location.reload();
+                }
+            });
+        });
+
     // ── Mail settings ────────────────────────────────────────────
     $(document).on('click', '.mail_setting', function() {
         $.ajax({

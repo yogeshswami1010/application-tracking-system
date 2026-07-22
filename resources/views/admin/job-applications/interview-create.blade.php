@@ -132,6 +132,8 @@
                     </div>
                 </div>
             </div>
+        @else
+            <input type="hidden" name="interview_type" value="offline">
         @endif
 
         <div class="form-group">
@@ -215,18 +217,4 @@
                 $('#end_date_section').addClass('hidden');
             }
         })
-    // Save Interview Schedule
-    $('.save-schedule').click(function () {
-        $.easyAjax({
-            url: '{{route('admin.job-applications.store-schedule')}}',
-            container: '#createSchedule',
-            type: "POST",
-            data: $('#createSchedule').serialize(),
-            success: function (response) {
-                if(response.status == 'success'){
-                    window.location.reload();
-                }
-            }
-        })
-    })
 </script>
