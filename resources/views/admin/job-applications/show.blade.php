@@ -441,7 +441,10 @@ function jaSaveMarketingLabel(appId) {
                     <div class="ja-card">
                         <div class="ja-action-btns">
                             @if($user->cans('add_schedule') && is_null($application->schedule))
-                            @php($isInterviewStage = stripos((string) $application->status?->status, 'interview') !== false)
+                            @php
+                                $statusName = $application->status ? (string) $application->status->status : '';
+                                $isInterviewStage = stripos($statusName, 'interview') !== false;
+                            @endphp
                             <a id="schedule-interview-action-{{ $application->id }}"
                                onclick="createSchedule('{{ $application->id }}')" href="javascript:;"
                                class="ja-btn ja-btn-blue" @if(!$isInterviewStage) style="display:none" @endif>
