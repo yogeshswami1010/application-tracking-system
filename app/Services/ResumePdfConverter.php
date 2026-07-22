@@ -24,7 +24,8 @@ class ResumePdfConverter
 
         try {
             if (!$this->convertWithLibreOffice($input, $directory, $output)
-                && !$this->convertWithMicrosoftWord($input, $output)) {
+                && !$this->convertWithMicrosoftWord($input, $output)
+                && !$this->convertWithPowerShellWord($input, $output, $directory)) {
                 throw new RuntimeException('DOC/DOCX resume conversion is unavailable.');
             }
             if (!is_file($output) || filesize($output) === 0) {
@@ -82,14 +83,77 @@ class ResumePdfConverter
             $word->Visible = false;
             $word->DisplayAlerts = 0;
             $document = $word->Documents->Open(str_replace('/', '\\', $input), false, true);
-            $document->SaveAs(str_replace('/', '\\', $output), 17);
-            return is_file($output);
+            $document->ExportAsFixedFormat(str_replace('/', '\\', $output), 17);
+            clearstatcache(true, $output);
+            return is_file($output) && filesize($output) > 0;
         } catch (\Throwable $e) {
             report($e);
             return false;
         } finally {
             if ($document) try { $document->Close(false); } catch (\Throwable $e) {}
             if ($word) try { $word->Quit(); } catch (\Throwable $e) {}
+        }
+    }
+
+    private function convertWithPowerShellWord(string $input, string $output, string $directory): bool
+    {
+        if (PHP_OS_FAMILY !== 'Windows') return false;
+
+        $script = $directory.'/convert-resume.ps1';
+        File::put($script, <<<'POWERSHELL'
+param(
+    [Parameter(Mandatory = $true)][string]$InputPath,
+    [Parameter(Mandatory = $true)][string]$OutputPath
+)
+
+$ErrorActionPreference = 'Stop'
+$word = $null
+$document = $null
+
+try {
+    $word = New-Object -ComObject Word.Application
+    $word.Visible = $false
+    $word.DisplayAlerts = 0
+    $document = $word.Documents.Open($InputPath, $false, $true)
+    $document.ExportAsFixedFormat($OutputPath, 17)
+} finally {
+    if ($null -ne $document) {
+        $document.Close($false)
+        [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($document)
+    }
+    if ($null -ne $word) {
+        $word.Quit()
+        [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($word)
+    }
+    [GC]::Collect()
+    [GC]::WaitForPendingFinalizers()
+}
+POWERSHELL);
+
+        try {
+            $process = new Process([
+                'powershell.exe',
+                '-NoProfile',
+                '-NonInteractive',
+                '-ExecutionPolicy', 'Bypass',
+                '-File', $script,
+                str_replace('/', '\\', $input),
+                str_replace('/', '\\', $output),
+            ]);
+            $process->setTimeout(90);
+            $process->run();
+            clearstatcache(true, $output);
+
+            if (!$process->isSuccessful()) {
+                report(new RuntimeException('PowerShell Word conversion failed: '.$process->getErrorOutput()));
+            }
+
+            return $process->isSuccessful() && is_file($output) && filesize($output) > 0;
+        } catch (\Throwable $e) {
+            report($e);
+            return false;
+        } finally {
+            File::delete($script);
         }
     }
 }
