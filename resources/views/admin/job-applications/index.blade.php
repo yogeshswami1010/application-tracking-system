@@ -449,6 +449,7 @@
 
     // ── State ────────────────────────────────────────────────────
     var jaActiveStageId  = 'all';   // 'all' | stage id
+    var jaStatusNameFilter = new URLSearchParams(window.location.search).get('status_name') || '';
     var jaShowKO         = false;
     var jaSelectedIds    = new Set();
     var table;
@@ -501,6 +502,7 @@
 
     // ── Tab switching ────────────────────────────────────────────
     function jaStageTab(stageId, color, slug) {
+        jaStatusNameFilter = '';
         jaShowKO = false;
         jaActiveStageId = stageId;
         jaSelectedIds = new Set();
@@ -522,6 +524,7 @@
     }
 
     function jaStageTabAll() {
+        jaStatusNameFilter = '';
         jaShowKO = false;
         jaActiveStageId = 'all';
         jaSelectedIds = new Set();
@@ -543,6 +546,7 @@
     }
 
     function jaKOTab() {
+        jaStatusNameFilter = '';
         jaShowKO = true;
         jaActiveStageId = 'all';
         jaSelectedIds = new Set();
@@ -874,6 +878,7 @@
             data: function(d) {
                 return $.extend({}, d, {
                     status:         status,
+                    status_name:    jaStatusNameFilter,
                     location:       location,
                     jobs:           jobs,
                     questions:      questions,
@@ -969,6 +974,7 @@
     }
 
     $('#filter-form').on('change', 'select', function() {
+        if (this.id === 'status') jaStatusNameFilter = '';
         jaApplyFilters();
     });
 

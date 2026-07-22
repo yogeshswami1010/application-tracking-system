@@ -126,7 +126,7 @@
                     </div>
                 @endif
                 @if($user->cans('view_job_applications'))
-                    <a href="{{ route('admin.job-applications.table') }}?type=dash" class="rd-sc rd-c-white rd-c-rose rd-a rd-a5">
+                    <a href="{{ route('admin.applications-archive.index') }}" class="rd-sc rd-c-white rd-c-rose rd-a rd-a5">
                 @else
                     <div class="rd-sc rd-sc-static rd-c-white rd-c-rose rd-a rd-a5">
                 @endif
@@ -137,7 +137,7 @@
                             <span class="rd-stag bg-rose-50 text-rose-500">@lang('modules.dashboard.tagAll')</span>
                         </div>
                         <div class="rd-snum rd-cnt" data-v="{{ (int) $totalApplications }}">0</div>
-                        <div class="rd-slbl">@lang('modules.dashboard.totalApplications')</div>
+                        <div class="rd-slbl">Candidate Database</div>
                 @if($user->cans('view_job_applications'))
                     </a>
                 @else
@@ -164,7 +164,7 @@
                 @endif
 
                 @if($user->cans('view_job_applications'))
-                    <a href="{{ route('admin.job-applications.table', ['status' => 5]) }}" class="rd-sc rd-c-white rd-c-amber rd-a rd-a3">
+                    <a href="{{ route('admin.job-applications.table', ['status_name' => 'rejected']) }}" class="rd-sc rd-c-white rd-c-amber rd-a rd-a3">
                 @else
                     <div class="rd-sc rd-sc-static rd-c-white rd-c-amber rd-a rd-a3">
                 @endif
@@ -183,7 +183,7 @@
                 @endif
 
                 @if($user->cans('view_job_applications'))
-                    <a href="{{ route('admin.job-applications.index') }}" class="rd-sc rd-c-white rd-c-violet rd-a rd-a4">
+                    <a href="{{ route('admin.job-applications.table') }}" class="rd-sc rd-c-white rd-c-violet rd-a rd-a4">
                 @else
                     <div class="rd-sc rd-sc-static rd-c-white rd-c-violet rd-a rd-a4">
                 @endif
@@ -202,7 +202,7 @@
                 @endif
 
                 @if($user->cans('view_job_applications'))
-                    <a href="{{ route('admin.job-applications.index') }}" class="rd-sc rd-c-white rd-c-indigo rd-a rd-a5">
+                    <a href="{{ route('admin.candidate-marketing.index') }}" class="rd-sc rd-c-white rd-c-indigo rd-a rd-a5">
                 @else
                     <div class="rd-sc rd-sc-static rd-c-white rd-c-indigo rd-a rd-a5">
                 @endif
@@ -212,8 +212,8 @@
                             </div>
                             <span class="rd-stag bg-blue-50 text-blue-600">@lang('modules.dashboard.tagPipeline')</span>
                         </div>
-                        <div class="rd-snum rd-cnt" data-v="{{ (int) $shortlisted }}">0</div>
-                        <div class="rd-slbl">@lang('modules.dashboard.shortlistedCandidates')</div>
+                        <div class="rd-snum rd-cnt" data-v="{{ (int) $candidateMarketing }}">0</div>
+                        <div class="rd-slbl">Candidate Marketing</div>
                 @if($user->cans('view_job_applications'))
                     </a>
                 @else

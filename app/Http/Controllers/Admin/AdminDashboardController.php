@@ -28,7 +28,9 @@ class AdminDashboardController extends AdminBaseController
         $this->totalAtsJobs = Job::where('status', 'ats')->count();
         
         $this->totalCompanies = Company::count();
-        $this->totalApplications = JobApplication::count();
+        $this->totalApplications = JobApplication::withTrashed()
+            ->whereNull('moved_to_trash_at')
+            ->count();
         $this->totalHired = JobApplication::join('application_status', 'application_status.id', '=', 'job_applications.status_id')
             ->where('application_status.status', 'hired')
             ->count();
@@ -38,10 +40,7 @@ class AdminDashboardController extends AdminBaseController
             $this->newApplications = JobApplication::join('application_status', 'application_status.id', '=', 'job_applications.status_id')
             ->where('application_status.status', 'applied')
             ->count();
-        $this->shortlisted = JobApplication::join('application_status', 'application_status.id', '=', 'job_applications.status_id')
-            ->where('application_status.status', 'phone screen')
-            ->orWhere('application_status.status', 'interview')
-            ->count();
+        $this->candidateMarketing = JobApplication::where('is_marketing', 1)->count();
 
         $currentDate = Carbon::now()->format('Y-m-d');
 

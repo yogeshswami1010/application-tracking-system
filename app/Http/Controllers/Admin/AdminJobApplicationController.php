@@ -392,7 +392,12 @@ class AdminJobApplicationController extends AdminBaseController
         }
 
         // Filter by status
-        if ($request->status != 'all' && $request->status != '') {
+        if ($request->filled('status_name')) {
+            $statusName = mb_strtolower(trim($request->status_name));
+            $jobApplications->whereHas('status', function ($query) use ($statusName) {
+                $query->whereRaw('LOWER(TRIM(status)) = ?', [$statusName]);
+            });
+        } elseif ($request->status != 'all' && $request->status != '') {
             $jobApplications = $jobApplications->where('status_id', $request->status);
         }
 
