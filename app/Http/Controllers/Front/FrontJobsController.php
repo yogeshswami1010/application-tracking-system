@@ -37,6 +37,8 @@ use Illuminate\Support\Facades\Notification;
 use App\Http\Controllers\Front\FrontBaseController;
 use App\JobJobLocation;
 use App\Services\ResumePdfConverter;
+use App\Services\ResumeTextExtractor;
+use App\Jobs\ParseApplicantResume;
 use Illuminate\Validation\ValidationException;
 
 class FrontJobsController extends FrontBaseController
@@ -365,6 +367,8 @@ class FrontJobsController extends FrontBaseController
     {
         $resumeUpload = $request->file('resume');
         $resumeConverter = app(ResumePdfConverter::class);
+        $resumeText = '';
+        $hasResumeUpload = (bool) $resumeUpload;
         if ($resumeUpload) {
             try {
                 $resumeUpload = $resumeConverter->convert($resumeUpload);
@@ -373,6 +377,11 @@ class FrontJobsController extends FrontBaseController
                 throw ValidationException::withMessages([
                     'resume' => 'The Word resume could not be converted to PDF. Please upload a valid DOC, DOCX, or PDF file.',
                 ]);
+            }
+            try {
+                $resumeText = app(ResumeTextExtractor::class)->extract($resumeUpload);
+            } catch (\Throwable $e) {
+                report($e);
             }
         }
 
@@ -466,6 +475,14 @@ class FrontJobsController extends FrontBaseController
 
                     try {
                         if ($isResumeQuestion) {
+                            $hasResumeUpload = true;
+                            if ($resumeText === '') {
+                                try {
+                                    $resumeText = app(ResumeTextExtractor::class)->extract($questionUpload);
+                                } catch (\Throwable $e) {
+                                    report($e);
+                                }
+                            }
                             $hashname = Files::uploadLocalOrS3($questionUpload, 'documents/'.$jobApplication->id);
                             $answer->file = $jobApplication->id.'/'.$hashname;
                             $jobApplication->documents()->updateOrCreate(
@@ -483,6 +500,19 @@ class FrontJobsController extends FrontBaseController
                 }
                 $answer->save();
             }
+        }
+
+        if ($resumeText !== '') {
+            $jobApplication->forceFill([
+                'cv_text' => mb_substr($resumeText, 0, 65000),
+                'cv_index_failed' => false,
+            ])->save();
+            ParseApplicantResume::dispatchAfterResponse($jobApplication->id);
+        } elseif ($hasResumeUpload) {
+            $jobApplication->forceFill([
+                'cv_indexed_at' => now(),
+                'cv_index_failed' => true,
+            ])->save();
         }
 
         $linkedin = $request->has('apply_type');
