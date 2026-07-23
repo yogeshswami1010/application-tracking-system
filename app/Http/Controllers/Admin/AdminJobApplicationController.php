@@ -1271,7 +1271,21 @@ class AdminJobApplicationController extends AdminBaseController
         }
         if ($tab === 'history') {
             $statusHistories = $application->statusHistories()->latest()->limit(30)->with(['fromStatus', 'toStatus', 'user'])->get();
-            $previousApps = JobApplication::where('email', $application->email)->where('is_candidate', 0)->where('id', '!=', $application->id)->with(['job:id,title', 'status:id,status,color', 'location:id,location'])->latest()->limit(5)->get();
+            $previousApps = JobApplication::withTrashed()
+                ->whereNull('moved_to_trash_at')
+                ->where('email', $application->email)
+                ->where('is_candidate', 0)
+                ->where('id', '!=', $application->id)
+                ->with([
+                    'job:id,title,company_id',
+                    'job.company:id,company_name',
+                    'status:id,status,color',
+                    'location:id,location',
+                    'answers.question:id,question,type',
+                    'documents:id,documentable_id,documentable_type,name,hashname',
+                ])
+                ->latest()
+                ->get();
             return Reply::dataOnly(['status' => 'success', 'view' => view('admin.job-applications.partials.profile-history', compact('statusHistories', 'previousApps'))->render()]);
         }
         return Reply::error('Tab not found.');
