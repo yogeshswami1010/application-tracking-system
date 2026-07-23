@@ -1135,18 +1135,26 @@
                     {{-- Status rows --}}
                     <div id="job-status-list" class="flex flex-col gap-0 divide-y divide-[#F5F4F0] px-3 py-2 min-h-[150px] max-h-[340px] overflow-y-auto">
                         @forelse($jobStatuses ?? collect() as $idx => $st)
-                        <div class="job-status-row flex items-center gap-2 py-2" data-index="{{ $idx }}">
-                            <span class="js-drag-handle cursor-grab text-[#C4CBD4] hover:text-[#8892A0] touch-none select-none">
+                        @php
+                            $isAppliedStatus = mb_strtolower(trim($st->status)) === 'applied';
+                        @endphp
+                        <div class="job-status-row flex items-center gap-2 py-2" data-index="{{ $idx }}" data-fixed="{{ $isAppliedStatus ? '1' : '0' }}">
+                            <span class="{{ $isAppliedStatus ? 'cursor-not-allowed text-[#D8DCE3]' : 'js-drag-handle cursor-grab text-[#C4CBD4] hover:text-[#8892A0]' }} touch-none select-none" title="{{ $isAppliedStatus ? 'Applied is always the first stage' : 'Drag to reorder' }}">
                                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
                             </span>
                             <input type="hidden" name="job_status_id[]" value="{{ $st->id }}">
                             <input type="color" name="job_status_color[]" value="{{ $st->color ?? '#2563EB' }}"
-                                class="h-6 w-6 shrink-0 cursor-pointer rounded border-0 p-0 shadow-none" style="padding:1px;">
+                                class="h-6 w-6 shrink-0 rounded border-0 p-0 shadow-none {{ $isAppliedStatus ? 'cursor-not-allowed opacity-70' : 'cursor-pointer' }}" style="padding:1px;" @disabled($isAppliedStatus)>
                             <input type="text" name="job_status_name[]" value="{{ $st->status }}" placeholder="Stage name"
-                                class="min-w-0 flex-1 rounded-lg border border-[#E2DED8] bg-[#FAFAF8] px-2.5 py-1.5 text-[12px] text-[#1A1E2E] focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400/30">
+                                class="min-w-0 flex-1 rounded-lg border border-[#E2DED8] px-2.5 py-1.5 text-[12px] text-[#1A1E2E] focus:outline-none {{ $isAppliedStatus ? 'cursor-not-allowed bg-[#F1F3F7] font-semibold' : 'bg-[#FAFAF8] focus:border-blue-400 focus:ring-1 focus:ring-blue-400/30' }}" @readonly($isAppliedStatus)>
+                            @if($isAppliedStatus)
+                            <span class="rounded-md bg-blue-50 px-1.5 py-1 text-[9px] font-bold uppercase tracking-wide text-blue-600">Fixed</span>
+                            @endif
+                            @if(!$isAppliedStatus)
                             <button type="button" class="js-remove-status flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[#C4CBD4] transition hover:bg-red-50 hover:text-red-500">
                                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                             </button>
+                            @endif
                         </div>
                         @empty
                         <div id="js-status-empty" class="py-5 text-center">
@@ -1343,7 +1351,9 @@ $(document).ready(function () {
         list.addEventListener('click', function (e) {
             var btn = e.target.closest('.js-remove-status');
             if (!btn) return;
-            btn.closest('.job-status-row').remove();
+            var row = btn.closest('.job-status-row');
+            if (row.dataset.fixed === '1') return;
+            row.remove();
             syncEmpty();
         });
     }
@@ -1356,6 +1366,7 @@ $(document).ready(function () {
     document.addEventListener('dragstart', function (e) {
         var row = e.target.closest('.job-status-row');
         if (!row) return;
+        if (row.dataset.fixed === '1') { e.preventDefault(); return; }
         // Only allow drag when originating from the handle
         if (!e.target.closest('.js-drag-handle')) { e.preventDefault(); return; }
         dragSrc = row;
@@ -1375,7 +1386,7 @@ $(document).ready(function () {
     document.addEventListener('dragover', function (e) {
         if (!dragSrc) return;
         var target = e.target.closest('.job-status-row');
-        if (!target || target === dragSrc) return;
+        if (!target || target === dragSrc || target.dataset.fixed === '1') return;
         e.preventDefault();
         // Visual indicator
         document.querySelectorAll('.job-status-row').forEach(function (r) { r.style.borderTop = ''; });
@@ -1387,7 +1398,7 @@ $(document).ready(function () {
     document.addEventListener('drop', function (e) {
         if (!dragSrc) return;
         var target = e.target.closest('.job-status-row');
-        if (!target || target === dragSrc) return;
+        if (!target || target === dragSrc || target.dataset.fixed === '1') return;
         e.preventDefault();
         document.querySelectorAll('.job-status-row').forEach(function (r) { r.style.borderTop = ''; });
         var rect  = target.getBoundingClientRect();
@@ -1397,7 +1408,7 @@ $(document).ready(function () {
 
     // Make existing rows draggable
     document.querySelectorAll('.job-status-row').forEach(function (row) {
-        row.setAttribute('draggable', 'true');
+        row.setAttribute('draggable', row.dataset.fixed === '1' ? 'false' : 'true');
     });
 
     // MutationObserver so newly added rows also get draggable

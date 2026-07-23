@@ -325,6 +325,7 @@ class AdminJobsController extends AdminBaseController
         $this->companies = Company::all();
         $this->jobTypes = JobType::all();
         $this->workExperiences = WorkExperience::all();
+        ApplicationStatus::ensureAppliedForJob((int) $id);
         $this->jobStatuses = ApplicationStatus::where('job_id', $id)->orderBy('position')->get();
 
         return view('admin.jobs.edit', $this->data);
@@ -474,6 +475,21 @@ class AdminJobsController extends AdminBaseController
         $names  = $request->input('job_status_name', []);
         $colors = $request->input('job_status_color', []);
         $ids    = $request->input('job_status_id', []);
+
+        $existingApplied = ApplicationStatus::where('job_id', $jobId)
+            ->whereRaw('LOWER(TRIM(status)) = ?', ['applied'])
+            ->first();
+        $editableRows = collect($names)->map(function ($name, $index) use ($colors, $ids) {
+            return [
+                'name' => trim((string) $name),
+                'color' => $colors[$index] ?? '#2563EB',
+                'id' => $ids[$index] ?? null,
+            ];
+        })->reject(fn ($row) => mb_strtolower($row['name']) === 'applied')->values();
+
+        $names = collect(['Applied'])->concat($editableRows->pluck('name'))->all();
+        $colors = collect(['#2563EB'])->concat($editableRows->pluck('color'))->all();
+        $ids = collect([$existingApplied?->id])->concat($editableRows->pluck('id'))->all();
 
         if (count(array_filter($names, fn ($name) => trim((string) $name) !== '')) === 0) {
             ApplicationStatus::ensureDefaultsForJob($jobId);

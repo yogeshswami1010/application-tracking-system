@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class ApplicationStatus extends Model
 {
     public const DEFAULT_PIPELINE = [
+        ['status' => 'Applied', 'color' => '#2563EB'],
         ['status' => 'CSS Phone Screen', 'color' => '#2563EB'],
         ['status' => 'Client Reviewed', 'color' => '#7C3AED'],
         ['status' => 'Interview', 'color' => '#D97706'],
@@ -51,6 +52,32 @@ class ApplicationStatus extends Model
                 ['color' => $default['color'], 'position' => $index + 1]
             );
         }
+    }
+
+    public static function ensureAppliedForJob(int $jobId): self
+    {
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($jobId) {
+            $statuses = self::where('job_id', $jobId)->orderBy('position')->orderBy('id')->get();
+            $applied = $statuses->first(fn ($status) => mb_strtolower(trim($status->status)) === 'applied');
+
+            if (!$applied) {
+                $applied = self::create([
+                    'job_id' => $jobId,
+                    'status' => 'Applied',
+                    'color' => '#2563EB',
+                    'position' => 1,
+                ]);
+            } else {
+                $applied->update(['status' => 'Applied', 'color' => '#2563EB', 'position' => 1]);
+            }
+
+            $position = 2;
+            foreach ($statuses->where('id', '!=', $applied->id) as $status) {
+                $status->update(['position' => $position++]);
+            }
+
+            return $applied;
+        });
     }
 
     public static function findForJob(int $jobId, string $name): ?self
