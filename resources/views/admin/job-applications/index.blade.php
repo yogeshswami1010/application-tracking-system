@@ -85,6 +85,25 @@
         .hidden { display: none !important; visibility: hidden !important; }
 
         /* ── Table row actions ── */
+        #myTable {
+            table-layout: fixed;
+        }
+        #myTable th:nth-child(1),
+        #myTable td:nth-child(1) { width: 6% !important; }
+        #myTable th:nth-child(2),
+        #myTable td:nth-child(2) { width: 29% !important; }
+        #myTable th:nth-child(3),
+        #myTable td:nth-child(3) { width: 19% !important; }
+        #myTable th:nth-child(4),
+        #myTable td:nth-child(4) { width: 18% !important; }
+        #myTable th:nth-child(5),
+        #myTable td:nth-child(5) {
+            width: 12% !important;
+            white-space: nowrap;
+        }
+        #myTable th:nth-child(6),
+        #myTable td:nth-child(6) { width: 16% !important; }
+
         .ja-row-actions { display: flex; gap: 5px; justify-content: flex-end; align-items: center; }
         .ja-act-btn {
             display: inline-flex;
@@ -909,12 +928,13 @@
                     return '<div class="ja-chk ja-row-chk" data-id="' + row.id + '" onclick="jaToggleRow(' + row.id + ', this)"></div>';
                 }
             },
-            { data: 'full_name',   name: 'full_name',  width: '17%' },
-            { data: 'title',       name: 'job_id',     width: '15%' },
-            { data: 'location_id', name: 'location_id' },
+            { data: 'full_name',   name: 'full_name',  width: '29%' },
+            { data: 'title',       name: 'job_id',     width: '19%' },
+            { data: 'location_id', name: 'location_id', width: '18%' },
             {
                 data: 'status',
                 name: 'status_id',
+                width: '12%',
                 render: function(data, type, row) {
                     if (jaShowKO) {
                         return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold text-white" style="background:#dc2626;">'
@@ -924,7 +944,7 @@
                     return data;
                 }
             },
-            { data: 'action',     name: 'action',     width: '18%', searchable: false, className: 'jc-td-right' },
+            { data: 'action',     name: 'action',     width: '16%', searchable: false, className: 'jc-td-right' },
             { data: 'created_at', name: 'created_at',  visible: false, searchable: false, orderable: true, defaultContent: '' }
         ]
     });
