@@ -264,9 +264,7 @@
             <div class="px-5 sm:px-6">
                 <div class="flex items-center justify-between gap-2 pb-3 pt-0.5">
                     <h4 class="text-[13px] font-bold text-[#1A1E2E]">@lang('app.filterBy')</h4>
-                    <button type="button" class="toggle-filter flex h-8 w-8 items-center justify-center rounded-lg text-[#8892A0] transition hover:bg-[#EEF0F5]">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                    </button>
+                   
                 </div>
                 <form id="filter-form" class="flex flex-wrap items-end gap-3.5 pb-3">
 
