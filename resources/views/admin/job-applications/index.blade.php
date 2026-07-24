@@ -246,36 +246,17 @@
         <div class="mb-0 flex flex-shrink-0 flex-wrap items-center gap-2.5">
             {{-- View toggle --}}
             <div class="inline-flex gap-0.5 rounded-[10px] bg-[#F1F3F7] p-0.5">
-                <a href="{{ route('admin.job-applications.index') }}" class="inline-flex items-center gap-1.5 rounded-lg border-0 bg-transparent px-3.5 py-1.5 text-[12.5px] font-semibold text-[#8892A0] transition hover:text-[#1A1E2E]">
-                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>
-                    @lang('modules.jobApplication.boardView')
-                </a>
                 <span class="inline-flex items-center gap-1.5 rounded-lg bg-white px-3.5 py-1.5 text-[12.5px] font-semibold text-[#1A1E2E] shadow-[0_1px_4px_rgba(0,0,0,0.08)]">
                     <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
                     @lang('app.tableView')
                 </span>
             </div>
 
-            {{-- Filter toggle --}}
-            <button type="button" id="toggle-filter" class="toggle-filter inline-flex items-center gap-1.5 rounded-[9px] border-[1.5px] border-[#E2DED8] bg-white px-3.5 py-[7px] text-[12.5px] font-semibold text-[#5A6478] transition hover:border-[#2563EB] hover:bg-[#EFF6FF] hover:text-[#2563EB] focus:outline-none">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
-                @lang('app.filterResults')
-                <span class="ja-filter-active-count" id="ja-table-filter-active-count">0</span>
-            </button>
-
-            {{-- Mail settings --}}
-            <a href="#" class="mail_setting inline-flex items-center gap-1.5 rounded-[9px] border-[1.5px] border-[#E2DED8] bg-white px-3.5 py-[7px] text-[12.5px] font-semibold text-[#5A6478] transition hover:border-[#2563EB] hover:bg-[#EFF6FF] hover:text-[#2563EB]">
-                <i class="fa fa-envelope-o"></i>
-                @lang('modules.applicationSetting.mailSettings')
-            </a>
-
             {{-- Export --}}
             <button type="button" onclick="exportJobApplication()" class="inline-flex items-center gap-1.5 rounded-[9px] border-[1.5px] border-[#E2DED8] bg-white px-3.5 py-[7px] text-[12.5px] font-semibold text-[#5A6478] transition hover:border-[#2563EB] hover:bg-[#EFF6FF] hover:text-[#2563EB]">
                 <i class="fa fa-upload"></i>
                 @lang('menu.export')
             </button>
-
-            @include('admin.job-applications.partials.ai-compare-modal')
         </div>
 
         {{-- ── Filter bar (collapsible) ── --}}
