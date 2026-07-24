@@ -1217,6 +1217,19 @@
 const params = new URLSearchParams(window.location.search);
 const savedFilters = jaReadSavedFilters();
 const statusFromUrl = params.get('status');
+const jobFromUrl = params.get('jobs');
+
+// Direct links from ATS Overview must override stale saved location/company
+// filters so the selected job and only that job are loaded.
+if (jobFromUrl) {
+    savedFilters.company = 'all';
+    savedFilters.location = 'all';
+    savedFilters.jobs = jobFromUrl;
+    savedFilters.questions = 'all';
+    savedFilters.question_value = '';
+    savedFilters.knockout = false;
+    savedFilters.status = statusFromUrl || 'all';
+}
 const restoredStatus = statusFromUrl || savedFilters.status || 'all';
 
 function jaRestoreSelect(selector, value) {
@@ -1270,6 +1283,8 @@ if ((savedFilters.company || 'all') !== 'all') {
     });
 } else if ((savedFilters.location || 'all') !== 'all') {
     jaRefreshJobs('all', savedFilters.location, jaFinishInitialFilterLoad);
+} else if (jobFromUrl) {
+    jaLoadJobStatuses(jobFromUrl, jaFinishInitialFilterLoad);
 } else {
     jaFinishInitialFilterLoad();
 }

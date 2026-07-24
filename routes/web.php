@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminAiSettingsController;
+use App\Http\Controllers\Admin\AdminAtsOverviewController;
 use App\Http\Controllers\Admin\AdminApplicationArchiveController;
 use App\Http\Controllers\Admin\AdminApplicationStatusController;
 use App\Http\Controllers\Admin\AdminCandidateMarketingController;
@@ -117,6 +118,7 @@ Route::middleware('auth')->group(function () {
         ->group(function () { 
 
             Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+            Route::get('ats-overview', [AdminAtsOverviewController::class, 'index'])->name('ats-overview.index');
             Route::get('trash', [TrashController::class, 'index'])->name('trash.index');
             Route::post('trash/{type}/{id}/restore', [TrashController::class, 'restore'])->name('trash.restore');
             Route::delete('trash/{type}/{id}', [TrashController::class, 'destroy'])->name('trash.destroy');

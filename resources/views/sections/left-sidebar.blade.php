@@ -29,6 +29,10 @@
         @endif
 
         @if(in_array("view_job_applications", $userPermissions))
+            <a href="{{ route('admin.ats-overview.index') }}" class="ra-nav-link {{ request()->is('admin/ats-overview*') ? 'on' : '' }}">
+                <span class="ra-ni" aria-hidden="true"><x-ra-sidebar-icon name="dashboard" /></span>
+                <span class="ra-nl">ATS Overview</span>
+            </a>
             <a href="{{ route('admin.job-applications.table') }}" class="ra-nav-link {{ request()->is('admin/job-applications*') ? 'on' : '' }}">
                 <span class="ra-ni" aria-hidden="true"><x-ra-sidebar-icon name="job-applications" /></span>
                 <span class="ra-nl">@lang('menu.jobApplications')</span>
