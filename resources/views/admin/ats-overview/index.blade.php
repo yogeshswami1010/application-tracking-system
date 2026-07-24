@@ -95,7 +95,8 @@
             transition: opacity .15s ease, transform .15s ease, visibility .15s;
         }
         .ats-status-hover:hover .ats-status-tooltip,
-        .ats-status-hover:focus-within .ats-status-tooltip {
+        .ats-status-hover:focus-within .ats-status-tooltip,
+        .ats-status-hover.is-status-open .ats-status-tooltip {
             visibility: visible;
             opacity: 1;
             transform: translateY(0);
@@ -116,10 +117,10 @@
 
                 var left = Math.max(12, Math.min(trigger.right - width, window.innerWidth - width - 12));
                 var height = tooltip.offsetHeight || 260;
-                var top = trigger.bottom + 9;
+                var top = trigger.bottom - 1;
 
                 if (top + height > window.innerHeight - 12) {
-                    top = Math.max(12, trigger.top - height - 9);
+                    top = Math.max(12, trigger.top - height + 1);
                 }
 
                 tooltip.style.left = left + 'px';
@@ -127,12 +128,35 @@
             }
 
             document.querySelectorAll('.ats-status-hover').forEach(function (wrapper) {
-                wrapper.addEventListener('mouseenter', function () {
+                var closeTimer;
+
+                function openTooltip() {
+                    window.clearTimeout(closeTimer);
+                    wrapper.classList.add('is-status-open');
                     positionAtsStatusTooltip(wrapper);
+                }
+
+                function closeTooltip() {
+                    window.clearTimeout(closeTimer);
+                    closeTimer = window.setTimeout(function () {
+                        wrapper.classList.remove('is-status-open');
+                    }, 250);
+                }
+
+                wrapper.addEventListener('mouseenter', function () {
+                    openTooltip();
                 });
                 wrapper.addEventListener('focusin', function () {
-                    positionAtsStatusTooltip(wrapper);
+                    openTooltip();
                 });
+                wrapper.addEventListener('mouseleave', closeTooltip);
+                wrapper.addEventListener('focusout', closeTooltip);
+
+                var tooltip = wrapper.querySelector('.ats-status-tooltip');
+                if (tooltip) {
+                    tooltip.addEventListener('mouseenter', openTooltip);
+                    tooltip.addEventListener('mouseleave', closeTooltip);
+                }
             });
         })();
     </script>
