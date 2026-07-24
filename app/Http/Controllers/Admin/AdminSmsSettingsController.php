@@ -31,6 +31,7 @@ class AdminSmsSettingsController extends AdminBaseController
         $smsSetting->nexmo_from = $request->nexmo_from;
         $smsSetting->telnyx_api_key = $request->telnyx_api_key;
         $smsSetting->telnyx_from_number = $request->telnyx_from_number;
+        $smsSetting->telnyx_public_key = $request->telnyx_public_key;
 
         $smsSetting->save();
         

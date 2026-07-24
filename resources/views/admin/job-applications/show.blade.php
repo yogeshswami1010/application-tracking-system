@@ -826,6 +826,32 @@ function jaSaveMarketingLabel(appId) {
                     })();
                     </script>
                     @endif
+
+                    <div class="ja-card" id="ja-sms-history-card-{{ $application->id }}">
+                        <div class="ja-card-title" style="justify-content:space-between;">
+                            <span><i class="fa fa-comments-o" style="font-size:11px"></i> SMS Conversation</span>
+                            <span id="ja-sms-history-count-{{ $application->id }}" style="font-size:10.5px;color:#8892A0;font-weight:600;">{{ $application->smsMessages->count() }} messages</span>
+                        </div>
+                        <div id="ja-sms-history-{{ $application->id }}" style="display:flex;flex-direction:column;gap:9px;max-height:340px;overflow-y:auto;padding:4px 2px;">
+                            @forelse($application->smsMessages as $smsMessage)
+                                <div style="display:flex;justify-content:{{ $smsMessage->direction === 'outbound' ? 'flex-end' : 'flex-start' }};">
+                                    <div style="max-width:86%;border-radius:12px;padding:9px 11px;{{ $smsMessage->direction === 'outbound' ? 'background:#2563EB;color:#fff;border-bottom-right-radius:4px;' : 'background:#F1F3F7;color:#1A1E2E;border-bottom-left-radius:4px;' }}">
+                                        <div style="font-size:12px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;">{{ $smsMessage->message }}</div>
+                                        <div style="margin-top:5px;font-size:9.5px;opacity:.7;text-align:{{ $smsMessage->direction === 'outbound' ? 'right' : 'left' }};">
+                                            {{ $smsMessage->direction === 'outbound' ? ($smsMessage->user?->name ?? 'ATS') : $application->full_name }}
+                                            &bull; {{ ($smsMessage->received_at ?? $smsMessage->created_at)?->format('M j, Y g:i A') }}
+                                        </div>
+                                    </div>
+                                </div>
+                            @empty
+                                <div id="ja-sms-history-empty-{{ $application->id }}" style="padding:18px 8px;text-align:center;color:#A0A8B5;font-size:12px;">
+                                    <i class="fa fa-comment-o" style="display:block;font-size:20px;margin-bottom:6px;"></i>
+                                    No SMS messages yet.
+                                </div>
+                            @endforelse
+                        </div>
+                        <p style="margin:9px 2px 0;font-size:10.5px;color:#A0A8B5;">Incoming replies appear here through the configured Telnyx webhook.</p>
+                    </div>
                 </div>{{-- /details --}}
 
                 {{-- ── NOTES TAB ── --}}
@@ -1629,6 +1655,7 @@ function jaSendApplicantSms(appId) {
         success: function (response) {
             if (response.status === 'success') {
                 jaCloseSmsModal(appId);
+                if (response.sms) jaAppendSmsHistory(appId, response.sms);
                 if (typeof toastr !== 'undefined') toastr.success(response.message || 'SMS sent successfully.');
             } else if (typeof toastr !== 'undefined') {
                 toastr.error(response.message || 'SMS could not be sent.');
@@ -1647,6 +1674,37 @@ function jaSendApplicantSms(appId) {
 }
 
 /* ── Applied For (job) inline edit ── */
+function jaAppendSmsHistory(appId, sms) {
+    var history = document.getElementById('ja-sms-history-' + appId);
+    if (!history) return;
+
+    var empty = document.getElementById('ja-sms-history-empty-' + appId);
+    if (empty) empty.remove();
+
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;justify-content:flex-end';
+    var bubble = document.createElement('div');
+    bubble.style.cssText = 'max-width:86%;border-radius:12px;border-bottom-right-radius:4px;padding:9px 11px;background:#2563EB;color:#fff';
+    var body = document.createElement('div');
+    body.style.cssText = 'font-size:12px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere';
+    body.textContent = sms.message || '';
+    var meta = document.createElement('div');
+    meta.style.cssText = 'margin-top:5px;font-size:9.5px;opacity:.7;text-align:right';
+    meta.textContent = (sms.sender || 'ATS') + ' \u2022 ' + (sms.time || '');
+
+    bubble.appendChild(body);
+    bubble.appendChild(meta);
+    row.appendChild(bubble);
+    history.appendChild(row);
+    history.scrollTop = history.scrollHeight;
+
+    var count = document.getElementById('ja-sms-history-count-' + appId);
+    if (count) {
+        var total = history.children.length;
+        count.textContent = total + (total === 1 ? ' message' : ' messages');
+    }
+}
+
 function jaToggleJobEdit(appId) {
     var view = document.getElementById('ja-job-view-' + appId);
     var edit = document.getElementById('ja-job-edit-' + appId);

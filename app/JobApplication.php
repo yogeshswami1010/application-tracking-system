@@ -105,5 +105,10 @@ class JobApplication extends Model
     {
         return $this->hasMany(JobApplicationStatusHistory::class)->orderByDesc('created_at');
     }
+
+    public function smsMessages()
+    {
+        return $this->hasMany(ApplicantSmsMessage::class, 'job_application_id')->orderBy('created_at');
+    }
     
 }

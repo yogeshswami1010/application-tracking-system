@@ -46,6 +46,8 @@ use Maatwebsite\Excel\Facades\Excel;
 use Yajra\DataTables\Facades\DataTables;
 use App\Models\Currency;
 use App\ApplicantNote;
+use App\ApplicantSmsMessage;
+use App\SmsSetting;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 class AdminJobApplicationController extends AdminBaseController
@@ -717,7 +719,20 @@ class AdminJobApplicationController extends AdminBaseController
         if (!$application->phone) return Reply::error('This applicant does not have a phone number.');
 
         try {
-            $sms->send($application->phone, trim($request->message));
+            $message = trim($request->message);
+            $telnyxMessageId = $sms->send($application->phone, $message);
+            $settings = SmsSetting::first();
+
+            $storedMessage = ApplicantSmsMessage::create([
+                'job_application_id' => $application->id,
+                'user_id' => $this->user->id,
+                'direction' => 'outbound',
+                'from_number' => $sms->normalizePhone((string) $settings->telnyx_from_number),
+                'to_number' => $sms->normalizePhone((string) $application->phone),
+                'message' => $message,
+                'telnyx_message_id' => $telnyxMessageId,
+                'status' => 'sent',
+            ]);
         } catch (\Throwable $e) {
             Log::warning('Applicant SMS failed.', [
                 'job_application_id' => $application->id,
@@ -726,7 +741,15 @@ class AdminJobApplicationController extends AdminBaseController
             return Reply::error($e->getMessage());
         }
 
-        return Reply::success('SMS sent successfully.');
+        return Reply::successWithData('SMS sent successfully.', [
+            'sms' => [
+                'id' => $storedMessage->id,
+                'direction' => $storedMessage->direction,
+                'message' => $storedMessage->message,
+                'time' => $storedMessage->created_at->format('M j, Y g:i A'),
+                'sender' => $this->user->name,
+            ],
+        ]);
     }
     public function createSchedule(Request $request, $id)
     {
@@ -1190,6 +1213,7 @@ class AdminJobApplicationController extends AdminBaseController
                 'job.company',
                 'job.location',
                 'job.currency', // used by the salary badge in the job-description modal
+                'smsMessages.user:id,name',
             ])
             ->find($id);
 

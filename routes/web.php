@@ -51,6 +51,7 @@ use App\Http\Controllers\Front\FrontJobsController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\VerifyMobileController;
 use App\Http\Controllers\ZoomWebhookController;
+use App\Http\Controllers\TelnyxWebhookController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\AdminJobClientNoteController;
@@ -64,6 +65,8 @@ use App\Http\Controllers\Admin\AdminJobClientNoteController;
 // ── Zoom webhook ───────────────────────────────────────────────────────────
 Route::post('/zoom-webhook', [ZoomWebhookController::class, 'index'])
     ->name('zoom-webhook');
+Route::post('/telnyx-webhook', TelnyxWebhookController::class)
+    ->name('telnyx-webhook');
 
 // ── AssistMyDay public pages (standalone, outside all groups) ──────────────
 Route::get('assistmyday', [FrontJobsController::class, 'assistMyDay'])

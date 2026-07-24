@@ -92,6 +92,15 @@
                         <input type="text" name="telnyx_from_number" id="telnyx_from_number" class="bs-f-input" value="{{ $credentials->telnyx_from_number }}" placeholder="+14165551234">
                         <p class="mt-1 text-[11px] text-[#8892A0]">Use the SMS-enabled number assigned to your Telnyx Messaging Profile.</p>
                     </div>
+                    <div>
+                        <label for="telnyx_public_key" class="bs-set-lbl">Telnyx Webhook Public Key</label>
+                        <input type="text" name="telnyx_public_key" id="telnyx_public_key" class="bs-f-input" value="{{ $credentials->telnyx_public_key }}" autocomplete="off">
+                        <p class="mt-1 text-[11px] text-[#8892A0]">Copy the public key from your Telnyx Mission Control Portal. Incoming replies are accepted only when their signature is valid.</p>
+                    </div>
+                    <div class="rounded-xl border border-blue-100 bg-blue-50 p-3">
+                        <p class="text-[11px] font-semibold uppercase tracking-wide text-blue-700">Inbound webhook URL</p>
+                        <p class="mt-1 break-all text-[12px] text-blue-900">{{ route('telnyx-webhook') }}</p>
+                    </div>
                 </div>
             </div>
 
