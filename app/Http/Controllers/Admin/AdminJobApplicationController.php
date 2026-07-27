@@ -746,7 +746,7 @@ class AdminJobApplicationController extends AdminBaseController
                 'id' => $storedMessage->id,
                 'direction' => $storedMessage->direction,
                 'message' => $storedMessage->message,
-                'time' => $storedMessage->created_at->format('M j, Y g:i A'),
+                'time' => $storedMessage->created_at->copy()->timezone('America/Toronto')->format('M j, Y g:i A').' ET',
                 'sender' => $this->user->name,
             ],
         ]);

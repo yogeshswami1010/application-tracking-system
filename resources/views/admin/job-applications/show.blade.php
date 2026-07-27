@@ -373,7 +373,7 @@ function jaSaveMarketingLabel(appId) {
                                         <div style="font-size:12px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;">{{ $smsMessage->message }}</div>
                                         <div style="margin-top:5px;font-size:9.5px;opacity:.7;text-align:{{ $smsMessage->direction === 'outbound' ? 'right' : 'left' }};">
                                             {{ $smsMessage->direction === 'outbound' ? ($smsMessage->user?->name ?? 'ATS') : $application->full_name }}
-                                            &bull; {{ ($smsMessage->received_at ?? $smsMessage->created_at)?->format('M j, Y g:i A') }}
+                                            &bull; {{ ($smsMessage->received_at ?? $smsMessage->created_at)?->copy()->timezone('America/Toronto')->format('M j, Y g:i A') }} ET
                                         </div>
                                     </div>
                                 </div>
