@@ -26,7 +26,9 @@ class AdminAtsOverviewController extends AdminBaseController
             ->with([
                 'company:id,company_name',
                 'location:id,location',
-                'jobLocation:id,location',
+                'jobLocation' => function ($query) {
+                    $query->select('job_locations.id', 'job_locations.location');
+                },
                 'statuses' => function ($query) {
                     $query->select('id', 'job_id', 'status', 'color', 'position')
                         ->orderBy('position');
