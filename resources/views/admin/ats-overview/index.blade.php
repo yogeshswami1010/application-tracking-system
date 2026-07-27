@@ -196,6 +196,36 @@
                     panel.style.top = top + 'px';
                 });
             });
+
+            $(document).off('click.atsApplicant', '.ats-open-applicant').on('click.atsApplicant', '.ats-open-applicant', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                var applicantId = $(this).data('applicant-id');
+                if (!applicantId) return;
+
+                document.querySelectorAll('.ats-status-hover.is-status-open').forEach(function (item) {
+                    item.classList.remove('is-status-open');
+                });
+
+                var $sidebar = $('#right-sidebar');
+                var $backdrop = $('#right-sidebar-backdrop');
+                var url = "{{ route('admin.job-applications.show', ':id') }}".replace(':id', applicantId);
+
+                $.ajax({
+                    type: 'GET',
+                    url: url,
+                    success: function (response) {
+                        if (response.status !== 'success') return;
+                        $sidebar.removeClass('translate-x-full').addClass('translate-x-0');
+                        $backdrop.removeClass('hidden').css('display', 'block');
+                        $('#right-sidebar-content').html(response.view);
+                    },
+                    error: function () {
+                        if (typeof toastr !== 'undefined') toastr.error('Applicant profile could not be opened.');
+                    }
+                });
+            });
         })();
     </script>
 @endpush

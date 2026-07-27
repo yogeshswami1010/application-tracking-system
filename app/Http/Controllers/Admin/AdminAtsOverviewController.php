@@ -81,9 +81,8 @@ class AdminAtsOverviewController extends AdminBaseController
 
             $job->statuses->each(function ($status) use ($jobCounts, $jobApplicants) {
                 $status->applicant_count = (int) optional($jobCounts->get($status->id))->applicant_count;
-                $status->applicant_names = $jobApplicants->get($status->id, collect())
-                    ->pluck('full_name')
-                    ->filter()
+                $status->applicants = $jobApplicants->get($status->id, collect())
+                    ->filter(fn ($applicant) => trim((string) $applicant->full_name) !== '')
                     ->values();
             });
 

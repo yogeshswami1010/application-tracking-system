@@ -20,11 +20,15 @@
                             <span class="ml-2 rounded-md bg-[#EEF4FF] px-2 py-0.5 text-[11px] font-bold text-[#2563EB]">{{ number_format($status->applicant_count) }}</span>
                         </div>
                         <div class="px-2 py-1">
-                        @forelse($status->applicant_names as $applicantName)
-                            <div class="flex items-center gap-2 border-b border-[#EEF0F4] px-1 py-2 last:border-b-0">
-                                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#E8F0FF] text-[9px] font-bold text-[#2563EB]">{{ strtoupper(substr(trim($applicantName), 0, 1)) }}</span>
-                                <span class="truncate text-[11.5px] font-medium text-[#3D4A5C]">{{ $applicantName }}</span>
-                            </div>
+                        @forelse($status->applicants as $applicant)
+                            <button type="button"
+                                    class="ats-open-applicant flex w-full items-center gap-2 border-b border-[#EEF0F4] px-1 py-2 text-left transition-colors last:border-b-0 hover:bg-[#F3F7FF]"
+                                    data-applicant-id="{{ $applicant->id }}"
+                                    title="Open {{ $applicant->full_name }} profile">
+                                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#E8F0FF] text-[9px] font-bold text-[#2563EB]">{{ strtoupper(substr(trim($applicant->full_name), 0, 1)) }}</span>
+                                <span class="truncate text-[11.5px] font-semibold text-[#3D4A5C] hover:text-[#2563EB]">{{ $applicant->full_name }}</span>
+                                <i class="fa fa-angle-right ml-auto text-[11px] text-[#A0A8B5]"></i>
+                            </button>
                         @empty
                             <div class="px-2 py-4 text-center text-[11px] text-[#A0A8B5]">No applicants in this status.</div>
                         @endforelse
