@@ -291,6 +291,9 @@ function jaSaveMarketingLabel(appId) {
                         <i class="fa fa-question-circle-o" style="font-size:11px"></i> @lang('modules.front.additionalDetails')
                     </div>
                     @endif
+                    <div class="ja-tab" data-tab="sms">
+                        <i class="fa fa-comments-o" style="font-size:11px"></i> SMS Conversation
+                    </div>
                     <div class="ja-tab" data-tab="history">
                         <i class="fa fa-history"></i> History
                     </div>
@@ -347,6 +350,34 @@ function jaSaveMarketingLabel(appId) {
                 {{-- ── HISTORY TAB ── --}}
                 <div id="ja-tab-history" class="ja-tab-pane" style="display:none" data-url="{{ route('admin.job-applications.profile-tab', [$application->id, 'history']) }}">
                     <div class="ja-tab-loading">Open the History tab to load activity.</div>
+                </div>
+
+                <div id="ja-tab-sms" class="ja-tab-pane" style="display:none">
+                    <div class="ja-card" id="ja-sms-history-card-{{ $application->id }}">
+                        <div class="ja-card-title" style="justify-content:space-between;">
+                            <span><i class="fa fa-comments-o" style="font-size:11px"></i> SMS Conversation</span>
+                            <span id="ja-sms-history-count-{{ $application->id }}" style="font-size:10.5px;color:#8892A0;font-weight:600;">{{ $application->smsMessages->count() }} messages</span>
+                        </div>
+                        <div id="ja-sms-history-{{ $application->id }}" style="display:flex;flex-direction:column;gap:9px;max-height:calc(100vh - 245px);overflow-y:auto;padding:4px 2px;">
+                            @forelse($application->smsMessages as $smsMessage)
+                                <div style="display:flex;justify-content:{{ $smsMessage->direction === 'outbound' ? 'flex-end' : 'flex-start' }};">
+                                    <div style="max-width:86%;border-radius:12px;padding:9px 11px;{{ $smsMessage->direction === 'outbound' ? 'background:#2563EB;color:#fff;border-bottom-right-radius:4px;' : 'background:#F1F3F7;color:#1A1E2E;border-bottom-left-radius:4px;' }}">
+                                        <div style="font-size:12px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;">{{ $smsMessage->message }}</div>
+                                        <div style="margin-top:5px;font-size:9.5px;opacity:.7;text-align:{{ $smsMessage->direction === 'outbound' ? 'right' : 'left' }};">
+                                            {{ $smsMessage->direction === 'outbound' ? ($smsMessage->user?->name ?? 'ATS') : $application->full_name }}
+                                            &bull; {{ ($smsMessage->received_at ?? $smsMessage->created_at)?->format('M j, Y g:i A') }}
+                                        </div>
+                                    </div>
+                                </div>
+                            @empty
+                                <div id="ja-sms-history-empty-{{ $application->id }}" style="padding:30px 8px;text-align:center;color:#A0A8B5;font-size:12px;">
+                                    <i class="fa fa-comment-o" style="display:block;font-size:24px;margin-bottom:8px;"></i>
+                                    No SMS messages yet.
+                                </div>
+                            @endforelse
+                        </div>
+                        <p style="margin:9px 2px 0;font-size:10.5px;color:#A0A8B5;">Incoming replies appear here through the configured Telnyx webhook.</p>
+                    </div>
                 </div>
                 @if(false)
                 <div id="ja-tab-history" class="ja-tab-pane" style="display:none">
@@ -827,31 +858,6 @@ function jaSaveMarketingLabel(appId) {
                     </script>
                     @endif
 
-                    <div class="ja-card" id="ja-sms-history-card-{{ $application->id }}">
-                        <div class="ja-card-title" style="justify-content:space-between;">
-                            <span><i class="fa fa-comments-o" style="font-size:11px"></i> SMS Conversation</span>
-                            <span id="ja-sms-history-count-{{ $application->id }}" style="font-size:10.5px;color:#8892A0;font-weight:600;">{{ $application->smsMessages->count() }} messages</span>
-                        </div>
-                        <div id="ja-sms-history-{{ $application->id }}" style="display:flex;flex-direction:column;gap:9px;max-height:340px;overflow-y:auto;padding:4px 2px;">
-                            @forelse($application->smsMessages as $smsMessage)
-                                <div style="display:flex;justify-content:{{ $smsMessage->direction === 'outbound' ? 'flex-end' : 'flex-start' }};">
-                                    <div style="max-width:86%;border-radius:12px;padding:9px 11px;{{ $smsMessage->direction === 'outbound' ? 'background:#2563EB;color:#fff;border-bottom-right-radius:4px;' : 'background:#F1F3F7;color:#1A1E2E;border-bottom-left-radius:4px;' }}">
-                                        <div style="font-size:12px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;">{{ $smsMessage->message }}</div>
-                                        <div style="margin-top:5px;font-size:9.5px;opacity:.7;text-align:{{ $smsMessage->direction === 'outbound' ? 'right' : 'left' }};">
-                                            {{ $smsMessage->direction === 'outbound' ? ($smsMessage->user?->name ?? 'ATS') : $application->full_name }}
-                                            &bull; {{ ($smsMessage->received_at ?? $smsMessage->created_at)?->format('M j, Y g:i A') }}
-                                        </div>
-                                    </div>
-                                </div>
-                            @empty
-                                <div id="ja-sms-history-empty-{{ $application->id }}" style="padding:18px 8px;text-align:center;color:#A0A8B5;font-size:12px;">
-                                    <i class="fa fa-comment-o" style="display:block;font-size:20px;margin-bottom:6px;"></i>
-                                    No SMS messages yet.
-                                </div>
-                            @endforelse
-                        </div>
-                        <p style="margin:9px 2px 0;font-size:10.5px;color:#A0A8B5;">Incoming replies appear here through the configured Telnyx webhook.</p>
-                    </div>
                 </div>{{-- /details --}}
 
                 {{-- ── NOTES TAB ── --}}
