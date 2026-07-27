@@ -27,13 +27,14 @@
         </div>
 
         <div class="overflow-x-auto">
-            <table class="w-full min-w-[760px] border-collapse text-left">
+            <table class="w-full min-w-[920px] border-collapse text-left">
                 <thead>
                     <tr class="bg-[#F8F9FB] text-[11px] font-bold uppercase tracking-[0.07em] text-[#7D8796]">
-                        <th class="w-[42%] px-5 py-3.5">Job Title</th>
-                        <th class="w-[28%] px-5 py-3.5">Company Name</th>
-                        <th class="w-[16%] px-5 py-3.5 text-center">Total Applicants</th>
-                        <th class="w-[14%] px-5 py-3.5 text-center">Status</th>
+                        <th class="w-[30%] px-5 py-3.5">Job Title</th>
+                        <th class="w-[22%] px-5 py-3.5">Company Name</th>
+                        <th class="w-[18%] px-5 py-3.5">Job Location</th>
+                        <th class="w-[15%] px-5 py-3.5 text-center">Total Applicants</th>
+                        <th class="w-[15%] px-5 py-3.5 text-center">Status</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -49,6 +50,24 @@
                             </td>
                             <td class="px-5 py-4 text-[13px] font-medium text-[#4D586B]">
                                 {{ optional($job->company)->company_name ?: 'No company' }}
+                            </td>
+                            <td class="px-5 py-4">
+                                @php
+                                    $overviewLocations = $job->jobLocation->pluck('location')->filter()->unique()->values();
+                                    if ($overviewLocations->isEmpty() && $job->location?->location) {
+                                        $overviewLocations = collect([$job->location->location]);
+                                    }
+                                @endphp
+                                <div class="flex flex-wrap gap-1.5">
+                                    @forelse($overviewLocations as $overviewLocation)
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-[#F1F3F7] px-2.5 py-1 text-[11px] font-semibold text-[#5A6478]">
+                                            <i class="fa fa-map-marker text-[10px] text-[#8892A0]"></i>
+                                            {{ $overviewLocation }}
+                                        </span>
+                                    @empty
+                                        <span class="text-[12px] text-[#A0A8B5]">No location</span>
+                                    @endforelse
+                                </div>
                             </td>
                             <td class="px-5 py-4 text-center">
                                 <div class="ats-status-hover relative inline-flex">
@@ -70,7 +89,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="px-6 py-16 text-center">
+                            <td colspan="5" class="px-6 py-16 text-center">
                                 <p class="text-[15px] font-semibold text-[#3D4A5C]">No active jobs</p>
                                 <p class="mt-1 text-[12.5px] text-[#8892A0]">Active jobs within their start and end dates will appear here.</p>
                             </td>
