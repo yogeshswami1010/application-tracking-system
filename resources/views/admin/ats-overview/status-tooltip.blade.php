@@ -15,14 +15,20 @@
                         <strong class="min-w-[26px] rounded-md bg-[#F0F3F7] px-1.5 py-0.5 text-center text-[11.5px] text-[#1A1E2E]">{{ number_format($status->applicant_count) }}</strong>
                     </div>
                     <div class="ats-status-applicants">
+                        <div class="sticky top-0 z-10 flex items-center justify-between border-b border-[#E6EAF0] bg-white px-3 py-2.5">
+                            <span class="truncate text-[11px] font-bold uppercase tracking-[0.05em] text-[#5A6478]">{{ ucwords(str_replace(['_', '-'], ' ', $status->status)) }}</span>
+                            <span class="ml-2 rounded-md bg-[#EEF4FF] px-2 py-0.5 text-[11px] font-bold text-[#2563EB]">{{ number_format($status->applicant_count) }}</span>
+                        </div>
+                        <div class="px-2 py-1">
                         @forelse($status->applicant_names as $applicantName)
-                            <div class="flex items-center gap-2 border-t border-[#EEF0F4] px-1 py-1.5 first:mt-1">
+                            <div class="flex items-center gap-2 border-b border-[#EEF0F4] px-1 py-2 last:border-b-0">
                                 <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#E8F0FF] text-[9px] font-bold text-[#2563EB]">{{ strtoupper(substr(trim($applicantName), 0, 1)) }}</span>
                                 <span class="truncate text-[11.5px] font-medium text-[#3D4A5C]">{{ $applicantName }}</span>
                             </div>
                         @empty
-                            <div class="mt-1 border-t border-[#EEF0F4] px-1 py-2 text-[11px] text-[#A0A8B5]">No applicants in this status.</div>
+                            <div class="px-2 py-4 text-center text-[11px] text-[#A0A8B5]">No applicants in this status.</div>
                         @endforelse
+                        </div>
                     </div>
                 </div>
             @empty

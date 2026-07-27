@@ -90,22 +90,28 @@
             width: 290px;
             visibility: hidden;
             opacity: 0;
-            transform: translateY(-4px);
             pointer-events: none;
-            transition: opacity .15s ease, transform .15s ease, visibility .15s;
+            transition: opacity .15s ease, visibility .15s;
         }
         .ats-status-hover:hover .ats-status-tooltip,
         .ats-status-hover:focus-within .ats-status-tooltip,
         .ats-status-hover.is-status-open .ats-status-tooltip {
             visibility: visible;
             opacity: 1;
-            transform: translateY(0);
             pointer-events: auto;
         }
         .ats-status-applicants {
             display: none;
-            margin-top: 3px;
-            padding-left: 10px;
+            position: fixed;
+            z-index: 80;
+            width: 280px;
+            max-height: min(420px, calc(100vh - 24px));
+            overflow-y: auto;
+            border: 1px solid #DCE2EB;
+            border-radius: 12px;
+            background: #fff;
+            box-shadow: 0 14px 36px rgba(28,39,60,.2);
+            scrollbar-width: thin;
         }
         .ats-status-stage:hover .ats-status-applicants {
             display: block;
@@ -166,6 +172,29 @@
                     tooltip.addEventListener('mouseenter', openTooltip);
                     tooltip.addEventListener('mouseleave', closeTooltip);
                 }
+            });
+
+            document.querySelectorAll('.ats-status-stage').forEach(function (stage) {
+                stage.addEventListener('mouseenter', function () {
+                    var panel = stage.querySelector('.ats-status-applicants');
+                    if (!panel) return;
+
+                    var row = stage.getBoundingClientRect();
+                    var width = Math.min(280, window.innerWidth - 24);
+                    panel.style.width = width + 'px';
+
+                    var left = row.right;
+                    if (left + width > window.innerWidth - 12) {
+                        left = row.left - width;
+                    }
+                    left = Math.max(12, Math.min(left, window.innerWidth - width - 12));
+
+                    var height = Math.min(panel.scrollHeight, window.innerHeight - 24);
+                    var top = Math.max(12, Math.min(row.top, window.innerHeight - height - 12));
+
+                    panel.style.left = left + 'px';
+                    panel.style.top = top + 'px';
+                });
             });
         })();
     </script>
