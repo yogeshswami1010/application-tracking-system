@@ -100,6 +100,15 @@
             visibility: visible;
             opacity: 1;
             transform: translateY(0);
+            pointer-events: auto;
+        }
+        .ats-status-applicants {
+            display: none;
+            margin-top: 3px;
+            padding-left: 10px;
+        }
+        .ats-status-stage:hover .ats-status-applicants {
+            display: block;
         }
     </style>
 @endpush

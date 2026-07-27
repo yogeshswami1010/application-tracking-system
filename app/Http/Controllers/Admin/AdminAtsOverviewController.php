@@ -39,6 +39,7 @@ class AdminAtsOverviewController extends AdminBaseController
 
         $jobIds = $jobs->pluck('id');
         $counts = collect();
+        $applicantsByStatus = collect();
 
         if ($jobIds->isNotEmpty()) {
             // Match the table view's merged-profile rule: only the newest
@@ -57,13 +58,33 @@ class AdminAtsOverviewController extends AdminBaseController
                 ->groupBy('job_id', 'status_id')
                 ->get()
                 ->groupBy('job_id');
+
+            $applicantsByStatus = JobApplication::query()
+                ->select('id', 'job_id', 'status_id', 'full_name')
+                ->where('is_candidate', 0)
+                ->whereIn('job_id', $jobIds)
+                ->whereIn('id', function ($query) {
+                    $query->selectRaw('MAX(ja2.id)')
+                        ->from('job_applications as ja2')
+                        ->where('ja2.is_candidate', 0)
+                        ->whereNull('ja2.deleted_at')
+                        ->groupBy('ja2.email');
+                })
+                ->orderBy('full_name')
+                ->get()
+                ->groupBy(['job_id', 'status_id']);
         }
 
-        $jobs->each(function (Job $job) use ($counts) {
+        $jobs->each(function (Job $job) use ($counts, $applicantsByStatus) {
             $jobCounts = $counts->get($job->id, collect())->keyBy('status_id');
+            $jobApplicants = $applicantsByStatus->get($job->id, collect());
 
-            $job->statuses->each(function ($status) use ($jobCounts) {
+            $job->statuses->each(function ($status) use ($jobCounts, $jobApplicants) {
                 $status->applicant_count = (int) optional($jobCounts->get($status->id))->applicant_count;
+                $status->applicant_names = $jobApplicants->get($status->id, collect())
+                    ->pluck('full_name')
+                    ->filter()
+                    ->values();
             });
 
             $job->applicant_count = (int) $job->statuses->sum('applicant_count');
