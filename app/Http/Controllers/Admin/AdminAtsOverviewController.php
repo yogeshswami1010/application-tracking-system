@@ -82,6 +82,11 @@ class AdminAtsOverviewController extends AdminBaseController
         $jobs->each(function (Job $job) use ($counts, $applicantsByStatus) {
             $jobCounts = $counts->get($job->id, collect())->keyBy('status_id');
             $jobApplicants = $applicantsByStatus->get($job->id, collect());
+            $overviewLocations = $job->jobLocation->pluck('location')->filter()->unique()->values();
+            if ($overviewLocations->isEmpty() && optional($job->location)->location) {
+                $overviewLocations = collect([$job->location->location]);
+            }
+            $job->overview_locations = $overviewLocations;
 
             $job->statuses->each(function ($status) use ($jobCounts, $jobApplicants) {
                 $status->applicant_count = (int) optional($jobCounts->get($status->id))->applicant_count;

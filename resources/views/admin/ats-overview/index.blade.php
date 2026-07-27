@@ -52,14 +52,8 @@
                                 {{ optional($job->company)->company_name ?: 'No company' }}
                             </td>
                             <td class="px-5 py-4">
-                                @php
-                                    $overviewLocations = $job->jobLocation->pluck('location')->filter()->unique()->values();
-                                    if ($overviewLocations->isEmpty() && $job->location?->location) {
-                                        $overviewLocations = collect([$job->location->location]);
-                                    }
-                                @endphp
                                 <div class="flex flex-wrap gap-1.5">
-                                    @forelse($overviewLocations as $overviewLocation)
+                                    @forelse($job->overview_locations as $overviewLocation)
                                         <span class="inline-flex items-center gap-1 rounded-full bg-[#F1F3F7] px-2.5 py-1 text-[11px] font-semibold text-[#5A6478]">
                                             <i class="fa fa-map-marker text-[10px] text-[#8892A0]"></i>
                                             {{ $overviewLocation }}
