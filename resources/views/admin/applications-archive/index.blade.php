@@ -739,9 +739,10 @@ document.getElementById('run-bulk-parse').addEventListener('click', function() {
     // ── Show detail sidebar ───────────────────────────────────────────────────
     $('#myTable').on('click', '.show-detail', function () {
         var $sidebar = $("#right-sidebar");
-        $sidebar.removeClass('translate-x-full').addClass('shw-rside');
+        $sidebar.removeClass('translate-x-full shw-rside').addClass('translate-x-0');
+        $('#right-sidebar-backdrop').removeClass('hidden').css('display', 'block');
         var id  = $(this).data('row-id');
-        var url = "{{ route('admin.applications-archive.show', ':id') }}".replace(':id', id);
+        var url = "{{ route('admin.job-applications.show', ':id') }}".replace(':id', id);
         $.easyAjax({
             type: 'GET', url: url,
             success: function (response) {
