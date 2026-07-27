@@ -629,6 +629,9 @@
                         <i class="fa fa-question-circle-o" style="font-size:11px"></i> @lang('modules.front.additionalDetails')
                     </div>
                     @endif
+                    <div class="ja-tab" data-tab="sms">
+                        <i class="fa fa-comments-o" style="font-size:11px"></i> SMS Conversation
+                    </div>
                     @if($previousApps->isNotEmpty() || $application->statusHistories->isNotEmpty())
                         <div class="ja-tab" data-tab="history">
                             <i class="fa fa-history"></i> History
@@ -686,6 +689,7 @@
             </div>
 
             <div class="ja-right-scroll">
+                @include('admin.job-applications.partials.sms-conversation-tab')
                 @if($previousApps->isNotEmpty() || $application->statusHistories->isNotEmpty())
                 <div id="ja-tab-history" class="ja-tab-pane" style="display:none">
 

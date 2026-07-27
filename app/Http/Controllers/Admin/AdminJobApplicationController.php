@@ -715,7 +715,7 @@ class AdminJobApplicationController extends AdminBaseController
         abort_if(!$this->user->cans('edit_job_applications'), 403);
         $request->validate(['message' => ['required', 'string', 'max:1600']]);
 
-        $application = JobApplication::findOrFail($id);
+        $application = JobApplication::withTrashed()->findOrFail($id);
         if (!$application->phone) return Reply::error('This applicant does not have a phone number.');
 
         try {

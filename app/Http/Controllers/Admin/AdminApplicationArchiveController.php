@@ -206,6 +206,7 @@ class AdminApplicationArchiveController extends AdminBaseController
             'statusHistories.fromStatus',
             'statusHistories.toStatus',
             'statusHistories.user',
+            'smsMessages.user:id,name',
         ])->withTrashed()->find($id);
 
         $this->skills = Skill::select('id', 'name')->get();
