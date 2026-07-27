@@ -351,7 +351,10 @@
         var $backdrop = $("#right-sidebar-backdrop");
         if ($sidebar.length === 0) return;
         $sidebar.removeClass('translate-x-0').addClass('translate-x-full');
-        $backdrop.addClass('hidden');
+        // Clear the overlay even when a profile opener added an inline
+        // display:block style. The hidden utility alone cannot override that
+        // inline style in every compiled CSS build.
+        $backdrop.addClass('hidden').css('display', 'none');
     };
 
     window.raCloseStickyNotesSidebar = function () {
