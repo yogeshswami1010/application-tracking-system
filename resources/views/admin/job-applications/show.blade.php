@@ -356,7 +356,15 @@ function jaSaveMarketingLabel(appId) {
                     <div class="ja-card" id="ja-sms-history-card-{{ $application->id }}">
                         <div class="ja-card-title" style="justify-content:space-between;">
                             <span><i class="fa fa-comments-o" style="font-size:11px"></i> SMS Conversation</span>
-                            <span id="ja-sms-history-count-{{ $application->id }}" style="font-size:10.5px;color:#8892A0;font-weight:600;">{{ $application->smsMessages->count() }} messages</span>
+                            <span style="display:flex;align-items:center;gap:8px;">
+                                <span id="ja-sms-history-count-{{ $application->id }}" style="font-size:10.5px;color:#8892A0;font-weight:600;">{{ $application->smsMessages->count() }} messages</span>
+                                @if($user->cans('edit_job_applications') && $application->phone)
+                                    <button type="button" onclick="jaOpenSmsModal({{ $application->id }})"
+                                            style="display:inline-flex;align-items:center;gap:5px;border:0;border-radius:8px;background:#2563EB;color:#fff;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;">
+                                        <i class="fa fa-paper-plane" style="font-size:10px"></i> Send SMS
+                                    </button>
+                                @endif
+                            </span>
                         </div>
                         <div id="ja-sms-history-{{ $application->id }}" style="display:flex;flex-direction:column;gap:9px;max-height:calc(100vh - 245px);overflow-y:auto;padding:4px 2px;">
                             @forelse($application->smsMessages as $smsMessage)
