@@ -189,8 +189,14 @@
                     }
                     left = Math.max(12, Math.min(left, window.innerWidth - width - 12));
 
-                    var height = Math.min(panel.scrollHeight, window.innerHeight - 24);
-                    var top = Math.max(12, Math.min(row.top, window.innerHeight - height - 12));
+                    // Use the rendered (max-height constrained) panel height,
+                    // not the full scrollHeight. A long stage such as Rejected
+                    // must remain beside the hovered row instead of jumping to
+                    // the top of the viewport.
+                    var height = panel.getBoundingClientRect().height
+                        || Math.min(panel.scrollHeight, 420, window.innerHeight - 24);
+                    var preferredTop = row.top + (row.height / 2) - (height / 2);
+                    var top = Math.max(12, Math.min(preferredTop, window.innerHeight - height - 12));
 
                     panel.style.left = left + 'px';
                     panel.style.top = top + 'px';
