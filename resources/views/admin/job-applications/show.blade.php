@@ -384,24 +384,7 @@ function jaSaveMarketingLabel(appId) {
                                 </div>
                             @endforelse
                         </div>
-                        @if($user->cans('edit_job_applications') && $application->phone)
-                            <div style="display:flex;align-items:flex-end;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid #E8EAF0;">
-                                <textarea id="ja-inline-sms-message-{{ $application->id }}"
-                                          rows="1"
-                                          maxlength="1600"
-                                          placeholder="Type a message..."
-                                          onkeydown="if(event.key === 'Enter' && !event.shiftKey){ event.preventDefault(); jaSendInlineApplicantSms({{ $application->id }}); }"
-                                          style="flex:1;min-height:40px;max-height:110px;resize:none;border:1.5px solid #D9E1EC;border-radius:11px;padding:10px 12px;font-family:inherit;font-size:12.5px;line-height:1.45;color:#1A1E2E;outline:none;"></textarea>
-                                <button type="button"
-                                        id="ja-inline-sms-send-{{ $application->id }}"
-                                        onclick="jaSendInlineApplicantSms({{ $application->id }})"
-                                        title="Send SMS"
-                                        aria-label="Send SMS"
-                                        style="display:inline-flex;width:40px;height:40px;flex-shrink:0;align-items:center;justify-content:center;border:0;border-radius:11px;background:#2563EB;color:#fff;cursor:pointer;box-shadow:0 3px 8px rgba(37,99,235,.25);">
-                                    <i class="fa fa-paper-plane" style="font-size:13px"></i>
-                                </button>
-                            </div>
-                        @elseif(!$application->phone)
+                        @if(!$application->phone)
                             <p style="margin-top:12px;padding:10px;border-radius:9px;background:#FFF7ED;color:#9A5B13;font-size:11.5px;text-align:center;">Add a phone number to send SMS messages.</p>
                         @endif
                         <p style="margin:9px 2px 0;font-size:10.5px;color:#A0A8B5;">Incoming replies appear here through the configured Telnyx webhook.</p>
@@ -1690,11 +1673,6 @@ function jaSendApplicantSms(appId) {
             if (response.status === 'success') {
                 jaCloseSmsModal(appId);
                 if (response.sms) jaAppendSmsHistory(appId, response.sms);
-                var inlineField = document.getElementById('ja-inline-sms-message-' + appId);
-                if (inlineField && inlineField.dataset.sending === 'true') {
-                    inlineField.value = '';
-                    delete inlineField.dataset.sending;
-                }
                 if (typeof toastr !== 'undefined') toastr.success(response.message || 'SMS sent successfully.');
             } else if (typeof toastr !== 'undefined') {
                 toastr.error(response.message || 'SMS could not be sent.');
@@ -1708,13 +1686,6 @@ function jaSendApplicantSms(appId) {
         complete: function () {
             button.disabled = false;
             button.textContent = 'Send SMS';
-            var inlineField = document.getElementById('ja-inline-sms-message-' + appId);
-            var inlineButton = document.getElementById('ja-inline-sms-send-' + appId);
-            if (inlineField) delete inlineField.dataset.sending;
-            if (inlineButton) {
-                inlineButton.disabled = false;
-                inlineButton.style.opacity = '1';
-            }
         }
     });
 }
@@ -1749,26 +1720,6 @@ function jaAppendSmsHistory(appId, sms) {
         var total = history.children.length;
         count.textContent = total + (total === 1 ? ' message' : ' messages');
     }
-}
-
-function jaSendInlineApplicantSms(appId) {
-    var inlineField = document.getElementById('ja-inline-sms-message-' + appId);
-    var modalField = document.getElementById('ja-sms-message-' + appId);
-    var message = inlineField ? inlineField.value.trim() : '';
-
-    if (!message) {
-        if (typeof toastr !== 'undefined') toastr.error('Please enter an SMS message.');
-        return;
-    }
-
-    if (modalField) modalField.value = message;
-    inlineField.dataset.sending = 'true';
-    var inlineButton = document.getElementById('ja-inline-sms-send-' + appId);
-    if (inlineButton) {
-        inlineButton.disabled = true;
-        inlineButton.style.opacity = '.6';
-    }
-    jaSendApplicantSms(appId);
 }
 
 function jaToggleJobEdit(appId) {
