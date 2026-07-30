@@ -87,6 +87,11 @@ class AdminAtsOverviewController extends AdminBaseController
                 $overviewLocations = collect([$job->location->location]);
             }
             $job->overview_locations = $overviewLocations;
+            $overviewLocationIds = $job->jobLocation->pluck('id')->map(fn ($id) => (int) $id);
+            if ($overviewLocationIds->isEmpty() && $job->location_id) {
+                $overviewLocationIds = collect([(int) $job->location_id]);
+            }
+            $job->overview_location_ids = $overviewLocationIds->unique()->values();
 
             $job->statuses->each(function ($status) use ($jobCounts, $jobApplicants) {
                 $status->applicant_count = (int) optional($jobCounts->get($status->id))->applicant_count;
@@ -101,6 +106,18 @@ class AdminAtsOverviewController extends AdminBaseController
         $this->jobs = $jobs;
         $this->activeJobCount = $jobs->count();
         $this->activeApplicantCount = (int) $jobs->sum('applicant_count');
+        $this->filterCompanies = $jobs->pluck('company')
+            ->filter()
+            ->unique('id')
+            ->sortBy('company_name')
+            ->values();
+        $this->filterLocations = $jobs->flatMap(function (Job $job) {
+            $locations = $job->jobLocation;
+            if ($locations->isEmpty() && $job->location) {
+                $locations = collect([$job->location]);
+            }
+            return $locations;
+        })->filter()->unique('id')->sortBy('location')->values();
 
         return view('admin.ats-overview.index', $this->data);
     }

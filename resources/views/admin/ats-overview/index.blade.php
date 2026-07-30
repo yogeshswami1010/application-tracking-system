@@ -12,11 +12,52 @@
     <div class="mb-5 grid gap-4 sm:grid-cols-2">
         <div class="rounded-2xl border border-[#E3E7EE] bg-white p-5 shadow-sm">
             <p class="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#8892A0]">Active Jobs</p>
-            <p class="mt-2 text-3xl font-bold tracking-tight text-[#1A1E2E]">{{ number_format($activeJobCount) }}</p>
+            <p id="ats-visible-job-count" class="mt-2 text-3xl font-bold tracking-tight text-[#1A1E2E]">{{ number_format($activeJobCount) }}</p>
         </div>
         <div class="rounded-2xl border border-[#E3E7EE] bg-white p-5 shadow-sm">
             <p class="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#8892A0]">Applicants in Active Jobs</p>
-            <p class="mt-2 text-3xl font-bold tracking-tight text-[#1A1E2E]">{{ number_format($activeApplicantCount) }}</p>
+            <p id="ats-visible-applicant-count" class="mt-2 text-3xl font-bold tracking-tight text-[#1A1E2E]">{{ number_format($activeApplicantCount) }}</p>
+        </div>
+    </div>
+
+    <div class="mb-5 rounded-2xl border border-[#E3E7EE] bg-white p-4 shadow-sm">
+        <div class="mb-3 flex items-center justify-between">
+            <div>
+                <h2 class="text-[14px] font-bold text-[#1A1E2E]">Filter Active Jobs</h2>
+                <p class="mt-0.5 text-[11.5px] text-[#8892A0]">Use one or more filters to narrow the overview.</p>
+            </div>
+            <button type="button" id="ats-filter-reset" class="inline-flex items-center gap-1.5 rounded-lg border border-[#DDE3EC] bg-white px-3 py-2 text-[11.5px] font-semibold text-[#697386] transition hover:border-[#EF4444] hover:text-[#EF4444]">
+                <i class="fa fa-refresh text-[10px]"></i> Reset
+            </button>
+        </div>
+        <div class="grid gap-3 md:grid-cols-3">
+            <div>
+                <label for="ats-filter-job" class="mb-1.5 block text-[10.5px] font-bold uppercase tracking-[0.07em] text-[#8892A0]">Job</label>
+                <select id="ats-filter-job" class="w-full rounded-xl border border-[#DDE3EC] bg-[#F8F9FB] px-3 py-2.5 text-[12.5px] font-medium text-[#3D4A5C] outline-none focus:border-[#2563EB]">
+                    <option value="">All Jobs</option>
+                    @foreach($jobs->sortBy('title') as $filterJob)
+                        <option value="{{ $filterJob->id }}">{{ $filterJob->title }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label for="ats-filter-company" class="mb-1.5 block text-[10.5px] font-bold uppercase tracking-[0.07em] text-[#8892A0]">Company Name</label>
+                <select id="ats-filter-company" class="w-full rounded-xl border border-[#DDE3EC] bg-[#F8F9FB] px-3 py-2.5 text-[12.5px] font-medium text-[#3D4A5C] outline-none focus:border-[#2563EB]">
+                    <option value="">All Companies</option>
+                    @foreach($filterCompanies as $filterCompany)
+                        <option value="{{ $filterCompany->id }}">{{ $filterCompany->company_name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label for="ats-filter-location" class="mb-1.5 block text-[10.5px] font-bold uppercase tracking-[0.07em] text-[#8892A0]">Location</label>
+                <select id="ats-filter-location" class="w-full rounded-xl border border-[#DDE3EC] bg-[#F8F9FB] px-3 py-2.5 text-[12.5px] font-medium text-[#3D4A5C] outline-none focus:border-[#2563EB]">
+                    <option value="">All Locations</option>
+                    @foreach($filterLocations as $filterLocation)
+                        <option value="{{ $filterLocation->id }}">{{ $filterLocation->location }}</option>
+                    @endforeach
+                </select>
+            </div>
         </div>
     </div>
 
@@ -40,7 +81,11 @@
                 <tbody>
                     @forelse($jobs as $job)
                         @php($applicationUrl = route('admin.job-applications.table', ['jobs' => $job->id, 'from' => 'ats-overview']))
-                        <tr class="border-t border-[#E9ECF1] transition-colors hover:bg-[#FAFBFD]">
+                        <tr class="ats-job-row border-t border-[#E9ECF1] transition-colors hover:bg-[#FAFBFD]"
+                            data-job-id="{{ $job->id }}"
+                            data-company-id="{{ $job->company_id }}"
+                            data-applicant-count="{{ $job->applicant_count }}"
+                            data-location-ids="|{{ $job->overview_location_ids->implode('|') }}|">
                             <td class="px-5 py-4">
                                 <a href="{{ $applicationUrl }}" class="group inline-flex max-w-full items-center gap-2">
                                     <span class="truncate text-[14px] font-bold text-[#1A1E2E] group-hover:text-[#2563EB]">{{ $job->title }}</span>
@@ -89,6 +134,14 @@
                             </td>
                         </tr>
                     @endforelse
+                    @if($jobs->isNotEmpty())
+                        <tr id="ats-filter-empty" class="hidden">
+                            <td colspan="5" class="px-6 py-14 text-center">
+                                <p class="text-[14px] font-semibold text-[#3D4A5C]">No jobs match these filters</p>
+                                <p class="mt-1 text-[12px] text-[#8892A0]">Change a filter or click Reset to show active jobs.</p>
+                            </td>
+                        </tr>
+                    @endif
                 </tbody>
             </table>
         </div>
@@ -215,6 +268,54 @@
                     panel.style.top = top + 'px';
                 });
             });
+
+            var jobFilter = document.getElementById('ats-filter-job');
+            var companyFilter = document.getElementById('ats-filter-company');
+            var locationFilter = document.getElementById('ats-filter-location');
+            var resetFilter = document.getElementById('ats-filter-reset');
+            var filterEmpty = document.getElementById('ats-filter-empty');
+            var jobCount = document.getElementById('ats-visible-job-count');
+            var applicantCount = document.getElementById('ats-visible-applicant-count');
+
+            function applyAtsFilters() {
+                var selectedJob = jobFilter ? jobFilter.value : '';
+                var selectedCompany = companyFilter ? companyFilter.value : '';
+                var selectedLocation = locationFilter ? locationFilter.value : '';
+                var visibleJobs = 0;
+                var visibleApplicants = 0;
+
+                document.querySelectorAll('.ats-job-row').forEach(function (row) {
+                    var locations = row.getAttribute('data-location-ids') || '||';
+                    var matches = (!selectedJob || row.getAttribute('data-job-id') === selectedJob)
+                        && (!selectedCompany || row.getAttribute('data-company-id') === selectedCompany)
+                        && (!selectedLocation || locations.indexOf('|' + selectedLocation + '|') !== -1);
+
+                    row.classList.toggle('hidden', !matches);
+                    if (matches) {
+                        visibleJobs++;
+                        visibleApplicants += parseInt(row.getAttribute('data-applicant-count'), 10) || 0;
+                    }
+                });
+
+                document.querySelectorAll('.ats-status-hover.is-status-open').forEach(function (item) {
+                    item.classList.remove('is-status-open');
+                });
+                if (filterEmpty) filterEmpty.classList.toggle('hidden', visibleJobs !== 0);
+                if (jobCount) jobCount.textContent = visibleJobs.toLocaleString();
+                if (applicantCount) applicantCount.textContent = visibleApplicants.toLocaleString();
+            }
+
+            [jobFilter, companyFilter, locationFilter].forEach(function (filter) {
+                if (filter) filter.addEventListener('change', applyAtsFilters);
+            });
+            if (resetFilter) {
+                resetFilter.addEventListener('click', function () {
+                    if (jobFilter) jobFilter.value = '';
+                    if (companyFilter) companyFilter.value = '';
+                    if (locationFilter) locationFilter.value = '';
+                    applyAtsFilters();
+                });
+            }
 
             $(document).off('click.atsApplicant', '.ats-open-applicant').on('click.atsApplicant', '.ats-open-applicant', function (event) {
                 event.preventDefault();
