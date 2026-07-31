@@ -1532,9 +1532,9 @@ function jaNoteHandleInput(el) {
 }
 function jaInsertMention(name) {
     var ta = document.getElementById('note_text'), val = ta.value, caret = ta.selectionStart;
-    var firstName = name.split(' ')[0];
-    ta.value = val.substring(0, jaMentionStart) + '@' + firstName + ' ' + val.substring(caret);
-    var newPos = jaMentionStart + firstName.length + 2;
+    var mentionToken = name.trim().replace(/\s+/g, '_');
+    ta.value = val.substring(0, jaMentionStart) + '@' + mentionToken + ' ' + val.substring(caret);
+    var newPos = jaMentionStart + mentionToken.length + 2;
     ta.setSelectionRange(newPos, newPos); ta.focus();
     document.getElementById('ja-mention-drop').style.display = 'none'; jaMentionStart = -1;
 }

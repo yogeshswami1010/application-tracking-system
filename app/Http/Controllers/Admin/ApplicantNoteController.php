@@ -21,7 +21,7 @@ class ApplicantNoteController extends AdminBaseController
 
         // Extract @mentions
         $mentionedIds = $this->extractAndStoreMentions($request->note, $note);
-        $note->mentions = !empty($mentionedIds) ? json_encode(array_values($mentionedIds)) : null;
+        $note->mentions = !empty($mentionedIds) ? array_values($mentionedIds) : null;
         $note->save();
 
         // Send notifications
@@ -46,15 +46,16 @@ class ApplicantNoteController extends AdminBaseController
         // Only the note's own author can edit
         abort_if(auth()->id() !== $note->user_id, 403);
 
+        $previousMentionIds = $this->normaliseMentionIds($note->mentions);
         $note->note_text = $request->note;
 
         // Re-extract mentions on edit
         $mentionedIds = $this->extractAndStoreMentions($request->note, $note);
-        $note->mentions = !empty($mentionedIds) ? json_encode(array_values($mentionedIds)) : null;
+        $note->mentions = !empty($mentionedIds) ? array_values($mentionedIds) : null;
         $note->save();
 
         // Send notifications for newly mentioned users
-        $this->sendMentionNotifications($note, $mentionedIds);
+        $this->sendMentionNotifications($note, array_values(array_diff($mentionedIds, $previousMentionIds)));
 
         $notes = ApplicantNote::with('user:id,name')
             ->where('job_application_id', $note->job_application_id)
@@ -97,9 +98,15 @@ class ApplicantNoteController extends AdminBaseController
 
         $mentionedIds = [];
         foreach ($matches[1] as $username) {
-            $user = User::where('name', 'LIKE', $username . '%')
-                ->orWhere('name', 'LIKE', '%' . $username . '%')
-                ->first();
+            $mentionName = str_replace('_', ' ', $username);
+            $user = User::whereRaw('LOWER(name) = ?', [mb_strtolower($mentionName)])->first();
+
+            // Backward compatibility for existing first-name mentions.
+            if (! $user && ! str_contains($username, '_')) {
+                $user = User::where('name', 'LIKE', $username . ' %')
+                    ->orWhere('name', $username)
+                    ->first();
+            }
             if ($user && $user->id !== auth()->id()) {
                 $mentionedIds[] = $user->id;
             }
@@ -112,9 +119,25 @@ class ApplicantNoteController extends AdminBaseController
     {
         if (empty($userIds)) return;
 
+        $note->loadMissing(['jobApplication.job', 'user']);
         $users = User::whereIn('id', $userIds)->get();
         foreach ($users as $user) {
-            $user->notify(new ApplicantNoteMention($note));
+            $user->notify(new ApplicantNoteMention($note, auth()->user()));
         }
+    }
+
+    private function normaliseMentionIds($mentions): array
+    {
+        if (is_string($mentions)) {
+            $decoded = json_decode($mentions, true);
+            $mentions = is_array($decoded) ? $decoded : [];
+        }
+
+        return collect((array) $mentions)
+            ->filter(fn ($id) => is_numeric($id))
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
     }
 }
