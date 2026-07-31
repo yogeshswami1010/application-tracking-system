@@ -24,7 +24,7 @@ class ApplicantSmsMessage extends Model
 
     public function application()
     {
-        return $this->belongsTo(JobApplication::class, 'job_application_id');
+        return $this->belongsTo(JobApplication::class, 'job_application_id')->withTrashed();
     }
 
     public function user()

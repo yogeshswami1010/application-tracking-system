@@ -1522,6 +1522,7 @@ if ((savedFilters.company || 'all') !== 'all') {
     (function () {
         var params = new URLSearchParams(window.location.search);
         var openId = params.get('open');
+        var openTab = params.get('tab') || 'notes';
         if (!openId) return;
 
         function tryOpenSidebar() {
@@ -1537,10 +1538,10 @@ if ((savedFilters.company || 'all') !== 'all') {
                 success: function (response) {
                     if (response.status === 'success') {
                         $('#right-sidebar-content').html(response.view);
-                        // Switch to notes tab automatically
+                        // Notification links can open Notes or SMS directly.
                         setTimeout(function () {
-                            var notesTab = document.querySelector('.ja-tab[data-tab="notes"]');
-                            if (notesTab) notesTab.click();
+                            var requestedTab = document.querySelector('.ja-tab[data-tab="' + openTab + '"]');
+                            if (requestedTab) requestedTab.click();
                         }, 400);
 
                         // Highlight the row if visible

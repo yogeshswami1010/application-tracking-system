@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\ApplicantSmsMessage;
 use App\JobApplication;
+use App\Notifications\ApplicantSmsReply;
 use App\Services\TelnyxSmsService;
 use App\SmsSetting;
 use Illuminate\Http\Request;
@@ -46,17 +47,30 @@ class TelnyxWebhookController extends Controller
             return response('OK');
         }
 
-        $application = JobApplication::withTrashed()
-            ->whereNotNull('phone')
+        // Prefer the exact conversation that most recently sent to this
+        // number. This matters when one candidate has applications for
+        // multiple jobs.
+        $lastOutboundMessage = ApplicantSmsMessage::query()
+            ->where('direction', 'outbound')
+            ->where('to_number', $normalizedFrom)
+            ->whereNotNull('user_id')
             ->latest('id')
-            ->get(['id', 'phone'])
-            ->first(function (JobApplication $candidate) use ($sms, $normalizedFrom) {
-                try {
-                    return $sms->normalizePhone((string) $candidate->phone) === $normalizedFrom;
-                } catch (\Throwable $e) {
-                    return false;
-                }
-            });
+            ->first();
+
+        $application = $lastOutboundMessage?->application;
+        if (! $application) {
+            $application = JobApplication::withTrashed()
+                ->whereNotNull('phone')
+                ->latest('id')
+                ->get(['id', 'phone'])
+                ->first(function (JobApplication $candidate) use ($sms, $normalizedFrom) {
+                    try {
+                        return $sms->normalizePhone((string) $candidate->phone) === $normalizedFrom;
+                    } catch (\Throwable $e) {
+                        return false;
+                    }
+                });
+        }
 
         if (! $application) {
             Log::notice('Telnyx reply could not be matched to an applicant.', [
@@ -66,7 +80,7 @@ class TelnyxWebhookController extends Controller
             return response('OK');
         }
 
-        ApplicantSmsMessage::create([
+        $inboundMessage = ApplicantSmsMessage::create([
             'job_application_id' => $application->id,
             'direction' => 'inbound',
             'from_number' => $normalizedFrom,
@@ -76,6 +90,24 @@ class TelnyxWebhookController extends Controller
             'status' => 'received',
             'received_at' => now(),
         ]);
+
+        // A reply belongs to the team member who most recently sent an SMS
+        // to this applicant. Do not notify every ATS team member.
+        $replyOwner = $lastOutboundMessage?->user;
+        if ($replyOwner) {
+            $inboundMessage->loadMissing('application.job');
+            app()->terminating(function () use ($replyOwner, $inboundMessage) {
+                try {
+                    $replyOwner->notify(new ApplicantSmsReply($inboundMessage));
+                } catch (\Throwable $e) {
+                    Log::error('Applicant SMS reply email failed.', [
+                        'sms_message_id' => $inboundMessage->id,
+                        'user_id' => $replyOwner->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            });
+        }
 
         return response('OK');
     }
