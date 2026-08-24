@@ -1251,8 +1251,11 @@ class AdminJobApplicationController extends AdminBaseController
 
         // Static-ish lookup lists used inside the blade. Cached for 5 minutes so
         // opening profiles back-to-back doesn't re-run these on every request.
-        $this->jobOptions = \Illuminate\Support\Facades\Cache::remember('ja_job_options_v1', 300, function () {
-            return Job::select('id', 'title')->orderBy('title')->get();
+        $this->jobOptions = \Illuminate\Support\Facades\Cache::remember('ja_job_options_with_location_v2', 300, function () {
+            return Job::select('id', 'title', 'location_id')
+                ->with('location:id,location')
+                ->orderBy('title')
+                ->get();
         });
         $this->allJobs = \Illuminate\Support\Facades\Cache::remember('ja_all_jobs_with_location_v1', 300, function () {
             return Job::orderBy('title')->with('location')->get();
