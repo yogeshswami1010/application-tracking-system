@@ -649,8 +649,16 @@ function jaSaveMarketingLabel(appId) {
                                 <div id="ja-job-edit-{{ $application->id }}" style="display:none;width:100%;margin-top:8px;">
                                     <select id="ja-job-select-{{ $application->id }}" class="ja-stage-select" style="width:100%;">
                                         @foreach($jobOptions as $jobOption)
+                                            @php
+                                                $jobOptionLocations = $jobOption->jobLocation->pluck('location')->filter()->unique();
+                                                if ($jobOptionLocations->isEmpty() && $jobOption->location?->location) {
+                                                    $jobOptionLocations = collect([$jobOption->location->location]);
+                                                }
+                                            @endphp
                                             <option value="{{ $jobOption->id }}" @selected($jobOption->id === $application->job_id)>
-                                                {{ ucwords($jobOption->title) }}{{ $jobOption->location?->location ? ' - '.ucwords($jobOption->location->location) : '' }}
+                                                {{ ucwords($jobOption->title) }}
+                                                {{ $jobOption->company?->company_name ? ' - '.ucwords($jobOption->company->company_name) : '' }}
+                                                {{ $jobOptionLocations->isNotEmpty() ? ' - '.ucwords($jobOptionLocations->implode(', ')) : '' }}
                                             </option>
                                         @endforeach
                                     </select>
