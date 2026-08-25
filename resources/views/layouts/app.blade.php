@@ -292,25 +292,49 @@
 
     @include('sections.right-sidebar')
     <div id="internal-message-popup-backdrop" class="fixed inset-0 z-[249] hidden bg-[rgba(15,23,42,0.52)] backdrop-blur-[2px]" aria-hidden="true"></div>
-    <div id="internal-message-popup" class="fixed z-[250] hidden w-[min(440px,calc(100vw-24px))] overflow-hidden rounded-2xl border border-[#DDE3EC] bg-white shadow-2xl" style="left:50%;top:50%;transform:translate(-50%,-50%);" role="dialog" aria-modal="true" aria-live="assertive" aria-label="New internal message">
-        <div class="flex items-start justify-between gap-3 border-b border-[#EEF0F4] bg-[#F8FAFF] px-4 py-3">
-            <div class="min-w-0">
-                <p class="text-[10px] font-bold uppercase tracking-[0.12em] text-[#2563EB]">New internal message</p>
-                <h3 id="internal-message-popup-sender" class="mt-0.5 truncate text-[14px] font-bold text-[#1A1E2E]"></h3>
-            </div>
-            <button type="button" id="internal-message-popup-close" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#8892A0] hover:bg-white hover:text-[#1A1E2E]" aria-label="Close message popup">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
-        </div>
-        <div class="px-4 py-3">
-            <p id="internal-message-popup-text" class="max-h-32 overflow-y-auto whitespace-pre-wrap break-words text-[13px] leading-relaxed text-[#3D4A5C]"></p>
-            <div class="mt-3 flex items-end gap-2">
-                <textarea id="internal-message-popup-reply" rows="2" maxlength="5000" placeholder="Type your reply..." class="min-h-[44px] flex-1 resize-none rounded-xl border border-[#DDE2EA] px-3 py-2.5 text-[12.5px] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100"></textarea>
-                <button type="button" id="internal-message-popup-send" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#2563EB] text-white hover:bg-[#1D4ED8] disabled:opacity-60" aria-label="Send reply">
-                    <svg class="h-4.5 w-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+    <div id="internal-message-popup" class="fixed z-[250] hidden w-[min(480px,calc(100vw-24px))] overflow-hidden border border-white/20 bg-white" style="left:50%;top:50%;transform:translate(-50%,-50%);border-radius:24px;box-shadow:0 30px 80px rgba(15,23,42,.28),0 8px 24px rgba(15,23,42,.12);" role="dialog" aria-modal="true" aria-live="assertive" aria-label="New internal message">
+        <div class="relative overflow-hidden px-5 pb-5 pt-4 text-white" style="background:linear-gradient(135deg,#13294B 0%,#1E3A6D 55%,#2563EB 140%);">
+            <div class="pointer-events-none absolute -right-10 -top-14 h-36 w-36 rounded-full border border-white/10 bg-white/5"></div>
+            <div class="pointer-events-none absolute -bottom-16 right-20 h-28 w-28 rounded-full bg-blue-400/10 blur-xl"></div>
+            <div class="relative flex items-start justify-between gap-4">
+                <div class="flex min-w-0 items-center gap-3.5">
+                    <div class="relative shrink-0">
+                        <div id="internal-message-popup-avatar" class="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/20 bg-white/15 text-[15px] font-bold uppercase text-white shadow-inner">T</div>
+                        <span class="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#1A3562] bg-emerald-400"></span>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="mb-1 flex items-center gap-2">
+                            <span class="inline-flex rounded-full bg-blue-400/20 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-blue-100">Internal message</span>
+                            <span class="text-[10px] text-white/45">Just now</span>
+                        </div>
+                        <h3 id="internal-message-popup-sender" class="truncate text-[17px] font-bold tracking-tight text-white"></h3>
+                    </div>
+                </div>
+                <button type="button" id="internal-message-popup-close" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/10 text-white/70 transition hover:bg-white/20 hover:text-white" aria-label="Close message popup">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
-            <p id="internal-message-popup-status" class="mt-2 hidden text-[11px] font-medium text-emerald-600">Reply sent.</p>
+        </div>
+
+        <div class="bg-[#F7F8FB] px-5 py-5">
+            <p class="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[#8A94A6]">Message</p>
+            <div class="relative rounded-2xl border border-[#E3E7EE] bg-white px-4 py-3.5 shadow-sm">
+                <span class="absolute -top-2 left-5 h-4 w-4 rotate-45 border-l border-t border-[#E3E7EE] bg-white"></span>
+                <p id="internal-message-popup-text" class="relative max-h-36 overflow-y-auto whitespace-pre-wrap break-words text-[13.5px] leading-6 text-[#334155]"></p>
+            </div>
+        </div>
+
+        <div class="border-t border-[#EBEEF3] bg-white px-5 pb-5 pt-4">
+            <label for="internal-message-popup-reply" class="mb-2 block text-[11px] font-bold text-[#475569]">Your reply</label>
+            <textarea id="internal-message-popup-reply" rows="3" maxlength="5000" placeholder="Write a reply to this message..." class="block min-h-[88px] w-full resize-none rounded-2xl border border-[#D8DEE8] bg-[#FBFCFE] px-4 py-3 text-[13px] leading-5 text-[#1E293B] outline-none transition placeholder:text-[#A3ACBA] focus:border-[#2563EB] focus:bg-white focus:ring-4 focus:ring-blue-100/70"></textarea>
+            <div class="mt-3 flex items-center justify-between gap-3">
+                <p id="internal-message-popup-status" class="hidden text-[11px] font-semibold text-emerald-600">Reply sent.</p>
+                <p class="text-[10.5px] text-[#9AA4B2]">Private to your ATS team</p>
+                <button type="button" id="internal-message-popup-send" class="ml-auto inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#2563EB] px-4 text-[12.5px] font-bold text-white shadow-lg shadow-blue-500/20 transition hover:-translate-y-0.5 hover:bg-[#1D4ED8] hover:shadow-blue-500/30 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60" aria-label="Send reply">
+                    <span>Send Reply</span>
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-6-6l6 6-6 6"/></svg>
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -755,6 +779,7 @@
             .removeClass('hidden');
         $('#internal-message-popup-backdrop').removeClass('hidden');
         $('#internal-message-popup-sender').text(notice.sender_name || 'Team member');
+        $('#internal-message-popup-avatar').text(String(notice.sender_name || 'T').trim().charAt(0).toUpperCase());
         $('#internal-message-popup-text').text(notice.message_text || '');
         $('#internal-message-popup-reply').val('');
         $('#internal-message-popup-status').addClass('hidden').text('Reply sent.');
