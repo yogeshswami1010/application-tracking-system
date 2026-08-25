@@ -280,6 +280,7 @@
                             @php
                                 $memberOnline = $onlineTeamMemberIds->contains((int) $member->id);
                                 $memberRole = $member->role?->role?->display_name ?? 'Team Member';
+                                $isCurrentMember = (int) $member->id === (int) $user->id;
                             @endphp
                             <div data-ats-online-member="{{ $member->id }}" class="{{ $memberOnline ? '' : 'hidden' }} flex items-center gap-3 rounded-xl px-2.5 py-2 transition-colors hover:bg-[#F8F9FB]">
                                 <span class="relative inline-flex shrink-0">
@@ -287,7 +288,7 @@
                                     <span data-ats-presence-user="{{ $member->id }}" class="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white {{ $memberOnline ? 'bg-emerald-500' : 'bg-red-500' }}"></span>
                                 </span>
                                 <div class="min-w-0 flex-1">
-                                    <p class="truncate text-[13px] font-semibold text-[#1A1E2E]">{{ ucwords($member->name) }} @if((int) $member->id === (int) $user->id)<span class="text-[10px] font-semibold text-[#2563EB]">(You)</span>@endif</p>
+                                    <p class="truncate text-[13px] font-semibold text-[#1A1E2E]">{{ ucwords($member->name) }} <span class="{{ $isCurrentMember ? '' : 'hidden' }} text-[10px] font-semibold text-[#2563EB]">(You)</span></p>
                                     <p class="truncate text-[11px] text-[#8892A0]">{{ ucwords($memberRole) }}</p>
                                 </div>
                                 <span class="h-2 w-2 shrink-0 rounded-full bg-emerald-500"></span>
