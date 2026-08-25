@@ -164,9 +164,7 @@
                 <div class="relative" id="top-notification-dropdown" x-data="{ open: false }">
                     <button type="button" @click="open = !open" class="relative p-2 rounded-xl hover:bg-gray-100 transition-colors" aria-expanded="false" :aria-expanded="open">
                         <svg class="w-[18px] h-[18px]" fill="none" stroke="#8892A0" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-                        @if(count($user->unreadNotifications) > 0)
-                            <span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full" aria-hidden="true"></span>
-                        @endif
+                        <span id="top-notification-unread-dot" class="{{ count($user->unreadNotifications) > 0 ? '' : 'hidden' }} absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full" aria-hidden="true"></span>
                     </button>
                     <div x-show="open" @click.away="open = false" x-transition class="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg z-50 border border-[#E8E6E1]" style="display: none;">
                         <div class="max-h-96 overflow-y-auto">
@@ -463,7 +461,7 @@
     });
 
     // $('body').on('click', '.view-notification', function(event) {
-    $('.read-notification').click(function () {
+    $(document).on('click', '.read-notification', function (event) {
             event.preventDefault();
             var id = $(this).data('notification-id');
             var dataUrl = $(this).data('link');
@@ -728,6 +726,21 @@
             timeout: 5000
         }).done(function (response) {
             updatePresenceDots(response.online_user_ids || []);
+            $('#top-notification-unread-dot').toggleClass('hidden', Number(response.unread_notification_count || 0) < 1);
+
+            var notice = response.latest_internal_notification;
+            if (notice && !$('#top-notification-dropdown [data-internal-notification-id="' + notice.id + '"]').length) {
+                var escapeNotice = function (value) { return $('<div>').text(value == null ? '' : String(value)).html(); };
+                var conversationUrl = @json(route('admin.internal-messages.index')) + '?recipient=' + encodeURIComponent(notice.sender_id);
+                var item = '<a href="javascript:;" data-link="' + escapeNotice(conversationUrl) + '" class="read-notification block" data-notification-id="' + escapeNotice(notice.id) + '" data-internal-notification-id="' + escapeNotice(notice.id) + '">'
+                    + '<div class="flex items-start gap-3 border-b border-[#F0EEE9] px-4 py-3 transition hover:bg-[#F8F7F4]">'
+                    + '<div style="width:32px;height:32px;border-radius:50%;background:#EFF6FF;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fa fa-comments-o" style="color:#2563EB;font-size:13px;"></i></div>'
+                    + '<div style="flex:1;min-width:0;"><div style="font-size:12.5px;font-weight:600;color:#1A1E2E;margin-bottom:2px;">' + escapeNotice(notice.sender_name) + ' sent you a message</div>'
+                    + '<div style="font-size:12px;color:#5A6478;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;">“' + escapeNotice(notice.message_text) + '”</div>'
+                    + '<div style="font-size:10.5px;color:#B0B8C4;margin-top:3px;">' + escapeNotice(notice.time) + '</div></div>'
+                    + '<span style="width:7px;height:7px;border-radius:50%;background:#2563EB;flex-shrink:0;margin-top:4px;"></span></div></a>';
+                $('#top-notification-dropdown .max-h-96').prepend(item);
+            }
         });
     }
     function userIsEditing() {

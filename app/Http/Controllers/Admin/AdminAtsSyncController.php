@@ -23,8 +23,23 @@ class AdminAtsSyncController extends Controller
             ->map(fn ($id) => (int) $id)
             ->values();
 
-        return response()->json(['online_user_ids' => $onlineUserIds])
-            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+        $authUser = auth()->user();
+        $latestInternalNotification = $authUser->unreadNotifications()
+            ->where('type', \App\Notifications\InternalMessageReceived::class)
+            ->latest()
+            ->first();
+
+        return response()->json([
+            'online_user_ids' => $onlineUserIds,
+            'unread_notification_count' => $authUser->unreadNotifications()->count(),
+            'latest_internal_notification' => $latestInternalNotification ? [
+                'id' => $latestInternalNotification->id,
+                'sender_id' => $latestInternalNotification->data['sender_id'] ?? null,
+                'sender_name' => $latestInternalNotification->data['sender_name'] ?? 'A team member',
+                'message_text' => $latestInternalNotification->data['message_text'] ?? '',
+                'time' => $latestInternalNotification->created_at->diffForHumans(),
+            ] : null,
+        ])->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
     }
     /**
      * Return a small fingerprint of shared ATS data. Browsers compare this value

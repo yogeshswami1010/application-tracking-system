@@ -8,10 +8,22 @@
     Private conversations with your ATS team members
 @endsection
 
+@push('head-script')
+<style>
+.im-conversation-layout { display:grid; grid-template-columns:300px minmax(0,1fr); }
+.im-contact-panel { min-width:0; }
+.im-chat-panel { min-width:0; }
+@media (max-width:767px) {
+    .im-conversation-layout { display:flex; flex-direction:column; height:auto !important; min-height:0 !important; }
+    .im-contact-panel { max-height:280px; border-right:0 !important; }
+    .im-chat-panel { min-height:560px; }
+}
+</style>
+@endpush
 @section('content')
 <div class="overflow-hidden rounded-2xl border border-[#E8E6E1] bg-white shadow-sm" style="height:calc(100vh - 170px);min-height:560px;">
-    <div class="grid h-full grid-cols-1 md:grid-cols-[300px_minmax(0,1fr)]">
-        <aside class="flex min-h-0 flex-col border-b border-[#E8E6E1] md:border-b-0 md:border-r">
+    <div class="im-conversation-layout h-full">
+        <aside class="im-contact-panel flex min-h-0 flex-col border-b border-r border-[#E8E6E1]">
             <div class="border-b border-[#F0EEE9] p-4">
                 <h2 class="text-[15px] font-bold text-[#1A1E2E]">Team Members</h2>
                 <p class="mt-1 text-[11.5px] text-[#8892A0]">Select someone to start messaging</p>
@@ -41,7 +53,7 @@
             </div>
         </aside>
 
-        <section class="flex min-h-0 flex-col">
+        <section class="im-chat-panel flex min-h-0 flex-col">
             @if($selectedMember)
                 <header class="flex items-center gap-3 border-b border-[#F0EEE9] px-5 py-3.5">
                     <span class="relative inline-flex shrink-0">
