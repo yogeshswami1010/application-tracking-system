@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\AdminDepartmentController;
 use App\Http\Controllers\Admin\AdminDesignationController;
 use App\Http\Controllers\Admin\AdminDocumentController;
 use App\Http\Controllers\Admin\AdminJobAlertController;
+use App\Http\Controllers\Admin\AdminInternalMessageController;
 use App\Http\Controllers\Admin\AdminJobApplicationController;
 use App\Http\Controllers\Admin\AdminJobCategoryController;
 use App\Http\Controllers\Admin\AdminJobOfferQuestionController;
@@ -338,6 +339,9 @@ Route::middleware('auth')->group(function () {
             Route::resource('interview-schedule', InterviewScheduleController::class);
 
             // Team & Company
+            Route::get('internal-messages', [AdminInternalMessageController::class, 'index'])->name('internal-messages.index');
+            Route::get('internal-messages/conversation/{recipient}', [AdminInternalMessageController::class, 'conversation'])->name('internal-messages.conversation');
+            Route::post('internal-messages', [AdminInternalMessageController::class, 'store'])->name('internal-messages.store');
             Route::get('team/data',          [AdminTeamController::class, 'data'])->name('team.data');
             Route::post('team/change-role',  [AdminTeamController::class, 'changeRole'])->name('team.changeRole');
             Route::resource('team',    AdminTeamController::class);

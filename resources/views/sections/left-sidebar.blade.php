@@ -83,6 +83,12 @@
             </a>
         @endif
 
+        <a href="{{ route('admin.internal-messages.index') }}" class="ra-nav-link {{ request()->is('admin/internal-messages*') ? 'on' : '' }}">
+            <span class="ra-ni" aria-hidden="true">
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a10.6 10.6 0 01-4.38-.91L3 20l1.23-3.28A7.35 7.35 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+            </span>
+            <span class="ra-nl">Internal Messages</span>
+        </a>
         <div class="ra-sec-title">@lang('menu.general')</div>
 
         @if ($user->roles->count() > 0)
