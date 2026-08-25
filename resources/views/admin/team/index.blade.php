@@ -287,8 +287,8 @@
                         $canDeleteRow = in_array('delete_team', $userPermissions) && ! $isSelf && (! $primaryAdminId || (int) $user->id !== $primaryAdminId);
                         $rb = $roleBadge($roleName);
                         $searchBlob = strtolower($user->name.' '.$user->email.' '.$roleName);
-                        /* Table status matches design: members are active; mobile verification is in the edit modal. */
-                        $statusActive = true;
+                        $isOnline = \Illuminate\Support\Facades\Cache::has('ats_user_online_'.$user->id)
+                            || $isSelf;
                     @endphp
                     <tr class="team-row border-t border-[#F0EEE9] transition-colors hover:bg-[#fafbfd]"
                         data-search="{{ e($searchBlob) }}"
@@ -331,8 +331,8 @@
                         </td>
                         <td>
                             <div class="flex items-center gap-2">
-                                <span class="h-2 w-2 shrink-0 rounded-full {{ $statusActive ? 'bg-emerald-500' : 'bg-gray-300' }}"></span>
-                                <span class="text-[12.5px] font-semibold capitalize {{ $statusActive ? 'text-emerald-600' : 'text-[#8892A0]' }}">{{ $statusActive ? __('modules.teamPage.statusActiveWord') : __('modules.teamPage.statusInactiveWord') }}</span>
+                                <span data-ats-presence-user="{{ $user->id }}" title="{{ $isOnline ? 'Online' : 'Offline' }}" class="h-2 w-2 shrink-0 rounded-full {{ $isOnline ? 'bg-emerald-500' : 'bg-red-500' }}"></span>
+                                <span data-ats-presence-label="{{ $user->id }}" class="text-[12.5px] font-semibold {{ $isOnline ? 'text-emerald-600' : 'text-red-500' }}">{{ $isOnline ? 'Online' : 'Offline' }}</span>
                             </div>
                         </td>
                         <td class="jc-td-right" style="padding-right:20px;">

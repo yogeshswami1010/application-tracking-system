@@ -703,6 +703,13 @@
                 .attr('title', isOnline ? 'Online' : 'Offline')
                 .attr('aria-label', isOnline ? 'Online' : 'Offline');
         });
+        $('[data-ats-presence-label]').each(function () {
+            var isOnline = !!online[String($(this).data('ats-presence-label'))];
+            $(this)
+                .text(isOnline ? 'Online' : 'Offline')
+                .toggleClass('text-emerald-600', isOnline)
+                .toggleClass('text-red-500', !isOnline);
+        });
     }
 
     function sendPresenceHeartbeat() {
