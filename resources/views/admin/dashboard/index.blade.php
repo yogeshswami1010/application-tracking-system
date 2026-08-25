@@ -276,12 +276,12 @@
                         <span id="dashboard-online-count" class="inline-flex min-w-[26px] items-center justify-center rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-600">{{ $onlineTeamMemberIds->count() }}</span>
                     </div>
                     <div class="max-h-[260px] overflow-y-auto p-2">
-                        @foreach($teamMembers as $member)
-                            @php
+                        <?php foreach ($teamMembers as $member): ?>
+                            <?php
                                 $memberOnline = $onlineTeamMemberIds->contains((int) $member->id);
                                 $memberRole = $member->role?->role?->display_name ?? 'Team Member';
                                 $isCurrentMember = (int) $member->id === (int) $user->id;
-                            @endphp
+                            ?>
                             <div data-ats-online-member="{{ $member->id }}" class="{{ $memberOnline ? '' : 'hidden' }} flex items-center gap-3 rounded-xl px-2.5 py-2 transition-colors hover:bg-[#F8F9FB]">
                                 <span class="relative inline-flex shrink-0">
                                     <img src="{{ $member->profile_image_url }}" alt="" class="h-9 w-9 rounded-full object-cover ring-2 ring-[#EEF0F5]" width="36" height="36" loading="lazy">
@@ -293,7 +293,7 @@
                                 </div>
                                 <span class="h-2 w-2 shrink-0 rounded-full bg-emerald-500"></span>
                             </div>
-                        @endforeach
+                        <?php endforeach; ?>
                         <div id="dashboard-online-empty" class="{{ $onlineTeamMemberIds->isEmpty() ? '' : 'hidden' }} px-3 py-8 text-center">
                             <p class="text-[12px] font-medium text-[#8892A0]">No team members are online.</p>
                         </div>
