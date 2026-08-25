@@ -710,6 +710,13 @@
                 .toggleClass('text-emerald-600', isOnline)
                 .toggleClass('text-red-500', !isOnline);
         });
+        $('[data-ats-online-member]').each(function () {
+            var isOnline = !!online[String($(this).data('ats-online-member'))];
+            $(this).toggleClass('hidden', !isOnline);
+        });
+        var onlineCount = $('[data-ats-online-member]:not(.hidden)').length;
+        $('#dashboard-online-count').text(onlineCount);
+        $('#dashboard-online-empty').toggleClass('hidden', onlineCount > 0);
     }
 
     function sendPresenceHeartbeat() {

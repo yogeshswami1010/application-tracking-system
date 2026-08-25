@@ -10,6 +10,8 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use App\Company;
 use App\SmsSetting;
+use App\User;
+use Illuminate\Support\Facades\Cache;
 
 class AdminDashboardController extends AdminBaseController
 {
@@ -24,6 +26,11 @@ class AdminDashboardController extends AdminBaseController
     public function index()
     {        
         $this->smsSettings = SmsSetting::first();
+        $this->teamMembers = User::with('role.role')->orderBy('name')->get();
+        $this->onlineTeamMemberIds = $this->teamMembers->pluck('id')->filter(function ($id) {
+            return (int) $id === (int) $this->user->id
+                || Cache::has('ats_user_online_'.(int) $id);
+        })->map(fn ($id) => (int) $id)->values();
         $this->totalOpenings = Job::where('status', 'active')->count();
         $this->totalAtsJobs = Job::where('status', 'ats')->count();
         
