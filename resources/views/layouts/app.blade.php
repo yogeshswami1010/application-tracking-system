@@ -794,7 +794,7 @@
     }
 
     setInterval(checkForChanges, 7000);
-    setInterval(sendPresenceHeartbeat, 25000);
+    setInterval(sendPresenceHeartbeat, 5000);
     setTimeout(sendPresenceHeartbeat, 300);
     setInterval(applyRemoteChanges, 1500);
     document.addEventListener('visibilitychange', function () {
