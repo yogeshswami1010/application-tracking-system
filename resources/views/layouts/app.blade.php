@@ -684,6 +684,84 @@
 
 </script>
 
+<script>
+(function () {
+    var syncUrl = @json(route('admin.ats-sync-state'));
+    var lastSignature = null;
+    var pendingRefresh = false;
+    var refreshRunning = false;
+
+    function userIsEditing() {
+        var active = document.activeElement;
+        var editable = active && (/^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName) || active.isContentEditable);
+        return editable || $('.modal:visible, .swal-overlay:visible, .sweet-alert:visible').length > 0;
+    }
+
+    function reloadOpenApplicantProfile(done) {
+        var $profile = $('#right-sidebar-content .ja-two-col-wrap[data-ats-sync-url]');
+        var $sidebar = $('#right-sidebar');
+        if (!$profile.length || !$sidebar.hasClass('translate-x-0')) {
+            done();
+            return;
+        }
+
+        var activeTab = $profile.find('.ja-tab.active').data('tab') || null;
+        $.ajax({ url: $profile.data('ats-sync-url'), type: 'GET', cache: false })
+            .done(function (response) {
+                if (response && response.status === 'success' && response.view) {
+                    $('#right-sidebar-content').html(response.view);
+                    if (activeTab) {
+                        $('#right-sidebar-content .ja-tab[data-tab="' + activeTab + '"]').trigger('click');
+                    }
+                }
+            }).always(done);
+    }
+
+    function applyRemoteChanges() {
+        if (!pendingRefresh || refreshRunning || userIsEditing()) return;
+        refreshRunning = true;
+        pendingRefresh = false;
+
+        var hasDataTable = false;
+        if ($.fn.dataTable) {
+            var tables = $.fn.dataTable.tables({ visible: true, api: true });
+            hasDataTable = !!(tables && tables.context && tables.context.length);
+            if (hasDataTable) tables.ajax.reload(null, false);
+        }
+
+        reloadOpenApplicantProfile(function () {
+            refreshRunning = false;
+            if (!hasDataTable && !$('#right-sidebar').hasClass('translate-x-0')) {
+                window.location.reload();
+            }
+        });
+    }
+
+    function checkForChanges() {
+        if (document.hidden || refreshRunning) return;
+        $.ajax({ url: syncUrl, type: 'GET', cache: false, global: false, timeout: 5000 })
+            .done(function (response) {
+                if (!response || !response.signature) return;
+                if (lastSignature === null) {
+                    lastSignature = response.signature;
+                    return;
+                }
+                if (lastSignature !== response.signature) {
+                    lastSignature = response.signature;
+                    pendingRefresh = true;
+                }
+                applyRemoteChanges();
+            });
+    }
+
+    setInterval(checkForChanges, 7000);
+    setInterval(applyRemoteChanges, 1500);
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) checkForChanges();
+    });
+    setTimeout(checkForChanges, 1200);
+})();
+</script>
 @stack('footer-script')
 
 </body>

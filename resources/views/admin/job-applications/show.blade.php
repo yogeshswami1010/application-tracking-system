@@ -159,7 +159,7 @@
 .ja-nav-loading { opacity:.5;pointer-events:none;transition:opacity .2s; }
 </style>
 
-<div class="ja-two-col-wrap">
+<div class="ja-two-col-wrap" data-ats-application-id="{{ $application->id }}" data-ats-sync-url="{{ route('admin.job-applications.show', $application->id) }}">
 
     {{-- ── HEADER ── --}}
     <div class="ja-header">
