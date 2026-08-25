@@ -95,7 +95,7 @@
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
                         </button>
                     </div>
-                    <p class="mt-2 text-[10.5px] text-[#A0A8B5]">The recipient will also receive this message by email.</p>
+                    <p class="mt-2 text-[10.5px] text-[#A0A8B5]">The recipient will receive an ATS notification immediately.</p>
                 </form>
             @else
                 <div class="flex h-full items-center justify-center px-6 text-center">

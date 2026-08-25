@@ -32,6 +32,7 @@ class AdminAtsSyncController extends Controller
         return response()->json([
             'online_user_ids' => $onlineUserIds,
             'unread_notification_count' => $authUser->unreadNotifications()->count(),
+            'unread_internal_message_count' => \App\InternalMessage::where('recipient_id', $authUser->id)->whereNull('read_at')->count(),
             'latest_internal_notification' => $latestInternalNotification ? [
                 'id' => $latestInternalNotification->id,
                 'sender_id' => $latestInternalNotification->data['sender_id'] ?? null,

@@ -164,7 +164,7 @@
                 <div class="relative" id="top-notification-dropdown" x-data="{ open: false }">
                     <button type="button" @click="open = !open" class="relative p-2 rounded-xl hover:bg-gray-100 transition-colors" aria-expanded="false" :aria-expanded="open">
                         <svg class="w-[18px] h-[18px]" fill="none" stroke="#8892A0" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-                        <span id="top-notification-unread-dot" class="{{ count($user->unreadNotifications) > 0 ? '' : 'hidden' }} absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full" aria-hidden="true"></span>
+                        <span id="top-notification-unread-count" class="{{ count($user->unreadNotifications) > 0 ? '' : 'hidden' }} absolute -right-1 -top-1 min-w-[17px] rounded-full bg-red-500 px-1 py-0.5 text-center text-[9px] font-bold leading-none text-white">{{ count($user->unreadNotifications) }}</span>
                     </button>
                     <div x-show="open" @click.away="open = false" x-transition class="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg z-50 border border-[#E8E6E1]" style="display: none;">
                         <div class="max-h-96 overflow-y-auto">
@@ -291,6 +291,27 @@
 
 
     @include('sections.right-sidebar')
+    <div id="internal-message-popup" class="fixed bottom-5 right-5 z-[250] hidden w-[min(390px,calc(100vw-24px))] overflow-hidden rounded-2xl border border-[#DDE3EC] bg-white shadow-2xl" role="dialog" aria-live="assertive" aria-label="New internal message">
+        <div class="flex items-start justify-between gap-3 border-b border-[#EEF0F4] bg-[#F8FAFF] px-4 py-3">
+            <div class="min-w-0">
+                <p class="text-[10px] font-bold uppercase tracking-[0.12em] text-[#2563EB]">New internal message</p>
+                <h3 id="internal-message-popup-sender" class="mt-0.5 truncate text-[14px] font-bold text-[#1A1E2E]"></h3>
+            </div>
+            <button type="button" id="internal-message-popup-close" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#8892A0] hover:bg-white hover:text-[#1A1E2E]" aria-label="Close message popup">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="px-4 py-3">
+            <p id="internal-message-popup-text" class="max-h-32 overflow-y-auto whitespace-pre-wrap break-words text-[13px] leading-relaxed text-[#3D4A5C]"></p>
+            <div class="mt-3 flex items-end gap-2">
+                <textarea id="internal-message-popup-reply" rows="2" maxlength="5000" placeholder="Type your reply..." class="min-h-[44px] flex-1 resize-none rounded-xl border border-[#DDE2EA] px-3 py-2.5 text-[12.5px] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100"></textarea>
+                <button type="button" id="internal-message-popup-send" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#2563EB] text-white hover:bg-[#1D4ED8] disabled:opacity-60" aria-label="Send reply">
+                    <svg class="h-4.5 w-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                </button>
+            </div>
+            <p id="internal-message-popup-status" class="mt-2 hidden text-[11px] font-medium text-emerald-600">Reply sent.</p>
+        </div>
+    </div>
 </div>
 <!-- ./ra-app -->
 
@@ -686,6 +707,7 @@
 (function () {
     var syncUrl = @json(route('admin.ats-sync-state'));
     var presenceHeartbeatUrl = @json(route('admin.ats-presence-heartbeat'));
+    var internalMessageReplyUrl = @json(route('admin.internal-messages.store'));
     var lastSignature = null;
     var pendingRefresh = false;
     var refreshRunning = false;
@@ -717,6 +739,52 @@
         $('#dashboard-online-empty').toggleClass('hidden', onlineCount > 0);
     }
 
+    function showInternalMessagePopup(notice) {
+        if (!notice || !notice.id) return;
+        if (sessionStorage.getItem('dismissedInternalMessageNotification') === String(notice.id)) return;
+
+        var $popup = $('#internal-message-popup');
+        if (!$popup.length) return;
+        if (!$popup.hasClass('hidden') && String($popup.attr('data-notification-id')) === String(notice.id)) return;
+        $popup
+            .attr('data-notification-id', notice.id)
+            .attr('data-sender-id', notice.sender_id)
+            .removeClass('hidden');
+        $('#internal-message-popup-sender').text(notice.sender_name || 'Team member');
+        $('#internal-message-popup-text').text(notice.message_text || '');
+        $('#internal-message-popup-reply').val('');
+        $('#internal-message-popup-status').addClass('hidden').text('Reply sent.');
+    }
+
+    $(document).on('click', '#internal-message-popup-close', function () {
+        var notificationId = $('#internal-message-popup').attr('data-notification-id');
+        if (notificationId) sessionStorage.setItem('dismissedInternalMessageNotification', String(notificationId));
+        $('#internal-message-popup').addClass('hidden');
+    });
+
+    $(document).on('click', '#internal-message-popup-send', function () {
+        var $button = $(this);
+        var $popup = $('#internal-message-popup');
+        var body = $.trim($('#internal-message-popup-reply').val());
+        var recipientId = Number($popup.attr('data-sender-id'));
+        if (!body || !recipientId || $button.prop('disabled')) return;
+
+        $button.prop('disabled', true);
+        $.ajax({
+            url: internalMessageReplyUrl,
+            type: 'POST',
+            data: { _token: @json(csrf_token()), recipient_id: recipientId, body: body },
+            global: false
+        }).done(function () {
+            $('#internal-message-popup-reply').val('');
+            $('#internal-message-popup-status').removeClass('hidden text-red-500').addClass('text-emerald-600').text('Reply sent.');
+        }).fail(function (xhr) {
+            var message = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Reply could not be sent.';
+            $('#internal-message-popup-status').removeClass('hidden').removeClass('text-emerald-600').addClass('text-red-500').text(message);
+        }).always(function () {
+            $button.prop('disabled', false);
+        });
+    });
     function sendPresenceHeartbeat() {
         $.ajax({
             url: presenceHeartbeatUrl,
@@ -726,9 +794,18 @@
             timeout: 5000
         }).done(function (response) {
             updatePresenceDots(response.online_user_ids || []);
-            $('#top-notification-unread-dot').toggleClass('hidden', Number(response.unread_notification_count || 0) < 1);
+            var notificationCount = Number(response.unread_notification_count || 0);
+            $('#top-notification-unread-count')
+                .text(notificationCount)
+                .toggleClass('hidden', notificationCount < 1);
+
+            var internalUnreadCount = Number(response.unread_internal_message_count || 0);
+            $('#internal-messages-sidebar-count')
+                .text(internalUnreadCount)
+                .toggleClass('hidden', internalUnreadCount < 1);
 
             var notice = response.latest_internal_notification;
+            if (notice) showInternalMessagePopup(notice);
             if (notice && !$('#top-notification-dropdown [data-internal-notification-id="' + notice.id + '"]').length) {
                 var escapeNotice = function (value) { return $('<div>').text(value == null ? '' : String(value)).html(); };
                 var conversationUrl = @json(route('admin.internal-messages.index')) + '?recipient=' + encodeURIComponent(notice.sender_id);
