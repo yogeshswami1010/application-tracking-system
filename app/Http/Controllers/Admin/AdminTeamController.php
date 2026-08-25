@@ -183,7 +183,7 @@ class AdminTeamController extends AdminBaseController
                 return $roleOption;
             })
             ->editColumn('name', function ($row) {
-                $online = \Illuminate\Support\Facades\Cache::has('ats_user_online_'.$row->id)
+                $online = ($row->last_seen_at && \Carbon\Carbon::parse($row->last_seen_at)->gte(now()->subSeconds(75)))
                     || $row->id === $this->user->id;
                 $dotClass = $online ? 'bg-emerald-500' : 'bg-red-500';
                 $statusText = $online ? 'Online' : 'Offline';

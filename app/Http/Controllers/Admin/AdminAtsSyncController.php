@@ -15,11 +15,13 @@ class AdminAtsSyncController extends Controller
     public function heartbeat(): JsonResponse
     {
         $userId = (int) auth()->id();
-        Cache::put('ats_user_online_'.$userId, true, now()->addSeconds(75));
+        User::query()->whereKey($userId)->update(['last_seen_at' => now()]);
 
-        $onlineUserIds = User::query()->pluck('id')->filter(function ($id) {
-            return Cache::has('ats_user_online_'.(int) $id);
-        })->map(fn ($id) => (int) $id)->values();
+        $onlineUserIds = User::query()
+            ->where('last_seen_at', '>=', now()->subSeconds(75))
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->values();
 
         return response()->json(['online_user_ids' => $onlineUserIds])
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');

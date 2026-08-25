@@ -720,7 +720,6 @@
     }
 
     function sendPresenceHeartbeat() {
-        if (document.hidden) return;
         $.ajax({
             url: presenceHeartbeatUrl,
             type: 'POST',

@@ -287,7 +287,7 @@
                         $canDeleteRow = in_array('delete_team', $userPermissions) && ! $isSelf && (! $primaryAdminId || (int) $user->id !== $primaryAdminId);
                         $rb = $roleBadge($roleName);
                         $searchBlob = strtolower($user->name.' '.$user->email.' '.$roleName);
-                        $isOnline = \Illuminate\Support\Facades\Cache::has('ats_user_online_'.$user->id)
+                        $isOnline = ($user->last_seen_at && \Carbon\Carbon::parse($user->last_seen_at)->gte(now()->subSeconds(75)))
                             || $isSelf;
                     @endphp
                     <tr class="team-row border-t border-[#F0EEE9] transition-colors hover:bg-[#fafbfd]"
