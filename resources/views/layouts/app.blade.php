@@ -291,7 +291,8 @@
 
 
     @include('sections.right-sidebar')
-    <div id="internal-message-popup" class="fixed bottom-5 right-5 z-[250] hidden w-[min(390px,calc(100vw-24px))] overflow-hidden rounded-2xl border border-[#DDE3EC] bg-white shadow-2xl" role="dialog" aria-live="assertive" aria-label="New internal message">
+    <div id="internal-message-popup-backdrop" class="fixed inset-0 z-[249] hidden bg-[rgba(15,23,42,0.52)] backdrop-blur-[2px]" aria-hidden="true"></div>
+    <div id="internal-message-popup" class="fixed z-[250] hidden w-[min(440px,calc(100vw-24px))] overflow-hidden rounded-2xl border border-[#DDE3EC] bg-white shadow-2xl" style="left:50%;top:50%;transform:translate(-50%,-50%);" role="dialog" aria-modal="true" aria-live="assertive" aria-label="New internal message">
         <div class="flex items-start justify-between gap-3 border-b border-[#EEF0F4] bg-[#F8FAFF] px-4 py-3">
             <div class="min-w-0">
                 <p class="text-[10px] font-bold uppercase tracking-[0.12em] text-[#2563EB]">New internal message</p>
@@ -752,6 +753,7 @@
             .attr('data-notification-id', notice.id)
             .attr('data-sender-id', notice.sender_id)
             .removeClass('hidden');
+        $('#internal-message-popup-backdrop').removeClass('hidden');
         $('#internal-message-popup-sender').text(notice.sender_name || 'Team member');
         $('#internal-message-popup-text').text(notice.message_text || '');
         $('#internal-message-popup-reply').val('');
@@ -762,6 +764,7 @@
         var notificationId = $('#internal-message-popup').attr('data-notification-id');
         if (notificationId) sessionStorage.setItem('dismissedInternalMessageNotification', String(notificationId));
         $('#internal-message-popup').addClass('hidden');
+        $('#internal-message-popup-backdrop').addClass('hidden');
     });
 
     $(document).on('click', '#internal-message-popup-send', function () {
