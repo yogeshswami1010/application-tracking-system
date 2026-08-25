@@ -31,6 +31,7 @@ class AdminAtsSyncController extends Controller
 
         return response()->json([
             'online_user_ids' => $onlineUserIds,
+            'server_time' => now()->timestamp,
             'unread_notification_count' => $authUser->unreadNotifications()->count(),
             'unread_internal_message_count' => \App\InternalMessage::where('recipient_id', $authUser->id)->whereNull('read_at')->count(),
             'latest_internal_notification' => $latestInternalNotification ? [
@@ -39,6 +40,7 @@ class AdminAtsSyncController extends Controller
                 'sender_name' => $latestInternalNotification->data['sender_name'] ?? 'A team member',
                 'message_text' => $latestInternalNotification->data['message_text'] ?? '',
                 'time' => $latestInternalNotification->created_at->diffForHumans(),
+                'created_at_timestamp' => $latestInternalNotification->created_at->timestamp,
             ] : null,
         ])->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
     }

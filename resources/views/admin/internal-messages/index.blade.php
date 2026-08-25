@@ -21,7 +21,7 @@
 </style>
 @endpush
 @section('content')
-<div class="overflow-hidden rounded-2xl border border-[#E8E6E1] bg-white shadow-sm" style="height:calc(100vh - 170px);min-height:560px;">
+<div class="overflow-hidden rounded-2xl border border-[#E8E6E1] bg-white shadow-sm" @if($selectedMember) data-internal-active-recipient="{{ $selectedMember->id }}" @endif style="height:calc(100vh - 170px);min-height:560px;">
     <div class="im-conversation-layout h-full">
         <aside class="im-contact-panel flex min-h-0 flex-col border-b border-r border-[#E8E6E1]">
             <div class="border-b border-[#F0EEE9] p-4">

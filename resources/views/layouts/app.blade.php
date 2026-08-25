@@ -711,6 +711,8 @@
     var lastSignature = null;
     var pendingRefresh = false;
     var refreshRunning = false;
+    var internalPopupBaselineTime = null;
+    var internalPopupLastNotificationId = null;
 
     function updatePresenceDots(onlineUserIds) {
         var online = {};
@@ -805,7 +807,17 @@
                 .toggleClass('hidden', internalUnreadCount < 1);
 
             var notice = response.latest_internal_notification;
-            if (notice) showInternalMessagePopup(notice);
+            if (internalPopupBaselineTime === null) {
+                internalPopupBaselineTime = Number(response.server_time || 0);
+                internalPopupLastNotificationId = notice ? String(notice.id) : null;
+            } else if (notice
+                && String(notice.id) !== internalPopupLastNotificationId
+                && Number(notice.created_at_timestamp || 0) >= internalPopupBaselineTime) {
+                internalPopupLastNotificationId = String(notice.id);
+                internalPopupBaselineTime = Math.max(internalPopupBaselineTime, Number(notice.created_at_timestamp || 0));
+                var activeRecipient = Number($('[data-internal-active-recipient]').data('internal-active-recipient') || 0);
+                if (activeRecipient !== Number(notice.sender_id)) showInternalMessagePopup(notice);
+            }
             if (notice && !$('#top-notification-dropdown [data-internal-notification-id="' + notice.id + '"]').length) {
                 var escapeNotice = function (value) { return $('<div>').text(value == null ? '' : String(value)).html(); };
                 var conversationUrl = @json(route('admin.internal-messages.index')) + '?recipient=' + encodeURIComponent(notice.sender_id);
