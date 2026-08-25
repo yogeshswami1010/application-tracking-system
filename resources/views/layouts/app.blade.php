@@ -687,10 +687,36 @@
 <script>
 (function () {
     var syncUrl = @json(route('admin.ats-sync-state'));
+    var presenceHeartbeatUrl = @json(route('admin.ats-presence-heartbeat'));
     var lastSignature = null;
     var pendingRefresh = false;
     var refreshRunning = false;
 
+    function updatePresenceDots(onlineUserIds) {
+        var online = {};
+        (onlineUserIds || []).forEach(function (id) { online[String(id)] = true; });
+        $('[data-ats-presence-user]').each(function () {
+            var isOnline = !!online[String($(this).data('ats-presence-user'))];
+            $(this)
+                .toggleClass('bg-emerald-500', isOnline)
+                .toggleClass('bg-red-500', !isOnline)
+                .attr('title', isOnline ? 'Online' : 'Offline')
+                .attr('aria-label', isOnline ? 'Online' : 'Offline');
+        });
+    }
+
+    function sendPresenceHeartbeat() {
+        if (document.hidden) return;
+        $.ajax({
+            url: presenceHeartbeatUrl,
+            type: 'POST',
+            data: { _token: @json(csrf_token()) },
+            global: false,
+            timeout: 5000
+        }).done(function (response) {
+            updatePresenceDots(response.online_user_ids || []);
+        });
+    }
     function userIsEditing() {
         var active = document.activeElement;
         var editable = active && (/^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName) || active.isContentEditable);
@@ -755,9 +781,11 @@
     }
 
     setInterval(checkForChanges, 7000);
+    setInterval(sendPresenceHeartbeat, 25000);
+    setTimeout(sendPresenceHeartbeat, 300);
     setInterval(applyRemoteChanges, 1500);
     document.addEventListener('visibilitychange', function () {
-        if (!document.hidden) checkForChanges();
+        if (!document.hidden) { checkForChanges(); sendPresenceHeartbeat(); }
     });
     setTimeout(checkForChanges, 1200);
 })();

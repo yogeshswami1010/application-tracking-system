@@ -123,6 +123,7 @@ Route::middleware('auth')->group(function () {
 
             Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
             Route::get('ats-sync-state', [AdminAtsSyncController::class, 'state'])->name('ats-sync-state');
+            Route::post('ats-presence-heartbeat', [AdminAtsSyncController::class, 'heartbeat'])->name('ats-presence-heartbeat');
             Route::get('ats-overview', [AdminAtsOverviewController::class, 'index'])->name('ats-overview.index');
             Route::get('trash', [TrashController::class, 'index'])->name('trash.index');
             Route::post('trash/{type}/{id}/restore', [TrashController::class, 'restore'])->name('trash.restore');

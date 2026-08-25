@@ -183,8 +183,16 @@ class AdminTeamController extends AdminBaseController
                 return $roleOption;
             })
             ->editColumn('name', function ($row) {
+                $online = \Illuminate\Support\Facades\Cache::has('ats_user_online_'.$row->id)
+                    || $row->id === $this->user->id;
+                $dotClass = $online ? 'bg-emerald-500' : 'bg-red-500';
+                $statusText = $online ? 'Online' : 'Offline';
+
                 return '<div class="flex items-center gap-3">'
-                    .'<img src="'.e($row->profile_image_url).'" alt="" class="h-9 w-9 shrink-0 rounded-full object-cover ring-2 ring-[#EEF0F5]" width="36" height="36" loading="lazy" />'
+                    .'<span class="relative inline-flex shrink-0">'
+                    .'<img src="'.e($row->profile_image_url).'" alt="" class="h-9 w-9 rounded-full object-cover ring-2 ring-[#EEF0F5]" width="36" height="36" loading="lazy" />'
+                    .'<span data-ats-presence-user="'.$row->id.'" title="'.$statusText.'" aria-label="'.$statusText.'" class="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white '.$dotClass.'"></span>'
+                    .'</span>'
                     .'<span class="text-[13.5px] font-semibold text-[#1A1E2E]">'.e(ucwords($row->name)).'</span>'
                     .'</div>';
             })

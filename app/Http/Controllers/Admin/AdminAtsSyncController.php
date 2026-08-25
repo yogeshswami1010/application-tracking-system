@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\User;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
@@ -10,6 +11,19 @@ use Illuminate\Support\Facades\Schema;
 
 class AdminAtsSyncController extends Controller
 {
+    /** Keep the signed-in team member marked online and return current presence. */
+    public function heartbeat(): JsonResponse
+    {
+        $userId = (int) auth()->id();
+        Cache::put('ats_user_online_'.$userId, true, now()->addSeconds(75));
+
+        $onlineUserIds = User::query()->pluck('id')->filter(function ($id) {
+            return Cache::has('ats_user_online_'.(int) $id);
+        })->map(fn ($id) => (int) $id)->values();
+
+        return response()->json(['online_user_ids' => $onlineUserIds])
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+    }
     /**
      * Return a small fingerprint of shared ATS data. Browsers compare this value
      * to detect changes made by another signed-in team member.
