@@ -34,6 +34,7 @@ class AdminConsortiumRegistrationController extends AdminBaseController
 
         $this->registrations = $query->latest()->paginate(25)->withQueryString();
         $this->unreviewedCount = ConsortiumRegistration::whereNull('reviewed_at')->count();
+        $this->filterMonths = ConsortiumRegistration::selectRaw('MONTH(created_at) AS month')->distinct()->orderBy('month')->pluck('month');
         $this->filterYears = ConsortiumRegistration::selectRaw('YEAR(created_at) AS year')->distinct()->orderByDesc('year')->pluck('year');
         $this->filterGenders = ConsortiumRegistration::whereNotNull('gender')->where('gender', '<>', '')->distinct()->orderBy('gender')->pluck('gender');
         $this->filterCities = ConsortiumRegistration::whereNotNull('city')->where('city', '<>', '')->distinct()->orderBy('city')->pluck('city');
