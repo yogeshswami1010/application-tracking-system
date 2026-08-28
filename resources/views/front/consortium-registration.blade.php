@@ -3,7 +3,7 @@
 @if(session('registration_success'))<div class="success"><b>Registration submitted successfully</b><p>Thank you. The Consortium Staffing team will review your information and contact you.</p></div>
 @else<div class="head"><h1>Candidate Registration</h1><p>Register with Consortium Staffing Solutions</p></div><div class="body">
 @if($errors->any())<div class="errors"><b>Please correct the highlighted information.</b><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
-<form method="POST" action="{{ route('consortium-registration.store') }}" enctype="multipart/form-data">@csrf<input class="hp" name="website" tabindex="-1" autocomplete="off">
+<form id="consortium-registration-form" method="POST" action="{{ route('api.consortium-registration.store') }}" enctype="multipart/form-data"><input class="hp" name="website" tabindex="-1" autocomplete="off">
 <section class="section"><h2>Basic Information</h2><p>Please provide your contact details.</p><div class="grid">
 <div><label>First Name *</label><input name="first_name" value="{{ old('first_name') }}" required></div><div><label>Last Name *</label><input name="last_name" value="{{ old('last_name') }}" required></div>
 <div><label>Email *</label><input type="email" name="email" value="{{ old('email') }}" required></div><div><label>Phone Number *</label><input name="phone" value="{{ old('phone') }}" required></div>
@@ -15,5 +15,39 @@
 <section class="section"><h2>Availability</h2><p>Let us know your scheduling availability.</p><div class="grid"><div><label>Available to work weekends? *</label><div class="radios"><label><input type="radio" name="available_weekends" value="1" required> Yes</label><label><input type="radio" name="available_weekends" value="0" required> No</label></div></div><div><label>Available for night shifts? *</label><div class="radios"><label><input type="radio" name="available_night_shifts" value="1" required> Yes</label><label><input type="radio" name="available_night_shifts" value="0" required> No</label></div></div></div></section>
 <section class="section"><h2>Additional Information</h2><div class="grid"><div><label>How did you hear about us?</label><select name="referral_source"><option value="">Select</option>@foreach(['Google','Indeed','LinkedIn','Facebook','Friend or Referral','Other'] as $v)<option @selected(old('referral_source')===$v)>{{ $v }}</option>@endforeach</select></div><div class="full"><label>Additional Information</label><textarea name="additional_information" rows="4">{{ old('additional_information') }}</textarea></div></div>
 <div class="check"><label><input type="checkbox" name="information_certified" value="1" required> I certify that the submitted information is true and correct.</label><label><input type="checkbox" name="agreement_accepted" value="1" required> I have read and understood the Applicant Agreement.</label><label><input type="checkbox" name="sms_consent" value="1"> I agree to receive SMS and calls from Consortium Staffing Solutions and can opt out by replying STOP.</label></div></section>
-<div class="actions"><button class="submit" type="submit">Submit Registration</button></div></form></div>@endif
-</div></div></body></html>
+<div id="api-form-errors" class="errors" style="display:none"></div><div class="actions"><button id="registration-submit" class="submit" type="submit">Submit Registration</button></div></form></div>@endif
+</div></div><script>
+(function(){
+    var form=document.getElementById('consortium-registration-form');
+    if(!form)return;
+    var button=document.getElementById('registration-submit');
+    var errors=document.getElementById('api-form-errors');
+    form.addEventListener('submit',async function(event){
+        event.preventDefault();
+        errors.style.display='none';
+        errors.innerHTML='';
+        button.disabled=true;
+        button.textContent='Submitting...';
+        try{
+            var response=await fetch(form.action,{method:'POST',body:new FormData(form),headers:{'Accept':'application/json'}});
+            var result=await response.json();
+            if(!response.ok){
+                var messages=[];
+                Object.keys(result.errors||{}).forEach(function(key){messages=messages.concat(result.errors[key]);});
+                errors.innerHTML='<b>Please correct the following:</b><ul>'+messages.map(function(message){return '<li>'+String(message).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c];})+'</li>';}).join('')+'</ul>';
+                errors.style.display='block';
+                errors.scrollIntoView({behavior:'smooth',block:'center'});
+                return;
+            }
+            document.querySelector('.body').innerHTML='<div class="success"><b>Registration submitted successfully</b><p>Thank you. The Consortium Staffing team will review your information and contact you.</p></div>';
+            window.scrollTo({top:0,behavior:'smooth'});
+        }catch(error){
+            errors.textContent='The registration could not be submitted. Please check your connection and try again.';
+            errors.style.display='block';
+        }finally{
+            button.disabled=false;
+            button.textContent='Submit Registration';
+        }
+    });
+})();
+</script></body></html>

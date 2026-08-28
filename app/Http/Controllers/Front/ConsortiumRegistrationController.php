@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Front;
 use App\ConsortiumRegistration;
 use App\Helper\Files;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ConsortiumRegistrationController extends Controller
@@ -15,6 +16,31 @@ class ConsortiumRegistrationController extends Controller
     }
 
     public function store(Request $request)
+    {
+        $this->persist($request);
+        return back()->with('registration_success', true);
+    }
+
+    public function storeApi(Request $request): JsonResponse
+    {
+        try {
+            $registration = $this->persist($request);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            return $this->cors(response()->json([
+                'status' => 'validation_error',
+                'message' => 'Please correct the highlighted information.',
+                'errors' => $exception->errors(),
+            ], 422), $request);
+        }
+
+        return $this->cors(response()->json([
+            'status' => 'success',
+            'message' => 'Registration submitted successfully.',
+            'registration_id' => $registration->id,
+        ]), $request);
+    }
+
+    private function persist(Request $request): ConsortiumRegistration
     {
         abort_if($request->filled('website'), 422);
 
@@ -53,8 +79,17 @@ class ConsortiumRegistrationController extends Controller
             $data['resume_file'] = Files::uploadLocalOrS3($request->file('resume'), 'registration-resumes');
         }
 
-        ConsortiumRegistration::create($data);
+        return ConsortiumRegistration::create($data);
+    }
 
-        return back()->with('registration_success', true);
+    private function cors(JsonResponse $response, Request $request): JsonResponse
+    {
+        $origin = $request->headers->get('Origin');
+        $allowed = ['https://consortiumstaffing.ca', 'https://www.consortiumstaffing.ca'];
+        if (in_array($origin, $allowed, true)) {
+            $response->headers->set('Access-Control-Allow-Origin', $origin);
+            $response->headers->set('Vary', 'Origin');
+        }
+        return $response;
     }
 }
