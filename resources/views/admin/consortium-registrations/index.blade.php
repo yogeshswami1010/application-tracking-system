@@ -8,7 +8,30 @@
         <div><label class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-[#8892A0]">Submitted Month</label><select name="month" class="registration-auto-filter w-full rounded-xl border border-[#DDE2EA] bg-white px-3 py-2.5 text-[12px] text-[#3D4A5C] outline-none focus:border-blue-500"><option value="">All Months</option>@foreach($filterMonths as $month)<option value="{{ $month }}" @selected((int) request('month') === (int) $month)>{{ \Carbon\Carbon::create()->month($month)->format('F') }}</option>@endforeach</select></div>
         <div><label class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-[#8892A0]">Submitted Year</label><select name="year" class="registration-auto-filter w-full rounded-xl border border-[#DDE2EA] bg-white px-3 py-2.5 text-[12px] text-[#3D4A5C] outline-none focus:border-blue-500"><option value="">All Years</option>@foreach($filterYears as $year)<option value="{{ $year }}" @selected((string) request('year') === (string) $year)>{{ $year }}</option>@endforeach</select></div>
         <div><label class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-[#8892A0]">Gender</label><select name="gender" class="registration-auto-filter w-full rounded-xl border border-[#DDE2EA] bg-white px-3 py-2.5 text-[12px] text-[#3D4A5C] outline-none focus:border-blue-500"><option value="">All Genders</option>@foreach($filterGenders as $gender)<option value="{{ $gender }}" @selected(request('gender') === $gender)>{{ $gender }}</option>@endforeach</select></div>
-        <div><label class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-[#8892A0]">City</label><select name="city" class="registration-auto-filter w-full rounded-xl border border-[#DDE2EA] bg-white px-3 py-2.5 text-[12px] text-[#3D4A5C] outline-none focus:border-blue-500"><option value="">All Cities</option>@foreach($filterCities as $city)<option value="{{ $city }}" @selected(request('city') === $city)>{{ $city }}</option>@endforeach</select></div>
+        @php($selectedCities = array_values(array_filter((array) request('city', []))))
+        <div class="relative" id="registration-city-filter">
+            <label class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-[#8892A0]">City</label>
+            <button type="button" id="registration-city-toggle" class="flex w-full items-center justify-between rounded-xl border border-[#DDE2EA] bg-white px-3 py-2.5 text-left text-[12px] text-[#3D4A5C] outline-none hover:border-[#BFC7D3] focus:border-blue-500">
+                <span id="registration-city-summary" class="truncate">{{ count($selectedCities) ? count($selectedCities).' cities selected' : 'All Cities' }}</span>
+                <svg class="h-3.5 w-3.5 shrink-0 text-[#8892A0]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            <div id="registration-city-menu" class="absolute left-0 top-full z-50 mt-2 hidden w-[300px] overflow-hidden rounded-xl border border-[#DDE2EA] bg-white shadow-xl">
+                <div class="border-b border-[#EEF0F4] p-2.5"><input type="search" id="registration-city-search" placeholder="Search city..." autocomplete="off" class="w-full rounded-lg border border-[#DDE2EA] bg-[#F8F9FB] px-3 py-2 text-[12px] outline-none focus:border-blue-500"></div>
+                <div id="registration-city-options" class="max-h-60 overflow-y-auto p-2">
+                    @foreach($filterCities as $city)
+                        <label class="registration-city-option flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-[12px] text-[#3D4A5C] hover:bg-[#F1F5FF]" data-city-name="{{ strtolower($city) }}">
+                            <input type="checkbox" name="city[]" value="{{ $city }}" @checked(in_array($city, $selectedCities, true)) class="h-4 w-4 rounded border-[#C8D0DC] text-blue-600 focus:ring-blue-500">
+                            <span>{{ $city }}</span>
+                        </label>
+                    @endforeach
+                    <p id="registration-city-empty" class="hidden px-3 py-6 text-center text-[11px] text-[#8892A0]">No city found.</p>
+                </div>
+                <div class="flex items-center justify-between border-t border-[#EEF0F4] bg-[#FBFCFE] px-3 py-2.5">
+                    <button type="button" id="registration-city-clear" class="text-[11px] font-semibold text-[#6B7280] hover:text-[#DC2626]">Clear</button>
+                    <button type="button" id="registration-city-apply" class="rounded-lg bg-[#2563EB] px-3 py-2 text-[11px] font-bold text-white hover:bg-[#1D4ED8]">Apply Cities</button>
+                </div>
+            </div>
+        </div>
         <div><label class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-[#8892A0]">Job Type</label><select name="job_type" class="registration-auto-filter w-full rounded-xl border border-[#DDE2EA] bg-white px-3 py-2.5 text-[12px] text-[#3D4A5C] outline-none focus:border-blue-500"><option value="">All Job Types</option>@foreach($filterJobTypes as $jobType)<option value="{{ $jobType }}" @selected(request('job_type') === $jobType)>{{ $jobType }}</option>@endforeach</select></div>        <div><label class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-[#8892A0]">Available Weekends</label><select name="available_weekends" class="registration-auto-filter w-full rounded-xl border border-[#DDE2EA] bg-white px-3 py-2.5 text-[12px] text-[#3D4A5C] outline-none focus:border-blue-500"><option value="">All</option><option value="1" @selected(request('available_weekends') === '1')>Yes</option><option value="0" @selected(request('available_weekends') === '0')>No</option></select></div>
         <div><label class="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-[#8892A0]">Night Shifts</label><select name="night_shifts" class="registration-auto-filter w-full rounded-xl border border-[#DDE2EA] bg-white px-3 py-2.5 text-[12px] text-[#3D4A5C] outline-none focus:border-blue-500"><option value="">All</option><option value="1" @selected(request('night_shifts') === '1')>Yes</option><option value="0" @selected(request('night_shifts') === '0')>No</option></select></div>
         
@@ -22,6 +45,34 @@
 @push('footer-script')
 <script>
 $(document).on('change', '.registration-auto-filter', function () {
+    $('#consortium-registration-filters').trigger('submit');
+});
+$('#registration-city-toggle').on('click', function (event) {
+    event.stopPropagation();
+    $('#registration-city-menu').toggleClass('hidden');
+    if (!$('#registration-city-menu').hasClass('hidden')) $('#registration-city-search').trigger('focus');
+});
+$('#registration-city-menu').on('click', function (event) { event.stopPropagation(); });
+$(document).on('click', function () { $('#registration-city-menu').addClass('hidden'); });
+$('#registration-city-search').on('input', function () {
+    var query = $.trim($(this).val()).toLowerCase();
+    var visible = 0;
+    $('.registration-city-option').each(function () {
+        var matches = !query || String($(this).data('city-name')).indexOf(query) !== -1;
+        $(this).toggleClass('hidden', !matches);
+        if (matches) visible++;
+    });
+    $('#registration-city-empty').toggleClass('hidden', visible > 0);
+});
+$('#registration-city-clear').on('click', function () {
+    $('#registration-city-options input[type="checkbox"]').prop('checked', false);
+    $('#registration-city-summary').text('All Cities');
+});
+$('#registration-city-options').on('change', 'input[type="checkbox"]', function () {
+    var count = $('#registration-city-options input[type="checkbox"]:checked').length;
+    $('#registration-city-summary').text(count ? count + ' cities selected' : 'All Cities');
+});
+$('#registration-city-apply').on('click', function () {
     $('#consortium-registration-filters').trigger('submit');
 });
 </script>

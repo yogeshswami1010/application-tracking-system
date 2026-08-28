@@ -21,7 +21,8 @@ class AdminConsortiumRegistrationController extends AdminBaseController
             'month' => ['nullable', 'integer', 'between:1,12'],
             'year' => ['nullable', 'integer', 'between:2000,2100'],
             'gender' => ['nullable', 'string', 'max:40'],
-            'city' => ['nullable', 'string', 'max:100'],
+            'city' => ['nullable', 'array'],
+            'city.*' => ['string', 'max:100'],
             'job_type' => ['nullable', 'string', 'max:100'],
             'available_weekends' => ['nullable', 'in:0,1'],
             'night_shifts' => ['nullable', 'in:0,1'],
@@ -31,7 +32,7 @@ class AdminConsortiumRegistrationController extends AdminBaseController
             ->when($request->filled('month'), fn ($q) => $q->whereMonth('created_at', $filters['month']))
             ->when($request->filled('year'), fn ($q) => $q->whereYear('created_at', $filters['year']))
             ->when($request->filled('gender'), fn ($q) => $q->where('gender', $filters['gender']))
-            ->when($request->filled('city'), fn ($q) => $q->where('city', $filters['city']))
+            ->when(!empty($filters['city']), fn ($q) => $q->whereIn('city', $filters['city']))
             ->when($request->filled('job_type'), fn ($q) => $q->where('preferred_job_type', $filters['job_type']))
             ->when($request->filled('available_weekends'), fn ($q) => $q->where('available_weekends', (int) $filters['available_weekends']))
             ->when($request->filled('night_shifts'), fn ($q) => $q->where('available_night_shifts', (int) $filters['night_shifts']));
