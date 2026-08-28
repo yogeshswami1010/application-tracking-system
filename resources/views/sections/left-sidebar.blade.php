@@ -95,6 +95,10 @@
             @endphp
             <span id="internal-messages-sidebar-count" class="{{ $sidebarInternalUnread > 0 ? '' : 'hidden' }} ml-auto min-w-[20px] rounded-full bg-red-500 px-1.5 py-0.5 text-center text-[10px] font-bold leading-none text-white">{{ $sidebarInternalUnread }}</span>
         </a>
+        <a href="{{ route('admin.consortium-registrations.index') }}" class="ra-nav-link {{ request()->is('admin/consortium-registrations*') ? 'on' : '' }}">
+            <span class="ra-ni" aria-hidden="true"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2m7-10a4 4 0 100-8 4 4 0 000 8zm8-4v6m3-3h-6"/></svg></span>
+            <span class="ra-nl">Consortium Registrations</span>
+        </a>
         <div class="ra-sec-title">@lang('menu.general')</div>
 
         @if ($user->roles->count() > 0)

@@ -50,6 +50,8 @@ use App\Http\Controllers\Admin\UpdateApplicationController;
 use App\Http\Controllers\Admin\ZoomMeetingSettingController;
 use App\Http\Controllers\Front\FrontJobOfferController;
 use App\Http\Controllers\Front\FrontJobsController;
+use App\Http\Controllers\Front\ConsortiumRegistrationController;
+use App\Http\Controllers\Admin\AdminConsortiumRegistrationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\VerifyMobileController;
 use App\Http\Controllers\ZoomWebhookController;
@@ -77,6 +79,8 @@ Route::get('assistmyday', [FrontJobsController::class, 'assistMyDay'])
 Route::get('assistmyday/job/{slug}/{location?}', [FrontJobsController::class, 'assistMyDayJobDetail'])
     ->name('jobs.assistmyday.jobDetail');
 
+Route::get('/consortium-registration', [ConsortiumRegistrationController::class, 'create'])->name('consortium-registration.create');
+Route::post('/consortium-registration', [ConsortiumRegistrationController::class, 'store'])->middleware('throttle:10,1')->name('consortium-registration.store');
 // ── Front public job board ─────────────────────────────────────────────────
 Route::name('jobs.')
     ->group(function () {
@@ -339,6 +343,9 @@ Route::middleware('auth')->group(function () {
             Route::resource('interview-schedule', InterviewScheduleController::class);
 
             // Team & Company
+            Route::get('consortium-registrations', [AdminConsortiumRegistrationController::class, 'index'])->name('consortium-registrations.index');
+            Route::get('consortium-registrations/{registration}', [AdminConsortiumRegistrationController::class, 'show'])->name('consortium-registrations.show');
+            Route::get('consortium-registrations/{registration}/resume', [AdminConsortiumRegistrationController::class, 'resume'])->name('consortium-registrations.resume');
             Route::get('internal-messages', [AdminInternalMessageController::class, 'index'])->name('internal-messages.index');
             Route::get('internal-messages/conversation/{recipient}', [AdminInternalMessageController::class, 'conversation'])->name('internal-messages.conversation');
             Route::post('internal-messages', [AdminInternalMessageController::class, 'store'])->name('internal-messages.store');
