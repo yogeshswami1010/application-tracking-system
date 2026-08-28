@@ -47,23 +47,32 @@
 $(document).on('change', '.registration-auto-filter', function () {
     $('#consortium-registration-filters').trigger('submit');
 });
-var cityDropdownPageY = 0;
+var cityScrollContainer = null;
+var cityContainerScrollTop = 0;
+var cityContainerOverflowY = '';
+var cityContainerLocked = false;
+function holdCityContainerPosition() {
+    if (cityContainerLocked && cityScrollContainer && cityScrollContainer.scrollTop !== cityContainerScrollTop) {
+        cityScrollContainer.scrollTop = cityContainerScrollTop;
+    }
+}
 function lockCityFilterPage() {
-    if ($('body').data('city-filter-locked')) return;
-    cityDropdownPageY = window.scrollY || document.documentElement.scrollTop || 0;
-    $('body').data('city-filter-locked', true).css({
-        position: 'fixed',
-        top: '-' + cityDropdownPageY + 'px',
-        left: '0',
-        right: '0',
-        width: '100%',
-        overflow: 'hidden'
-    });
+    if (cityContainerLocked) return;
+    cityScrollContainer = document.querySelector('.ra-main > .ra-scroll') || document.querySelector('.ra-scroll');
+    if (!cityScrollContainer) return;
+    cityContainerScrollTop = cityScrollContainer.scrollTop;
+    cityContainerOverflowY = cityScrollContainer.style.overflowY;
+    cityContainerLocked = true;
+    cityScrollContainer.style.overflowY = 'hidden';
+    cityScrollContainer.addEventListener('scroll', holdCityContainerPosition);
 }
 function unlockCityFilterPage() {
-    if (!$('body').data('city-filter-locked')) return;
-    $('body').removeData('city-filter-locked').css({ position: '', top: '', left: '', right: '', width: '', overflow: '' });
-    window.scrollTo({ top: cityDropdownPageY, left: 0, behavior: 'instant' });
+    if (!cityContainerLocked || !cityScrollContainer) return;
+    cityContainerLocked = false;
+    cityScrollContainer.removeEventListener('scroll', holdCityContainerPosition);
+    cityScrollContainer.style.overflowY = cityContainerOverflowY;
+    cityScrollContainer.scrollTop = cityContainerScrollTop;
+    cityScrollContainer = null;
 }
 function closeCityFilter() {
     $('#registration-city-menu').addClass('hidden');
