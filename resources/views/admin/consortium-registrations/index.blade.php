@@ -17,7 +17,7 @@
             </button>
             <div id="registration-city-menu" class="absolute left-0 top-full z-50 mt-2 hidden w-[300px] overflow-hidden rounded-xl border border-[#DDE2EA] bg-white shadow-xl">
                 <div class="border-b border-[#EEF0F4] p-2.5"><input type="search" id="registration-city-search" placeholder="Search city..." autocomplete="off" class="w-full rounded-lg border border-[#DDE2EA] bg-[#F8F9FB] px-3 py-2 text-[12px] outline-none focus:border-blue-500"></div>
-                <div id="registration-city-options" class="max-h-60 overflow-y-auto p-2">
+                <div id="registration-city-options" class="max-h-60 overflow-y-auto p-2" style="overscroll-behavior: contain;">
                     @foreach($filterCities as $city)
                         <label class="registration-city-option flex cursor-pointer items-center gap-2.5 rounded-lg border px-2.5 py-2 text-[12px] transition {{ in_array($city, $selectedCities, true) ? 'border-blue-200 bg-blue-50 font-semibold text-blue-700' : 'border-transparent text-[#3D4A5C] hover:bg-[#F1F5FF]' }}" data-city-name="{{ strtolower($city) }}">
                             <input type="checkbox" name="city[]" value="{{ $city }}" @checked(in_array($city, $selectedCities, true)) class="h-4 w-4 rounded border-[#C8D0DC] text-blue-600 focus:ring-blue-500">
@@ -53,6 +53,17 @@ $('#registration-city-toggle').on('click', function (event) {
     if (!$('#registration-city-menu').hasClass('hidden')) $('#registration-city-search').trigger('focus');
 });
 $('#registration-city-menu').on('click', function (event) { event.stopPropagation(); });
+var cityOptionsElement = document.getElementById('registration-city-options');
+if (cityOptionsElement) {
+    cityOptionsElement.addEventListener('wheel', function (event) {
+        var atTop = cityOptionsElement.scrollTop <= 0;
+        var atBottom = Math.ceil(cityOptionsElement.scrollTop + cityOptionsElement.clientHeight) >= cityOptionsElement.scrollHeight;
+        if ((event.deltaY < 0 && atTop) || (event.deltaY > 0 && atBottom)) {
+            event.preventDefault();
+        }
+        event.stopPropagation();
+    }, { passive: false });
+}
 $(document).on('click', function () { $('#registration-city-menu').addClass('hidden'); });
 $('#registration-city-search').on('input', function () {
     var query = $.trim($(this).val()).toLowerCase();
