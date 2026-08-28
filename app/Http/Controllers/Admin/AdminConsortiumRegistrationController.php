@@ -23,6 +23,8 @@ class AdminConsortiumRegistrationController extends AdminBaseController
             'gender' => ['nullable', 'string', 'max:40'],
             'city' => ['nullable', 'string', 'max:100'],
             'job_type' => ['nullable', 'string', 'max:100'],
+            'available_weekends' => ['nullable', 'in:0,1'],
+            'night_shifts' => ['nullable', 'in:0,1'],
         ]);
 
         $query = ConsortiumRegistration::query()
@@ -30,7 +32,9 @@ class AdminConsortiumRegistrationController extends AdminBaseController
             ->when($request->filled('year'), fn ($q) => $q->whereYear('created_at', $filters['year']))
             ->when($request->filled('gender'), fn ($q) => $q->where('gender', $filters['gender']))
             ->when($request->filled('city'), fn ($q) => $q->where('city', $filters['city']))
-            ->when($request->filled('job_type'), fn ($q) => $q->where('preferred_job_type', $filters['job_type']));
+            ->when($request->filled('job_type'), fn ($q) => $q->where('preferred_job_type', $filters['job_type']))
+            ->when($request->filled('available_weekends'), fn ($q) => $q->where('available_weekends', (int) $filters['available_weekends']))
+            ->when($request->filled('night_shifts'), fn ($q) => $q->where('available_night_shifts', (int) $filters['night_shifts']));
 
         $this->registrations = $query->latest()->paginate(25)->withQueryString();
         $this->unreviewedCount = ConsortiumRegistration::whereNull('reviewed_at')->count();
