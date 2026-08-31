@@ -2,7 +2,7 @@
     <input type="file" id="ja-resume-upload-{{ $application->id }}" accept=".pdf,.doc,.docx,.rtf,.txt,.jpg,.jpeg,.png" hidden>
     <button type="button" id="ja-resume-update-btn-{{ $application->id }}" class="ja-pdf-btn"
             onclick="document.getElementById('ja-resume-upload-{{ $application->id }}').click()">
-        <i class="fa fa-upload"></i> <span>{{ $application->resume_url ? 'Update CV' : 'Upload CV' }}</span>
+        <i class="fa fa-upload"></i> <span>{{ !empty($resumeUrl) ? 'Update CV' : 'Upload CV' }}</span>
     </button>
     <script>
     (function () {
