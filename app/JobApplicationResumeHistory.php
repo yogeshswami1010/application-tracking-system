@@ -21,6 +21,6 @@ class JobApplicationResumeHistory extends Model
 
     public function getResumeUrlAttribute()
     {
-        return asset_url_local_s3('documents/'.$this->job_application_id.'/'.$this->hashname);
+        return route('admin.job-applications.resume-history.view', $this->id);
     }
 }

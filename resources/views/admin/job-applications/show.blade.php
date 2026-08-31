@@ -36,7 +36,7 @@
     $clientNotes = collect();
 
     // Resolve resume URL
-    $resumeUrl = $application->resume_url ?: null;
+    $resumeUrl = $application->documents->firstWhere('name', 'Resume') ? route('admin.job-applications.resume.view', $application->id) : null;
     if (!$resumeUrl && !empty($answers)) {
         foreach ($answers as $answer) {
             if (!empty($answer->file)) {

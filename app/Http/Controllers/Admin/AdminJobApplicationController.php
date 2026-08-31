@@ -16,6 +16,7 @@ use App\InterviewSchedule;
 use App\Job;
 use App\JobApplication;
 use App\JobApplicationAnswer;
+use App\JobApplicationResumeHistory;
 use App\JobJobLocation;
 use App\JobLocation;
 use App\Notifications\CandidateScheduleInterview;
@@ -1331,6 +1332,40 @@ class AdminJobApplicationController extends AdminBaseController
         return Reply::error('Tab not found.');
     }
 
+    public function viewResume($id)
+    {
+        abort_if(! $this->user->cans('view_job_applications'), 403);
+        $application = JobApplication::withTrashed()->with('resumeDocument')->findOrFail($id);
+        $document = $application->resumeDocument;
+        abort_unless($document, 404, 'No resume is attached to this applicant.');
+
+        return $this->streamResume(
+            'documents/'.$application->id.'/'.$document->hashname,
+            $document->original_name ?: $document->hashname
+        );
+    }
+
+    public function viewResumeHistory($history)
+    {
+        abort_if(! $this->user->cans('view_job_applications'), 403);
+        $resume = JobApplicationResumeHistory::findOrFail($history);
+
+        return $this->streamResume(
+            'documents/'.$resume->job_application_id.'/'.$resume->hashname,
+            $resume->original_name ?: $resume->hashname
+        );
+    }
+
+    private function streamResume(string $path, string $filename)
+    {
+        abort_unless(Storage::exists($path), 404, 'The resume file could not be found in storage.');
+        $safeName = str_replace(['"', "\r", "\n"], '', $filename);
+
+        return Storage::response($path, $safeName, [
+            'Content-Disposition' => 'inline; filename="'.$safeName.'"',
+            'Cache-Control' => 'private, max-age=300',
+        ]);
+    }
     public function updateResume(Request $request, $id, ResumePdfConverter $converter, ResumeTextExtractor $extractor)
     {
         abort_if(! $this->user->cans('edit_job_applications'), 403);
@@ -1392,7 +1427,7 @@ class AdminJobApplicationController extends AdminBaseController
         return response()->json([
             'status' => 'success',
             'message' => 'Resume updated. The previous resume is available in History.',
-            'resume_url' => $application->resume_url,
+            'resume_url' => route('admin.job-applications.resume.view', $application->id),
             'history_html' => view('admin.job-applications.partials.resume-history', compact('resumeHistories'))->render(),
         ]);
     }
