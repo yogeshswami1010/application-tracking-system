@@ -29,6 +29,22 @@
                 document.querySelectorAll('.ja-current-resume-link').forEach(function (link) {
                     link.href = response.resume_url;
                 });
+                if (!document.querySelector('.ja-current-resume-link')) {
+                    var viewLink = document.createElement('a');
+                    viewLink.href = response.resume_url;
+                    viewLink.target = '_blank';
+                    viewLink.className = 'ja-pdf-btn ja-current-resume-link';
+                    viewLink.innerHTML = '<i class="fa fa-external-link"></i> View';
+
+                    var downloadLink = document.createElement('a');
+                    downloadLink.href = response.resume_url;
+                    downloadLink.setAttribute('download', '');
+                    downloadLink.className = 'ja-pdf-btn ja-pdf-btn-primary ja-current-resume-link';
+                    downloadLink.innerHTML = '<i class="fa fa-download"></i> Download';
+
+                    button.parentNode.insertBefore(viewLink, button.nextSibling);
+                    button.parentNode.insertBefore(downloadLink, viewLink.nextSibling);
+                }
                 var frame = document.getElementById('ja-pdf-frame');
                 if (frame) {
                     frame.src = response.resume_url + '#view=FitH';
@@ -44,7 +60,15 @@
                     if (embed) embed.src = response.resume_url;
                 }
                 var empty = document.querySelector('.ja-pdf-no-resume');
-                if (empty) empty.innerHTML = '<i class="fa fa-check-circle" style="color:#10B981"></i><p>CV uploaded. Reopen this profile to view it.</p>';
+                if (empty) {
+                    var newFrame = document.createElement('iframe');
+                    newFrame.id = 'ja-pdf-frame';
+                    newFrame.className = 'ja-pdf-frame';
+                    newFrame.title = 'Applicant CV';
+                    newFrame.src = response.resume_url + '#view=FitH';
+                    newFrame.style.cssText = 'display:block;width:100%;height:100%;flex:1;min-height:0;border:0;background:#525659;position:relative;inset:auto;';
+                    empty.replaceWith(newFrame);
+                }
                 var history = $('#ja-tab-history');
                 if (history.length && history.data('url')) {
                     history.removeData('loaded').html('<div class="ja-tab-loading">Open the History tab to load activity.</div>');
