@@ -49,8 +49,8 @@
     $resumeUrl = null;
 
     // Application resume — stream through Laravel so local/S3 paths both work.
-    if ($application->documents->firstWhere('name', 'Resume')) {
-        $resumeUrl = route('admin.job-applications.resume.view', $application->id);
+    if ($currentResumeDocument = $application->documents->firstWhere('name', 'Resume')) {
+        $resumeUrl = route('admin.job-applications.resume.view', $application->id).'?v='.($currentResumeDocument->updated_at?->timestamp ?? time());
     }
 
     // Resume uploaded through custom questions

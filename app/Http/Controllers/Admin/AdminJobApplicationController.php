@@ -1212,7 +1212,7 @@ class AdminJobApplicationController extends AdminBaseController
                 'schedule',
                 // The CV URL accessor uses this loaded relation. Without it,
                 // rendering a profile performs repeated resume-document queries.
-                'documents:id,documentable_id,documentable_type,name,hashname',
+                'documents:id,documentable_id,documentable_type,name,hashname,original_name,updated_at',
                 'status',
                 'location',
                 'job',
@@ -1312,6 +1312,7 @@ class AdminJobApplicationController extends AdminBaseController
         if ($tab === 'history') {
             $statusHistories = $application->statusHistories()->latest()->limit(30)->with(['fromStatus', 'toStatus', 'user'])->get();
             $resumeHistories = $application->resumeHistories()->with('updatedBy:id,name')->get();
+        $currentResume = $application->documents->firstWhere('name', 'Resume');
             $previousApps = JobApplication::withTrashed()
                 ->whereNull('moved_to_trash_at')
                 ->where('email', $application->email)
@@ -1323,7 +1324,7 @@ class AdminJobApplicationController extends AdminBaseController
                     'status:id,status,color',
                     'location:id,location',
                     'answers.question:id,question,type',
-                    'documents:id,documentable_id,documentable_type,name,hashname',
+                    'documents:id,documentable_id,documentable_type,name,hashname,original_name,updated_at',
                 ])
                 ->latest()
                 ->get();
@@ -1363,7 +1364,9 @@ class AdminJobApplicationController extends AdminBaseController
 
         return Storage::response($path, $safeName, [
             'Content-Disposition' => 'inline; filename="'.$safeName.'"',
-            'Cache-Control' => 'private, max-age=300',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
         ]);
     }
     public function updateResume(Request $request, $id, ResumePdfConverter $converter, ResumeTextExtractor $extractor)
@@ -1423,11 +1426,12 @@ class AdminJobApplicationController extends AdminBaseController
 
         $application = $application->fresh(['documents']);
         $resumeHistories = $application->resumeHistories()->with('updatedBy:id,name')->get();
+        $currentResume = $application->documents->firstWhere('name', 'Resume');
 
         return response()->json([
             'status' => 'success',
             'message' => 'Resume updated. The previous resume is available in History.',
-            'resume_url' => route('admin.job-applications.resume.view', $application->id),
+            'resume_url' => route('admin.job-applications.resume.view', $application->id).'?v='.($currentResume?->updated_at?->timestamp ?? now()->timestamp),
             'history_html' => view('admin.job-applications.partials.resume-history', compact('resumeHistories'))->render(),
         ]);
     }

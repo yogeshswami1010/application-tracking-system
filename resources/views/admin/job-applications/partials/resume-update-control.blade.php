@@ -47,8 +47,11 @@
                 }
                 var frame = document.getElementById('ja-pdf-frame');
                 if (frame) {
-                    frame.src = response.resume_url + '#view=FitH';
+                    frame.src = 'about:blank';
                     frame.style.display = 'block';
+                    requestAnimationFrame(function () {
+                        frame.src = response.resume_url + '#view=FitH';
+                    });
                     var scroll = document.getElementById('ja-pdf-scroll');
                     var loading = document.getElementById('ja-pdf-loading');
                     var error = document.getElementById('ja-pdf-error');
