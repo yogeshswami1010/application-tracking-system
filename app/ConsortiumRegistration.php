@@ -21,4 +21,9 @@ class ConsortiumRegistration extends Model
         'sms_consent' => 'boolean',
         'reviewed_at' => 'datetime',
     ];
+
+    public function jobMoves()
+    {
+        return $this->hasMany(ConsortiumRegistrationJobMove::class)->latest();
+    }
 }

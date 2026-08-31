@@ -3,8 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\ConsortiumRegistration;
+use App\ApplicationStatus;
+use App\Job;
+use App\JobApplication;
+use App\JobApplicationStatusHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class AdminConsortiumRegistrationController extends AdminBaseController
 {
@@ -54,6 +59,13 @@ class AdminConsortiumRegistrationController extends AdminBaseController
             $registration->update(['reviewed_at' => now()]);
         }
         $this->registration = $registration;
+        $this->jobs = Job::with(['company:id,company_name', 'location:id,location', 'jobLocation'])
+            ->orderBy('title')
+            ->get();
+        $this->jobMoves = $registration->jobMoves()
+            ->with(['job:id,title,company_id', 'job.company:id,company_name', 'application:id,job_id,status_id', 'movedBy:id,name'])
+            ->get();
+
         return view('admin.consortium-registrations.show', $this->data);
     }
 
@@ -63,6 +75,81 @@ class AdminConsortiumRegistrationController extends AdminBaseController
         return Storage::download('registration-resumes/'.$registration->resume_file, $registration->resume_original_name ?: $registration->resume_file);
     }
 
+    public function moveToJob(Request $request, ConsortiumRegistration $registration)
+    {
+        abort_if(! auth()->user()->hasRole('admin'), 403);
+
+        $validated = $request->validate([
+            'job_id' => ['required', 'integer', 'exists:jobs,id'],
+        ]);
+        $job = Job::with(['location', 'jobLocation'])->findOrFail($validated['job_id']);
+
+        if ($registration->jobMoves()->where('job_id', $job->id)->exists()) {
+            return back()->with('error', 'This candidate has already been moved to the selected job.');
+        }
+
+        $appliedStatus = ApplicationStatus::ensureAppliedForJob((int) $job->id);
+        $matchingLocation = $job->jobLocation->first(function ($location) use ($registration) {
+            return mb_strtolower(trim((string) $location->location)) === mb_strtolower(trim((string) $registration->city));
+        });
+        $locationId = $matchingLocation?->id ?: ($job->location_id ?: $job->jobLocation->first()?->id);
+        $copiedResumePath = null;
+
+        try {
+            $application = DB::transaction(function () use ($registration, $job, $appliedStatus, $locationId, &$copiedResumePath) {
+                $application = new JobApplication;
+                $application->full_name = trim($registration->first_name.' '.$registration->last_name);
+                $application->email = $registration->email;
+                $application->phone = $registration->phone;
+                $application->job_id = $job->id;
+                $application->status_id = $appliedStatus->id;
+                $application->location_id = $locationId;
+                $application->address = $registration->street_address;
+                $application->city = $registration->city;
+                $application->gender = $registration->gender;
+                $application->dob = $registration->date_of_birth;
+                $application->cover_letter = $registration->additional_information ?: '';
+                $application->column_priority = 0;
+                $application->is_candidate = 0;
+                $application->save();
+
+                if ($registration->resume_file) {
+                    $source = 'registration-resumes/'.$registration->resume_file;
+                    $copiedResumePath = 'documents/'.$application->id.'/'.$registration->resume_file;
+                    if (! Storage::exists($source) || ! Storage::copy($source, $copiedResumePath)) {
+                        throw new \RuntimeException('The registration resume could not be copied to the job application.');
+                    }
+                    $application->documents()->create([
+                        'name' => 'Resume',
+                        'hashname' => $registration->resume_file,
+                        'original_name' => $registration->resume_original_name ?: $registration->resume_file,
+                    ]);
+                }
+
+                JobApplicationStatusHistory::create([
+                    'job_application_id' => $application->id,
+                    'from_status_id' => null,
+                    'to_status_id' => $appliedStatus->id,
+                    'user_id' => $this->user->id,
+                    'notes' => 'Moved from Consortium Registration to '.$job->title,
+                ]);
+
+                $registration->jobMoves()->create([
+                    'job_application_id' => $application->id,
+                    'job_id' => $job->id,
+                    'moved_by' => $this->user->id,
+                ]);
+
+                return $application;
+            });
+        } catch (\Throwable $exception) {
+            if ($copiedResumePath) Storage::delete($copiedResumePath);
+            report($exception);
+            return back()->with('error', $exception->getMessage());
+        }
+
+        return back()->with('success', 'Candidate moved to '.$job->title.' and added to Job Applications.');
+    }
     public function destroy(ConsortiumRegistration $registration)
     {
         abort_if(! auth()->user()->hasRole('admin'), 403);
