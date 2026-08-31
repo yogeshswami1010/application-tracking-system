@@ -632,7 +632,7 @@
                     <div class="ja-tab" data-tab="sms">
                         <i class="fa fa-comments-o" style="font-size:11px"></i> SMS Conversation
                     </div>
-                    @if($previousApps->isNotEmpty() || $application->statusHistories->isNotEmpty())
+                    @if($previousApps->isNotEmpty() || $application->statusHistories->isNotEmpty() || $application->resumeHistories->isNotEmpty())
                         <div class="ja-tab" data-tab="history">
                             <i class="fa fa-history"></i> History
                         </div>
@@ -646,8 +646,9 @@
                         <i class="fa fa-file-text-o"></i> Job Description
                     </button>
                     @if($resumeUrl)
-                        <a href="{{ $resumeUrl }}" target="_blank" class="ja-pdf-btn"><i class="fa fa-external-link"></i> View</a>
-                        <a href="{{ $resumeUrl }}" download class="ja-pdf-btn ja-pdf-btn-primary"><i class="fa fa-download"></i> Download</a>
+                        @include('admin.job-applications.partials.resume-update-control')
+                        <a href="{{ $resumeUrl }}" target="_blank" class="ja-pdf-btn ja-current-resume-link"><i class="fa fa-external-link"></i> View</a>
+                        <a href="{{ $resumeUrl }}" download class="ja-pdf-btn ja-pdf-btn-primary ja-current-resume-link"><i class="fa fa-download"></i> Download</a>
                     @endif
                 </div>
             </div>
@@ -690,8 +691,9 @@
 
             <div class="ja-right-scroll">
                 @include('admin.job-applications.partials.sms-conversation-tab')
-                @if($previousApps->isNotEmpty() || $application->statusHistories->isNotEmpty())
+                @if($previousApps->isNotEmpty() || $application->statusHistories->isNotEmpty() || $application->resumeHistories->isNotEmpty())
                 <div id="ja-tab-history" class="ja-tab-pane" style="display:none">
+                @include('admin.job-applications.partials.resume-history', ['resumeHistories' => $application->resumeHistories])
 
                 @if($application->statusHistories->isNotEmpty())
                 <div class="ja-card" style="margin-bottom:10px">

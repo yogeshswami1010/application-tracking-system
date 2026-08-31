@@ -206,6 +206,7 @@ class AdminApplicationArchiveController extends AdminBaseController
             'statusHistories.fromStatus',
             'statusHistories.toStatus',
             'statusHistories.user',
+            'resumeHistories.updatedBy:id,name',
             'smsMessages.user:id,name',
         ])->withTrashed()->find($id);
 

@@ -1,3 +1,4 @@
+@include('admin.job-applications.partials.resume-history', ['resumeHistories' => $resumeHistories])
 @if($statusHistories->isNotEmpty())
 <div class="ja-card" style="margin-bottom:10px">
     <div class="ja-card-title"><i class="fa fa-exchange"></i> Stage Activity</div>

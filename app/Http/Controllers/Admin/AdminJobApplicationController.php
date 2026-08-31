@@ -23,6 +23,7 @@ use App\Notifications\CandidateStatusChange;
 use App\Notifications\ScheduleInterview;
 use App\Question;
 use App\Services\ResumeTextExtractor;
+use App\Services\ResumePdfConverter;
 use App\Services\TelnyxSmsService;
 use App\Skill;
 use App\Support\RaDataTableHtml;
@@ -914,6 +915,7 @@ class AdminJobApplicationController extends AdminBaseController
             $jobApplication->documents()->create([
                 'name' => 'Resume',
                 'hashname' => $hashname,
+                'original_name' => $request->resume->getClientOriginalName(),
             ]);
         }
 
@@ -1106,12 +1108,15 @@ class AdminJobApplicationController extends AdminBaseController
         }
 
         if ($request->hasFile('resume')) {
+            $hashname = Files::uploadLocalOrS3($request->resume, 'documents/'.$jobApplication->id, null, null, false);
 
             if ($jobApplication->resumeDocument) {
-                Files::deleteFile($jobApplication->resumeDocument->hashname, 'documents/'.$jobApplication->id);
+                $jobApplication->resumeHistories()->create([
+                    'updated_by' => $this->user->id,
+                    'hashname' => $jobApplication->resumeDocument->hashname,
+                    'original_name' => $jobApplication->resumeDocument->original_name ?: $jobApplication->resumeDocument->hashname,
+                ]);
             }
-
-            $hashname = Files::uploadLocalOrS3($request->resume, 'documents/'.$jobApplication->id, null, null, false);
             $jobApplication->documents()->updateOrCreate(
                 [
                     'documentable_type' => JobApplication::class,
@@ -1120,6 +1125,7 @@ class AdminJobApplicationController extends AdminBaseController
                 ],
                 [
                     'hashname' => $hashname,
+                    'original_name' => $request->resume->getClientOriginalName(),
                 ]
             );
         }
@@ -1304,6 +1310,7 @@ class AdminJobApplicationController extends AdminBaseController
         }
         if ($tab === 'history') {
             $statusHistories = $application->statusHistories()->latest()->limit(30)->with(['fromStatus', 'toStatus', 'user'])->get();
+            $resumeHistories = $application->resumeHistories()->with('updatedBy:id,name')->get();
             $previousApps = JobApplication::withTrashed()
                 ->whereNull('moved_to_trash_at')
                 ->where('email', $application->email)
@@ -1319,11 +1326,76 @@ class AdminJobApplicationController extends AdminBaseController
                 ])
                 ->latest()
                 ->get();
-            return Reply::dataOnly(['status' => 'success', 'view' => view('admin.job-applications.partials.profile-history', compact('statusHistories', 'previousApps'))->render()]);
+            return Reply::dataOnly(['status' => 'success', 'view' => view('admin.job-applications.partials.profile-history', compact('statusHistories', 'resumeHistories', 'previousApps'))->render()]);
         }
         return Reply::error('Tab not found.');
     }
 
+    public function updateResume(Request $request, $id, ResumePdfConverter $converter, ResumeTextExtractor $extractor)
+    {
+        abort_if(! $this->user->cans('edit_job_applications'), 403);
+
+        $request->validate([
+            'resume' => 'required|file|max:15360|mimes:pdf,doc,docx,rtf,txt,jpg,jpeg,png',
+        ]);
+
+        $application = JobApplication::withTrashed()->with('resumeDocument')->findOrFail($id);
+        $uploaded = $request->file('resume');
+        $originalName = $uploaded->getClientOriginalName();
+        $converted = $converter->convert($uploaded);
+        $newHashname = null;
+
+        try {
+            $newHashname = Files::uploadLocalOrS3($converted, 'documents/'.$application->id, null, null, false);
+            $resumeText = '';
+            try {
+                $resumeText = $extractor->extract($converted);
+            } catch (\Throwable $ignored) {
+                // The replacement remains valid when text extraction is unavailable.
+            }
+
+            DB::transaction(function () use ($application, $newHashname, $originalName, $resumeText) {
+                $current = $application->resumeDocument;
+                if ($current) {
+                    $application->resumeHistories()->create([
+                        'updated_by' => $this->user->id,
+                        'hashname' => $current->hashname,
+                        'original_name' => $current->original_name ?: $current->hashname,
+                    ]);
+                    $current->update(['hashname' => $newHashname, 'original_name' => $originalName]);
+                } else {
+                    $application->documents()->create([
+                        'name' => 'Resume',
+                        'hashname' => $newHashname,
+                        'original_name' => $originalName,
+                    ]);
+                }
+
+                if ($resumeText !== '') {
+                    $application->forceFill([
+                        'cv_text' => mb_substr($resumeText, 0, 65000),
+                        'cv_indexed_at' => now(),
+                        'cv_index_failed' => 0,
+                    ])->save();
+                }
+            });
+        } catch (\Throwable $exception) {
+            if ($newHashname) Files::deleteFile($newHashname, 'documents/'.$application->id);
+            throw $exception;
+        } finally {
+            $converter->cleanup($converted);
+        }
+
+        $application = $application->fresh(['documents']);
+        $resumeHistories = $application->resumeHistories()->with('updatedBy:id,name')->get();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Resume updated. The previous resume is available in History.',
+            'resume_url' => $application->resume_url,
+            'history_html' => view('admin.job-applications.partials.resume-history', compact('resumeHistories'))->render(),
+        ]);
+    }
     public function profileSkillSearch(Request $request)
     {
         abort_if(! $this->user->cans('view_job_applications'), 403);

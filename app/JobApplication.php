@@ -41,6 +41,11 @@ class JobApplication extends Model
         return $this->morphOne(Document::class, 'documentable')->where('name', 'Resume');
     }
 
+    public function resumeHistories()
+    {
+        return $this->hasMany(JobApplicationResumeHistory::class)->latest();
+    }
+
     public function job()
     {
         return $this->belongsTo(Job::class, 'job_id');
