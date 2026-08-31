@@ -9,7 +9,9 @@
 @endif
 
 @if(auth()->user()->hasRole('admin'))
-@php($movedJobIds = $jobMoves->pluck('job_id')->map(fn ($id) => (int) $id))
+@php
+    $movedJobIds = $jobMoves->pluck('job_id')->map(fn ($id) => (int) $id);
+@endphp
 <div class="rounded-2xl border border-[#DDE6F5] bg-gradient-to-br from-white to-blue-50/50 p-5 shadow-sm">
     <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
@@ -27,7 +29,7 @@
                         $locations = $locations ?: ($job->location?->location ?: 'Location not set');
                         $alreadyMoved = $movedJobIds->contains((int) $job->id);
                     @endphp
-                    <option value="{{ $job->id }}" @selected((int) old('job_id') === (int) $job->id) @disabled($alreadyMoved)>
+                    <option value="{{ $job->id }}" {{ (int) old('job_id') === (int) $job->id ? 'selected' : '' }} {{ $alreadyMoved ? 'disabled' : '' }}>
                         {{ $job->title }} — {{ $job->company?->company_name ?? 'No company' }} — {{ $locations }}{{ $alreadyMoved ? ' (Already moved)' : '' }}
                     </option>
                 @endforeach
