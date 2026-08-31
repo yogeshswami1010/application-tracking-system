@@ -341,13 +341,9 @@ function jaSaveMarketingLabel(appId) {
                 <div class="ja-tab" data-tab="client-notes">
                     <i class="fa fa-building" style="font-size:11px"></i> Client Notes
                 </div>
-                
-              
-               
             </div>
 
             <div class="ja-right-scroll">
-
                 {{-- ── HISTORY TAB ── --}}
                 <div id="ja-tab-history" class="ja-tab-pane" style="display:none" data-url="{{ route('admin.job-applications.profile-tab', [$application->id, 'history']) }}">
                     <div class="ja-tab-loading">Open the History tab to load activity.</div>

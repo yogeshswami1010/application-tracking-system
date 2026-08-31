@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\ApplicantNote;
 use App\JobApplication;
 use App\JobClientNote;
+use App\ConsortiumRegistration;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Storage;
@@ -15,6 +16,7 @@ class TrashController extends AdminBaseController
         'application' => JobApplication::class,
         'application-note' => ApplicantNote::class,
         'client-note' => JobClientNote::class,
+        'consortium-registration' => ConsortiumRegistration::class,
     ];
 
     public function index(Request $request)
@@ -73,6 +75,20 @@ class TrashController extends AdminBaseController
             }));
         }
 
+        if ($selectedType === 'all' || $selectedType === 'consortium-registration') {
+            $items = $items->concat(ConsortiumRegistration::onlyTrashed()->get()->map(function ($registration) {
+                return (object) [
+                    'id' => $registration->id,
+                    'type' => 'consortium-registration',
+                    'type_label' => 'Consortium registration',
+                    'title' => trim($registration->first_name.' '.$registration->last_name),
+                    'details' => $registration->email.' · '.$registration->phone,
+                    'context' => $registration->city ?: 'City not provided',
+                    'deleted_at' => $registration->deleted_at,
+                ];
+            }));
+        }
+
         if ($search = trim((string) $request->input('search'))) {
             $needle = mb_strtolower($search);
             $items = $items->filter(function ($item) use ($needle) {
@@ -113,6 +129,9 @@ class TrashController extends AdminBaseController
 
         if ($type === 'application' && $item->photo) {
             Storage::delete('candidate-photos/'.$item->photo);
+        }
+        if ($type === 'consortium-registration' && $item->resume_file) {
+            Storage::delete('registration-resumes/'.$item->resume_file);
         }
 
         $item->forceDelete();

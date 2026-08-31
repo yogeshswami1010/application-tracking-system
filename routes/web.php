@@ -345,6 +345,7 @@ Route::middleware('auth')->group(function () {
 
             // Team & Company
             Route::get('consortium-registrations', [AdminConsortiumRegistrationController::class, 'index'])->name('consortium-registrations.index');
+            Route::delete('consortium-registrations/{registration}', [AdminConsortiumRegistrationController::class, 'destroy'])->name('consortium-registrations.destroy');
             Route::get('consortium-registrations/{registration}', [AdminConsortiumRegistrationController::class, 'show'])->name('consortium-registrations.show');
             Route::get('consortium-registrations/{registration}/resume', [AdminConsortiumRegistrationController::class, 'resume'])->name('consortium-registrations.resume');
             Route::get('internal-messages', [AdminInternalMessageController::class, 'index'])->name('internal-messages.index');

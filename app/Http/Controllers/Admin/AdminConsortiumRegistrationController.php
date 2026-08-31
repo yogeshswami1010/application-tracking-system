@@ -62,4 +62,13 @@ class AdminConsortiumRegistrationController extends AdminBaseController
         abort_unless($registration->resume_file, 404);
         return Storage::download('registration-resumes/'.$registration->resume_file, $registration->resume_original_name ?: $registration->resume_file);
     }
+
+    public function destroy(ConsortiumRegistration $registration)
+    {
+        abort_if(! auth()->user()->hasRole('admin'), 403);
+        $registration->delete();
+
+        return redirect()->route('admin.consortium-registrations.index')
+            ->with('success', 'Registration moved to Trash.');
+    }
 }
