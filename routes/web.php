@@ -346,6 +346,8 @@ Route::middleware('auth')->group(function () {
             Route::resource('interview-schedule', InterviewScheduleController::class);
 
             // Team & Company
+            Route::get('temp-staffing', [AdminConsortiumRegistrationController::class, 'tempStaffingIndex'])->name('temp-staffing.index');
+            Route::post('consortium-registrations/{registration}/temp-staffing', [AdminConsortiumRegistrationController::class, 'toggleTempStaffing'])->name('consortium-registrations.temp-staffing');
             Route::get('consortium-registrations', [AdminConsortiumRegistrationController::class, 'index'])->name('consortium-registrations.index');
             Route::delete('consortium-registrations/{registration}', [AdminConsortiumRegistrationController::class, 'destroy'])->name('consortium-registrations.destroy');
             Route::post('consortium-registrations/{registration}/move-to-job', [AdminConsortiumRegistrationController::class, 'moveToJob'])->name('consortium-registrations.move-to-job');

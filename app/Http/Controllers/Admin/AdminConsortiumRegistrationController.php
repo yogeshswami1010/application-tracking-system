@@ -191,6 +191,41 @@ class AdminConsortiumRegistrationController extends AdminBaseController
 
         return back()->with('success', 'Candidate moved to '.$job->title.' and added to Job Applications.');
     }
+    public function tempStaffingIndex(Request $request)
+    {
+        $search = trim((string) $request->input('search', ''));
+        $this->pageTitle = 'Temp Staffing';
+        $this->registrations = ConsortiumRegistration::query()
+            ->where('is_temp_staffing', true)
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($inner) use ($search) {
+                    $inner->where('first_name', 'like', '%'.$search.'%')
+                        ->orWhere('last_name', 'like', '%'.$search.'%')
+                        ->orWhere('email', 'like', '%'.$search.'%')
+                        ->orWhere('phone', 'like', '%'.$search.'%')
+                        ->orWhere('city', 'like', '%'.$search.'%');
+                });
+            })
+            ->latest('temp_staffing_at')
+            ->paginate(25)
+            ->withQueryString();
+
+        return view('admin.temp-staffing.index', $this->data);
+    }
+
+    public function toggleTempStaffing(Request $request, ConsortiumRegistration $registration)
+    {
+        $add = $request->boolean('add');
+        $registration->forceFill([
+            'is_temp_staffing' => $add,
+            'temp_staffing_at' => $add ? now() : null,
+            'temp_staffing_by' => $add ? $this->user->id : null,
+        ])->save();
+
+        return back()->with('success', $add
+            ? 'Candidate added to Temp Staffing.'
+            : 'Candidate removed from Temp Staffing.');
+    }
     public function destroy(ConsortiumRegistration $registration)
     {
         abort_if(! auth()->user()->hasRole('admin'), 403);

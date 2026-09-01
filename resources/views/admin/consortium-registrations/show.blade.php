@@ -48,7 +48,28 @@ body.consortium-profile-fullscreen #consortium-job-application-profile > .ja-two
 <div id="consortium-job-application-profile" style="min-height:650px;display:flex;align-items:center;justify-content:center;color:#8892A0;font-size:13px;">
     <span><i class="fa fa-spinner fa-spin"></i> Loading complete candidate profile...</span>
 </div>
-<div id="consortium-personal-information" style="display:none">
+<form id="consortium-temp-staffing-toolbar" method="POST" action="{{ route('admin.consortium-registrations.temp-staffing', $registration) }}" style="display:none">
+    @csrf
+    <input type="hidden" name="add" value="{{ $registration->is_temp_staffing ? 0 : 1 }}">
+    <button type="submit" class="ja-pdf-btn" style="{{ $registration->is_temp_staffing ? 'background:#FEF2F2;color:#DC2626;border-color:#FECACA;' : 'background:#EFF6FF;color:#2563EB;border-color:#BFDBFE;' }}">
+        <i class="fa {{ $registration->is_temp_staffing ? 'fa-times' : 'fa-users' }}"></i>
+        {{ $registration->is_temp_staffing ? 'Remove Temp Staffing' : 'Temp Staffing' }}
+    </button>
+</form><div id="consortium-personal-information" style="display:none">
+    <div class="ja-card">
+        <div class="ja-card-title" style="justify-content:space-between">
+            <span><i class="fa fa-users"></i> Temp Staffing</span>
+            <form method="POST" action="{{ route('admin.consortium-registrations.temp-staffing', $registration) }}">
+                @csrf
+                <input type="hidden" name="add" value="{{ $registration->is_temp_staffing ? 0 : 1 }}">
+                <button type="submit" class="ja-note-btn" style="{{ $registration->is_temp_staffing ? 'color:#DC2626;border-color:#FECACA;' : 'color:#2563EB;border-color:#BFDBFE;background:#EFF6FF;' }}">
+                    <i class="fa {{ $registration->is_temp_staffing ? 'fa-times' : 'fa-user-plus' }}"></i>
+                    {{ $registration->is_temp_staffing ? 'Remove from Temp Staffing' : 'Add to Temp Staffing' }}
+                </button>
+            </form>
+        </div>
+        <p style="margin:0;font-size:11.5px;color:#8892A0;line-height:1.5">{{ $registration->is_temp_staffing ? 'This candidate is visible on the Temp Staffing page.' : 'Add this Consortium candidate to the Temp Staffing list.' }}</p>
+    </div>
     <div class="ja-card">
         <div class="ja-card-title"><i class="fa fa-address-card-o"></i> Consortium Registration Information</div>
         @foreach($infoRows as $row)
@@ -152,7 +173,9 @@ body.consortium-profile-fullscreen #consortium-job-application-profile > .ja-two
         $host.css({display:'block', minHeight:0}).html(response.view);
         var $details = $host.find('#ja-tab-details');
         if ($details.length) $details.append($('#consortium-personal-information').html());
-        var backUrl = @json(route('admin.consortium-registrations.index', request()->query()));
+        var $toolbar = $host.find('.ja-pdf-toolbar-actions').first();
+        if ($toolbar.length) $('#consortium-temp-staffing-toolbar').css('display', 'flex').prependTo($toolbar);
+        var backUrl = @json(request('from') === 'temp-staffing' ? route('admin.temp-staffing.index', request()->except('from')) : route('admin.consortium-registrations.index', request()->query()));
         $host.find('.right-side-toggle').removeClass('right-side-toggle').off('click').on('click', function () { window.location.href = backUrl; });
     }).fail(function () {
         $('#consortium-job-application-profile').html('<div>Candidate profile could not be loaded. Please refresh and try again.</div>');

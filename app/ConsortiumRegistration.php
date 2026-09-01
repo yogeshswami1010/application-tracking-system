@@ -20,6 +20,8 @@ class ConsortiumRegistration extends Model
         'agreement_accepted' => 'boolean',
         'sms_consent' => 'boolean',
         'reviewed_at' => 'datetime',
+        'is_temp_staffing' => 'boolean',
+        'temp_staffing_at' => 'datetime',
     ];
 
     public function jobMoves()
