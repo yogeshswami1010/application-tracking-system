@@ -11,6 +11,7 @@
     $resumeName = $registration->resume_original_name ?: $registration->resume_file;
     $resumeExtension = strtolower(pathinfo((string) $resumeName, PATHINFO_EXTENSION));
     $canPreviewResume = in_array($resumeExtension, ['pdf', 'jpg', 'jpeg', 'png'], true);
+    $assignedApplicationId = $jobMoves->first()?->job_application_id;
     $infoRows = [
         ['Name', $fullName, 'fa-id-card-o'],
         ['Email', $registration->email, 'fa-envelope-o', 'mailto:'.$registration->email],
@@ -38,6 +39,23 @@
 @endphp
 
 @section('content')
+@if($assignedApplicationId)
+<div id="consortium-job-application-profile" style="min-height:650px;display:flex;align-items:center;justify-content:center;color:#8892A0;font-size:13px;">
+    <span><i class="fa fa-spinner fa-spin"></i> Loading complete candidate profile...</span>
+</div>
+<div id="consortium-personal-information" style="display:none">
+    <div class="ja-card">
+        <div class="ja-card-title"><i class="fa fa-address-card-o"></i> Consortium Registration Information</div>
+        @foreach($infoRows as $row)
+            <div class="ja-info-row">
+                <span class="ja-info-label"><i class="fa {{ $row[2] }}"></i>{{ $row[0] }}</span>
+                <span class="ja-info-val">@if(!empty($row[3]) && $row[1])<a href="{{ $row[3] }}">{{ $row[1] }}</a>@else{{ filled($row[1]) ? $row[1] : '—' }}@endif</span>
+            </div>
+        @endforeach
+        <div class="ja-info-row"><span class="ja-info-label"><i class="fa fa-align-left"></i>Additional Information</span><span class="ja-info-val" style="white-space:pre-wrap">{{ $registration->additional_information ?: '—' }}</span></div>
+    </div>
+</div>
+@else
 <style>
 .cr-profile{height:calc(100vh - 132px);min-height:640px;display:flex;flex-direction:column;overflow:hidden;border:1px solid #E8E6E1;border-radius:18px;background:#F8F7F4;box-shadow:0 8px 28px rgba(15,31,61,.08);font-family:'Plus Jakarta Sans',sans-serif}
 .cr-header{display:flex;align-items:center;gap:12px;padding:13px 18px;background:#0F1F3D;flex-shrink:0}
@@ -113,4 +131,28 @@
         </aside>
     </div>
 </div>
+@endif
+@if($assignedApplicationId)
+@push('footer-script')
+<script>
+(function () {
+    var profileUrl = @json(route('admin.job-applications.show', $assignedApplicationId));
+    $.ajax({url: profileUrl, type: 'GET', cache: false}).done(function (response) {
+        if (!response || response.status !== 'success' || !response.view) {
+            $('#consortium-job-application-profile').html('<div>Candidate profile could not be loaded.</div>');
+            return;
+        }
+        var $host = $('#consortium-job-application-profile');
+        $host.css({display:'block', minHeight:0}).html(response.view);
+        var $details = $host.find('#ja-tab-details');
+        if ($details.length) $details.append($('#consortium-personal-information').html());
+        var backUrl = @json(route('admin.consortium-registrations.index', request()->query()));
+        $host.find('.right-side-toggle').removeClass('right-side-toggle').off('click').on('click', function () { window.location.href = backUrl; });
+    }).fail(function () {
+        $('#consortium-job-application-profile').html('<div>Candidate profile could not be loaded. Please refresh and try again.</div>');
+    });
+})();
+</script>
+@endpush
+@endif
 @endsection
