@@ -1,6 +1,7 @@
 @extends('layouts.app')
 @section('page-title-html') Registration <em>Profile</em> @endsection
 @section('page-subtitle') {{ $registration->first_name }} {{ $registration->last_name }} @endsection
+@section('hide-ra-page-header') true @endsection
 @section('create-button')
 <a href="{{ route('admin.consortium-registrations.index', request()->query()) }}" class="rounded-xl border border-[#DDE2EA] bg-white px-4 py-2 text-[12px] font-semibold text-[#5A6478]"><i class="fa fa-arrow-left mr-1"></i> Back to Registrations</a>
 @endsection
@@ -39,6 +40,17 @@
 @endphp
 
 @section('content')
+<style>
+body.consortium-profile-fullscreen .ra-sidebar,
+body.consortium-profile-fullscreen .ra-topbar,
+body.consortium-profile-fullscreen .ra-scroll > footer { display:none !important; }
+body.consortium-profile-fullscreen .ra-app { width:100vw !important; }
+body.consortium-profile-fullscreen .ra-main { width:100vw !important; max-width:none !important; }
+body.consortium-profile-fullscreen .ra-scroll { padding:0 !important; overflow:hidden !important; }
+body.consortium-profile-fullscreen #consortium-job-application-profile,
+body.consortium-profile-fullscreen #consortium-job-application-profile > .ja-two-col-wrap { width:100% !important; height:100vh !important; max-width:none !important; border-radius:0 !important; }
+</style>
+<script>document.body.classList.add('consortium-profile-fullscreen');</script>
 @if($assignedApplicationId)
 <div id="consortium-job-application-profile" style="min-height:650px;display:flex;align-items:center;justify-content:center;color:#8892A0;font-size:13px;">
     <span><i class="fa fa-spinner fa-spin"></i> Loading complete candidate profile...</span>
