@@ -24,6 +24,10 @@ class ConsortiumRegistration extends Model
         'temp_staffing_at' => 'datetime',
     ];
 
+    public function tempStaffingHistories()
+    {
+        return $this->hasMany(ConsortiumTempStaffingHistory::class)->latest();
+    }
     public function jobMoves()
     {
         return $this->hasMany(ConsortiumRegistrationJobMove::class)->latest();

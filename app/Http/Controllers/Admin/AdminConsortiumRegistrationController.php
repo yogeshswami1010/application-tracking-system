@@ -66,6 +66,10 @@ class AdminConsortiumRegistrationController extends AdminBaseController
             ->with(['job:id,title,company_id', 'job.company:id,company_name', 'application:id,job_id,status_id', 'movedBy:id,name'])
             ->get();
 
+        $this->tempStaffingHistories = $registration->tempStaffingHistories()
+            ->with('user:id,name')
+            ->get();
+
         $profileApplication = $this->jobMoves->first()?->application;
         if (!$profileApplication) {
             $profileApplication = JobApplication::withTrashed()
@@ -221,6 +225,11 @@ class AdminConsortiumRegistrationController extends AdminBaseController
             'temp_staffing_at' => $add ? now() : null,
             'temp_staffing_by' => $add ? $this->user->id : null,
         ])->save();
+
+        $registration->tempStaffingHistories()->create([
+            'user_id' => $this->user->id,
+            'action' => $add ? 'added' : 'removed',
+        ]);
 
         return back()->with('success', $add
             ? 'Candidate added to Temp Staffing.'

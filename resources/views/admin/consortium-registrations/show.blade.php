@@ -71,6 +71,23 @@ body.consortium-profile-fullscreen #consortium-job-application-profile > .ja-two
         <p style="margin:0;font-size:11.5px;color:#8892A0;line-height:1.5">{{ $registration->is_temp_staffing ? 'This candidate is visible on the Temp Staffing page.' : 'Add this Consortium candidate to the Temp Staffing list.' }}</p>
     </div>
     <div class="ja-card">
+        <div class="ja-card-title"><i class="fa fa-history"></i> Temp Staffing History</div>
+        @forelse($tempStaffingHistories as $history)
+            <div class="ja-info-row" style="align-items:center">
+                <span class="ja-info-label" style="width:auto">
+                    <span style="width:8px;height:8px;border-radius:50%;background:{{ $history->action === 'added' ? '#10B981' : '#EF4444' }}"></span>
+                    {{ $history->action === 'added' ? 'Added to Temp Staffing' : 'Returned to Consortium Registration' }}
+                </span>
+                <span class="ja-info-val" style="font-size:11px">
+                    {{ $history->user?->name ?? 'Unknown team member' }}<br>
+                    <span style="color:#A0A8B5;font-weight:500">{{ $history->created_at->timezone('America/Toronto')->format('d M Y, h:i A') }} ET</span>
+                </span>
+            </div>
+        @empty
+            <p style="margin:0;color:#A0A8B5;font-size:11.5px">No Temp Staffing activity yet.</p>
+        @endforelse
+    </div>
+    <div class="ja-card">
         <div class="ja-card-title"><i class="fa fa-address-card-o"></i> Consortium Registration Information</div>
         @foreach($infoRows as $row)
             <div class="ja-info-row">
