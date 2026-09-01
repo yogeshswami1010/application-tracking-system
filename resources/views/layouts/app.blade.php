@@ -733,6 +733,7 @@
     var syncUrl = @json(route('admin.ats-sync-state'));
     var presenceHeartbeatUrl = @json(route('admin.ats-presence-heartbeat'));
     var internalMessageReplyUrl = @json(route('admin.internal-messages.store'));
+    var contentAutoRefreshEnabled = @json(!request()->routeIs('admin.ai-search*'));
     var lastSignature = null;
     var pendingRefresh = false;
     var refreshRunning = false;
@@ -887,7 +888,7 @@
     }
 
     function applyRemoteChanges() {
-        if (!pendingRefresh || refreshRunning || userIsEditing()) return;
+        if (!contentAutoRefreshEnabled || !pendingRefresh || refreshRunning || userIsEditing()) return;
         refreshRunning = true;
         pendingRefresh = false;
 
@@ -907,7 +908,7 @@
     }
 
     function checkForChanges() {
-        if (document.hidden || refreshRunning) return;
+        if (!contentAutoRefreshEnabled || document.hidden || refreshRunning) return;
         $.ajax({ url: syncUrl, type: 'GET', cache: false, global: false, timeout: 5000 })
             .done(function (response) {
                 if (!response || !response.signature) return;
@@ -923,14 +924,17 @@
             });
     }
 
-    setInterval(checkForChanges, 7000);
+    if (contentAutoRefreshEnabled) setInterval(checkForChanges, 7000);
     setInterval(sendPresenceHeartbeat, 5000);
     setTimeout(sendPresenceHeartbeat, 300);
-    setInterval(applyRemoteChanges, 1500);
+    if (contentAutoRefreshEnabled) setInterval(applyRemoteChanges, 1500);
     document.addEventListener('visibilitychange', function () {
-        if (!document.hidden) { checkForChanges(); sendPresenceHeartbeat(); }
+        if (!document.hidden) {
+            if (contentAutoRefreshEnabled) checkForChanges();
+            sendPresenceHeartbeat();
+        }
     });
-    setTimeout(checkForChanges, 1200);
+    if (contentAutoRefreshEnabled) setTimeout(checkForChanges, 1200);
 })();
 </script>
 @stack('footer-script')
