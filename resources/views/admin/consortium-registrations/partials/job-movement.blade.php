@@ -12,13 +12,13 @@
     $movedJobIds = $jobMoves->pluck('job_id')->map(fn ($id) => (int) $id);
 @endphp
 <div class="rounded-2xl border border-[#DDE6F5] bg-gradient-to-br from-white to-blue-50/50 p-5 shadow-sm">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <div class="flex flex-col gap-4">
         <div>
             <p class="text-[10px] font-bold uppercase tracking-[0.12em] text-blue-600">Candidate Placement</p>
             <h3 class="mt-1 text-[16px] font-bold text-[#1A1E2E]">Move candidate to a job</h3>
 
         </div>
-        <form method="POST" action="{{ route('admin.consortium-registrations.move-to-job', array_merge(['registration' => $registration->id], request()->query())) }}" class="flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:max-w-2xl" onsubmit="return confirm('Move this candidate to the selected job?')">
+        <form method="POST" action="{{ route('admin.consortium-registrations.move-to-job', array_merge(['registration' => $registration->id], request()->query())) }}" class="flex w-full flex-col gap-2 sm:flex-row sm:items-center" onsubmit="return confirm('Move this candidate to the selected job?')">
             @csrf
             <select name="job_id" required class="h-10 min-w-0 flex-1 rounded-xl border border-[#CCD6E5] bg-white px-3 py-0 text-[12px] font-medium text-[#334155] outline-none focus:border-blue-500">
                 <option value="">Select a job role...</option>
@@ -33,7 +33,7 @@
                     </option>
                 @endforeach
             </select>
-            <button type="submit" class="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-0 text-[12px] font-bold text-white shadow-sm hover:bg-blue-700">
+            <button type="submit" class="inline-flex h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-blue-600 px-4 py-0 text-[12px] font-bold text-white shadow-sm hover:bg-blue-700">
                 <i class="fa fa-arrow-right"></i> Move to Job
             </button>
         </form>
