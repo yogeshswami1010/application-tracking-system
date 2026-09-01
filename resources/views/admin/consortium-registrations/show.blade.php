@@ -55,7 +55,24 @@ body.consortium-profile-fullscreen #consortium-job-application-profile > .ja-two
         <i class="fa {{ $registration->is_temp_staffing ? 'fa-times' : 'fa-users' }}"></i>
         {{ $registration->is_temp_staffing ? 'Remove Temp Staffing' : 'Temp Staffing' }}
     </button>
-</form><div id="consortium-personal-information" style="display:none">
+</form>
+<div id="consortium-temp-staffing-history" style="display:none">
+    <div class="ja-card" data-consortium-temp-history-card>
+        <div class="ja-card-title"><i class="fa fa-history"></i> Temp Staffing History</div>
+        @forelse($tempStaffingHistories as $history)
+            <div class="ja-info-row" style="align-items:center">
+                <span class="ja-info-label" style="width:auto">
+                    <span style="width:8px;height:8px;border-radius:50%;background:{{ $history->action === 'added' ? '#10B981' : '#EF4444' }}"></span>
+                    {{ $history->action === 'added' ? 'Added to Temp Staffing' : 'Returned to Consortium Registration' }}
+                </span>
+                <span class="ja-info-val" style="font-size:11px">{{ $history->user?->name ?? 'Unknown team member' }}<br><span style="color:#A0A8B5;font-weight:500">{{ $history->created_at->timezone('America/Toronto')->format('d M Y, h:i A') }} ET</span></span>
+            </div>
+        @empty
+            <p style="margin:0;color:#A0A8B5;font-size:11.5px">No Temp Staffing activity yet.</p>
+        @endforelse
+    </div>
+</div>
+<div id="consortium-personal-information" style="display:none">
     <div class="ja-card">
         <div class="ja-card-title" style="justify-content:space-between">
             <span><i class="fa fa-users"></i> Temp Staffing</span>
@@ -192,6 +209,20 @@ body.consortium-profile-fullscreen #consortium-job-application-profile > .ja-two
         if ($details.length) $details.append($('#consortium-personal-information').html());
         var $toolbar = $host.find('.ja-pdf-toolbar-actions').first();
         if ($toolbar.length) $('#consortium-temp-staffing-toolbar').css('display', 'flex').prependTo($toolbar);
+        var appendTempStaffingHistory = function () {
+            var $historyPane = $host.find('#ja-tab-history');
+            if (!$historyPane.length || $historyPane.find('[data-consortium-temp-history-card]').length) return;
+            var historyHtml = $('#consortium-temp-staffing-history').html();
+            if (historyHtml) $historyPane.append(historyHtml);
+        };
+        var historyPane = $host.find('#ja-tab-history').get(0);
+        if (historyPane && window.MutationObserver) {
+            new MutationObserver(function () { appendTempStaffingHistory(); }).observe(historyPane, {childList:true, subtree:true});
+        }
+        $host.on('click', '.ja-tab[data-tab="history"]', function () {
+            window.setTimeout(appendTempStaffingHistory, 150);
+            window.setTimeout(appendTempStaffingHistory, 700);
+        });
         var backUrl = @json(request('from') === 'temp-staffing' ? route('admin.temp-staffing.index', request()->except('from')) : route('admin.consortium-registrations.index', request()->query()));
         $host.find('.right-side-toggle').removeClass('right-side-toggle').off('click').on('click', function () { window.location.href = backUrl; });
     }).fail(function () {
