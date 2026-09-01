@@ -1,11 +1,115 @@
 @extends('layouts.app')
-@section('page-title-html') Registration <em>Details</em> @endsection
+@section('page-title-html') Registration <em>Profile</em> @endsection
 @section('page-subtitle') {{ $registration->first_name }} {{ $registration->last_name }} @endsection
-@section('create-button')<a href="{{ route('admin.consortium-registrations.index', request()->query()) }}" class="rounded-xl border border-[#DDE2EA] bg-white px-4 py-2 text-[12px] font-semibold text-[#5A6478]">Back to Registrations</a>@endsection
+@section('create-button')
+<a href="{{ route('admin.consortium-registrations.index', request()->query()) }}" class="rounded-xl border border-[#DDE2EA] bg-white px-4 py-2 text-[12px] font-semibold text-[#5A6478]"><i class="fa fa-arrow-left mr-1"></i> Back to Registrations</a>
+@endsection
+
+@php
+    $fullName = trim($registration->first_name.' '.$registration->last_name);
+    $initials = strtoupper(substr($registration->first_name, 0, 1).substr($registration->last_name, 0, 1));
+    $resumeName = $registration->resume_original_name ?: $registration->resume_file;
+    $resumeExtension = strtolower(pathinfo((string) $resumeName, PATHINFO_EXTENSION));
+    $canPreviewResume = in_array($resumeExtension, ['pdf', 'jpg', 'jpeg', 'png'], true);
+    $infoRows = [
+        ['Name', $fullName, 'fa-id-card-o'],
+        ['Email', $registration->email, 'fa-envelope-o', 'mailto:'.$registration->email],
+        ['Phone', $registration->phone, 'fa-phone', 'tel:'.$registration->phone],
+        ['Gender', $registration->gender, 'fa-venus-mars'],
+        ['Date of Birth', $registration->date_of_birth?->format('j F, Y'), 'fa-birthday-cake'],
+        ['Street Address', $registration->street_address, 'fa-map-marker'],
+        ['City', $registration->city, 'fa-building-o'],
+        ['Eligible to Work in Canada', $registration->eligible_to_work_canada ? 'Yes' : 'No', 'fa-check-circle-o'],
+        ['Status in Canada', $registration->status_in_canada, 'fa-flag-o'],
+        ['Preferred Job Type', $registration->preferred_job_type, 'fa-briefcase'],
+        ['Mode of Commute', $registration->commute_mode, 'fa-car'],
+        ['Years of Experience', !is_null($registration->years_experience) ? rtrim(rtrim(number_format((float) $registration->years_experience, 1), '0'), '.').' years' : null, 'fa-line-chart'],
+        ['Original Experience Response', $registration->legacy_experience_text, 'fa-history'],
+        ['Industry / Expertise', $registration->industry_expertise, 'fa-cogs'],
+        ['Available Weekends', is_null($registration->available_weekends) ? null : ($registration->available_weekends ? 'Yes' : 'No'), 'fa-calendar-check-o'],
+        ['Available Night Shifts', is_null($registration->available_night_shifts) ? null : ($registration->available_night_shifts ? 'Yes' : 'No'), 'fa-moon-o'],
+        ['Referral Source', $registration->referral_source, 'fa-share-alt'],
+        ['Information Certified', $registration->information_certified ? 'Yes' : 'No', 'fa-certificate'],
+        ['Applicant Agreement Accepted', $registration->agreement_accepted ? 'Yes' : 'No', 'fa-file-text-o'],
+        ['SMS Consent', $registration->sms_consent ? 'Yes' : 'No', 'fa-commenting-o'],
+        ['Submitted', $registration->created_at->timezone($global->timezone)->format('j M Y, g:i A'), 'fa-clock-o'],
+        ['Reviewed', $registration->reviewed_at?->timezone($global->timezone)->format('j M Y, g:i A'), 'fa-eye'],
+    ];
+@endphp
+
 @section('content')
-@php $rows=['Email'=>$registration->email,'Phone'=>$registration->phone,'Gender'=>$registration->gender,'Date of Birth'=>$registration->date_of_birth?->format('M j, Y'),'Street Address'=>$registration->street_address,'City'=>$registration->city,'Eligible to Work in Canada'=>$registration->eligible_to_work_canada?'Yes':'No','Status in Canada'=>$registration->status_in_canada,'Preferred Job Type'=>$registration->preferred_job_type,'Mode of Commute'=>$registration->commute_mode,'Years of Experience'=>$registration->years_experience,'Original Experience Response'=>$registration->legacy_experience_text,'Industry / Expertise'=>$registration->industry_expertise,'Available Weekends'=>$registration->available_weekends?'Yes':'No','Available Night Shifts'=>$registration->available_night_shifts?'Yes':'No','Referral Source'=>$registration->referral_source,'SMS Consent'=>$registration->sms_consent?'Yes':'No']; @endphp
-<div class="mx-auto max-w-5xl space-y-4"><div class="rounded-2xl border border-[#E8E6E1] bg-white p-6 shadow-sm"><div class="flex items-center gap-4"><span class="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-lg font-bold text-blue-600">{{ strtoupper(substr($registration->first_name,0,1).substr($registration->last_name,0,1)) }}</span><div><h2 class="text-xl font-bold text-[#1A1E2E]">{{ $registration->first_name }} {{ $registration->last_name }}</h2><p class="text-xs text-[#8892A0]">Submitted {{ $registration->created_at->timezone($global->timezone)->format('M j, Y g:i A') }}</p></div><div class="ml-auto flex items-center gap-2">@if($registration->resume_file)<a href="{{ route('admin.consortium-registrations.resume',$registration) }}" class="rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white">Download Resume</a>@endif @if(auth()->user()->hasRole('admin'))<form method="POST" action="{{ route('admin.consortium-registrations.destroy',$registration) }}" onsubmit="return confirm('Move this registration to Trash?')">@csrf @method('DELETE')<button type="submit" class="rounded-xl border border-red-200 bg-white px-4 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50"><i class="fa fa-trash-o"></i> Delete</button></form>@endif</div></div></div>
-@include('admin.consortium-registrations.partials.job-movement')
-<div class="grid grid-cols-1 gap-4 md:grid-cols-2">@foreach($rows as $label=>$value)<div class="rounded-xl border border-[#E8E6E1] bg-white px-4 py-3"><p class="text-[10px] font-bold uppercase tracking-wider text-[#9AA4B2]">{{ $label }}</p><p class="mt-1 text-[13px] font-medium text-[#334155]">{{ $value ?: '—' }}</p></div>@endforeach</div>
-<div class="rounded-2xl border border-[#E8E6E1] bg-white p-5"><p class="text-[10px] font-bold uppercase tracking-wider text-[#9AA4B2]">Additional Information</p><p class="mt-2 whitespace-pre-wrap text-[13px] leading-6 text-[#334155]">{{ $registration->additional_information ?: 'No additional information provided.' }}</p></div></div>
+<style>
+.cr-profile{height:calc(100vh - 132px);min-height:640px;display:flex;flex-direction:column;overflow:hidden;border:1px solid #E8E6E1;border-radius:18px;background:#F8F7F4;box-shadow:0 8px 28px rgba(15,31,61,.08);font-family:'Plus Jakarta Sans',sans-serif}
+.cr-header{display:flex;align-items:center;gap:12px;padding:13px 18px;background:#0F1F3D;flex-shrink:0}
+.cr-avatar{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.13);border:1.5px solid rgba(255,255,255,.25);font-size:13px;font-weight:800;color:#fff}
+.cr-header-meta{flex:1;min-width:0}.cr-header-meta h2{margin:0;color:#fff;font-size:16px;font-weight:700}.cr-header-meta p{margin:3px 0 0;color:rgba(255,255,255,.52);font-size:11.5px}
+.cr-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;background:#2563EB;color:#fff;font-size:11px;font-weight:700}.cr-pill.reviewed{background:#059669}
+.cr-delete{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;border:1px solid rgba(248,113,113,.35);background:rgba(239,68,68,.12);color:#FCA5A5;cursor:pointer}
+.cr-body{flex:1;display:grid;grid-template-columns:minmax(0,1fr) 420px;min-height:0;overflow:hidden}
+.cr-resume{display:flex;flex-direction:column;min-width:0;border-right:1px solid #E8E6E1;background:#525659}
+.cr-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 14px;background:#fff;border-bottom:1px solid #E8E6E1}.cr-toolbar-title{font-size:12px;font-weight:700;color:#5A6478;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cr-actions{display:flex;gap:6px}.cr-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 11px;border-radius:8px;border:1px solid #E2DED8;background:#fff;color:#5A6478;font-size:12px;font-weight:600}.cr-btn.primary{background:#2563EB;border-color:#2563EB;color:#fff}
+.cr-frame{width:100%;height:100%;border:0;background:#525659}.cr-no-resume{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#D1D5DB;text-align:center;padding:35px}.cr-no-resume i{font-size:52px;opacity:.45;margin-bottom:14px}.cr-no-resume h3{font-size:15px;margin:0 0 5px}.cr-no-resume p{font-size:12px;opacity:.7;margin:0}
+.cr-side{display:flex;flex-direction:column;min-width:0;overflow:hidden;background:#F8F7F4}.cr-tabs{padding:13px 18px;background:#fff;border-bottom:2.5px solid #2563EB;color:#2563EB;font-size:12.5px;font-weight:700}.cr-scroll{flex:1;overflow-y:auto;padding:12px;scrollbar-color:#111 #E8E6E1}.cr-card{margin-bottom:11px;padding:15px 16px;border:1px solid #E8E6E1;border-radius:14px;background:#fff;box-shadow:0 1px 3px rgba(15,31,61,.04)}
+.cr-card-title{display:flex;align-items:center;gap:6px;margin-bottom:10px;color:#A0A8B5;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.cr-row{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;padding:8px 0;border-bottom:1px solid #F0EEE9}.cr-row:last-child{border-bottom:0}.cr-label{display:flex;align-items:center;gap:6px;width:145px;flex-shrink:0;color:#8A94A6;font-size:11.5px}.cr-value{text-align:right;color:#1A1E2E;font-size:12.5px;font-weight:600;overflow-wrap:anywhere}.cr-value a{color:#2563EB}.cr-long{white-space:pre-wrap;line-height:1.65;color:#3D4A5C;font-size:12.5px}
+.cr-side .rounded-2xl{border-radius:14px!important}.cr-side .p-5{padding:15px!important}
+@media(max-width:1000px){.cr-profile{height:auto;min-height:0;overflow:visible}.cr-body{display:flex;flex-direction:column;overflow:visible}.cr-resume{height:560px;border-right:0;border-bottom:1px solid #E8E6E1}.cr-side{overflow:visible}.cr-scroll{overflow:visible}.cr-header{flex-wrap:wrap}}
+</style>
+
+<div class="cr-profile">
+    <div class="cr-header">
+        <div class="cr-avatar">{{ $initials }}</div>
+        <div class="cr-header-meta">
+            <h2>{{ ucwords($fullName) }}</h2>
+            <p>{{ $registration->city ?: 'Location not provided' }} · Registered {{ $registration->created_at->timezone($global->timezone)->format('d M, Y') }}</p>
+        </div>
+        <span class="cr-pill {{ $registration->reviewed_at ? 'reviewed' : '' }}"><i class="fa {{ $registration->reviewed_at ? 'fa-check-circle' : 'fa-clock-o' }}"></i>{{ $registration->reviewed_at ? 'Reviewed' : 'New Registration' }}</span>
+        @if(auth()->user()->hasRole('admin'))
+            <form method="POST" action="{{ route('admin.consortium-registrations.destroy', $registration) }}" onsubmit="return confirm('Move this registration to Trash?')">@csrf @method('DELETE')<button class="cr-delete" type="submit" title="Move to Trash"><i class="fa fa-trash-o"></i></button></form>
+        @endif
+    </div>
+
+    <div class="cr-body">
+        <section class="cr-resume">
+            <div class="cr-toolbar">
+                <div class="cr-toolbar-title"><i class="fa fa-file-text-o"></i> {{ $resumeName ?: 'Candidate Resume' }}</div>
+                @if($registration->resume_file)
+                    <div class="cr-actions">
+                        <a class="cr-btn" href="{{ route('admin.consortium-registrations.resume', ['registration' => $registration->id, 'inline' => 1]) }}" target="_blank"><i class="fa fa-external-link"></i> View</a>
+                        <a class="cr-btn primary" href="{{ route('admin.consortium-registrations.resume', $registration) }}"><i class="fa fa-download"></i> Download</a>
+                    </div>
+                @endif
+            </div>
+            @if($registration->resume_file && $canPreviewResume)
+                <div style="flex:1;min-height:0"><iframe class="cr-frame" src="{{ route('admin.consortium-registrations.resume', ['registration' => $registration->id, 'inline' => 1]) }}" title="{{ $fullName }} resume"></iframe></div>
+            @elseif($registration->resume_file)
+                <div class="cr-no-resume"><i class="fa fa-file-word-o"></i><h3>Resume is available</h3><p>This file type opens in a separate viewer. Use View or Download above.</p></div>
+            @else
+                <div class="cr-no-resume"><i class="fa fa-file-o"></i><h3>No resume uploaded</h3><p>This registration does not currently have a CV.</p></div>
+            @endif
+        </section>
+
+        <aside class="cr-side">
+            <div class="cr-tabs"><i class="fa fa-user"></i> Personal Information</div>
+            <div class="cr-scroll">
+                <div class="cr-card">
+                    <div class="cr-card-title"><i class="fa fa-user-circle-o"></i> Personal Information</div>
+                    @foreach($infoRows as $row)
+                        <div class="cr-row">
+                            <span class="cr-label"><i class="fa {{ $row[2] }}"></i>{{ $row[0] }}</span>
+                            <span class="cr-value">
+                                @if(!empty($row[3]) && $row[1])<a href="{{ $row[3] }}">{{ $row[1] }}</a>@else{{ filled($row[1]) ? $row[1] : '—' }}@endif
+                            </span>
+                        </div>
+                    @endforeach
+                </div>
+                <div class="cr-card">
+                    <div class="cr-card-title"><i class="fa fa-align-left"></i> Additional Information</div>
+                    <div class="cr-long">{{ $registration->additional_information ?: 'No additional information provided.' }}</div>
+                </div>
+                @include('admin.consortium-registrations.partials.job-movement')
+            </div>
+        </aside>
+    </div>
+</div>
 @endsection

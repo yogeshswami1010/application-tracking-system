@@ -69,10 +69,19 @@ class AdminConsortiumRegistrationController extends AdminBaseController
         return view('admin.consortium-registrations.show', $this->data);
     }
 
-    public function resume(ConsortiumRegistration $registration)
+    public function resume(Request $request, ConsortiumRegistration $registration)
     {
         abort_unless($registration->resume_file, 404);
-        return Storage::download('registration-resumes/'.$registration->resume_file, $registration->resume_original_name ?: $registration->resume_file);
+        $path = 'registration-resumes/'.$registration->resume_file;
+        $name = $registration->resume_original_name ?: $registration->resume_file;
+
+        if ($request->boolean('inline')) {
+            return Storage::response($path, $name, [
+                'Content-Disposition' => 'inline; filename="'.str_replace('"', '', $name).'"',
+            ]);
+        }
+
+        return Storage::download($path, $name);
     }
 
     public function moveToJob(Request $request, ConsortiumRegistration $registration)
