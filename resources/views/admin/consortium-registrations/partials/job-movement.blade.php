@@ -39,7 +39,6 @@
         </form>
     </div>
 </div>
-@endif
 
 <div class="rounded-2xl border border-[#E8E6E1] bg-white p-5 shadow-sm">
     <div class="mb-4 flex items-center justify-between">
