@@ -63,7 +63,7 @@ class ConsortiumRegistrationController extends Controller
             'available_night_shifts' => ['required', 'boolean'],
             'referral_source' => ['nullable', 'string', 'max:100'],
             'additional_information' => ['nullable', 'string', 'max:5000'],
-            'resume' => ['nullable', 'file', 'mimes:pdf,doc,docx,rtf', 'max:10240'],
+            'resume' => ['required', 'file', 'mimes:pdf,doc,docx,rtf', 'max:10240'],
             'information_certified' => ['accepted'],
             'agreement_accepted' => ['accepted'],
             'sms_consent' => ['nullable', 'accepted'],
