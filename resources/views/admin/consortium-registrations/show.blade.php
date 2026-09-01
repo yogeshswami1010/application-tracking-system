@@ -92,6 +92,7 @@
         <aside class="cr-side">
             <div class="cr-tabs"><i class="fa fa-user"></i> Personal Information</div>
             <div class="cr-scroll">
+                @include('admin.consortium-registrations.partials.job-movement')
                 <div class="cr-card">
                     <div class="cr-card-title"><i class="fa fa-user-circle-o"></i> Personal Information</div>
                     @foreach($infoRows as $row)
@@ -107,8 +108,8 @@
                     <div class="cr-card-title"><i class="fa fa-align-left"></i> Additional Information</div>
                     <div class="cr-long">{{ $registration->additional_information ?: 'No additional information provided.' }}</div>
                 </div>
-                @include('admin.consortium-registrations.partials.job-movement')
             </div>
+
         </aside>
     </div>
 </div>
