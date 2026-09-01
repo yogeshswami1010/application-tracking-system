@@ -8,7 +8,6 @@
     <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[12px] font-semibold text-red-700">{{ $errors->first() }}</div>
 @endif
 
-@if(auth()->user()->hasRole('admin'))
 @php
     $movedJobIds = $jobMoves->pluck('job_id')->map(fn ($id) => (int) $id);
 @endphp

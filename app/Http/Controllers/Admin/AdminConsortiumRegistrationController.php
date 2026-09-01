@@ -77,8 +77,6 @@ class AdminConsortiumRegistrationController extends AdminBaseController
 
     public function moveToJob(Request $request, ConsortiumRegistration $registration)
     {
-        abort_if(! auth()->user()->hasRole('admin'), 403);
-
         $validated = $request->validate([
             'job_id' => ['required', 'integer', 'exists:jobs,id'],
         ]);
