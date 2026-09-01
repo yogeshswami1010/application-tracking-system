@@ -11,7 +11,7 @@
     $resumeName = $registration->resume_original_name ?: $registration->resume_file;
     $resumeExtension = strtolower(pathinfo((string) $resumeName, PATHINFO_EXTENSION));
     $canPreviewResume = in_array($resumeExtension, ['pdf', 'jpg', 'jpeg', 'png'], true);
-    $assignedApplicationId = $jobMoves->first()?->job_application_id;
+    $assignedApplicationId = $profileApplicationId;
     $infoRows = [
         ['Name', $fullName, 'fa-id-card-o'],
         ['Email', $registration->email, 'fa-envelope-o', 'mailto:'.$registration->email],
@@ -54,6 +54,7 @@
         @endforeach
         <div class="ja-info-row"><span class="ja-info-label"><i class="fa fa-align-left"></i>Additional Information</span><span class="ja-info-val" style="white-space:pre-wrap">{{ $registration->additional_information ?: '—' }}</span></div>
     </div>
+    @include('admin.consortium-registrations.partials.job-movement')
 </div>
 @else
 <style>

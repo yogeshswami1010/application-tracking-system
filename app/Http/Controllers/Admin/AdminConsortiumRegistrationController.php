@@ -66,6 +66,40 @@ class AdminConsortiumRegistrationController extends AdminBaseController
             ->with(['job:id,title,company_id', 'job.company:id,company_name', 'application:id,job_id,status_id', 'movedBy:id,name'])
             ->get();
 
+        $profileApplication = $this->jobMoves->first()?->application;
+        if (!$profileApplication) {
+            $profileApplication = JobApplication::withTrashed()
+                ->where('is_candidate', 1)
+                ->whereRaw('LOWER(email) = ?', [mb_strtolower(trim((string) $registration->email))])
+                ->latest('id')
+                ->first();
+        }
+        if (!$profileApplication) {
+            $profileApplication = new JobApplication;
+            $profileApplication->full_name = trim($registration->first_name.' '.$registration->last_name);
+            $profileApplication->email = $registration->email;
+            $profileApplication->phone = $registration->phone;
+            $profileApplication->address = $registration->street_address;
+            $profileApplication->city = $registration->city;
+            $profileApplication->gender = $registration->gender;
+            $profileApplication->dob = $registration->date_of_birth;
+            $profileApplication->cover_letter = $registration->additional_information ?: '';
+            $profileApplication->is_candidate = 1;
+            $profileApplication->column_priority = 0;
+            $profileApplication->save();
+        }
+        if ($registration->resume_file && !$profileApplication->documents()->where('name', 'Resume')->exists()) {
+            $source = 'registration-resumes/'.$registration->resume_file;
+            $destination = 'documents/'.$profileApplication->id.'/'.$registration->resume_file;
+            if (Storage::exists($source) && Storage::copy($source, $destination)) {
+                $profileApplication->documents()->create([
+                    'name' => 'Resume',
+                    'hashname' => $registration->resume_file,
+                    'original_name' => $registration->resume_original_name ?: $registration->resume_file,
+                ]);
+            }
+        }
+        $this->profileApplicationId = $profileApplication->id;
         return view('admin.consortium-registrations.show', $this->data);
     }
 
