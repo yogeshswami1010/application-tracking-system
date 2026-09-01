@@ -14,13 +14,6 @@
     $canPreviewResume = in_array($resumeExtension, ['pdf', 'jpg', 'jpeg', 'png'], true);
     $assignedApplicationId = $profileApplicationId;
     $infoRows = [
-        ['Name', $fullName, 'fa-id-card-o'],
-        ['Email', $registration->email, 'fa-envelope-o', 'mailto:'.$registration->email],
-        ['Phone', $registration->phone, 'fa-phone', 'tel:'.$registration->phone],
-        ['Gender', $registration->gender, 'fa-venus-mars'],
-        ['Date of Birth', $registration->date_of_birth?->format('j F, Y'), 'fa-birthday-cake'],
-        ['Street Address', $registration->street_address, 'fa-map-marker'],
-        ['City', $registration->city, 'fa-building-o'],
         ['Eligible to Work in Canada', $registration->eligible_to_work_canada ? 'Yes' : 'No', 'fa-check-circle-o'],
         ['Status in Canada', $registration->status_in_canada, 'fa-flag-o'],
         ['Preferred Job Type', $registration->preferred_job_type, 'fa-briefcase'],
