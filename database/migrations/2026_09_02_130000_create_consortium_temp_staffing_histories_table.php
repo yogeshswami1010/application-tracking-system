@@ -8,10 +8,13 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // MySQL can leave this empty table behind when a CREATE TABLE foreign key fails.
+        Schema::dropIfExists('consortium_temp_staffing_histories');
+
         Schema::create('consortium_temp_staffing_histories', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->unsignedBigInteger('consortium_registration_id');
-            $table->unsignedBigInteger('user_id')->nullable();
+            $table->unsignedInteger('user_id')->nullable();
             $table->string('action', 20);
             $table->timestamps();
             $table->foreign('consortium_registration_id', 'ctsh_registration_fk')->references('id')->on('consortium_registrations')->cascadeOnDelete();
