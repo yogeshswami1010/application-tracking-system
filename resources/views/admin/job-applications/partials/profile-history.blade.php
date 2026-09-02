@@ -1,3 +1,11 @@
+@if(isset($tempStaffingHistories) && $tempStaffingHistories->isNotEmpty())
+<div class="ja-card">
+    <div class="ja-card-title"><i class="fa fa-users"></i> Temp Staffing History</div>
+    @foreach($tempStaffingHistories as $history)
+        <div class="ja-info-row"><span class="ja-info-label" style="width:auto"><span style="width:8px;height:8px;border-radius:50%;background:{{ $history->action === 'added' ? '#10B981' : '#EF4444' }}"></span>{{ $history->action === 'added' ? 'Added to Temp Staffing' : 'Removed from Temp Staffing' }}</span><span class="ja-info-val" style="font-size:11px">{{ $history->user?->name ?? 'Unknown team member' }}<br><span style="color:#A0A8B5;font-weight:500">{{ $history->created_at->timezone('America/Toronto')->format('d M Y, h:i A') }} ET</span></span></div>
+    @endforeach
+</div>
+@endif
 @include('admin.job-applications.partials.resume-history', ['resumeHistories' => $resumeHistories])
 @if($statusHistories->isNotEmpty())
 <div class="ja-card" style="margin-bottom:10px">

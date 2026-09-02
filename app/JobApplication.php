@@ -27,6 +27,8 @@ class JobApplication extends Model
         'dob' => 'datetime',
         'skills' => 'array',
         'moved_to_trash_at' => 'datetime',
+        'is_temp_staffing' => 'boolean',
+        'temp_staffing_at' => 'datetime',
     ];
 
     protected $appends = ['resume_url', 'photo_url'];
@@ -111,6 +113,10 @@ class JobApplication extends Model
         return $this->hasMany(JobApplicationStatusHistory::class)->orderByDesc('created_at');
     }
 
+    public function tempStaffingHistories()
+    {
+        return $this->hasMany(JobApplicationTempStaffingHistory::class)->latest();
+    }
     public function smsMessages()
     {
         return $this->hasMany(ApplicantSmsMessage::class, 'job_application_id')->orderBy('created_at');

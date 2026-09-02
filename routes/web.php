@@ -286,6 +286,7 @@ Route::middleware('auth')->group(function () {
             Route::get('job-applications/{id}/profile-tab/{tab}',         [AdminJobApplicationController::class, 'profileTab'])->name('job-applications.profile-tab');
             Route::post('job-applications/bulk-parse-resume',             [AdminJobApplicationController::class, 'bulkParseResume'])->name('job-applications.bulk-parse-resume');
             Route::post('job-applications/{id}/send-sms',                 [AdminJobApplicationController::class, 'sendSms'])->name('job-applications.send-sms');
+            Route::post('job-applications/{id}/temp-staffing',           [AdminJobApplicationController::class, 'toggleTempStaffing'])->name('job-applications.temp-staffing');
             Route::post('job-applications/{id}/update-resume',            [AdminJobApplicationController::class, 'updateResume'])->name('job-applications.update-resume');
             Route::get('job-applications/{id}/resume',                    [AdminJobApplicationController::class, 'viewResume'])->name('job-applications.resume.view');
             Route::get('job-applications/resume-history/{history}',       [AdminJobApplicationController::class, 'viewResumeHistory'])->name('job-applications.resume-history.view');

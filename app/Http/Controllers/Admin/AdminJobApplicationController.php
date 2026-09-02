@@ -712,6 +712,25 @@ class AdminJobApplicationController extends AdminBaseController
         return Reply::success(__('messages.updatedSuccessfully'));
     }
 
+    public function toggleTempStaffing(Request $request, int $id)
+    {
+        abort_if(!$this->user->cans('edit_job_applications'), 403);
+        $application = JobApplication::withTrashed()->findOrFail($id);
+        $add = $request->boolean('add');
+        $application->forceFill([
+            'is_temp_staffing' => $add,
+            'temp_staffing_at' => $add ? now() : null,
+            'temp_staffing_by' => $add ? $this->user->id : null,
+        ])->save();
+        $application->tempStaffingHistories()->create([
+            'user_id' => $this->user->id,
+            'action' => $add ? 'added' : 'removed',
+        ]);
+
+        return Reply::successWithData($add ? 'Candidate added to Temp Staffing.' : 'Candidate removed from Temp Staffing.', [
+            'is_temp_staffing' => $add,
+        ]);
+    }
     public function sendSms(Request $request, int $id, TelnyxSmsService $sms): mixed
     {
         abort_if(!$this->user->cans('edit_job_applications'), 403);
@@ -1205,7 +1224,7 @@ class AdminJobApplicationController extends AdminBaseController
                 'id', 'full_name', 'email', 'phone', 'address', 'gender', 'dob',
                 'country', 'state', 'city', 'photo', 'skills', 'skype_id',
                 'cover_letter', 'job_id', 'status_id', 'location_id',
-                'is_marketing', 'marketing_label', 'created_at', 'updated_at',
+                'is_marketing', 'marketing_label', 'is_temp_staffing', 'temp_staffing_at', 'temp_staffing_by', 'created_at', 'updated_at',
             ])
             ->with([
                 'onboard',
@@ -1312,6 +1331,7 @@ class AdminJobApplicationController extends AdminBaseController
         if ($tab === 'history') {
             $statusHistories = $application->statusHistories()->latest()->limit(30)->with(['fromStatus', 'toStatus', 'user'])->get();
             $resumeHistories = $application->resumeHistories()->with('updatedBy:id,name')->get();
+            $tempStaffingHistories = $application->tempStaffingHistories()->with('user:id,name')->get();
         $currentResume = $application->documents->firstWhere('name', 'Resume');
             $previousApps = JobApplication::withTrashed()
                 ->whereNull('moved_to_trash_at')
@@ -1328,7 +1348,7 @@ class AdminJobApplicationController extends AdminBaseController
                 ])
                 ->latest()
                 ->get();
-            return Reply::dataOnly(['status' => 'success', 'view' => view('admin.job-applications.partials.profile-history', compact('statusHistories', 'resumeHistories', 'previousApps'))->render()]);
+            return Reply::dataOnly(['status' => 'success', 'view' => view('admin.job-applications.partials.profile-history', compact('statusHistories', 'resumeHistories', 'tempStaffingHistories', 'previousApps'))->render()]);
         }
         return Reply::error('Tab not found.');
     }

@@ -568,7 +568,9 @@
                     </div>
                     @endif
 
-                    <script>
+                    @include('admin.job-applications.partials.temp-staffing-control')
+
+<script>
                     function jaToggleMarketing(appId) {
                         var btn   = document.getElementById('ja-marketing-btn-' + appId);
                         var icon  = document.getElementById('ja-marketing-icon-' + appId);

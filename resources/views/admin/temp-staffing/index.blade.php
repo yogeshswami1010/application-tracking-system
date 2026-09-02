@@ -25,4 +25,27 @@
     </tbody></table></div>
     <div class="border-t border-[#EEECE8] px-5 py-4">{{ $registrations->links() }}</div>
 </div>
+
+<div class="mt-5 overflow-hidden rounded-2xl border border-[#E8E6E1] bg-white shadow-sm">
+    <div class="border-b border-[#EEECE8] px-5 py-4"><h2 class="text-[15px] font-bold text-[#1A1E2E]">Job Application & Candidate Database</h2><p class="text-[11px] text-[#8892A0]">Candidates selected from Job Applications or Candidate Database</p></div>
+    <div class="overflow-x-auto"><table class="w-full text-left"><thead class="bg-[#F8F9FB] text-[10px] uppercase tracking-wider text-[#8892A0]"><tr><th class="px-5 py-3">Candidate</th><th class="px-5 py-3">Source</th><th class="px-5 py-3">Job</th><th class="px-5 py-3">Contact</th><th class="px-5 py-3 text-right">Action</th></tr></thead><tbody>
+    @forelse($applications as $application)
+        <tr class="border-t border-[#F0EEE9] hover:bg-[#FBFCFE]"><td class="px-5 py-4"><button type="button" class="temp-staffing-show-application text-[13px] font-semibold text-[#1A1E2E] hover:text-blue-600 hover:underline" data-row-id="{{ $application->id }}">{{ $application->full_name }}</button></td><td class="px-5 py-4"><span class="rounded-full bg-violet-50 px-2 py-1 text-[10px] font-bold text-violet-600">{{ $application->is_candidate ? 'Candidate Database' : 'Job Application' }}</span></td><td class="px-5 py-4 text-[12px] text-[#5A6478]">{{ $application->job?->title ?: 'No job assigned' }}</td><td class="px-5 py-4 text-[12px] text-[#5A6478]">{{ $application->email }}<br>{{ $application->phone }}</td><td class="px-5 py-4"><div class="flex justify-end gap-2"><button type="button" class="temp-staffing-show-application rounded-lg bg-blue-50 px-3 py-2 text-[11px] font-bold text-blue-600" data-row-id="{{ $application->id }}">View Profile</button><button type="button" onclick="jaToggleTempStaffing({{ $application->id }})" class="rounded-lg border border-red-200 px-3 py-2 text-[11px] font-bold text-red-600">Remove</button></div></td></tr>
+    @empty<tr><td colspan="5" class="px-5 py-16 text-center text-sm text-[#8892A0]">No Job Application or Candidate Database candidates have been added.</td></tr>@endforelse
+    </tbody></table></div><div class="border-t border-[#EEECE8] px-5 py-4">{{ $applications->links() }}</div>
+</div>
+
+@push('footer-script')
+<script>
+window.jaToggleTempStaffing = function (appId) {
+    $.ajax({type:'POST', url:@json(route('admin.job-applications.temp-staffing', ':id')).replace(':id', appId), data:{_token:@json(csrf_token()), add:0}})
+        .done(function(){ window.location.reload(); });
+};
+$(document).on('click', '.temp-staffing-show-application', function () {
+    var id = $(this).data('row-id'), $sidebar = $('#right-sidebar'), $backdrop = $('#right-sidebar-backdrop');
+    $sidebar.removeClass('translate-x-full').addClass('translate-x-0'); $backdrop.removeClass('hidden').css('display','block');
+    $.easyAjax({type:'GET', url:@json(route('admin.job-applications.show', ':id')).replace(':id', id), success:function(response){if(response.status==='success') $('#right-sidebar-content').html(response.view);}});
+});
+</script>
+@endpush
 @endsection
