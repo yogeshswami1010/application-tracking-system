@@ -733,7 +733,9 @@
     var syncUrl = @json(route('admin.ats-sync-state'));
     var presenceHeartbeatUrl = @json(route('admin.ats-presence-heartbeat'));
     var internalMessageReplyUrl = @json(route('admin.internal-messages.store'));
-    var contentAutoRefreshEnabled = @json(!request()->routeIs('admin.ai-search*'));
+    // Automatic record refresh is intentionally disabled: it can overwrite another user's unsaved work.
+    // Presence, notifications, and internal-message polling remain active below.
+    var contentAutoRefreshEnabled = false;
     var lastSignature = null;
     var pendingRefresh = false;
     var refreshRunning = false;
