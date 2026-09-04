@@ -374,18 +374,15 @@
 <script src="{{ asset('assets/node_modules_files/Magnific-Popup-master/dist/jquery.magnific-popup-init.js') }}"></script>
 
 <!-- Vite handles additional dependencies via app.js (lodash, axios) - loaded after jQuery -->
-@php
-    $atsReverbConfig = [
-        'key' => config('broadcasting.connections.reverb.key'),
-        'host' => config('broadcasting.connections.reverb.options.host'),
-        'port' => config('broadcasting.connections.reverb.options.port'),
-        'scheme' => config('broadcasting.connections.reverb.options.scheme'),
-    ];
-@endphp
 <script>
 window.ATS_CURRENT_USER_ID = @json(optional(auth()->user())->id);
 window.appBaseUrl = @json(url('/'));
-window.ATS_REVERB_CONFIG = {!! json_encode($atsReverbConfig, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!};
+window.ATS_REVERB_CONFIG = @json([
+    'key' => config('broadcasting.connections.reverb.key'),
+    'host' => config('broadcasting.connections.reverb.options.host'),
+    'port' => config('broadcasting.connections.reverb.options.port'),
+    'scheme' => config('broadcasting.connections.reverb.options.scheme'),
+]);
 </script>
 @vite(['resources/js/app.js'])
 
