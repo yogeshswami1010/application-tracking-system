@@ -901,9 +901,12 @@
 
         reloadOpenApplicantProfile(function () {
             refreshRunning = false;
-            if (!hasDataTable && !$('#right-sidebar').hasClass('translate-x-0')) {
-                window.location.reload();
-            }
+            // Never reload the whole page for another team member's update.
+            // Tables and the open applicant profile are refreshed in place above;
+            // static pages can opt into targeted updates through this event.
+            document.dispatchEvent(new CustomEvent('ats:remote-change', {
+                detail: { dataTableRefreshed: hasDataTable }
+            }));
         });
     }
 
