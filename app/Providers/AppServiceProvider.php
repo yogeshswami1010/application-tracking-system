@@ -2,10 +2,6 @@
 
 namespace App\Providers;
 
-use App\ConsortiumRegistration;
-use App\JobApplication;
-use App\Observers\CandidateRealtimeObserver;
-
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 
@@ -22,9 +18,6 @@ class AppServiceProvider extends ServiceProvider
             \URL::forceScheme('https');
         }
         Schema::defaultStringLength(191);
-
-        JobApplication::observe(CandidateRealtimeObserver::class);
-        ConsortiumRegistration::observe(CandidateRealtimeObserver::class);
 
         \Illuminate\Filesystem\AwsS3V3Adapter::macro('getClient', fn() => $this->client);
     }

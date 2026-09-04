@@ -229,7 +229,7 @@ return [
          */
         AppServiceProvider::class,
         App\Providers\AuthServiceProvider::class,
-        App\Providers\BroadcastServiceProvider::class,
+        // App\Providers\BroadcastServiceProvider::class,
         EventServiceProvider::class,
         RouteServiceProvider::class,
         LaravelEntrustServiceProvider::class,
