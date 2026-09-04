@@ -1,4 +1,13 @@
 {{-- Right detail panel — matches job-applications-new.html detail-panel --}}
+<style>
+    /* Applicant profiles use the entire viewport. Other sidebar content keeps
+       the standard 75vw width declared on the aside below. */
+    #right-sidebar:has(> #right-sidebar-content .ja-two-col-wrap) {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        border-left: 0 !important;
+    }
+</style>
 <div class="fixed inset-0 z-[190] hidden bg-[rgba(15,31,61,0.5)] backdrop-blur-[3px] transition-opacity duration-300" id="right-sidebar-backdrop" aria-hidden="true"></div>
 
 <aside
