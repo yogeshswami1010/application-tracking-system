@@ -25,7 +25,7 @@ return [
     | the array below. You should ensure all the options are present.
     |
     */
- 
+
     'servers' => [
 
         'reverb' => [
