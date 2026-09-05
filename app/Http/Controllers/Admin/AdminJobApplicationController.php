@@ -6,6 +6,7 @@ use App\AiApiKey;
 use App\ApplicationSetting;
 use App\ApplicationStatus;
 use App\Company;
+use App\ConsortiumRegistration;
 use App\Exports\JobApplicationExport;
 use App\Helper\Files;
 use App\Helper\Reply;
@@ -1265,6 +1266,14 @@ class AdminJobApplicationController extends AdminBaseController
         if (!$this->application) {
             return Reply::error('Application not found.');
         }
+
+        // Keep the original registration information available after this
+        // candidate has been moved into a normal job application.
+        $this->consortiumRegistration = ConsortiumRegistration::withTrashed()
+            ->whereHas('jobMoves', function ($query) {
+                $query->where('job_application_id', $this->application->id);
+            })
+            ->first();
 
         // Rendering every skill as an <option> and initializing Select2 on it
         // blocks the browser when the skills catalogue is large. The profile

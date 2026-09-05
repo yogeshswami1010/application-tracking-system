@@ -726,6 +726,10 @@ function jaSaveMarketingLabel(appId) {
                         @endif
                     </div>
 
+                    @if($consortiumRegistration)
+                        @include('admin.consortium-registrations.partials.information-card', ['registration' => $consortiumRegistration])
+                    @endif
+
                     {{-- Cover letter --}}
                     @if (!is_null($application->cover_letter))
                     <div class="ja-card">

@@ -73,16 +73,9 @@ body.consortium-profile-fullscreen #consortium-job-application-profile > .ja-two
     </div>
 </div>
 <div id="consortium-personal-information" style="display:none">
-    <div class="ja-card">
-        <div class="ja-card-title"><i class="fa fa-address-card-o"></i> Consortium Registration Information</div>
-        @foreach($infoRows as $row)
-            <div class="ja-info-row">
-                <span class="ja-info-label"><i class="fa {{ $row[2] }}"></i>{{ $row[0] }}</span>
-                <span class="ja-info-val">@if(!empty($row[3]) && $row[1])<a href="{{ $row[3] }}">{{ $row[1] }}</a>@else{{ filled($row[1]) ? $row[1] : '—' }}@endif</span>
-            </div>
-        @endforeach
-        <div class="ja-info-row"><span class="ja-info-label"><i class="fa fa-align-left"></i>Additional Information</span><span class="ja-info-val" style="white-space:pre-wrap">{{ $registration->additional_information ?: '—' }}</span></div>
-    </div>
+    @if($jobMoves->isEmpty())
+        @include('admin.consortium-registrations.partials.information-card', ['registration' => $registration])
+    @endif
     @include('admin.consortium-registrations.partials.job-movement')
 </div>
 @else
