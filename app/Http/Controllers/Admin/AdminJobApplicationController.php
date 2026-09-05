@@ -43,6 +43,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Excel as ExcelExcel;
 use Maatwebsite\Excel\Facades\Excel;
 use Yajra\DataTables\Facades\DataTables;
@@ -1399,9 +1400,21 @@ class AdminJobApplicationController extends AdminBaseController
 
         $application = JobApplication::withTrashed()->with('resumeDocument')->findOrFail($id);
         $uploaded = $request->file('resume');
-        $originalName = $uploaded->getClientOriginalName();
-        $converted = $converter->convert($uploaded);
+        $converted = $uploaded;
         $newHashname = null;
+
+        try {
+            $converted = $converter->convert($uploaded);
+        } catch (\Throwable $exception) {
+            report($exception);
+            throw ValidationException::withMessages([
+                'resume' => 'The Word resume could not be converted to PDF. Please upload a valid DOC, DOCX, or PDF file.',
+            ]);
+        }
+
+        // DOC/DOCX uploads are now PDFs. Store the converted filename so
+        // every profile viewer serves and previews the active CV as PDF.
+        $originalName = $converted->getClientOriginalName();
 
         try {
             $newHashname = Files::uploadLocalOrS3($converted, 'documents/'.$application->id, null, null, false);
