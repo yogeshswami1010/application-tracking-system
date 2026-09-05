@@ -1352,6 +1352,15 @@ class AdminJobApplicationController extends AdminBaseController
                 ])->render(),
             ]);
         }
+        if ($tab === 'sms') {
+            $application->load(['smsMessages.user:id,name']);
+
+            return Reply::dataOnly([
+                'status' => 'success',
+                'count' => $application->smsMessages->count(),
+                'view' => view('admin.job-applications.partials.sms-messages-list', compact('application'))->render(),
+            ]);
+        }
         if ($tab === 'schedule' && $application->schedule) {
             $schedule = $application->schedule()->with(['employee.user:id,name', 'comments.user:id,name'])->first();
             return Reply::dataOnly(['status' => 'success', 'view' => view('admin.job-applications.partials.profile-schedule', compact('schedule'))->render()]);

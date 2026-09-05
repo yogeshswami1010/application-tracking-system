@@ -2232,3 +2232,4 @@ function jaSaveInfoEdit(appId) {
     <span class="skype-button rounded" data-contact-id="live:{{ $application->skype_id }}" data-text="Call"></span>
 </div>
 @endif
+@include('admin.job-applications.partials.profile-live-sync')
