@@ -228,6 +228,30 @@ body.consortium-profile-fullscreen #consortium-job-application-profile > .ja-two
         });
         var backUrl = @json(request('from') === 'temp-staffing' ? route('admin.temp-staffing.index', request()->except('from')) : route('admin.consortium-registrations.index', request()->query()));
         $host.find('.right-side-toggle').removeClass('right-side-toggle').off('click').on('click', function () { window.location.href = backUrl; });
+
+        // The embedded profile normally navigates JobApplication IDs. On the
+        // Consortium page these controls must navigate registration profiles.
+        var registrationIds = @json($registrationNavigationIds);
+        var currentRegistrationId = {{ (int) $registration->id }};
+        var currentIndex = registrationIds.indexOf(currentRegistrationId);
+        var registrationUrlTemplate = @json(route('admin.consortium-registrations.show', ['registration' => '__REGISTRATION__']));
+        var registrationQuery = @json(http_build_query(request()->query()));
+        var $previous = $host.find('#ja-prev-btn');
+        var $next = $host.find('#ja-next-btn');
+        var $counter = $host.find('#ja-nav-counter');
+
+        function openRegistrationAt(index) {
+            if (index < 0 || index >= registrationIds.length) return;
+            var url = registrationUrlTemplate.replace('__REGISTRATION__', registrationIds[index]);
+            window.location.href = url + (registrationQuery ? '?' + registrationQuery : '');
+        }
+
+        window.jaNavigate = function (direction) { openRegistrationAt(currentIndex + (direction === 'prev' ? -1 : 1)); };
+        $counter.text(currentIndex >= 0 ? (currentIndex + 1) + ' / ' + registrationIds.length : '—');
+        $previous.removeAttr('onclick').prop('disabled', currentIndex <= 0).off('click.consortiumNav')
+            .on('click.consortiumNav', function () { openRegistrationAt(currentIndex - 1); });
+        $next.removeAttr('onclick').prop('disabled', currentIndex < 0 || currentIndex >= registrationIds.length - 1).off('click.consortiumNav')
+            .on('click.consortiumNav', function () { openRegistrationAt(currentIndex + 1); });
     }).fail(function () {
         $('#consortium-job-application-profile').html('<div>Candidate profile could not be loaded. Please refresh and try again.</div>');
     });

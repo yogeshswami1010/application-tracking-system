@@ -65,12 +65,35 @@ class AdminConsortiumRegistrationController extends AdminBaseController
         return view('admin.consortium-registrations.index', $this->data);
     }
 
-    public function show(ConsortiumRegistration $registration)
+    public function show(Request $request, ConsortiumRegistration $registration)
     {
         if (!$registration->reviewed_at) {
             $registration->update(['reviewed_at' => now()]);
         }
         $this->registration = $registration;
+
+        $asArray = fn ($name) => array_values(array_filter((array) $request->input($name, []), fn ($value) => $value !== null && $value !== ''));
+        $months = array_map('intval', $asArray('month'));
+        $years = array_map('intval', $asArray('year'));
+        $genders = $asArray('gender');
+        $cities = $asArray('city');
+        $jobTypes = $asArray('job_type');
+        $weekends = array_map('intval', $asArray('available_weekends'));
+        $nightShifts = array_map('intval', $asArray('night_shifts'));
+
+        $this->registrationNavigationIds = ConsortiumRegistration::query()
+            ->when($months, fn ($query) => $query->whereIn(DB::raw('MONTH(created_at)'), $months))
+            ->when($years, fn ($query) => $query->whereIn(DB::raw('YEAR(created_at)'), $years))
+            ->when($genders, fn ($query) => $query->whereIn('gender', $genders))
+            ->when($cities, fn ($query) => $query->whereIn('city', $cities))
+            ->when($jobTypes, fn ($query) => $query->whereIn('preferred_job_type', $jobTypes))
+            ->when($weekends, fn ($query) => $query->whereIn('available_weekends', $weekends))
+            ->when($nightShifts, fn ($query) => $query->whereIn('available_night_shifts', $nightShifts))
+            ->latest()
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->values();
+
         $this->jobs = Job::with(['company:id,company_name', 'location:id,location', 'jobLocation'])
             ->orderBy('title')
             ->get();
