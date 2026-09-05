@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Front;
 use App\ConsortiumRegistration;
 use App\Helper\Files;
 use App\Http\Controllers\Controller;
+use App\Services\ResumePdfConverter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class ConsortiumRegistrationController extends Controller
 {
@@ -75,8 +77,23 @@ class ConsortiumRegistrationController extends Controller
         $data['sms_consent'] = $request->boolean('sms_consent');
 
         if ($request->hasFile('resume')) {
-            $data['resume_original_name'] = $request->file('resume')->getClientOriginalName();
-            $data['resume_file'] = Files::uploadLocalOrS3($request->file('resume'), 'registration-resumes');
+            $converter = app(ResumePdfConverter::class);
+            $resume = $request->file('resume');
+
+            try {
+                $resume = $converter->convert($resume);
+                // Converted Word files expose a .pdf client name, ensuring the
+                // stored hash, download name, and ATS preview all use PDF.
+                $data['resume_original_name'] = $resume->getClientOriginalName();
+                $data['resume_file'] = Files::uploadLocalOrS3($resume, 'registration-resumes');
+            } catch (\Throwable $exception) {
+                report($exception);
+                throw ValidationException::withMessages([
+                    'resume' => 'The Word resume could not be converted to PDF. Please upload a valid DOC, DOCX, or PDF file.',
+                ]);
+            } finally {
+                $converter->cleanup($resume);
+            }
         }
 
         return ConsortiumRegistration::create($data);
