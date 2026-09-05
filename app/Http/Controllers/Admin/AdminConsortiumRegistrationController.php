@@ -22,25 +22,37 @@ class AdminConsortiumRegistrationController extends AdminBaseController
 
     public function index(Request $request)
     {
+        $multiFilterNames = ['month', 'year', 'gender', 'city', 'job_type', 'available_weekends', 'night_shifts'];
+        foreach ($multiFilterNames as $filterName) {
+            $values = array_values(array_filter((array) $request->input($filterName, []), fn ($value) => $value !== null && $value !== ''));
+            $request->merge([$filterName => $values]);
+        }
+
         $filters = $request->validate([
-            'month' => ['nullable', 'integer', 'between:1,12'],
-            'year' => ['nullable', 'integer', 'between:2000,2100'],
-            'gender' => ['nullable', 'string', 'max:40'],
+            'month' => ['nullable', 'array'],
+            'month.*' => ['integer', 'between:1,12'],
+            'year' => ['nullable', 'array'],
+            'year.*' => ['integer', 'between:2000,2100'],
+            'gender' => ['nullable', 'array'],
+            'gender.*' => ['string', 'max:40'],
             'city' => ['nullable', 'array'],
             'city.*' => ['string', 'max:100'],
-            'job_type' => ['nullable', 'string', 'max:100'],
-            'available_weekends' => ['nullable', 'in:0,1'],
-            'night_shifts' => ['nullable', 'in:0,1'],
+            'job_type' => ['nullable', 'array'],
+            'job_type.*' => ['string', 'max:100'],
+            'available_weekends' => ['nullable', 'array'],
+            'available_weekends.*' => ['in:0,1'],
+            'night_shifts' => ['nullable', 'array'],
+            'night_shifts.*' => ['in:0,1'],
         ]);
 
         $query = ConsortiumRegistration::query()
-            ->when($request->filled('month'), fn ($q) => $q->whereMonth('created_at', $filters['month']))
-            ->when($request->filled('year'), fn ($q) => $q->whereYear('created_at', $filters['year']))
-            ->when($request->filled('gender'), fn ($q) => $q->where('gender', $filters['gender']))
+            ->when(!empty($filters['month']), fn ($q) => $q->whereIn(DB::raw('MONTH(created_at)'), array_map('intval', $filters['month'])))
+            ->when(!empty($filters['year']), fn ($q) => $q->whereIn(DB::raw('YEAR(created_at)'), array_map('intval', $filters['year'])))
+            ->when(!empty($filters['gender']), fn ($q) => $q->whereIn('gender', $filters['gender']))
             ->when(!empty($filters['city']), fn ($q) => $q->whereIn('city', $filters['city']))
-            ->when($request->filled('job_type'), fn ($q) => $q->where('preferred_job_type', $filters['job_type']))
-            ->when($request->filled('available_weekends'), fn ($q) => $q->where('available_weekends', (int) $filters['available_weekends']))
-            ->when($request->filled('night_shifts'), fn ($q) => $q->where('available_night_shifts', (int) $filters['night_shifts']));
+            ->when(!empty($filters['job_type']), fn ($q) => $q->whereIn('preferred_job_type', $filters['job_type']))
+            ->when(!empty($filters['available_weekends']), fn ($q) => $q->whereIn('available_weekends', array_map('intval', $filters['available_weekends'])))
+            ->when(!empty($filters['night_shifts']), fn ($q) => $q->whereIn('available_night_shifts', array_map('intval', $filters['night_shifts'])));
 
         $this->registrations = $query->latest()->paginate(25)->withQueryString();
         $this->unreviewedCount = ConsortiumRegistration::whereNull('reviewed_at')->count();
