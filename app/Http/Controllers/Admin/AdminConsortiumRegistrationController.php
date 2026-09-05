@@ -7,6 +7,7 @@ use App\ApplicationStatus;
 use App\Job;
 use App\JobApplication;
 use App\JobApplicationStatusHistory;
+use App\JobJobLocation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
@@ -162,17 +163,29 @@ class AdminConsortiumRegistrationController extends AdminBaseController
         $validated = $request->validate([
             'job_id' => ['required', 'integer', 'exists:jobs,id'],
         ]);
-        $job = Job::with(['location', 'jobLocation'])->findOrFail($validated['job_id']);
+        $job = Job::findOrFail($validated['job_id']);
 
         if ($registration->jobMoves()->where('job_id', $job->id)->exists()) {
             return back()->with('error', 'This candidate has already been moved to the selected job.');
         }
 
         $appliedStatus = ApplicationStatus::ensureAppliedForJob((int) $job->id);
-        $matchingLocation = $job->jobLocation->first(function ($location) use ($registration) {
+        $jobLocations = JobJobLocation::query()
+            ->where('job_id', $job->id)
+            ->whereNotNull('location_id')
+            ->with('location_data:id,location')
+            ->orderBy('id')
+            ->get()
+            ->pluck('location_data')
+            ->filter();
+        $matchingLocation = $jobLocations->first(function ($location) use ($registration) {
             return mb_strtolower(trim((string) $location->location)) === mb_strtolower(trim((string) $registration->city));
         });
-        $locationId = $matchingLocation?->id ?: ($job->location_id ?: $job->jobLocation->first()?->id);
+        $locationId = $matchingLocation?->id ?: ($jobLocations->first()?->id ?: $job->location_id);
+
+        if (!$locationId) {
+            return back()->with('error', 'The selected job has no location configured. Add a job location before moving this candidate.');
+        }
         $copiedResumePath = null;
 
         try {
