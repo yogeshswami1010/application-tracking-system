@@ -18,7 +18,7 @@
             <h3 class="mt-1 text-[16px] font-bold text-[#1A1E2E]">Move candidate to a job</h3>
 
         </div>
-        <form method="POST" action="{{ route('admin.consortium-registrations.move-to-job', array_merge(['registration' => $registration->id], request()->query())) }}" class="flex w-full flex-col gap-2 sm:flex-row sm:items-center" onsubmit="return confirm('Move this candidate to the selected job?')">
+        <form id="consortium-move-to-job-form" method="POST" action="{{ route('admin.consortium-registrations.move-to-job', array_merge(['registration' => $registration->id], request()->query())) }}" class="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
             @csrf
             <select name="job_id" required class="h-10 min-w-0 flex-1 rounded-xl border border-[#CCD6E5] bg-white px-3 py-0 text-[12px] font-medium text-[#334155] outline-none focus:border-blue-500">
                 <option value="">Select a job role...</option>

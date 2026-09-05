@@ -73,49 +73,9 @@ body.consortium-profile-fullscreen #consortium-job-application-profile > .ja-two
     </div>
 </div>
 <div id="consortium-personal-information" style="display:none">
-    <div class="ja-card">
-        <div class="ja-card-title" style="justify-content:space-between">
-            <span><i class="fa fa-users"></i> Temp Staffing</span>
-            <form method="POST" action="{{ route('admin.consortium-registrations.temp-staffing', $registration) }}">
-                @csrf
-                <input type="hidden" name="add" value="{{ $registration->is_temp_staffing ? 0 : 1 }}">
-                <button type="submit" class="ja-note-btn" style="{{ $registration->is_temp_staffing ? 'color:#DC2626;border-color:#FECACA;' : 'color:#2563EB;border-color:#BFDBFE;background:#EFF6FF;' }}">
-                    <i class="fa {{ $registration->is_temp_staffing ? 'fa-times' : 'fa-user-plus' }}"></i>
-                    {{ $registration->is_temp_staffing ? 'Remove from Temp Staffing' : 'Add to Temp Staffing' }}
-                </button>
-            </form>
-        </div>
-        <p style="margin:0;font-size:11.5px;color:#8892A0;line-height:1.5">{{ $registration->is_temp_staffing ? 'This candidate is visible on the Temp Staffing page.' : 'Add this Consortium candidate to the Temp Staffing list.' }}</p>
-    </div>
-    <div class="ja-card">
-        <div class="ja-card-title"><i class="fa fa-history"></i> Temp Staffing History</div>
-        @forelse($tempStaffingHistories as $history)
-            <div class="ja-info-row" style="align-items:center">
-                <span class="ja-info-label" style="width:auto">
-                    <span style="width:8px;height:8px;border-radius:50%;background:{{ $history->action === 'added' ? '#10B981' : '#EF4444' }}"></span>
-                    {{ $history->action === 'added' ? 'Added to Temp Staffing' : 'Returned to Consortium Registration' }}
-                </span>
-                <span class="ja-info-val" style="font-size:11px">
-                    {{ $history->user?->name ?? 'Unknown team member' }}<br>
-                    <span style="color:#A0A8B5;font-weight:500">{{ $history->created_at->timezone('America/Toronto')->format('d M Y, h:i A') }} ET</span>
-                </span>
-            </div>
-        @empty
-            <p style="margin:0;color:#A0A8B5;font-size:11.5px">No Temp Staffing activity yet.</p>
-        @endforelse
-    </div>
+    @include('admin.consortium-registrations.partials.job-movement')
     <div class="ja-card">
         <div class="ja-card-title"><i class="fa fa-address-card-o"></i> Consortium Registration Information</div>
-        @foreach($infoRows as $row)
-            <div class="ja-info-row">
-                <span class="ja-info-label"><i class="fa {{ $row[2] }}"></i>{{ $row[0] }}</span>
-                <span class="ja-info-val">@if(!empty($row[3]) && $row[1])<a href="{{ $row[3] }}">{{ $row[1] }}</a>@else{{ filled($row[1]) ? $row[1] : '—' }}@endif</span>
-            </div>
-        @endforeach
-        <div class="ja-info-row"><span class="ja-info-label"><i class="fa fa-align-left"></i>Additional Information</span><span class="ja-info-val" style="white-space:pre-wrap">{{ $registration->additional_information ?: '—' }}</span></div>
-    </div>
-    @include('admin.consortium-registrations.partials.job-movement')
-</div>
 @else
 <style>
 .cr-profile{height:calc(100vh - 132px);min-height:640px;display:flex;flex-direction:column;overflow:hidden;border:1px solid #E8E6E1;border-radius:18px;background:#F8F7F4;box-shadow:0 8px 28px rgba(15,31,61,.08);font-family:'Plus Jakarta Sans',sans-serif}
@@ -197,6 +157,34 @@ body.consortium-profile-fullscreen #consortium-job-application-profile > .ja-two
 @push('footer-script')
 <script>
 (function () {
+    $(document).off('submit.consortiumMove', '#consortium-move-to-job-form')
+        .on('submit.consortiumMove', '#consortium-move-to-job-form', function (event) {
+            event.preventDefault();
+            if (!window.confirm('Move this candidate to the selected job?')) return;
+            var $form = $(this);
+            var $button = $form.find('button[type="submit"]');
+            $button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Moving...');
+            $.ajax({
+                url: $form.attr('action'),
+                type: 'POST',
+                data: $form.serialize(),
+                headers: {'Accept': 'application/json'}
+            }).done(function (response) {
+                if (response && response.status === 'success') {
+                    window.location.reload();
+                    return;
+                }
+                window.alert((response && response.message) || 'Candidate could not be moved.');
+                $button.prop('disabled', false).html('<i class="fa fa-arrow-right"></i> Move to Job');
+            }).fail(function (xhr) {
+                var response = xhr.responseJSON || {};
+                var errors = response.errors || {};
+                var errorKeys = Object.keys(errors);
+                var firstError = errorKeys.length ? errors[errorKeys[0]][0] : null;
+                window.alert(response.message || firstError || 'Candidate could not be moved. Please try again.');
+                $button.prop('disabled', false).html('<i class="fa fa-arrow-right"></i> Move to Job');
+            });
+        });
     var profileUrl = @json(route('admin.job-applications.show', $assignedApplicationId));
     $.ajax({url: profileUrl, type: 'GET', cache: false}).done(function (response) {
         if (!response || response.status !== 'success' || !response.view) {
@@ -205,8 +193,10 @@ body.consortium-profile-fullscreen #consortium-job-application-profile > .ja-two
         }
         var $host = $('#consortium-job-application-profile');
         $host.css({display:'block', minHeight:0}).html(response.view);
+        // Keep only the Consortium control so its status history stays correct.
+        $host.find('[id^="ja-temp-staffing-btn-"]').remove();
         var $details = $host.find('#ja-tab-details');
-        if ($details.length) $details.append($('#consortium-personal-information').html());
+        if ($details.length) $details.prepend($('#consortium-personal-information').html());
         var $toolbar = $host.find('.ja-pdf-toolbar-actions').first();
         if ($toolbar.length) $('#consortium-temp-staffing-toolbar').css('display', 'flex').prependTo($toolbar);
         var appendTempStaffingHistory = function () {

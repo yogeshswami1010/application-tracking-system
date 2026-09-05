@@ -202,7 +202,18 @@ class AdminConsortiumRegistrationController extends AdminBaseController
         } catch (\Throwable $exception) {
             if ($copiedResumePath) Storage::delete($copiedResumePath);
             report($exception);
+            if ($request->expectsJson()) {
+                return response()->json(['status' => 'error', 'message' => $exception->getMessage()], 422);
+            }
             return back()->with('error', $exception->getMessage());
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Candidate moved to '.$job->title.' and added to Job Applications.',
+                'application_id' => $application->id,
+            ]);
         }
 
         return back()->with('success', 'Candidate moved to '.$job->title.' and added to Job Applications.');
