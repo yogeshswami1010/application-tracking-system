@@ -77,6 +77,11 @@
             </div>
         @endforeach
     </div>
+    <div class="mt-4 flex justify-end border-t border-[#E7EAF0] pt-4">
+        <button type="submit" id="registration-filters-apply" class="inline-flex items-center gap-2 rounded-xl bg-[#2563EB] px-5 py-2.5 text-[12px] font-bold text-white shadow-sm transition hover:bg-[#1D4ED8] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            <i class="fa fa-filter"></i> Apply Filters
+        </button>
+    </div>
 </form>
 
 @push('footer-script')
@@ -168,8 +173,6 @@
         var scrollTop = $options.scrollTop();
         updateFilterDisplay($(this).closest('.registration-multi-filter'));
         $options.scrollTop(scrollTop);
-        unlockFilterPage();
-        $('#consortium-registration-filters').trigger('submit');
     }).on('wheel', function (event) {
         var element = this;
         var original = event.originalEvent;
@@ -183,8 +186,6 @@
         var $filter = $(this).closest('.registration-multi-filter');
         $filter.find('input[type="checkbox"]').prop('checked', false);
         updateFilterDisplay($filter);
-        unlockFilterPage();
-        $('#consortium-registration-filters').trigger('submit');
     });
 })();
 </script>
