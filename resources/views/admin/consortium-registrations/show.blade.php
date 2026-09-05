@@ -51,7 +51,7 @@ body.consortium-profile-fullscreen #consortium-job-application-profile > .ja-two
 <form id="consortium-temp-staffing-toolbar" method="POST" action="{{ route('admin.consortium-registrations.temp-staffing', $registration) }}" style="display:none">
     @csrf
     <input type="hidden" name="add" value="{{ $registration->is_temp_staffing ? 0 : 1 }}">
-    <button type="submit" class="ja-pdf-btn" style="{{ $registration->is_temp_staffing ? 'background:#FEF2F2;color:#DC2626;border-color:#FECACA;' : 'background:#EFF6FF;color:#2563EB;border-color:#BFDBFE;' }}">
+    <button type="submit" class="ja-pdf-btn">
         <i class="fa {{ $registration->is_temp_staffing ? 'fa-times' : 'fa-users' }}"></i>
         {{ $registration->is_temp_staffing ? 'Remove Temp Staffing' : 'Temp Staffing' }}
     </button>
