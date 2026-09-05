@@ -205,6 +205,9 @@ body.consortium-profile-fullscreen #consortium-job-application-profile > .ja-two
         }
         var $host = $('#consortium-job-application-profile');
         $host.css({display:'block', minHeight:0}).html(response.view);
+        // Remove the generic blue Job Application Temp Staffing control.
+        // The Consortium-specific toolbar button remains available.
+        $host.find('[id^="ja-temp-staffing-btn-"]').remove();
         var $details = $host.find('#ja-tab-details');
         if ($details.length) $details.append($('#consortium-personal-information').html());
         var $toolbar = $host.find('.ja-pdf-toolbar-actions').first();
