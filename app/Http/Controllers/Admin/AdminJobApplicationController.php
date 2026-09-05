@@ -2529,10 +2529,17 @@ class AdminJobApplicationController extends AdminBaseController
         }
 
         if ($locationId && $locationId != 'all' && $locationId != '') {
-            $query->whereIn('id', function ($sub) use ($locationId) {
-                $sub->select('job_id')
-                    ->from('job_job_locations')
-                    ->where('location_id', $locationId);
+            $query->where(function ($locationQuery) use ($locationId) {
+                $locationQuery->whereIn('id', function ($sub) use ($locationId) {
+                    $sub->select('job_id')
+                        ->from('job_job_locations')
+                        ->where('location_id', $locationId);
+                })->orWhereIn('id', function ($sub) use ($locationId) {
+                    $sub->select('job_id')
+                        ->from('job_applications')
+                        ->where('is_candidate', 0)
+                        ->where('location_id', $locationId);
+                });
             });
         }
 
@@ -2552,11 +2559,25 @@ class AdminJobApplicationController extends AdminBaseController
 
         // If specific company selected, only get locations linked to that company's jobs
         if ($companyId && $companyId !== 'all' && $companyId !== '') {
-            $locationIds = \DB::table('job_job_locations')
+            $mappedLocationIds = DB::table('job_job_locations')
                 ->join('jobs', 'jobs.id', '=', 'job_job_locations.job_id')
                 ->where('jobs.company_id', $companyId)
                 ->distinct()
                 ->pluck('job_job_locations.location_id');
+
+            $applicationLocationIds = DB::table('job_applications')
+                ->join('jobs', 'jobs.id', '=', 'job_applications.job_id')
+                ->where('jobs.company_id', $companyId)
+                ->where('job_applications.is_candidate', 0)
+                ->whereNotNull('job_applications.location_id')
+                ->distinct()
+                ->pluck('job_applications.location_id');
+
+            $locationIds = $mappedLocationIds
+                ->merge($applicationLocationIds)
+                ->filter()
+                ->unique()
+                ->values();
 
             $locations = JobLocation::whereIn('id', $locationIds)
                 ->orderBy('location')
