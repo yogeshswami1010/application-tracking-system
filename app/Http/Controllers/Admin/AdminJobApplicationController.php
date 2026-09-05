@@ -375,14 +375,20 @@ class AdminJobApplicationController extends AdminBaseController
 
         $jobApplications = $jobApplications->where('job_applications.is_candidate', 0);
 
-        // Only show the newest application per email — older ones with the same
-        // email are merged into it and only visible via the History tab.
-        $jobApplications = $jobApplications->whereIn('job_applications.id', function ($sub) {
-            $sub->selectRaw('MAX(ja2.id)')
-                ->from('job_applications as ja2')
-                ->where('ja2.is_candidate', 0)
-                ->whereColumn('ja2.email', 'job_applications.email')
-                ->groupBy('ja2.email');
+        // Keep normal duplicate-email applications merged, but always show
+        // applications explicitly created by a Consortium job assignment.
+        $jobApplications = $jobApplications->where(function ($visible) {
+            $visible->whereIn('job_applications.id', function ($sub) {
+                $sub->selectRaw('MAX(ja2.id)')
+                    ->from('job_applications as ja2')
+                    ->where('ja2.is_candidate', 0)
+                    ->whereColumn('ja2.email', 'job_applications.email')
+                    ->groupBy('ja2.email');
+            })->orWhereExists(function ($moves) {
+                $moves->selectRaw('1')
+                    ->from('consortium_registration_job_moves as crjm')
+                    ->whereColumn('crjm.job_application_id', 'job_applications.id');
+            });
         });
 
         // Knockout filter
@@ -611,11 +617,17 @@ class AdminJobApplicationController extends AdminBaseController
             )
             ->where('job_applications.is_candidate', 0);
 
-        $countQuery->whereIn('job_applications.id', function ($sub) {
-            $sub->selectRaw('MAX(ja2.id)')->from('job_applications as ja2')
-                ->where('ja2.is_candidate', 0)
-                ->whereColumn('ja2.email', 'job_applications.email')
-                ->groupBy('ja2.email');
+        $countQuery->where(function ($visible) {
+            $visible->whereIn('job_applications.id', function ($sub) {
+                $sub->selectRaw('MAX(ja2.id)')->from('job_applications as ja2')
+                    ->where('ja2.is_candidate', 0)
+                    ->whereColumn('ja2.email', 'job_applications.email')
+                    ->groupBy('ja2.email');
+            })->orWhereExists(function ($moves) {
+                $moves->selectRaw('1')
+                    ->from('consortium_registration_job_moves as crjm')
+                    ->whereColumn('crjm.job_application_id', 'job_applications.id');
+            });
         });
 
         if ($company !== 'all' && $company !== '') {
@@ -646,11 +658,17 @@ class AdminJobApplicationController extends AdminBaseController
 
         // ── KO count ──────────────────────────────────────────────────
         $koQuery = JobApplication::where('job_applications.is_candidate', 0)
-            ->whereIn('job_applications.id', function ($sub) {
-                $sub->selectRaw('MAX(ja2.id)')->from('job_applications as ja2')
-                    ->where('ja2.is_candidate', 0)
-                    ->whereColumn('ja2.email', 'job_applications.email')
-                    ->groupBy('ja2.email');
+            ->where(function ($visible) {
+                $visible->whereIn('job_applications.id', function ($sub) {
+                    $sub->selectRaw('MAX(ja2.id)')->from('job_applications as ja2')
+                        ->where('ja2.is_candidate', 0)
+                        ->whereColumn('ja2.email', 'job_applications.email')
+                        ->groupBy('ja2.email');
+                })->orWhereExists(function ($moves) {
+                    $moves->selectRaw('1')
+                        ->from('consortium_registration_job_moves as crjm')
+                        ->whereColumn('crjm.job_application_id', 'job_applications.id');
+                });
             })
             ->whereHas('answers', function ($q) {
                 $q->whereHas('question', function ($qq) {
