@@ -70,9 +70,8 @@
                         @endforeach
                         <p class="registration-filter-empty hidden px-3 py-6 text-center text-[11px] text-[#8892A0]">No option found.</p>
                     </div>
-                    <div class="flex items-center justify-between border-t border-[#EEF0F4] bg-[#FBFCFE] px-3 py-2.5">
-                        <button type="button" class="registration-filter-clear text-[11px] font-semibold text-[#6B7280] hover:text-[#DC2626]">Clear</button>
-                        <button type="button" class="registration-filter-apply rounded-lg bg-[#2563EB] px-3 py-2 text-[11px] font-bold text-white hover:bg-[#1D4ED8]">Apply</button>
+                    <div class="flex items-center justify-end border-t border-[#EEF0F4] bg-[#FBFCFE] px-3 py-2.5">
+                        <button type="button" class="registration-filter-clear text-[11px] font-semibold text-[#6B7280] hover:text-[#DC2626]">Clear selection</button>
                     </div>
                 </div>
             </div>
@@ -169,6 +168,8 @@
         var scrollTop = $options.scrollTop();
         updateFilterDisplay($(this).closest('.registration-multi-filter'));
         $options.scrollTop(scrollTop);
+        unlockFilterPage();
+        $('#consortium-registration-filters').trigger('submit');
     }).on('wheel', function (event) {
         var element = this;
         var original = event.originalEvent;
@@ -182,9 +183,6 @@
         var $filter = $(this).closest('.registration-multi-filter');
         $filter.find('input[type="checkbox"]').prop('checked', false);
         updateFilterDisplay($filter);
-    });
-
-    $('.registration-filter-apply').on('click', function () {
         unlockFilterPage();
         $('#consortium-registration-filters').trigger('submit');
     });
