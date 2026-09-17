@@ -10,7 +10,7 @@
             {{ $note->created_at->format('d M Y, h:i A') }}
         </span>
     </div>
-    <p class="cn-note-text ja-note-body">{{ ucfirst($note->note_text) }}</p>
+    <p class="cn-note-text ja-note-body">{!! nl2br(e(ucfirst($note->note_text))) !!}</p>
     <div class="cn-note-textarea"></div>
     @if(auth()->user()->cans('edit_job_applications'))
     <div class="ja-note-actions">
