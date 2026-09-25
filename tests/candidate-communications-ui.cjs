@@ -22,7 +22,7 @@ elements['candidate-communications']=root;
 elements['cc-form'].querySelectorAll=()=>ids.filter(id=>!['form','dialog'].includes(id)).map(id=>elements['cc-'+id]);
 const selected=[{type:'application',id:7},{type:'registration',id:7}];
 const requests=[];
-let resolveSend, delaySend=false;
+let resolveSend, delaySend=false, sendResult={status:'sent'};
 const context={
     console, Option: class { constructor(text,value){this.text=text;this.value=value;} },
     document:{
@@ -38,7 +38,7 @@ const context={
         if(url==='/preview')return {ok:true,json:async()=>({recipients:data.recipients.map((r,i)=>({...r,name:'Candidate '+i,address:i+'@example.test',reason:null}))})};
         if(url==='/templates')return {ok:true,json:async()=>({templates:[{id:3,name:'Invite',subject:'Hello',message:'Hi [applicant_name]'}]})};
         if(delaySend){delaySend=false;await new Promise(resolve=>{resolveSend=resolve;});}
-        return {ok:true,json:async()=>({results:[{status:'sent'}]})};
+        return {ok:true,json:async()=>({results:[sendResult]})};
     },
 };
 context.window=context;
@@ -67,6 +67,7 @@ vm.runInNewContext(fs.readFileSync('public/js/candidate-communications.js','utf8
     assert.equal(requests.filter(r=>r.url==='/send').length,2,'One request per selected recipient');
     assert.equal(elements['cc-send'].disabled,true,'Completed batch cannot be resubmitted');
     assert.match(elements['cc-feedback'].textContent,/2 sent, 0 failed/);
+    assert.equal(elements['cc-dialog'].open,false,'Successful bulk email closes automatically');
     elements['cc-close-top'].handlers.click();
     assert.equal(elements['cc-dialog'].open,false,'Top-right close button dismisses the popup');
     await context.ccOpen('sms');
@@ -92,9 +93,15 @@ vm.runInNewContext(fs.readFileSync('public/js/candidate-communications.js','utf8
     elements['cc-subject'].value='Profile subject';
     await elements['cc-form'].handlers.submit({preventDefault(){}});
     assert.deepEqual(requests.at(-1).data.recipients,profileRecipient,'Profile sends only to its candidate');
+    assert.equal(elements['cc-dialog'].open,false,'Successful profile email closes automatically');
     elements['cc-dialog'].close();
     await context.ccOpen('email');
     assert.deepEqual(requests.at(-2).data.recipients,selected,'Bulk selection remains unchanged after profile email');
     elements['cc-dialog'].close();
+    await context.ccOpen('email',profileRecipient);
+    sendResult={status:'failed',reason:'Test SMTP failure'};
+    await elements['cc-form'].handlers.submit({preventDefault(){}});
+    assert.equal(elements['cc-dialog'].open,true,'Failed email stays open to show its error');
+    assert.match(elements['cc-feedback'].textContent,/Test SMTP failure/);
     console.log('PASS: Composer selection, mixed sources, template reuse/save, duplicate-click protection, progress, and SMS mode');
 })().catch(error=>{console.error(error);process.exitCode=1;});

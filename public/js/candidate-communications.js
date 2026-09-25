@@ -132,10 +132,12 @@
             }
         }
         feedback(sent + ' sent, ' + failed + ' failed, ' + skipped + ' skipped.\n' + problems.join('\n'));
+        const emailSucceeded = channel === 'email' && sent > 0 && sent === recipients.length && problems.length === 0;
         sending = false;
         recipients = [];
         controls.forEach(control => { control.disabled = false; });
         el('send').disabled = true;
+        if (emailSucceeded) el('dialog').close();
     });
     window.addEventListener('beforeunload', event => { if (sending) { event.preventDefault(); event.returnValue = ''; } });
     window.ccRefreshSelection();
