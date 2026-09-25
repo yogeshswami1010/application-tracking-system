@@ -10,7 +10,7 @@ Apply the email-template migration against the intended ATS database:
 php artisan migrate
 ```
 
-Email uses the ATS Email Settings; AI Search preserves its dedicated SMTP configuration. SMS uses the existing Telnyx SMS Settings. Both view_job_applications and edit_job_applications permissions are required to send messages or manage templates.
+All candidate email actions, including profile emails and bulk emails, use the working AI Search SMTP configuration (mail.ai_search_smtp / AI_SEARCH_MAIL_*). SMS uses the existing Telnyx SMS Settings. Both view_job_applications and edit_job_applications permissions are required to send messages or manage templates.
 
 ## Behavior
 

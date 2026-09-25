@@ -7,7 +7,6 @@ use App\ConsortiumRegistration;
 use App\JobApplication;
 use App\ApplicantSmsMessage;
 use App\SmsSetting;
-use App\EmailSetting;
 use App\Services\TelnyxSmsService;
 use App\Services\CandidateEmailFailure;
 use Illuminate\Support\Str;
@@ -25,35 +24,13 @@ class CandidateCommunicationController extends AdminBaseController
 
     protected function mailer(string $source)
     {
-        if ($source === 'ai-search') {
-            $settings = config('mail.ai_search_smtp');
-            if (empty($settings['username']) || empty($settings['password']) || empty($settings['from']['address'])) {
-                throw new \RuntimeException('AI Search SMTP is not configured.');
-            }
-            $mailer = Mail::build($settings);
-            $mailer->alwaysFrom($settings['from']['address'], $settings['from']['name'] ?? null);
-            return $mailer;
+        // All candidate email entry points use the same SMTP account as AI Search.
+        $settings = config('mail.ai_search_smtp');
+        if (empty($settings['host']) || empty($settings['username']) || empty($settings['password']) || empty($settings['from']['address'])) {
+            throw new \RuntimeException('AI Search SMTP is not configured.');
         }
-        $settings = EmailSetting::first();
-        if (!$settings) throw new \RuntimeException('Email settings are not configured.');
-        if ($settings->mail_driver !== 'smtp') {
-            throw new \RuntimeException('Candidate mail driver is not SMTP.');
-        }
-        if (!$settings->mail_host || !$settings->mail_port || !filter_var($settings->mail_from_email, FILTER_VALIDATE_EMAIL)) {
-            throw new \RuntimeException('Candidate SMTP settings are incomplete.');
-        }
-        $mailer = Mail::build([
-            'transport' => 'smtp',
-            'scheme' => $settings->mail_encryption === 'ssl' ? 'smtps' : 'smtp',
-            'timeout' => 20,
-            'host' => $settings->mail_host,
-            'port' => $settings->mail_port,
-            'encryption' => $settings->mail_encryption,
-            'username' => $settings->mail_username,
-            'password' => $settings->mail_password,
-            'from' => ['address' => $settings->mail_from_email, 'name' => $settings->mail_from_name],
-        ]);
-        $mailer->alwaysFrom($settings->mail_from_email, $settings->mail_from_name);
+        $mailer = Mail::build($settings);
+        $mailer->alwaysFrom($settings['from']['address'], $settings['from']['name'] ?? null);
         return $mailer;
     }
 

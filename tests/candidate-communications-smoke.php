@@ -95,5 +95,26 @@ rejects(fn()=>(new SmokeCommunicationController($mailer,1,false))->templates(), 
 rejects(fn()=>(new SmokeCommunicationController($mailer,1,false))->send(req([]), $sms), \Symfony\Component\HttpKernel\Exception\HttpException::class, 'Unauthorized send rejected');
 rejects(fn()=>$c->send(req(['channel'=>'sms','message'=>'Hello','recipients'=>[]]),$sms), \Illuminate\Validation\ValidationException::class, 'Empty selection rejected');
 rejects(fn()=>$c->send(req(['channel'=>'sms','message'=>str_repeat('x',1601),'recipients'=>[['type'=>'application','id'=>1]]]),$sms), \Illuminate\Validation\ValidationException::class, 'Overlong SMS rejected');
+
+// Exercise the real mailer selection, without SMTP connections or a settings-table fallback.
+$sharedSmtp = [
+    'transport'=>'smtp', 'host'=>'smtp.example.test', 'port'=>465, 'encryption'=>'ssl',
+    'username'=>'test-account', 'password'=>'test-password',
+    'from'=>['address'=>'sender@example.test','name'=>'Recruitment'],
+];
+$app['config']->set('mail.ai_search_smtp', $sharedSmtp);
+$builtMailer = Mockery::mock(Mailer::class);
+$builtMailer->shouldReceive('alwaysFrom')->twice()->with('sender@example.test', 'Recruitment');
+$mailManager = Mockery::mock(Illuminate\Mail\MailManager::class);
+$mailManager->shouldReceive('build')->twice()->with($sharedSmtp)->andReturn($builtMailer);
+Illuminate\Support\Facades\Mail::swap($mailManager);
+$actualController = new class extends CandidateCommunicationController {
+    public function __construct() {}
+    public function resolveMailer(string $source) { return $this->mailer($source); }
+};
+check($actualController->resolveMailer('ai-search') === $builtMailer && $actualController->resolveMailer('candidates') === $builtMailer, 'AI Search, profile, and bulk email share the same SMTP settings and sender');
+$app['config']->set('mail.ai_search_smtp.password', '');
+rejects(fn()=>$actualController->resolveMailer('candidates'), RuntimeException::class, 'Incomplete shared SMTP fails explicitly without switching accounts');
+
 Mockery::close();
 echo "All messaging smoke checks passed.".PHP_EOL;
