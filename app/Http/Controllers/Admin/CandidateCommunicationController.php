@@ -9,6 +9,8 @@ use App\ApplicantSmsMessage;
 use App\SmsSetting;
 use App\EmailSetting;
 use App\Services\TelnyxSmsService;
+use App\Services\CandidateEmailFailure;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -34,8 +36,16 @@ class CandidateCommunicationController extends AdminBaseController
         }
         $settings = EmailSetting::first();
         if (!$settings) throw new \RuntimeException('Email settings are not configured.');
+        if ($settings->mail_driver !== 'smtp') {
+            throw new \RuntimeException('Candidate mail driver is not SMTP.');
+        }
+        if (!$settings->mail_host || !$settings->mail_port || !filter_var($settings->mail_from_email, FILTER_VALIDATE_EMAIL)) {
+            throw new \RuntimeException('Candidate SMTP settings are incomplete.');
+        }
         $mailer = Mail::build([
-            'transport' => $settings->mail_driver,
+            'transport' => 'smtp',
+            'scheme' => $settings->mail_encryption === 'ssl' ? 'smtps' : 'smtp',
+            'timeout' => 20,
             'host' => $settings->mail_host,
             'port' => $settings->mail_port,
             'encryption' => $settings->mail_encryption,
@@ -172,9 +182,10 @@ class CandidateCommunicationController extends AdminBaseController
                 $result['status'] = 'sent';
                 $result['reason'] = 'Accepted by the messaging provider.';
             } catch (\Throwable $e) {
-                Log::warning('Candidate bulk message failed.', ['type' => $recipient['type'], 'id' => $candidate->id, 'error' => $e->getMessage()]);
+                $reference = (string) Str::uuid();
+                Log::warning('Candidate bulk message failed.', ['reference' => $reference, 'channel' => $data['channel'], 'source' => $data['source'] ?? 'candidates', 'type' => $recipient['type'], 'id' => $candidate->id, 'error' => $e->getMessage()]);
                 $result['status'] = 'failed';
-                $result['reason'] = 'Could not send. Check the contact details and messaging settings.';
+                $result['reason'] = ($data['channel'] === 'email' ? CandidateEmailFailure::message($e) : 'Could not send SMS. Check the phone number and SMS settings.').' Reference: '.$reference;
             }
             $results[] = $result;
         }
