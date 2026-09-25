@@ -239,6 +239,7 @@
 @endif
 
 @section('content')
+@include('admin.partials.candidate-communications')
 <div class="ja-board-scope -mx-4 -mt-2 flex min-h-[calc(100dvh-9.5rem)] flex-col bg-[#EEF0F5] sm:-mx-6">
     <div class="flex min-h-0 flex-1 flex-col overflow-hidden px-5 pb-5 pt-5 sm:px-6">
 
@@ -450,6 +451,7 @@
     var jaStatusNameFilter = new URLSearchParams(window.location.search).get('status_name') || '';
     var jaShowKO         = false;
     var jaSelectedIds    = new Set();
+    window.ccSelection = function () { return Array.from(jaSelectedIds).map(function(id) { return {type:'application', id:Number(id)}; }); };
     var table;
     var jaFilterStorageKey = 'job-application-filters-v1-{{ auth()->id() }}';
 
@@ -626,6 +628,7 @@
 
     // ── Bulk action bar ──────────────────────────────────────────
     function jaRenderBulkBar() {
+        if (window.ccRefreshSelection) window.ccRefreshSelection();
         var n = jaSelectedIds.size;
         var bar = document.getElementById('ja-bulk-bar');
         document.getElementById('ja-bulk-cnt').textContent = n;
@@ -893,6 +896,7 @@
             if (typeof $.fn.tooltip === 'function') {
                 $('[data-toggle="tooltip"]').tooltip();
             }
+            document.querySelectorAll('.ja-row-chk').forEach(function(box) { if (jaSelectedIds.has(Number(box.dataset.id))) { box.classList.add('on'); box.innerHTML = '<i class="fa fa-check" style="font-size:10px;color:#fff"></i>'; } });
             jaUpdateAllChk();
             jaRebuildIds();
         },

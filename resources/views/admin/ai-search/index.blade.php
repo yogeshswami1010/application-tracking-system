@@ -253,6 +253,7 @@
 @endpush
 
 @section('content')
+@include('admin.partials.candidate-communications')
 <div class="ai-search-page">
 
     {{-- Hero --}}
@@ -323,40 +324,6 @@
             <div class="ai-search-empty-icon"><i class="fa fa-search"></i></div>
             <h3>Search your candidate database</h3>
             <p>Search by role, location, experience — AI reads uploaded CVs to find the best matches</p>
-        </div>
-    </div>
-
-    <div class="modal fade ai-email-modal" id="ai-send-email-modal" tabindex="-1" role="dialog" aria-hidden="true" style="display: none;">
-        <div class="modal-dialog modal-dialog-centered" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="fa fa-envelope-o text-primary"></i> Send email</h5>
-                    <button type="button" class="close" onclick="aiCloseEmailModal()" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                </div>
-                <div class="modal-body">
-                    <p class="text-muted mb-3">This email will be sent separately to <strong id="ai-email-recipient-count">0</strong> selected applicants.</p>
-                    <div id="ai-email-recipient-names" class="mb-3" style="max-height:95px;overflow-y:auto;padding:9px 11px;background:#f8f9fa;border:1px solid #e9ecef;border-radius:6px;font-size:12px;color:#495057"></div>
-                    <div class="form-row align-items-end mb-3">
-                        <div class="col-md-6"><label for="ai-email-template-select">Saved template</label><select id="ai-email-template-select" class="form-control"><option value="">Choose a template…</option></select></div>
-                        <div class="col-md-4"><label for="ai-email-template-name">Template name</label><input id="ai-email-template-name" class="form-control" maxlength="80" placeholder="e.g. Interview invite"></div>
-                        <div class="col-md-2"><button type="button" class="btn btn-outline-primary btn-block" onclick="aiSaveEmailTemplate()">Save</button></div>
-                    </div>
-                    <div class="form-group">
-                        <label for="ai-email-subject">Subject <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="ai-email-subject" maxlength="191" placeholder="Email subject">
-                    </div>
-                    <div class="form-group mb-0">
-                        <label for="ai-email-message">Message <span class="text-danger">*</span></label>
-                        <textarea class="form-control" id="ai-email-message" maxlength="10000" placeholder="Write your email message here. Use @{{applicant_name}} to insert each applicant's name."></textarea>
-                        <small class="form-text text-muted">Use <code>@{{applicant_name}}</code> where you want each applicant's name to appear.</small>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-light" onclick="aiCloseEmailModal()">Cancel</button>
-
-                    <button type="button" class="btn btn-primary" id="ai-send-email-confirm"><i class="fa fa-paper-plane"></i> Send email</button>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -624,12 +591,15 @@ function aiSearchServer(query, terms, roles, location, minExp) {
             btn.innerHTML = '<svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg> Search with AI';
             aiLastResults = res.results || [];
             aiSelectedApplicantIds = [];
+            aiUpdateBulkActions();
             aiRenderResults(aiLastResults, query);
         },
         error: function() {
             var btn = document.getElementById('ai-search-btn');
             btn.disabled = false;
             btn.innerHTML = 'Search with AI';
+            aiSelectedApplicantIds = [];
+            aiUpdateBulkActions();
             aiRenderResults([], query);
         }
     });
@@ -735,77 +705,16 @@ function aiToggleAllApplicants() {
     aiRenderCards(aiLastResults);
 }
 
+window.ccSelection = function () { return aiSelectedApplicantIds.map(function(id) { return {type:'application',id:Number(id)}; }); };
 function aiUpdateBulkActions() {
+    if (window.ccRefreshSelection) window.ccRefreshSelection();
     var actions = document.getElementById('ai-bulk-actions');
     var count = document.getElementById('ai-selected-count');
     if (actions) actions.classList.toggle('visible', aiSelectedApplicantIds.length > 0);
     if (count) count.textContent = aiSelectedApplicantIds.length;
 }
 
-function aiOpenEmailModal() {
-    if (!aiSelectedApplicantIds.length) return;
-    document.getElementById('ai-email-recipient-count').textContent = aiSelectedApplicantIds.length;
-    var names = (aiLastResults || []).filter(function(r) { return aiSelectedApplicantIds.indexOf(Number(r.id)) !== -1; }).map(function(r) { return aiEsc(r.full_name || 'Applicant'); });
-    document.getElementById('ai-email-recipient-names').innerHTML = '<strong>Recipients:</strong> ' + names.join(', ');
-    aiRefreshEmailTemplates();
-    var modal = document.getElementById('ai-send-email-modal');
-    modal.style.display = 'block';
-    modal.style.paddingLeft = '0';
-    modal.classList.add('show');
-    document.body.classList.add('modal-open');
-
-    // simple backdrop since Bootstrap JS isn't managing one
-    if (!document.getElementById('ai-manual-backdrop')) {
-        var backdrop = document.createElement('div');
-        backdrop.id = 'ai-manual-backdrop';
-        backdrop.className = 'modal-backdrop fade show';
-        backdrop.onclick = aiCloseEmailModal;
-        document.body.appendChild(backdrop);
-    }
-}
-
-function aiCloseEmailModal() {
-    var modal = document.getElementById('ai-send-email-modal');
-    modal.style.display = 'none';
-    modal.classList.remove('show');
-    document.body.classList.remove('modal-open');
-    var backdrop = document.getElementById('ai-manual-backdrop');
-    if (backdrop) backdrop.remove();
-}
-$('#ai-send-email-confirm').on('click', function() {
-    var subject = document.getElementById('ai-email-subject').value.trim();
-    var message = document.getElementById('ai-email-message').value.trim();
-    if (!subject || !message) { alert('Please enter both a subject and message.'); return; }
-    var button = $(this);
-    button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Sending…');
-     $.ajax({
-        url: '{{ route("admin.ai-search.send-email") }}', type: 'POST',
-        data: { _token: '{{ csrf_token() }}', applicant_ids: aiSelectedApplicantIds, subject: subject, message: message },
-        success: function(response) {
-            if (response.status === 'success') {
-                aiCloseEmailModal();
-                document.getElementById('ai-email-subject').value = '';
-                document.getElementById('ai-email-message').value = '';
-                aiSelectedApplicantIds = [];
-                aiRenderCards(aiLastResults);
-                  Swal.fire({
-                        icon: 'success',
-                        title: 'Success',
-                        text: response.message,
-                        confirmButtonText: 'OK'
-                    });
-
-            }
-           
-        },
-        complete: function() {
-            $.unblockUI();
-
-            button.prop('disabled', false)
-                .html('<i class="fa fa-paper-plane"></i> Send Email');
-        }
-    });
-});
+function aiOpenEmailModal() { if (window.ccOpen) window.ccOpen('email'); }
 
 function aiSort(by) {
     aiCurrentSort = by;
@@ -826,6 +735,7 @@ function aiClear() {
     aiLastResults = [];
     aiSelectedApplicantIds = [];
     aiLastQuery = '';
+    aiUpdateBulkActions();
     document.getElementById('ai-search-output').innerHTML = '<div class="ai-search-empty" id="ai-empty-state"><div class="ai-search-empty-icon"><i class="fa fa-search"></i></div><h3>Search your candidate database</h3><p>Type a role, skill, or description — AI will find the best matches from all applicants</p></div>';
 }
 
@@ -851,19 +761,6 @@ function aiOpenApplicant(id) {
     window._jaDirectProfileXhr = $.ajax({ type: 'GET', url: url, success: function(response) {
         if (requestId === window._jaDirectProfileRequestId && response.status === 'success') { $('#right-sidebar').removeClass('translate-x-full').addClass('translate-x-0'); $('#right-sidebar-backdrop').removeClass('hidden').css('display', 'block'); $('#right-sidebar-content').html(response.view); }
     }});
-}
-
-function aiEmailTemplates() { try { return JSON.parse(localStorage.getItem('ai_email_templates') || '[]'); } catch (e) { return []; } }
-function aiRefreshEmailTemplates() {
-    var select = document.getElementById('ai-email-template-select'), templates = aiEmailTemplates();
-    select.innerHTML = '<option value="">Choose a template…</option>' + templates.map(function(t, i) { return '<option value="' + i + '">' + aiEsc(t.name) + '</option>'; }).join('');
-    select.onchange = function() { var t = aiEmailTemplates()[this.value]; if (t) { document.getElementById('ai-email-subject').value = t.subject; document.getElementById('ai-email-message').value = t.message; } };
-}
-function aiSaveEmailTemplate() {
-    var name = document.getElementById('ai-email-template-name').value.trim(), subject = document.getElementById('ai-email-subject').value.trim(), message = document.getElementById('ai-email-message').value.trim();
-    if (!name || !subject || !message) { alert('Enter a template name, subject, and message first.'); return; }
-    var templates = aiEmailTemplates(); templates = templates.filter(function(t) { return t.name.toLowerCase() !== name.toLowerCase(); }); templates.push({ name:name, subject:subject, message:message });
-    localStorage.setItem('ai_email_templates', JSON.stringify(templates)); document.getElementById('ai-email-template-name').value = ''; aiRefreshEmailTemplates();
 }
 
 function aiEsc(s) {

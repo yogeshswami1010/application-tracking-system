@@ -38,6 +38,7 @@
 
     <div class="pl-2.5">
 
+        <input type="checkbox" class="cc-select" data-type="application" value="{{ $application->id }}" aria-label="Select {{ $application->full_name }}" onclick="event.stopPropagation()">
         {{-- Header --}}
         <div class="mb-2 flex items-start justify-between gap-2">
 

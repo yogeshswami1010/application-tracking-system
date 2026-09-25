@@ -106,6 +106,7 @@
 @endpush
 
 @section('content')
+@include('admin.partials.candidate-communications')
 <div class="ja-board-scope -mx-4 -mt-2 flex min-h-[calc(100dvh-9.5rem)] flex-col bg-[#EEF0F5] sm:-mx-6">
     <div class="flex min-h-0 flex-1 flex-col overflow-hidden px-5 pb-5 pt-5 sm:px-6">
 
@@ -369,7 +370,7 @@ document.getElementById('run-bulk-parse').addEventListener('click', function() {
             <table id="myTable" class="jc-cat-table display w-full" style="width:100%">
                 <thead>
                     <tr>
-                        <th>#</th>
+                        <th><input type="checkbox" class="cc-all" aria-label="Select all candidates on this page"></th>
                         <th>@lang('modules.jobApplication.applicantName')</th>
                         <th>@lang('menu.jobs')</th>
                         <th>@lang('menu.locations')</th>
@@ -688,7 +689,7 @@ document.getElementById('run-bulk-parse').addEventListener('click', function() {
         // Rebuild thead so DataTables has correct columns to measure
         $('#myTable').html(
             '<thead><tr>' +
-                '<th>#</th>' +
+                '<th><input type="checkbox" class="cc-all" aria-label="Select all candidates on this page"></th>' +
                 '<th>{{ __('modules.jobApplication.applicantName') }}</th>' +
                 '<th>{{ __('menu.jobs') }}</th>' +
                 '<th>{{ __('menu.locations') }}</th>' +
@@ -726,7 +727,7 @@ document.getElementById('run-bulk-parse').addEventListener('click', function() {
                 }
             },
             columns: [
-                { data: 'DT_Row_Index', orderable: false,  searchable: false },
+                { data: null, orderable: false, searchable: false, render: function(data, type, row) { return '<input type="checkbox" class="cc-select" data-type="application" value="' + Number(row.id) + '" aria-label="Select candidate">'; } },
                 { data: 'full_name',    name: 'full_name' },
                 { data: 'title',        name: 'job_id' },
                 { data: 'location',     name: 'location_id' },

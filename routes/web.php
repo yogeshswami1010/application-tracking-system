@@ -127,6 +127,11 @@ Route::middleware('auth')->group(function () {
         ->group(function () { 
 
             Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+
+            Route::get('candidate-communications/templates', [\App\Http\Controllers\Admin\CandidateCommunicationController::class, 'templates'])->name('candidate-communications.templates');
+            Route::post('candidate-communications/templates', [\App\Http\Controllers\Admin\CandidateCommunicationController::class, 'saveTemplate'])->name('candidate-communications.templates.save');
+            Route::post('candidate-communications/preview', [\App\Http\Controllers\Admin\CandidateCommunicationController::class, 'preview'])->name('candidate-communications.preview');
+            Route::post('candidate-communications/send', [\App\Http\Controllers\Admin\CandidateCommunicationController::class, 'send'])->middleware('throttle:120,1')->name('candidate-communications.send');
             Route::get('ats-sync-state', [AdminAtsSyncController::class, 'state'])->name('ats-sync-state');
             Route::post('ats-presence-heartbeat', [AdminAtsSyncController::class, 'heartbeat'])->name('ats-presence-heartbeat');
             Route::get('ats-overview', [AdminAtsOverviewController::class, 'index'])->name('ats-overview.index');

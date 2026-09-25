@@ -24,6 +24,7 @@
 @endpush
 
 @section('content')
+@include('admin.partials.candidate-communications')
 <div class="ja-board-scope -mx-4 -mt-2 flex min-h-[calc(100dvh-9.5rem)] flex-col bg-[#EEF0F5] sm:-mx-6">
     <div class="flex min-h-0 flex-1 flex-col overflow-hidden px-5 pb-5 pt-5 sm:px-6">
 
@@ -52,7 +53,7 @@
                 <table id="candidate-marketing-table" class="display" style="width:100%">
                     <thead>
                         <tr>
-                            <th>#</th>
+                            <th><input type="checkbox" class="cc-all" aria-label="Select all candidates on this page"></th>
                             <th>Name</th>
                             <th>Applied For</th>
                             <th>Marketing Label</th>
@@ -90,7 +91,7 @@ $(function () {
                 orderable: false,
                 searchable: false,
                 render: function (data, type, row, meta) {
-                    return meta.row + meta.settings._iDisplayStart + 1;
+                    return '<input type="checkbox" class="cc-select" data-type="application" value="' + Number(row.id) + '" aria-label="Select candidate">';
                 }
             },
             { data: 'full_name', name: 'full_name' },
