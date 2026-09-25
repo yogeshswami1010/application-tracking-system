@@ -11,7 +11,7 @@
         <form id="cc-form">
             <header class="cc-modal-header">
                 <div class="cc-heading"><span class="cc-heading-icon" aria-hidden="true"><i class="fa fa-envelope-o"></i></span><div><h2 id="cc-title">Bulk email</h2><p>Connect with your selected candidates</p></div></div>
-                <button type="button" id="cc-close-top" class="cc-icon-button" aria-label="Close message popup" title="Close"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke-linecap="round"/></svg></button>
+                <button type="button" id="cc-close-top" onclick="this.closest('dialog').close()" class="cc-icon-button" aria-label="Close message popup" title="Close"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke-linecap="round"/></svg></button>
             </header>
             <div class="cc-modal-body">
                 <div class="cc-recipient-card"><i class="fa fa-users" aria-hidden="true"></i><div><p class="cc-eyebrow">RECIPIENTS</p><p id="cc-summary" role="status"></p><details><summary>Review recipient list</summary><ul id="cc-recipients"></ul></details></div></div>
@@ -33,7 +33,7 @@
                 </div>
                 <p id="cc-feedback" role="status" aria-live="polite"></p>
             </div>
-            <footer class="cc-modal-footer"><span class="cc-delivery-note"><i class="fa fa-lock" aria-hidden="true"></i> Each candidate receives a separate message.</span><div class="cc-actions"><button type="button" id="cc-close">Cancel</button><button type="submit" id="cc-send">Send to selected candidates</button></div></footer>
+            <footer class="cc-modal-footer"><span class="cc-delivery-note"><i class="fa fa-lock" aria-hidden="true"></i> Each candidate receives a separate message.</span><div class="cc-actions"><button type="button" id="cc-close" onclick="this.closest('dialog').close()">Cancel</button><button type="submit" id="cc-send">Send to selected candidates</button></div></footer>
         </form>
     </dialog>
 </div>
@@ -94,6 +94,6 @@
 </style>
 @endpush
 @push('footer-script')
-<script src="{{ asset('js/candidate-communications.js') }}"></script>
+<script src="{{ asset('js/candidate-communications.js') }}?v={{ filemtime(public_path('js/candidate-communications.js')) }}"></script>
 @endpush
 @endif

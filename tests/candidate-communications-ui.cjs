@@ -74,5 +74,15 @@ vm.runInNewContext(fs.readFileSync('public/js/candidate-communications.js','utf8
     assert.equal(elements['cc-subject'].required,false);
     assert.equal(elements['cc-email-fields'].hidden,true);
     assert.equal(elements['cc-message'].value,'','Email draft is not reused as an SMS');
+    // Exercise the actual markup fallback, including when an older script is cached.
+    const markup = fs.readFileSync('resources/views/admin/partials/candidate-communications.blade.php','utf8');
+    const closeHandler = markup.match(/id="cc-close-top" onclick="([^"]+)"/)[1];
+    for (const channel of ['email','sms']) {
+        elements['cc-dialog'].close();
+        await context.ccOpen(channel);
+        assert.equal(elements['cc-dialog'].open,true);
+        new Function(closeHandler).call({closest:()=>elements['cc-dialog']});
+        assert.equal(elements['cc-dialog'].open,false,'Cross closes '+channel+' without relying on a JS listener');
+    }
     console.log('PASS: Composer selection, mixed sources, template reuse/save, duplicate-click protection, progress, and SMS mode');
 })().catch(error=>{console.error(error);process.exitCode=1;});
