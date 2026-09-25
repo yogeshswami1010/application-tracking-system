@@ -12,7 +12,7 @@ class Element {
     showModal() { this.open=true; }
     close() { this.open=false; }
 }
-const ids=['count','feedback','template','message','subject','template-name','title','email-fields','summary','recipients','send','dialog','save-template','close','form'];
+const ids=['count','feedback','template','message','subject','template-name','title','email-fields','summary','recipients','send','dialog','save-template','close','close-top','template-panel','form'];
 const elements=Object.fromEntries(ids.map(id=>['cc-'+id,new Element()]));
 const root=new Element();
 root.dataset={previewUrl:'/preview',sendUrl:'/send',templatesUrl:'/templates',token:'test',source:'candidates'};
@@ -67,7 +67,8 @@ vm.runInNewContext(fs.readFileSync('public/js/candidate-communications.js','utf8
     assert.equal(requests.filter(r=>r.url==='/send').length,2,'One request per selected recipient');
     assert.equal(elements['cc-send'].disabled,true,'Completed batch cannot be resubmitted');
     assert.match(elements['cc-feedback'].textContent,/2 sent, 0 failed/);
-    elements['cc-close'].handlers.click();
+    elements['cc-close-top'].handlers.click();
+    assert.equal(elements['cc-dialog'].open,false,'Top-right close button dismisses the popup');
     await context.ccOpen('sms');
     assert.equal(elements['cc-message'].maxLength,1600);
     assert.equal(elements['cc-subject'].required,false);

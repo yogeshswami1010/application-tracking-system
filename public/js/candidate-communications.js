@@ -53,6 +53,7 @@
         recipients = [];
         el('title').textContent = channel === 'email' ? 'Bulk email' : 'Bulk SMS';
         el('email-fields').hidden = channel !== 'email';
+        el('template-panel').hidden = channel !== 'email';
         el('subject').required = channel === 'email';
         el('message').maxLength = channel === 'sms' ? 1600 : 10000;
         el('summary').textContent = 'Checking selected candidates…';
@@ -100,7 +101,7 @@
         } catch (error) { feedback(error.message); }
         finally { el('save-template').disabled = false; }
     });
-    el('close').addEventListener('click', () => { if (!sending) el('dialog').close(); });
+    ['close', 'close-top'].forEach(id => el(id).addEventListener('click', () => { if (!sending) el('dialog').close(); }));
     el('dialog').addEventListener('cancel', event => { if (sending) event.preventDefault(); });
     el('form').addEventListener('submit', async event => {
         event.preventDefault();
