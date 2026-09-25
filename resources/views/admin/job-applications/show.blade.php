@@ -508,6 +508,11 @@ function jaSaveMarketingLabel(appId) {
                                 <i class="fa fa-rocket"></i> @lang('app.startOnboard')
                             </a>
                             @endif
+                            @if($user->cans('view_job_applications') && $user->cans('edit_job_applications'))
+                            <button type="button" onclick="ccOpen('email', [{type: 'application', id: {{ (int) $application->id }}}])" class="ja-btn ja-btn-blue">
+                                <i class="fa fa-envelope-o"></i> Send Email
+                            </button>
+                            @endif
                             @if($user->cans('edit_job_applications') && $application->phone)
                             <button type="button" onclick="jaOpenSmsModal({{ $application->id }})" class="ja-btn ja-btn-blue">
                                 <i class="fa fa-commenting-o"></i> Send SMS

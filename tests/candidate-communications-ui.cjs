@@ -35,7 +35,7 @@ const context={
     fetch:async(url,options)=>{
         const data=options.body?JSON.parse(options.body):null;
         requests.push({url,data});
-        if(url==='/preview')return {ok:true,json:async()=>({recipients:selected.map((r,i)=>({...r,name:'Candidate '+i,address:i+'@example.test',reason:null}))})};
+        if(url==='/preview')return {ok:true,json:async()=>({recipients:data.recipients.map((r,i)=>({...r,name:'Candidate '+i,address:i+'@example.test',reason:null}))})};
         if(url==='/templates')return {ok:true,json:async()=>({templates:[{id:3,name:'Invite',subject:'Hello',message:'Hi [applicant_name]'}]})};
         if(delaySend){delaySend=false;await new Promise(resolve=>{resolveSend=resolve;});}
         return {ok:true,json:async()=>({results:[{status:'sent'}]})};
@@ -84,5 +84,17 @@ vm.runInNewContext(fs.readFileSync('public/js/candidate-communications.js','utf8
         new Function(closeHandler).call({closest:()=>elements['cc-dialog']});
         assert.equal(elements['cc-dialog'].open,false,'Cross closes '+channel+' without relying on a JS listener');
     }
+    const profileRecipient = [{type:'application',id:42}];
+    await context.ccOpen('email', profileRecipient);
+    assert.deepEqual(requests.at(-2).data.recipients,profileRecipient,'Profile uses only the current candidate despite bulk selection');
+    assert.equal(elements['cc-title'].textContent,'Send email');
+    elements['cc-message'].value='Profile message';
+    elements['cc-subject'].value='Profile subject';
+    await elements['cc-form'].handlers.submit({preventDefault(){}});
+    assert.deepEqual(requests.at(-1).data.recipients,profileRecipient,'Profile sends only to its candidate');
+    elements['cc-dialog'].close();
+    await context.ccOpen('email');
+    assert.deepEqual(requests.at(-2).data.recipients,selected,'Bulk selection remains unchanged after profile email');
+    elements['cc-dialog'].close();
     console.log('PASS: Composer selection, mixed sources, template reuse/save, duplicate-click protection, progress, and SMS mode');
 })().catch(error=>{console.error(error);process.exitCode=1;});

@@ -42,16 +42,17 @@
         el('template').replaceChildren(new Option('Choose a template', ''));
         templates.forEach(template => el('template').add(new Option(template.name + (String(template.id).startsWith('browser-') ? ' (browser template)' : ''), template.id)));
     }
-    window.ccOpen = async nextChannel => {
+    window.ccOpen = async (nextChannel, selectedRecipients = null) => {
         if (sending || opening) return;
-        const selected = selection();
+        const selected = selectedRecipients ?? selection();
         if (!selected.length || selected.length > 100) return;
         opening = true;
         drafts[channel] = el('message').value;
         channel = nextChannel;
         el('message').value = drafts[channel];
         recipients = [];
-        el('title').textContent = channel === 'email' ? 'Bulk email' : 'Bulk SMS';
+        el('title').textContent = selectedRecipients ? (channel === 'email' ? 'Send email' : 'Send SMS') : (channel === 'email' ? 'Bulk email' : 'Bulk SMS');
+        el('send').textContent = selectedRecipients ? 'Send message' : 'Send to selected candidates';
         el('email-fields').hidden = channel !== 'email';
         el('template-panel').hidden = channel !== 'email';
         el('subject').required = channel === 'email';

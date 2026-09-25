@@ -1,3 +1,6 @@
+@section('candidate-communication-popup')
+    @include('admin.partials.candidate-communications', ['showCommunicationToolbar' => false])
+@endsection
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -290,6 +293,7 @@
     </div>
 
 
+    @yield('candidate-communication-popup')
     @include('sections.right-sidebar')
     <div id="internal-message-popup-backdrop" class="fixed inset-0 z-[249] hidden bg-[rgba(15,23,42,0.52)] backdrop-blur-[2px]" aria-hidden="true"></div>
     <div id="internal-message-popup" class="fixed z-[250] hidden w-[min(480px,calc(100vw-24px))] overflow-hidden border border-white/20 bg-white" style="left:50%;top:50%;transform:translate(-50%,-50%);border-radius:24px;box-shadow:0 30px 80px rgba(15,23,42,.28),0 8px 24px rgba(15,23,42,.12);" role="dialog" aria-modal="true" aria-live="assertive" aria-label="New internal message">

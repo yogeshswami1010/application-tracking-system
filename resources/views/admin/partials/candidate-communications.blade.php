@@ -1,6 +1,7 @@
 @if(auth()->user()->cans('view_job_applications') && auth()->user()->cans('edit_job_applications'))
+@once
 <div id="candidate-communications" data-preview-url="{{ route('admin.candidate-communications.preview') }}" data-send-url="{{ route('admin.candidate-communications.send') }}" data-templates-url="{{ route('admin.candidate-communications.templates') }}" data-source="{{ request()->routeIs('admin.ai-search') ? 'ai-search' : 'candidates' }}" data-token="{{ csrf_token() }}">
-    <div class="cc-toolbar">
+    <div class="cc-toolbar" @if(!($showCommunicationToolbar ?? true)) hidden style="display:none" @endif>
         @if(request()->routeIs('admin.job-applications.index'))<label><input type="checkbox" class="cc-all"> Select all loaded candidates</label>@endif
         <strong><span id="cc-count">0</span> candidates selected</strong>
         <button type="button" data-cc-open="email">Bulk email</button>
@@ -96,4 +97,5 @@
 @push('footer-script')
 <script src="{{ asset('js/candidate-communications.js') }}?v={{ filemtime(public_path('js/candidate-communications.js')) }}"></script>
 @endpush
+@endonce
 @endif
