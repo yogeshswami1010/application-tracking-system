@@ -6,13 +6,7 @@ Open a candidate profile and choose **Call candidate & call history**. This open
 
 1. Apply `php artisan migrate` against the intended ATS database.
 2. In Telnyx, configure a credential-based SIP connection with an outbound voice profile, allowed destinations, spending limits, and a voice-enabled caller number. Create a telephony credential for this connection. The existing Telnyx API key in SMS Settings is used server-side; SMS activation is not required for voice. Do not use an unrestricted shared production credential: browser tokens inherit the connection's outbound capabilities.
-3. Set these server environment values, then refresh Laravel's configuration cache:
-
-   ```dotenv
-   CANDIDATE_CALLS_ENABLED=true
-   TELNYX_VOICE_CREDENTIAL_ID=
-   TELNYX_VOICE_FROM_NUMBER=+14165551234
-   ```
+3. Open **Account Settings → Candidate calling**, check **Enable browser calling**, enter the **Telnyx voice credential ID** and **Telnyx calling number** (including `+` and country code), then click **Save**. These values are stored in the database and apply to new calls immediately; no `.env` edit or configuration cache refresh is needed. Only users with `manage_settings` permission can save them. Existing `CANDIDATE_CALLS_ENABLED`, `TELNYX_VOICE_CREDENTIAL_ID`, and `TELNYX_VOICE_FROM_NUMBER` environment settings remain a fallback until the account form is first saved; after that, account settings take precedence, including disabling calling.
 
 4. Summaries reuse the existing `DEEPSEEK_API_KEY` and `DEEPSEEK_MODEL` through `services.deepseek`, just like the ATS resume parser. No separate summary key or model is required. Audio-to-text uses Telnyx's `nvidia/parakeet-v3` model with the existing Telnyx API key; the Telnyx account must have access to its speech-to-text API. There are no OpenAI API calls or OpenAI models in this call workflow. Any old `CALL_TRANSCRIPTION_MODEL` or `CALL_SUMMARY_MODEL` settings are no longer used.
 5. Serve the ATS over HTTPS. Allow microphone access and the Telnyx SDK CDN/WebRTC connections in your browser/network/CSP. Use headphones. This initial version uses the existing US/Canada phone normalization.

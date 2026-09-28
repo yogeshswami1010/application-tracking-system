@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\CandidateCall;
+use App\CompanySetting;
 use App\SmsSetting;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -10,6 +11,23 @@ use RuntimeException;
 
 class CandidateCallService
 {
+    public static function voiceSettings(?CompanySetting $settings = null): array
+    {
+        $settings ??= CompanySetting::first();
+        if ($settings && $settings->candidate_calls_enabled !== null) {
+            return [
+                'enabled' => (bool) $settings->candidate_calls_enabled,
+                'credential_id' => $settings->telnyx_voice_credential_id,
+                'from_number' => $settings->telnyx_voice_from_number,
+            ];
+        }
+        return [
+            'enabled' => (bool) config('candidate_calls.enabled'),
+            'credential_id' => config('candidate_calls.credential_id'),
+            'from_number' => config('candidate_calls.from_number'),
+        ];
+    }
+
     public function aiKey(): string
     {
         $key = trim((string) config('services.deepseek.key'));
@@ -20,11 +38,15 @@ class CandidateCallService
     public function session(): array
     {
         $settings = SmsSetting::first();
-        $credential = config('candidate_calls.credential_id');
-        $from = config('candidate_calls.from_number');
-        if (!config('candidate_calls.enabled') || !$credential || !$from || !$settings?->telnyx_api_key) {
-            throw new RuntimeException('Browser calling needs Telnyx voice setup. Ask your administrator to follow docs/candidate-calls.md.');
-        }
+        $voice = self::voiceSettings();
+        $credential = $voice['credential_id'];
+        $from = $voice['from_number'];
+        $missing = [];
+        if (!$voice['enabled']) $missing[] = 'enable Candidate calling in Account Settings';
+        if (!trim((string) $credential)) $missing[] = 'enter the Telnyx voice credential ID in Account Settings';
+        if (!trim((string) $from)) $missing[] = 'enter the Telnyx calling number in Account Settings';
+        if (!trim((string) $settings?->telnyx_api_key)) $missing[] = 'save your Telnyx API key in SMS Settings';
+        if ($missing) throw new RuntimeException('Calling setup incomplete: '.implode('; ', $missing).'.');
         $this->aiKey();
         $response = Http::withToken($settings->telnyx_api_key)->timeout(20)
             ->post('https://api.telnyx.com/v2/telephony_credentials/'.rawurlencode($credential).'/token');

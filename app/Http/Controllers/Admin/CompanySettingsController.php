@@ -38,6 +38,8 @@ class CompanySettingsController extends AdminBaseController
             abort(404);
         }
 
+        $this->voiceSettings = \App\Services\CandidateCallService::voiceSettings($setting);
+
         return view('admin.settings.index', $this->data);
     }
 
@@ -87,6 +89,12 @@ class CompanySettingsController extends AdminBaseController
         $data->locale = $request->locale;
 
         $data->website = $request->website;
+
+        if ($request->has('candidate_calls_enabled')) {
+            $data->candidate_calls_enabled = $request->boolean('candidate_calls_enabled');
+            $data->telnyx_voice_credential_id = $request->input('telnyx_voice_credential_id');
+            $data->telnyx_voice_from_number = $request->input('telnyx_voice_from_number');
+        }
 
         if ($request->hasFile('logo')) {
             $data->logo = Files::upload($request->logo, 'app-logo');

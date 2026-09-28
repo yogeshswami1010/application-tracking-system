@@ -24,6 +24,7 @@ class CompanySetting extends Model
     ];
 
     protected $casts = [
+        'candidate_calls_enabled' => 'boolean',
         'supported_until' => 'datetime',
         'last_license_verified_at' => 'datetime',
     ];

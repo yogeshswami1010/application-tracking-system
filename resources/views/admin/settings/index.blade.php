@@ -30,6 +30,33 @@
             @method('PUT')
 
             {{-- Company information --}}
+            <div class="bs-set-card mb-4">
+                <div class="bs-set-card-hd">
+                    <div>
+                        <h2 class="text-[15px] font-bold text-[#1A1E2E]">Candidate calling</h2>
+                        <p class="text-[12px] text-[#8892A0]">Call candidates through Telnyx and save summaries using DeepSeek.</p>
+                    </div>
+                </div>
+                <div class="space-y-4 p-6">
+                    <input type="hidden" name="candidate_calls_enabled" value="0">
+                    <label class="flex items-center gap-2" for="candidate_calls_enabled">
+                        <input type="checkbox" id="candidate_calls_enabled" name="candidate_calls_enabled" value="1" @checked($voiceSettings['enabled'])>
+                        Enable browser calling
+                    </label>
+                    <div>
+                        <label class="bs-set-lbl" for="telnyx_voice_credential_id">Telnyx voice credential ID</label>
+                        <input class="bs-f-input" type="text" id="telnyx_voice_credential_id" name="telnyx_voice_credential_id" maxlength="191" value="{{ $voiceSettings['credential_id'] }}" autocomplete="off">
+                        <p class="mt-1 text-[11px] text-[#8892A0]">Enter the telephony credential ID associated with your Telnyx SIP connection.</p>
+                    </div>
+                    <div>
+                        <label class="bs-set-lbl" for="telnyx_voice_from_number">Telnyx calling number</label>
+                        <input class="bs-f-input" type="tel" id="telnyx_voice_from_number" name="telnyx_voice_from_number" maxlength="16" value="{{ $voiceSettings['from_number'] }}" placeholder="+14165551234">
+                        <p class="mt-1 text-[11px] text-[#8892A0]">Use your voice-enabled Telnyx number, including + and country code.</p>
+                    </div>
+                    <p class="text-[12px] text-[#8892A0]">The Telnyx API key is managed in SMS Settings. Changes apply to new calls immediately after saving.</p>
+                </div>
+            </div>
+
             <div class="mb-4 overflow-hidden rounded-[18px] border border-[#E8E6E1] bg-white">
                 <div class="flex items-center gap-3 border-b border-[#F0EEE9] px-6 py-4">
                     <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[#EFF6FF]">
