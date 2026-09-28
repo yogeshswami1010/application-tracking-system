@@ -233,6 +233,10 @@
 
 @include('admin.job-applications.partials.temp-staffing-control')
 
+<a href="{{ route('admin.candidate-calls.index', $application->id) }}" target="_blank" rel="noopener" class="ja-pdf-btn" style="margin:8px 16px;">
+    <i class="fa fa-phone"></i> Call candidate &amp; call history
+</a>
+
 <script>
 function jaToggleMarketing(appId) {
     var btn   = document.getElementById('ja-marketing-btn-' + appId);

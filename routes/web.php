@@ -128,6 +128,11 @@ Route::middleware('auth')->group(function () {
 
             Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
+            Route::get('job-applications/{id}/calls', [\App\Http\Controllers\Admin\CandidateCallController::class, 'index'])->name('candidate-calls.index');
+            Route::post('job-applications/{id}/calls', [\App\Http\Controllers\Admin\CandidateCallController::class, 'start'])->middleware('throttle:10,1')->name('candidate-calls.start');
+            Route::post('job-applications/{id}/calls/{callId}/finish', [\App\Http\Controllers\Admin\CandidateCallController::class, 'finish'])->name('candidate-calls.finish');
+            Route::post('job-applications/{id}/calls/{callId}/process', [\App\Http\Controllers\Admin\CandidateCallController::class, 'process'])->middleware('throttle:10,1')->name('candidate-calls.process');
+
             Route::get('candidate-communications/templates', [\App\Http\Controllers\Admin\CandidateCommunicationController::class, 'templates'])->name('candidate-communications.templates');
             Route::post('candidate-communications/templates', [\App\Http\Controllers\Admin\CandidateCommunicationController::class, 'saveTemplate'])->name('candidate-communications.templates.save');
             Route::post('candidate-communications/preview', [\App\Http\Controllers\Admin\CandidateCommunicationController::class, 'preview'])->name('candidate-communications.preview');

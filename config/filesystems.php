@@ -43,6 +43,13 @@ return [
 
     'disks' => [
 
+        'candidate_call_audio' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/candidate-calls'),
+            'visibility' => 'private',
+            'throw' => true,
+        ],
+
         'local' => [
             'driver' => 'local',
             'root' => public_path('user-uploads'),
