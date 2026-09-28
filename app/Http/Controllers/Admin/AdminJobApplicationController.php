@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Services\CandidateSearchText;
+
 use App\AiApiKey;
 use App\ApplicationSetting;
 use App\ApplicationStatus;
@@ -3272,10 +3274,17 @@ class AdminJobApplicationController extends AdminBaseController
     {
         abort_if(!$this->user->cans('view_job_applications'), 403);
 
-        $query = trim($request->input('query', ''));
+        $request->validate(['query' => ['nullable', 'string', 'max:500']]);
+        $query = CandidateSearchText::normalize((string) $request->input('query', ''));
         if (!$query) {
             return Reply::dataOnly(['skills' => [], 'keywords' => [], 'roles' => [], 'location' => '', 'min_experience' => 0]);
         }
+
+        if (preg_match('/^\d{2,5}[a-z]{1,3}$/', $query)) {
+            return Reply::dataOnly(['skills' => [], 'keywords' => [$query], 'roles' => [], 'location' => '', 'min_experience' => 0]);
+        }
+        $cacheKey = 'candidate-search-parse-v2:'.hash('sha256', $query);
+        if ($cached = \Illuminate\Support\Facades\Cache::get($cacheKey)) return Reply::dataOnly($cached);
 
         $prompt = 'Parse this job candidate search query: "' . $query . "\"\n\n"
             . "Extract:\n"
@@ -3284,7 +3293,7 @@ class AdminJobApplicationController extends AdminBaseController
             . "- roles: job titles / roles\n"
             . "- location: city or region mentioned (empty string if none)\n"
             . "- min_experience: minimum years of experience as a number (0 if not mentioned)\n\n"
-            . "Be comprehensive with skills/keywords — include synonyms.\n"
+            . "Correct obvious spelling mistakes in job titles and skills. Preserve qualification codes exactly. Never invent a location or minimum experience. Include useful role/skill synonyms.\n"
             . "Return ONLY minified JSON, no explanation:\n"
             . '{"skills":["skill1"],"keywords":["kw1"],"roles":["role1"],"location":"toronto","min_experience":5}';
 
@@ -3296,20 +3305,24 @@ class AdminJobApplicationController extends AdminBaseController
                 throw new \RuntimeException('Invalid JSON from Ollama');
             }
 
-            return Reply::dataOnly([
+            $result = [
                 'skills'         => (array) ($parsed['skills']         ?? []),
                 'keywords'       => (array) ($parsed['keywords']       ?? []),
                 'roles'          => (array) ($parsed['roles']          ?? []),
                 'location'       => (string) ($parsed['location']      ?? ''),
-                'min_experience' => (int) ($parsed['min_experience']   ?? 0),
-            ]);
+                'min_experience' => max(0, (int) ($parsed['min_experience'] ?? 0)),
+            ];
+            foreach (['skills', 'keywords', 'roles'] as $field) $result[$field] = CandidateSearchText::terms($result[$field]);
+            $result['location'] = CandidateSearchText::normalize($result['location']);
+            \Illuminate\Support\Facades\Cache::put($cacheKey, $result, 600);
+            return Reply::dataOnly($result);
         } catch (\Throwable $e) {
             \Log::warning('DeepSeek aiParseQuery failed: ' . $e->getMessage());
             // Graceful fallback — treat raw query as keyword
             return Reply::dataOnly([
                 'skills'         => [],
                 'keywords'       => [$query],
-                'roles'          => [$query],
+                'roles'          => [],
                 'location'       => '',
                 'min_experience' => 0,
                 'fallback'       => true,
@@ -3319,42 +3332,20 @@ class AdminJobApplicationController extends AdminBaseController
 
 
 
-/**
- * Fixed aiSearchResults()
- *
- * Fixes applied vs. the original:
- * 1. Removed `->where('is_candidate', 0)` — was silently excluding your entire
- *    Candidate Database pool (hundreds of fully-CV-parsed people) from every search.
- *    If you truly only want to search *active job applicants*, pass a flag from the
- *    front-end (see $onlyApplicants below) instead of hardcoding it.
- * 2. Removed the pre-scoring `->limit(150)` with no ORDER BY — was capping the pool
- *    at whatever 150 rows MySQL returned first, so real matches further down the
- *    table (you have 1700+) never got scored at all. Scoring now runs on the full
- *    filtered set, and we only slice to a max result count *after* sorting by score.
- * 3. Removed the "no penalty" +5 baseline points added when no location/experience
- *    filter was given — these were making completely irrelevant matches show up
- *    with a fake 5-10% score. Now: no real match = excluded, not floored.
- * 4. Role/title matching weight increased and made more forgiving (word-boundary +
- *    partial match on both sides) since "welder", "web developer", "sales manager"
- *    style queries are your main use case — this is now the strongest single signal.
- * 5. Experience matching tightened: exact CSV-based years compare when available,
- *    with graceful fallback to text-scan when a CV hasn't been AI-indexed yet.
- * 6. Location matching normalizes to lowercase once and checks word-ish containment
- *    (so "toronto" matches "Toronto, ON, Canada" reliably) — same idea as before,
- *    just no longer coupled to bonus points when absent.
- * 7. Removed the stray dead code (`];0 0 0`) at the end of the original map callback.
- */
+/** Match normalized queries against all candidate evidence before ranking. */
 public function aiSearchResults(Request $request)
 {
     abort_if(!$this->user->cans('view_job_applications'), 403);
 
-    $terms      = array_filter(array_map('trim', (array) $request->input('terms', [])));
-    $roles      = array_filter(array_map('trim', (array) $request->input('roles', [])));
-    $query      = trim($request->input('query', ''));
-    $location   = trim($request->input('location', ''));
-    $minExp     = (float) $request->input('min_experience', 0);
-    $searchTerms = array_values(array_unique(array_merge($terms, $roles)));
-$roleTerms   = !empty($roles) ? $roles : $searchTerms;
+    $request->validate(['query' => ['nullable', 'string', 'max:500'], 'terms' => ['nullable', 'array', 'max:50'], 'terms.*' => ['string', 'max:200'], 'roles' => ['nullable', 'array', 'max:30'], 'roles.*' => ['string', 'max:200'], 'location' => ['nullable', 'string', 'max:200'], 'min_experience' => ['nullable', 'numeric', 'min:0', 'max:100']]);
+    $terms = CandidateSearchText::terms((array) $request->input('terms', []));
+    $roles = CandidateSearchText::terms((array) $request->input('roles', []));
+    $query = CandidateSearchText::normalize((string) $request->input('query', ''));
+    $location = CandidateSearchText::normalize((string) $request->input('location', ''));
+    $minExp = (float) $request->input('min_experience', 0);
+    $requiredCodes = CandidateSearchText::codes($query);
+    $searchTerms = CandidateSearchText::terms(array_merge($terms, $roles, [$query]));
+    $roleTerms = $roles ?: $searchTerms;
 
     // Optional: let the front-end explicitly ask to restrict to active applicants only.
     // Defaults to false so AI Search covers your whole candidate pool by default.
@@ -3364,12 +3355,6 @@ $roleTerms   = !empty($roles) ? $roles : $searchTerms;
         return Reply::dataOnly(['results' => []]);
     }
 
-
-    $matchedSkillIds = \App\Skill::where(function ($q) use ($searchTerms) {
-            foreach ($searchTerms as $term) {
-                $q->orWhere('name', 'LIKE', '%' . $term . '%');
-            }
-        })->pluck('id')->map(fn($id) => (string) $id)->toArray();
 
     $applicantsQuery = \App\JobApplication::select(
             'job_applications.id',
@@ -3393,46 +3378,19 @@ $roleTerms   = !empty($roles) ? $roles : $searchTerms;
         )
         ->with(['status:id,status,color', 'job:id,title', 'location:id,location'])
         ->whereNull('job_applications.deleted_at')
-        ->where(function ($q) use ($searchTerms, $roleTerms, $matchedSkillIds) {
-            foreach ($matchedSkillIds as $sid) {
-                $q->orWhereJsonContains('job_applications.skills', $sid);
-            }
-            foreach ($roleTerms as $role) {
-                $q->orWhere('job_applications.cv_job_titles', 'LIKE', "%{$role}%")
-                ->orWhere('job_applications.cv_text', 'LIKE', "%{$role}%");
-            }
-          
-        });
-       if (!empty($location)) {
+        ->whereNull('job_applications.moved_to_trash_at');
 
-            $applicantsQuery->where(function ($q) use ($location) {
-
-                $q->where('job_applications.cv_location_text', 'LIKE', "%{$location}%")
-                ->orWhere('job_applications.city', 'LIKE', "%{$location}%")
-                ->orWhere('job_applications.state', 'LIKE', "%{$location}%")
-                ->orWhere('job_applications.country', 'LIKE', "%{$location}%")
-                ->orWhereHas('location', function ($lq) use ($location) {
-                    $lq->where('location', 'LIKE', "%{$location}%");
-                });
-
-            });
-
-        }
     if ($onlyApplicants) {
         $applicantsQuery->where('job_applications.is_candidate', 0);
     }
 
-    // No blind pre-scoring limit — cap generously just to protect memory on a
-    // pathologically broad query, but this should rarely bite at 1700 rows.
-    $applicants = $applicantsQuery->limit(2000)->get();
-
-    $allSkillIds = collect($applicants->pluck('skills')->flatten())
-        ->map(fn($id) => (int) $id)->unique()->filter()->values()->toArray();
-    $allSkillsMap = \App\Skill::whereIn('id', $allSkillIds)->pluck('name', 'id');
+    // Score in chunks before ranking: literal SQL filters would discard typo/spacing matches.
+    $applicants = $applicantsQuery->lazyById(250, 'job_applications.id', 'id');
+    $allSkillsMap = \App\Skill::pluck('name', 'id');
 
     $locLower = $location !== '' ? strtolower($location) : '';
 
-    $results = $applicants->map(function ($app) use ($searchTerms, $roleTerms, $allSkillsMap, $locLower, $minExp) {
+    $results = $applicants->map(function ($app) use ($searchTerms, $roleTerms, $allSkillsMap, $locLower, $minExp, $requiredCodes) {
         $score         = 0;
         $matchedSkills = [];
         $allSkills     = [];
@@ -3440,13 +3398,18 @@ $roleTerms   = !empty($roles) ? $roles : $searchTerms;
         $cvSkillsList  = array_values(array_filter(array_map('trim', explode(',', (string) $app->cv_skills_text))));
         $hasStructured = !empty($app->cv_indexed_at);
 
+        $evidence = implode(' ', array_merge([$app->cv_text ?? '', $app->cv_job_titles ?? '', $app->cv_skills_text ?? '', $app->full_name], array_map(fn ($id) => $allSkillsMap[(int) $id] ?? '', (array) $app->skills)));
+        foreach ($requiredCodes as $code) {
+            if (!CandidateSearchText::strength($evidence, $code)) return null;
+        }
+
         // ── Role / job title match — strongest signal, up to 45 pts ──
         $roleMatched = false;
-        if ($hasStructured && $cvJobTitles) {
+        if ($cvJobTitles) {
             foreach ($roleTerms as $term) {
                 foreach ($cvJobTitles as $title) {
-                    if (stripos($title, $term) !== false || stripos($term, $title) !== false) {
-                        $score += 45;
+                    if (($strength = CandidateSearchText::strength($title, $term)) > 0) {
+                        $score += 45 * $strength;
                         $roleMatched = true;
                         break 2;
                     }
@@ -3457,8 +3420,8 @@ $roleTerms   = !empty($roles) ? $roles : $searchTerms;
         // as a fallback when CV hasn't been AI-indexed yet.
         if (!$roleMatched) {
             foreach ($roleTerms as $term) {
-                if ($term !== '' && $app->cv_text && stripos((string) $app->cv_text, $term) !== false) {
-                    $score += 18;
+                if (($strength = CandidateSearchText::strength((string) $app->cv_text, $term)) > 0) {
+                    $score += 18 * $strength;
                     $roleMatched = true;
                     break;
                 }
@@ -3471,20 +3434,20 @@ $roleTerms   = !empty($roles) ? $roles : $searchTerms;
             if (!$name) continue;
             $allSkills[] = $name;
             foreach ($searchTerms as $term) {
-                if (stripos($name, $term) !== false) {
-                    $score += 8;
+                if (($strength = CandidateSearchText::strength($name, $term)) > 0) {
+                    $score += 8 * $strength;
                     if (!in_array($name, $matchedSkills)) $matchedSkills[] = $name;
                     break;
                 }
             }
         }
 
-        // ── AI-parsed CV skills — up to ~18 pts, only if indexed ──
-        if ($hasStructured && $cvSkillsList) {
+        // ── Parsed CV skills, including existing fields without an index timestamp ──
+        if ($cvSkillsList) {
             foreach ($searchTerms as $term) {
                 foreach ($cvSkillsList as $skill) {
-                    if (stripos($skill, $term) !== false) {
-                        $score += 6;
+                    if (($strength = CandidateSearchText::strength($skill, $term)) > 0) {
+                        $score += 6 * $strength;
                         if (!in_array($skill, $matchedSkills)) $matchedSkills[] = $skill;
                         $allSkills[] = $skill;
                         break;
@@ -3495,11 +3458,14 @@ $roleTerms   = !empty($roles) ? $roles : $searchTerms;
 
         // ── Name match — light weight, supporting evidence only ──
         foreach ($searchTerms as $term) {
-            if ($term !== '' && stripos($app->full_name, $term) !== false) {
-                $score += 4;
+            if (($strength = CandidateSearchText::strength($app->full_name, $term)) > 0) {
+                $score += 4 * $strength;
                 break;
             }
         }
+
+        // Location/experience must not create a match without relevant candidate evidence.
+        if ($score <= 0) return null;
 
         // ── Location — up to 20 pts, ONLY when a location was actually requested ──
         if ($locLower !== '') {
@@ -3507,12 +3473,12 @@ $roleTerms   = !empty($roles) ? $roles : $searchTerms;
                 ($app->cv_location_text ?? '') . ' ' . $app->city . ' ' . $app->state . ' ' . $app->country
                 . ' ' . ($app->location?->location ?? '') . ' ' . $app->address
             ));
-            if ($locationHaystack !== '' && str_contains($locationHaystack, $locLower)) {
+            if (CandidateSearchText::strength($locationHaystack, $locLower) > 0) {
                 $score += 20;
             } else {
                 // Location was explicitly asked for and this person doesn't match it —
-                // penalize instead of ignoring, so out-of-area people sink down.
-                $score -= 10;
+                // retain the explicit location restriction, with typo-tolerant matching.
+                return null;
             }
         }
 
@@ -3543,9 +3509,6 @@ $roleTerms   = !empty($roles) ? $roles : $searchTerms;
 
         // Require *some* real signal — role, skill, or name — to appear at all.
         // Pure location/experience-only "matches" with nothing else are noise.
-        if (!empty($roleTerms) && !$roleMatched) {
-            return null;
-        }
         if ($score <= 0) {
             return null;
         }
@@ -3568,7 +3531,8 @@ $roleTerms   = !empty($roles) ? $roles : $searchTerms;
         ];
     })
   ->filter()
-->sortByDesc('score')
+->collect()
+->sort(fn ($a, $b) => ($b['score'] <=> $a['score']) ?: ($b['id'] <=> $a['id']))
 ->values()
 ->toArray();
 
