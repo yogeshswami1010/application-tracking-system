@@ -566,40 +566,63 @@ function jaSaveMarketingLabel(appId) {
                                 window.initCandidateCalls(callRoot);
                                 return;
                             }
-                            if (typeof window.jaOpenCallModal === 'function') return;
                             window.jaOpenCallModal = function (applicationId) {
                                 var activeRoot = document.getElementById('candidate-calls');
-                                if (activeRoot && activeRoot.dataset.applicationId === String(applicationId)) {
-                                    if (!activeRoot._jaOriginalParent) activeRoot._jaOriginalParent = activeRoot.parentNode;
-                                    if (activeRoot.parentNode !== document.body) document.body.appendChild(activeRoot);
-                                    activeRoot.classList.remove('hidden');
-                                    activeRoot.classList.add('flex');
-                                    var startButton = activeRoot.querySelector('#call-start');
-                                    if (startButton) startButton.disabled = true;
-                                    var statusText = activeRoot.querySelector('#call-status');
-                                    if (statusText) statusText.textContent = 'Preparing call controls…';
-                                }
-                                if (!window._jaCandidateCallAssetsPromise) {
-                                    window._jaCandidateCallAssetsPromise = new Promise(function (resolve, reject) {
-                                        var script = document.createElement('script');
-                                        script.async = true;
-                                        script.src = @json(asset('js/candidate-calls.js'));
-                                        script.onload = resolve;
-                                        script.onerror = reject;
-                                        document.head.appendChild(script);
-                                    });
-                                }
-                                window._jaCandidateCallAssetsPromise.then(function () {
-                                    var currentRoot = document.getElementById('candidate-calls');
-                                    if (window.initCandidateCalls) window.initCandidateCalls(currentRoot);
-                                    if (window.jaOpenCallModal) window.jaOpenCallModal(applicationId);
-                                }).catch(function () {
-                                    var status = document.getElementById('call-status');
-                                    if (status) status.textContent = 'The calling feature could not load. Reload the candidate profile and try again.';
-                                    var start = document.getElementById('call-start');
-                                    if (start) start.disabled = true;
-                                });
+                                if (!activeRoot || activeRoot.dataset.applicationId !== String(applicationId)) return;
+                                if (!activeRoot._jaOriginalParent) activeRoot._jaOriginalParent = activeRoot.parentNode;
+                                if (activeRoot.parentNode !== document.body) document.body.appendChild(activeRoot);
+                                activeRoot.classList.remove('hidden');
+                                activeRoot.classList.add('flex');
                             };
+                            window.jaCloseCallModal = function (applicationId) {
+                                var activeRoot = document.getElementById('candidate-calls');
+                                if (!activeRoot || activeRoot.dataset.applicationId !== String(applicationId)) return;
+                                activeRoot.classList.add('hidden');
+                                activeRoot.classList.remove('flex');
+                                if (activeRoot._jaOriginalParent && activeRoot.parentNode === document.body) {
+                                    activeRoot._jaOriginalParent.appendChild(activeRoot);
+                                }
+                            };
+                            var closeButton = callRoot.querySelector('#call-close');
+                            function closeBeforeInit() {
+                                if (callRoot.dataset.initialized !== '1') window.jaCloseCallModal(callRoot.dataset.applicationId);
+                            }
+                            if (closeButton) closeButton.addEventListener('click', closeBeforeInit);
+                            var startButton = callRoot.querySelector('#call-start');
+                            async function loadCallControls(event) {
+                                event.preventDefault();
+                                event.stopImmediatePropagation();
+                                startButton.disabled = true;
+                                var statusText = callRoot.querySelector('#call-status');
+                                if (statusText) statusText.textContent = 'Preparing call controls…';
+                                try {
+                                    if (!window._jaCandidateCallAssetsPromise) {
+                                        window._jaCandidateCallAssetsPromise = new Promise(function (resolve, reject) {
+                                            var script = document.createElement('script');
+                                            script.async = true;
+                                            script.src = @json(asset('js/candidate-calls.js') . '?v=' . filemtime(public_path('js/candidate-calls.js')));
+                                            script.onload = resolve;
+                                            script.onerror = function () { script.remove(); reject(new Error('Could not load call controls. Try again.')); };
+                                            document.head.appendChild(script);
+                                        });
+                                    }
+                                    await window._jaCandidateCallAssetsPromise;
+                                    if (typeof window.initCandidateCalls !== 'function') {
+                                        throw new Error('Call controls are outdated. Reload the page and try again.');
+                                    }
+                                    if (!callRoot.isConnected) return;
+                                    window.initCandidateCalls(callRoot);
+                                    startButton.removeEventListener('click', loadCallControls, true);
+                                    if (closeButton) closeButton.removeEventListener('click', closeBeforeInit);
+                                    startButton.disabled = false;
+                                    startButton.click();
+                                } catch (error) {
+                                    window._jaCandidateCallAssetsPromise = null;
+                                    startButton.disabled = false;
+                                    if (statusText) statusText.textContent = error.message;
+                                }
+                            }
+                            if (startButton) startButton.addEventListener('click', loadCallControls, true);
                         })();
                         </script>
 
