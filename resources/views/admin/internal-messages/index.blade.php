@@ -65,7 +65,7 @@
                         <p class="truncate text-[11.5px] text-[#8892A0]">{{ $selectedMember->email }}</p>
                     </div>
                 </header>
-
+ 
                 <div id="internal-message-list" class="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[#F8F9FB] px-4 py-5 sm:px-6">
                     @forelse($conversationMessages as $message)
                         @php($mine = (int) $message->sender_id === (int) $user->id)

@@ -51,9 +51,12 @@ class CandidateCallService
         $response = Http::withToken($settings->telnyx_api_key)->accept('text/plain')->timeout(20)
             ->post('https://api.telnyx.com/v2/telephony_credentials/'.rawurlencode($credential).'/token');
         if (!$response->successful() || !trim($response->body())) {
-            $detail = trim((string) ($response->json('errors.0.detail') ?? $response->json('errors.0.title')));
+            $error = $response->json('errors.0') ?? [];
+            $code = trim((string) ($error['code'] ?? ''));
+            $detail = trim((string) ($error['detail'] ?? $error['title'] ?? ''));
+            $suffix = $code !== '' ? ' ['.$code.']' : '';
             throw new RuntimeException($detail !== ''
-                ? 'Telnyx rejected the voice credential: '.$detail
+                ? 'Telnyx rejected the voice credential'.$suffix.': '.$detail
                 : 'Telnyx rejected the voice credential (HTTP '.$response->status().'). Check that the credential ID belongs to a voice/SIP connection and that the API key has access.');
         }
         $token = trim((string) ($response->json('token') ?? $response->json('data.token') ?? $response->body()));
