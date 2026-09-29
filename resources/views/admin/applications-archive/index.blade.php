@@ -385,6 +385,8 @@ document.getElementById('run-bulk-parse').addEventListener('click', function() {
 @endsection
 
 @push('footer-script')
+    <script src="https://unpkg.com/@telnyx/webrtc@2.9.0/lib/bundle.js"></script>
+    <script src="{{ asset('js/candidate-calls.js') }}"></script>
     <script src="{{ asset('assets/node_modules_files/select2/dist/js/select2.full.min.js') }}" type="text/javascript"></script>
 
     <script>
@@ -749,6 +751,7 @@ document.getElementById('run-bulk-parse').addEventListener('click', function() {
             success: function (response) {
                 if (response.status === 'success') {
                     $('#right-sidebar-content').html(response.view);
+                    if (window.initCandidateCalls) window.initCandidateCalls(document.getElementById('candidate-calls'));
                 }
             }
         });

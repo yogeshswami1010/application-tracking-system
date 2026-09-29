@@ -558,6 +558,44 @@ function jaSaveMarketingLabel(appId) {
                         </div>
                         @endif
 
+                        <script>
+                        (function () {
+                            var callRoot = document.getElementById('candidate-calls');
+                            if (!callRoot) return;
+                            if (window.initCandidateCalls) {
+                                window.initCandidateCalls(callRoot);
+                                return;
+                            }
+                            if (typeof window.jaOpenCallModal === 'function') return;
+                            window.jaOpenCallModal = function (applicationId) {
+                                if (!window._jaCandidateCallAssetsPromise) {
+                                    window._jaCandidateCallAssetsPromise = new Promise(function (resolve, reject) {
+                                        function loadScript(src, done) {
+                                            var script = document.createElement('script');
+                                            script.src = src;
+                                            script.onload = done;
+                                            script.onerror = reject;
+                                            document.head.appendChild(script);
+                                        }
+                                        var loadClient = function () {
+                                            loadScript(@json(asset('js/candidate-calls.js')), resolve);
+                                        };
+                                        if (window.TelnyxWebRTC) loadClient();
+                                        else loadScript('https://unpkg.com/@telnyx/webrtc@2.9.0/lib/bundle.js', loadClient);
+                                    });
+                                }
+                                window._jaCandidateCallAssetsPromise.then(function () {
+                                    var currentRoot = document.getElementById('candidate-calls');
+                                    if (window.initCandidateCalls) window.initCandidateCalls(currentRoot);
+                                    if (window.jaOpenCallModal) window.jaOpenCallModal(applicationId);
+                                }).catch(function () {
+                                    var status = document.getElementById('call-status');
+                                    if (status) status.textContent = 'The calling feature could not load. Reload the candidate profile and try again.';
+                                });
+                            };
+                        })();
+                        </script>
+
                         @if($user->cans('edit_job_applications') && $application->phone)
                         <div id="ja-sms-modal-{{ $application->id }}" class="absolute inset-0 z-[300] hidden items-center justify-center bg-black/50 p-4">
                             <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" onclick="event.stopPropagation()">
