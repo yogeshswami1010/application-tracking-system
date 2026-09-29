@@ -11,7 +11,7 @@
             'X-CSRF-TOKEN': root.dataset.token, 'Accept': 'application/json'
         }, body: data});
         const result = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(result.message || 'Request failed. Please try again.');
+        if (!response.ok) throw new Error(result.message || ('Request failed (HTTP ' + response.status + '). Please try again.'));
         return result;
     }
     async function process(url) {

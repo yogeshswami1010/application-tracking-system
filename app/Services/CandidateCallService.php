@@ -51,9 +51,14 @@ class CandidateCallService
         $response = Http::withToken($settings->telnyx_api_key)->timeout(20)
             ->post('https://api.telnyx.com/v2/telephony_credentials/'.rawurlencode($credential).'/token');
         if (!$response->successful() || !trim($response->body())) {
-            throw new RuntimeException('Could not connect to Telnyx. Check the voice credentials.');
+            $detail = trim((string) ($response->json('errors.0.detail') ?? $response->json('errors.0.title')));
+            throw new RuntimeException($detail !== ''
+                ? 'Telnyx rejected the voice credential: '.$detail
+                : 'Telnyx rejected the voice credential (HTTP '.$response->status().'). Check that the credential ID belongs to a voice/SIP connection and that the API key has access.');
         }
-        return ['token' => trim($response->body()), 'from' => $from];
+        $token = trim((string) ($response->json('token') ?? $response->json('data.token') ?? $response->body()));
+        if ($token === '') throw new RuntimeException('Telnyx returned an empty browser-call token.');
+        return ['token' => $token, 'from' => $from];
     }
 
     public function process(CandidateCall $call): void
