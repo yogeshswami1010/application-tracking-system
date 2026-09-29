@@ -97,7 +97,7 @@ $(function () {
             { data: 'full_name', name: 'full_name' },
             { data: 'title', name: 'job.title' },
             { data: 'marketing_label', name: 'marketing_label' },
-            { data: 'status', name: 'status' },
+            { data: 'status', name: 'status.status' },
             { data: 'marketing_added_at', name: 'marketing_added_at' },
             { data: 'action', orderable: false, searchable: false },
         ]
