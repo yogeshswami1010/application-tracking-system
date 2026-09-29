@@ -8,6 +8,7 @@ use App\SmsSetting;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 class CandidateCallService
@@ -18,6 +19,8 @@ class CandidateCallService
         if ($settings && $settings->candidate_calls_enabled !== null) {
             return [
                 'enabled' => (bool) $settings->candidate_calls_enabled,
+                // This value is the SIP connection ID from Telnyx. A distinct
+                // telephony credential is provisioned server-side for WebRTC.
                 'credential_id' => $settings->telnyx_voice_credential_id,
                 'from_number' => $settings->telnyx_voice_from_number,
             ];
@@ -40,22 +43,61 @@ class CandidateCallService
     {
         $settings = SmsSetting::first();
         $voice = self::voiceSettings();
-        $credential = $voice['credential_id'];
+        $connectionId = trim((string) ($voice['credential_id'] ?? ''));
         $from = $voice['from_number'];
         $missing = [];
         if (!$voice['enabled']) $missing[] = 'enable Candidate calling in Account Settings';
-        if (!trim((string) $credential)) $missing[] = 'enter the Telnyx voice credential ID in Account Settings';
+        if ($connectionId === '') $missing[] = 'enter the Telnyx SIP connection ID in Account Settings';
         if (!trim((string) $from)) $missing[] = 'enter the Telnyx calling number in Account Settings';
         if (!trim((string) $settings?->telnyx_api_key)) $missing[] = 'save your Telnyx API key in SMS Settings';
         if ($missing) throw new RuntimeException('Calling setup incomplete: '.implode('; ', $missing).'.');
         $this->aiKey();
+
+        // The ID shown on a Telnyx SIP Connection is a connection ID, not a
+        // telephony credential ID. Create an on-demand WebRTC credential once
+        // using the server API key, and keep its ID server-side for token calls.
+        $credential = DB::transaction(function () use ($settings, $connectionId) {
+            $companySettings = CompanySetting::query()->lockForUpdate()->first();
+            if (!$companySettings) throw new RuntimeException('Company settings are unavailable.');
+            if (trim((string) $companySettings->telnyx_webrtc_credential_id) !== '') {
+                return $companySettings->telnyx_webrtc_credential_id;
+            }
+
+            $created = Http::withToken($settings->telnyx_api_key)->acceptJson()->asJson()->timeout(20)
+                ->post('https://api.telnyx.com/v2/telephony_credentials', [
+                    'connection_id' => $connectionId,
+                    'name' => 'ATS Browser Calling',
+                ]);
+            $newCredentialId = trim((string) $created->json('data.id'));
+            if (!$created->successful() || $newCredentialId === '') {
+                $error = $created->json('errors.0') ?? [];
+                Log::warning('Telnyx WebRTC credential provisioning failed.', [
+                    'status' => $created->status(),
+                    'connection_id' => $connectionId,
+                    'code' => $error['code'] ?? null,
+                    'title' => $error['title'] ?? null,
+                    'detail' => $error['detail'] ?? null,
+                ]);
+                $detail = trim((string) ($error['detail'] ?? $error['title'] ?? ''));
+                throw new RuntimeException($detail !== ''
+                    ? 'Telnyx could not create a WebRTC credential for this SIP connection: '.$detail
+                    : 'Telnyx could not create a WebRTC credential for this SIP connection (HTTP '.$created->status().').');
+            }
+
+            $companySettings->telnyx_webrtc_credential_id = $newCredentialId;
+            $companySettings->save();
+            return $newCredentialId;
+        });
+
         $response = Http::withToken($settings->telnyx_api_key)->accept('text/plain')->timeout(20)
             ->post('https://api.telnyx.com/v2/telephony_credentials/'.rawurlencode($credential).'/token');
         if (!$response->successful() || !trim($response->body())) {
             Log::warning('Telnyx browser token request rejected.', [
                 'status' => $response->status(),
                 'credential_id' => (string) $credential,
-                'response' => mb_substr($response->body(), 0, 2000),
+                'code' => $response->json('errors.0.code'),
+                'title' => $response->json('errors.0.title'),
+                'detail' => $response->json('errors.0.detail'),
             ]);
             $error = $response->json('errors.0') ?? [];
             $code = trim((string) ($error['code'] ?? ''));

@@ -91,8 +91,13 @@ class CompanySettingsController extends AdminBaseController
         $data->website = $request->website;
 
         if ($request->has('candidate_calls_enabled')) {
+            $previousConnectionId = trim((string) $data->telnyx_voice_credential_id);
+            $newConnectionId = trim((string) $request->input('telnyx_voice_credential_id'));
             $data->candidate_calls_enabled = $request->boolean('candidate_calls_enabled');
-            $data->telnyx_voice_credential_id = $request->input('telnyx_voice_credential_id');
+            $data->telnyx_voice_credential_id = $newConnectionId;
+            if ($previousConnectionId !== $newConnectionId) {
+                $data->telnyx_webrtc_credential_id = null;
+            }
             $data->telnyx_voice_from_number = $request->input('telnyx_voice_from_number');
         }
 

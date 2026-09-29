@@ -32,8 +32,9 @@ Request::macro('validate', function ($rules) use ($validator) { return $validato
 $db->schema()->create('job_applications', function (Blueprint $table) { $table->increments('id'); $table->string('phone'); $table->timestamp('moved_to_trash_at')->nullable(); $table->softDeletes(); });
 $db->schema()->create('sms_settings', function (Blueprint $table) { $table->increments('id'); $table->string('telnyx_api_key'); });
 $db->table('sms_settings')->insert(['telnyx_api_key'=>'fake-telnyx-key']);
-$db->schema()->create('company_settings', function (Blueprint $table) { $table->increments('id'); });
+$db->schema()->create('company_settings', function (Blueprint $table) { $table->increments('id'); $table->timestamps(); });
 (require __DIR__.'/../database/migrations/2026_09_28_000002_add_voice_settings_to_company_settings.php')->up();
+(require __DIR__.'/../database/migrations/2026_09_29_000004_add_telnyx_webrtc_credential_id_to_company_settings.php')->up();
 $db->table('company_settings')->insert(['id'=>1]);
 $app['config']->set('candidate_calls.enabled', true);
 $app['config']->set('candidate_calls.credential_id', 'legacy-credential');
@@ -118,8 +119,16 @@ check(true, 'Telnyx handles audio; DeepSeek handles text with its existing model
 check(true, 'Completed retries do not call AI again');
 $call->refresh()->update(['status'=>'processing', 'audio_path'=>'calls/test.webm']);
 check($c->process(1, $call->id, $processor)->getStatusCode() === 409, 'Concurrent processing blocked');
-Http::fake(['api.telnyx.com/v2/telephony_credentials/saved-credential/token'=>Http::response('voice-token')]);
+Http::fake([
+    'api.telnyx.com/v2/telephony_credentials'=>Http::response(['data'=>['id'=>'generated-webrtc-credential']], 201),
+    'api.telnyx.com/v2/telephony_credentials/generated-webrtc-credential/token'=>Http::response('voice-token'),
+]);
 $voiceSession = $processor->session();
 check($voiceSession['token'] === 'voice-token' && $voiceSession['from'] === '+14165550188', 'New voice sessions use saved account settings');
-Http::assertSent(fn ($request) => $request->url() === 'https://api.telnyx.com/v2/telephony_credentials/saved-credential/token');
+check($db->table('company_settings')->value('telnyx_webrtc_credential_id') === 'generated-webrtc-credential', 'Provisioned WebRTC credential ID is stored server-side');
+Http::assertSent(fn ($request) => $request->url() === 'https://api.telnyx.com/v2/telephony_credentials'
+    && $request['connection_id'] === 'saved-credential' && $request['name'] === 'ATS Browser Calling'
+    && $request->hasHeader('Authorization', 'Bearer fake-telnyx-key'));
+Http::assertSent(fn ($request) => $request->url() === 'https://api.telnyx.com/v2/telephony_credentials/generated-webrtc-credential/token'
+    && $request->hasHeader('Authorization', 'Bearer fake-telnyx-key'));
 Mockery::close();

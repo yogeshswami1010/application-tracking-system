@@ -44,9 +44,9 @@
                         Enable browser calling
                     </label>
                     <div>
-                        <label class="bs-set-lbl" for="telnyx_voice_credential_id">Telnyx voice credential ID</label>
+                        <label class="bs-set-lbl" for="telnyx_voice_credential_id">Telnyx SIP connection ID</label>
                         <input class="bs-f-input" type="text" id="telnyx_voice_credential_id" name="telnyx_voice_credential_id" maxlength="191" value="{{ $voiceSettings['credential_id'] }}" autocomplete="off">
-                        <p class="mt-1 text-[11px] text-[#8892A0]">Enter the telephony credential ID associated with your Telnyx SIP connection.</p>
+                        <p class="mt-1 text-[11px] text-[#8892A0]">Copy the Connection ID from your Telnyx SIP connection. ATS creates and stores its own WebRTC telephony credential securely.</p>
                     </div>
                     <div>
                         <label class="bs-set-lbl" for="telnyx_voice_from_number">Telnyx calling number</label>
