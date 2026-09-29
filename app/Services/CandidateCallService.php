@@ -48,7 +48,7 @@ class CandidateCallService
         if (!trim((string) $settings?->telnyx_api_key)) $missing[] = 'save your Telnyx API key in SMS Settings';
         if ($missing) throw new RuntimeException('Calling setup incomplete: '.implode('; ', $missing).'.');
         $this->aiKey();
-        $response = Http::withToken($settings->telnyx_api_key)->timeout(20)
+        $response = Http::withToken($settings->telnyx_api_key)->accept('text/plain')->timeout(20)
             ->post('https://api.telnyx.com/v2/telephony_credentials/'.rawurlencode($credential).'/token');
         if (!$response->successful() || !trim($response->body())) {
             $detail = trim((string) ($response->json('errors.0.detail') ?? $response->json('errors.0.title')));
