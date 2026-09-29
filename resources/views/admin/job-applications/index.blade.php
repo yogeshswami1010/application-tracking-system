@@ -430,8 +430,6 @@
 @endsection
 
 @push('footer-script')
-    <script src="https://unpkg.com/@telnyx/webrtc@2.9.0/lib/bundle.js"></script>
-    <script src="{{ asset('js/candidate-calls.js') }}"></script>
     <script src="{{ asset('assets/node_modules_files/select2/dist/js/select2.full.min.js') }}" type="text/javascript"></script>
     <script src="{{ asset('assets/node_modules_files/bootstrap-select/bootstrap-select.min.js') }}" type="text/javascript"></script>
     <script src="{{ asset('assets/node_modules_files/moment/moment.js') }}" type="text/javascript"></script>
