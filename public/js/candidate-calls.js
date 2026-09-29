@@ -5,7 +5,7 @@
     const el = id => document.getElementById('call-' + id);
     const status = message => { if (el('status')) el('status').textContent = message; };
     let client, call, session, recorder, context, microphone, timer;
-    let chunks = [], recording = null, started = 0, duration = 0, busy = false, ending = false, muted = false;
+    let chunks = [], recording = null, started = 0, duration = 0, busy = false, ending = false, muted = false, allowNavigation = false;
     async function post(url, data) {
         const response = await fetch(url, {method: 'POST', credentials: 'same-origin', headers: {
             'X-CSRF-TOKEN': root.dataset.token, 'Accept': 'application/json'
@@ -17,6 +17,7 @@
     async function process(url) {
         status('Recording saved. Generating summary…');
         await post(url);
+        allowNavigation = true;
         window.location.reload();
     }
     root.querySelectorAll('.call-process').forEach(button => button.addEventListener('click', async () => {
@@ -28,7 +29,7 @@
     }));
     if (!el('start')) return;
     window.addEventListener('beforeunload', event => {
-        if (busy) { event.preventDefault(); event.returnValue = ''; }
+        if (busy && !allowNavigation) { event.preventDefault(); event.returnValue = ''; }
     });
     function cleanup() {
         clearInterval(timer);
@@ -61,7 +62,10 @@
         try {
             if (result.status === 'pending' || result.status === 'failed') {
                 await process(root.dataset.start + '/' + session.id + '/process');
-            } else window.location.reload();
+        } else {
+            allowNavigation = true;
+            window.location.reload();
+        }
         } catch (error) {
             busy = false;
             status(error.message + ' Reload this page to retry from history.');

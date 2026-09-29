@@ -10,6 +10,7 @@ async function scenario({consent = true, capped = false, uploadFailure = false} 
     }
     const root = {dataset:{start:'/calls',token:'csrf'}, querySelectorAll:()=>[]};
     const events = {}, requests = [], timers = [];
+    let beforeUnload;
     let rtc, reloads = 0, stops = 0, fail = uploadFailure;
     const stream = {getAudioTracks:()=>[{}],getTracks:()=>[{stop:()=>stops++}]};
     class Recorder {
@@ -28,7 +29,7 @@ async function scenario({consent = true, capped = false, uploadFailure = false} 
     }
     const sandbox = {
         document:{getElementById:id=>id === 'candidate-calls' ? root : elements[id]},
-        window:{isSecureContext:true,MediaRecorder:Recorder,TelnyxWebRTC:{TelnyxRTC:RTC},addEventListener(){},location:{reload:()=>reloads++},AudioContext:class {
+        window:{isSecureContext:true,MediaRecorder:Recorder,TelnyxWebRTC:{TelnyxRTC:RTC},addEventListener(name, fn){if(name==='beforeunload')beforeUnload=fn;},location:{reload:()=>reloads++},AudioContext:class {
             resume(){return Promise.resolve();} close(){return Promise.resolve();}
             createMediaStreamDestination(){return {stream};} createMediaStreamSource(){return {connect(){}};}
         }},
@@ -55,6 +56,9 @@ async function scenario({consent = true, capped = false, uploadFailure = false} 
     if (uploadFailure) {
         assert.equal(elements['call-retry-upload'].hidden,false);
         assert.equal(reloads,0);
+        let prevented = false;
+        beforeUnload({preventDefault(){prevented=true;}});
+        assert.equal(prevented,true);
         await click('retry-upload');
     }
     const upload = requests.find(r=>r.url.endsWith('/finish')).options.body;
@@ -62,6 +66,9 @@ async function scenario({consent = true, capped = false, uploadFailure = false} 
     assert.equal(upload.has('recording_consent'),consent);
     assert.equal(requests.some(r=>r.url.endsWith('/process')),consent);
     assert.equal(reloads,1);
+    let prevented = false;
+    beforeUnload({preventDefault(){prevented=true;}});
+    assert.equal(prevented,false);
     assert.equal(stops,1);
 }
 (async()=>{
