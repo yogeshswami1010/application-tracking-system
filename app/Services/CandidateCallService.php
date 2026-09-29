@@ -7,6 +7,7 @@ use App\CompanySetting;
 use App\SmsSetting;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 class CandidateCallService
@@ -51,6 +52,11 @@ class CandidateCallService
         $response = Http::withToken($settings->telnyx_api_key)->accept('text/plain')->timeout(20)
             ->post('https://api.telnyx.com/v2/telephony_credentials/'.rawurlencode($credential).'/token');
         if (!$response->successful() || !trim($response->body())) {
+            Log::warning('Telnyx browser token request rejected.', [
+                'status' => $response->status(),
+                'credential_id' => (string) $credential,
+                'response' => mb_substr($response->body(), 0, 2000),
+            ]);
             $error = $response->json('errors.0') ?? [];
             $code = trim((string) ($error['code'] ?? ''));
             $detail = trim((string) ($error['detail'] ?? $error['title'] ?? ''));
