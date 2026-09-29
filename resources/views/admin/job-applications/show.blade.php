@@ -233,10 +233,6 @@
 
 @include('admin.job-applications.partials.temp-staffing-control')
 
-<a href="{{ route('admin.candidate-calls.index', $application->id) }}" target="_blank" rel="noopener" class="ja-pdf-btn" style="margin:8px 16px;">
-    <i class="fa fa-phone"></i> Call candidate &amp; call history
-</a>
-
 <script>
 function jaToggleMarketing(appId) {
     var btn   = document.getElementById('ja-marketing-btn-' + appId);
@@ -521,6 +517,9 @@ function jaSaveMarketingLabel(appId) {
                             <button type="button" onclick="jaOpenSmsModal({{ $application->id }})" class="ja-btn ja-btn-blue">
                                 <i class="fa fa-commenting-o"></i> Send SMS
                             </button>
+                            <button type="button" onclick="jaOpenCallModal({{ $application->id }})" class="ja-btn ja-btn-blue" aria-label="Call candidate" title="Call candidate">
+                                <i class="fa fa-phone" aria-hidden="true"></i>
+                            </button>
                             @endif
                             @if(auth()->user()->hasRole('admin'))
                             <button type="button" onclick="deleteApplication({{ $application->id }})" class="ja-btn ja-btn-red">
@@ -528,6 +527,36 @@ function jaSaveMarketingLabel(appId) {
                             </button>
                             @endif
                         </div>
+
+                        @if($user->cans('edit_job_applications') && $application->phone)
+                        <div id="candidate-calls" class="fixed inset-0 z-[10000] hidden items-center justify-center bg-slate-950/55 p-4"
+                             data-start="{{ route('admin.candidate-calls.start', $application->id) }}"
+                             data-token="{{ csrf_token() }}" data-embedded="1" data-application-id="{{ $application->id }}"
+                             role="dialog" aria-modal="true" aria-labelledby="call-title-{{ $application->id }}">
+                            <section class="w-full max-w-xl rounded-2xl bg-white p-5 shadow-2xl" onclick="event.stopPropagation()">
+                                <header class="mb-4 flex items-start justify-between gap-3">
+                                    <div>
+                                        <h3 id="call-title-{{ $application->id }}" class="text-lg font-bold text-[#1A1E2E]">Call {{ $application->full_name }}</h3>
+                                        <p class="mt-1 text-sm text-[#5A6478]">{{ $application->phone }}</p>
+                                    </div>
+                                    <button type="button" id="call-close" class="rounded-lg px-2 py-1 text-xl text-gray-400 hover:bg-gray-100" aria-label="Close call window">&times;</button>
+                                </header>
+                                <p class="mb-4 text-sm text-[#5A6478]">Use your microphone and headphones. Ask for consent before recording.</p>
+                                <div class="flex flex-wrap gap-2">
+                                    <button type="button" id="call-start" class="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white" @disabled(!$application->phone)>Call candidate</button>
+                                    <button type="button" id="call-mute" class="rounded-lg border px-4 py-2" disabled>Mute</button>
+                                    <button type="button" id="call-end" class="rounded-lg bg-red-600 px-4 py-2 font-semibold text-white" disabled>End call</button>
+                                </div>
+                                <div id="call-consent" class="mt-4 rounded-xl bg-blue-50 p-3" hidden>
+                                    <label class="text-sm"><input type="checkbox" id="call-consent-check"> The candidate agreed to recording and AI transcription.</label>
+                                    <button type="button" id="call-record" class="ml-2 rounded-lg border bg-white px-3 py-2 text-sm">Start recording</button>
+                                </div>
+                                <p id="call-status" class="mt-4 text-sm text-[#5A6478]" role="status" aria-live="polite">Ready to call.</p>
+                                <button type="button" id="call-retry-upload" class="mt-2 rounded-lg border px-3 py-2 text-sm" hidden>Retry saving call</button>
+                                <audio id="call-remote" autoplay></audio>
+                            </section>
+                        </div>
+                        @endif
 
                         @if($user->cans('edit_job_applications') && $application->phone)
                         <div id="ja-sms-modal-{{ $application->id }}" class="absolute inset-0 z-[300] hidden items-center justify-center bg-black/50 p-4">
@@ -1252,6 +1281,18 @@ document.querySelectorAll('.ja-tab').forEach(function(tab) {
         }
     });
 });
+
+window.jaRefreshCandidateCallHistory = function (applicationId) {
+    var root = document.getElementById('candidate-calls');
+    var pane = document.getElementById('ja-tab-history');
+    if (!root || root.dataset.applicationId !== String(applicationId) || !pane || !pane.dataset.url) return;
+    $.get(pane.dataset.url, function (response) {
+        if (response && response.status === 'success') {
+            pane.innerHTML = response.view;
+            $(pane).data('loaded', true);
+        }
+    });
+};
 
 /* ── Stage mover ── */
 function jaMoveFromDetail(appId, toStatusId, toStatusLabel, currentStatusId) {

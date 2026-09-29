@@ -30,7 +30,7 @@ class CandidateCallController extends AdminBaseController
         $this->application = $this->candidate($id);
         $this->pageTitle = 'Candidate calls';
         $this->canCall = $this->user->cans('edit_job_applications');
-        $this->calls = CandidateCall::where('job_application_id', $id)->latest('id')->paginate(20);
+        $this->calls = CandidateCall::where('job_application_id', $id)->with('user:id,name')->latest('id')->paginate(20);
         return view('admin.job-applications.calls', $this->data);
     }
 

@@ -33,7 +33,7 @@
         @forelse($calls as $call)
         <article class="mb-4 rounded-lg border p-4">
             <div class="flex flex-wrap justify-between gap-2 text-sm">
-                <strong>{{ $call->created_at->format('M j, Y H:i') }} · {{ $call->phone }}</strong>
+                <strong>{{ $call->created_at->format('M j, Y H:i') }} · {{ $call->phone }} · Called by {{ $call->user?->name ?? 'Unknown team member' }}</strong>
                 <span>{{ str_replace('_', ' ', $call->status) }} · {{ gmdate('i:s', $call->duration_seconds) }}</span>
             </div>
             @if($call->summary)

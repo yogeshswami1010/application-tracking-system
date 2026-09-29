@@ -1371,6 +1371,9 @@ class AdminJobApplicationController extends AdminBaseController
             $statusHistories = $application->statusHistories()->latest()->limit(30)->with(['fromStatus', 'toStatus', 'user'])->get();
             $resumeHistories = $application->resumeHistories()->with('updatedBy:id,name')->get();
             $tempStaffingHistories = $application->tempStaffingHistories()->with('user:id,name')->get();
+            $candidateCalls = \App\CandidateCall::where('job_application_id', $application->id)
+                ->with('user:id,name')->latest('id')->limit(50)->get();
+            $canCall = $this->user->cans('edit_job_applications');
         $currentResume = $application->documents->firstWhere('name', 'Resume');
             $previousApps = JobApplication::withTrashed()
                 ->whereNull('moved_to_trash_at')
@@ -1387,7 +1390,7 @@ class AdminJobApplicationController extends AdminBaseController
                 ])
                 ->latest()
                 ->get();
-            return Reply::dataOnly(['status' => 'success', 'view' => view('admin.job-applications.partials.profile-history', compact('statusHistories', 'resumeHistories', 'tempStaffingHistories', 'previousApps'))->render()]);
+            return Reply::dataOnly(['status' => 'success', 'view' => view('admin.job-applications.partials.profile-history', compact('statusHistories', 'resumeHistories', 'tempStaffingHistories', 'candidateCalls', 'canCall', 'previousApps') + ['user' => $this->user])->render()]);
         }
         return Reply::error('Tab not found.');
     }

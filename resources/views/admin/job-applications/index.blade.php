@@ -430,6 +430,8 @@
 @endsection
 
 @push('footer-script')
+    <script src="https://unpkg.com/@telnyx/webrtc@2.9.0/lib/bundle.js"></script>
+    <script src="{{ asset('js/candidate-calls.js') }}"></script>
     <script src="{{ asset('assets/node_modules_files/select2/dist/js/select2.full.min.js') }}" type="text/javascript"></script>
     <script src="{{ asset('assets/node_modules_files/bootstrap-select/bootstrap-select.min.js') }}" type="text/javascript"></script>
     <script src="{{ asset('assets/node_modules_files/moment/moment.js') }}" type="text/javascript"></script>
@@ -1016,6 +1018,7 @@
                     $('#right-sidebar').removeClass('translate-x-full').addClass('translate-x-0');
                     $('#right-sidebar-backdrop').removeClass('hidden').css('display', 'block');
                     $('#right-sidebar-content').html(response.view);
+                    if (window.initCandidateCalls) window.initCandidateCalls(document.getElementById('candidate-calls'));
                 }
             }
         });
@@ -1542,6 +1545,7 @@ if ((savedFilters.company || 'all') !== 'all') {
                 success: function (response) {
                     if (response.status === 'success') {
                         $('#right-sidebar-content').html(response.view);
+                        if (window.initCandidateCalls) window.initCandidateCalls(document.getElementById('candidate-calls'));
                         // Notification links can open Notes or SMS directly.
                         setTimeout(function () {
                             var requestedTab = document.querySelector('.ja-tab[data-tab="' + openTab + '"]');

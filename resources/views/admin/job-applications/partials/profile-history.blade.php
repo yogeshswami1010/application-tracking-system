@@ -1,3 +1,4 @@
+@include('admin.job-applications.partials.candidate-call-history', ['candidateCalls' => $candidateCalls ?? collect()])
 @if(isset($tempStaffingHistories) && $tempStaffingHistories->isNotEmpty())
 <div class="ja-card">
     <div class="ja-card-title"><i class="fa fa-users"></i> Temp Staffing History</div>

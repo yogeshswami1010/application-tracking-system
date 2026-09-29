@@ -3,14 +3,16 @@ const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const source = fs.readFileSync('public/js/candidate-calls.js', 'utf8');
 
-async function scenario({consent = true, capped = false, uploadFailure = false} = {}) {
+async function scenario({consent = true, capped = false, uploadFailure = false, embedded = false} = {}) {
     const elements = {};
     for (const id of ['start','mute','end','consent','consent-check','record','status','retry-upload']) {
         elements['call-' + id] = {disabled:false, hidden:true, checked:consent, listeners:{}, addEventListener(name, fn) {this.listeners[name] = fn;}};
     }
-    const root = {dataset:{start:'/calls',token:'csrf'}, querySelectorAll:()=>[]};
+    const root = {dataset:{start:'/calls',token:'csrf',embedded:embedded?'1':undefined,applicationId:'1'}, querySelectorAll:()=>[], querySelector:selector=>elements[selector.slice(1)]};
     const events = {}, requests = [], timers = [];
+    const documentEvents = {};
     let beforeUnload;
+    let historyRefreshes = 0;
     let rtc, reloads = 0, stops = 0, fail = uploadFailure;
     const stream = {getAudioTracks:()=>[{}],getTracks:()=>[{stop:()=>stops++}]};
     class Recorder {
@@ -28,8 +30,8 @@ async function scenario({consent = true, capped = false, uploadFailure = false} 
         newCall() {this.call={id:'test',localStream:stream,remoteStream:stream,hangup(){},muteAudio(){this.muted=true;},unmuteAudio(){this.muted=false;}}; return this.call;}
     }
     const sandbox = {
-        document:{getElementById:id=>id === 'candidate-calls' ? root : elements[id]},
-        window:{isSecureContext:true,MediaRecorder:Recorder,TelnyxWebRTC:{TelnyxRTC:RTC},addEventListener(name, fn){if(name==='beforeunload')beforeUnload=fn;},location:{reload:()=>reloads++},AudioContext:class {
+        document:{getElementById:id=>id === 'candidate-calls' ? root : elements[id], addEventListener(name,fn){documentEvents[name]=fn;}},
+        window:{isSecureContext:true,MediaRecorder:Recorder,TelnyxWebRTC:{TelnyxRTC:RTC},jaRefreshCandidateCallHistory(){historyRefreshes++;},addEventListener(name, fn){if(name==='beforeunload')beforeUnload=fn;},location:{reload:()=>reloads++},AudioContext:class {
             resume(){return Promise.resolve();} close(){return Promise.resolve();}
             createMediaStreamDestination(){return {stream};} createMediaStreamSource(){return {connect(){}};}
         }},
@@ -47,6 +49,7 @@ async function scenario({consent = true, capped = false, uploadFailure = false} 
     await click('start');
     rtc.call.state = 'active'; events['telnyx.notification']({type:'callUpdate',call:rtc.call});
     await click('mute'); assert.equal(rtc.call.muted,true);
+    elements['call-consent-check'].checked = consent;
     await click('record');
     if (!consent) assert.match(elements['call-status'].textContent,/agreement/);
     if (capped) timers[0]();
@@ -65,7 +68,8 @@ async function scenario({consent = true, capped = false, uploadFailure = false} 
     assert.equal(upload.has('audio'),consent);
     assert.equal(upload.has('recording_consent'),consent);
     assert.equal(requests.some(r=>r.url.endsWith('/process')),consent);
-    assert.equal(reloads,1);
+    assert.equal(reloads,embedded ? 0 : 1);
+    if (embedded) assert.ok(historyRefreshes > 0);
     let prevented = false;
     beforeUnload({preventDefault(){prevented=true;}});
     assert.equal(prevented,false);
@@ -76,4 +80,5 @@ async function scenario({consent = true, capped = false, uploadFailure = false} 
     await scenario({consent:false}); console.log('PASS: no consent means no recording or AI request');
     await scenario({capped:true}); console.log('PASS: capped recording is preserved on hangup');
     await scenario({uploadFailure:true}); console.log('PASS: upload failure retains audio for retry');
+    await scenario({embedded:true}); console.log('PASS: profile popup saves the call and refreshes history without reloading the profile');
 })().catch(error=>{console.error(error);process.exitCode=1;});
