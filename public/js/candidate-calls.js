@@ -17,6 +17,22 @@
             if (!response.ok) throw new Error(result.message || ('Request failed (HTTP ' + response.status + '). Please try again.'));
             return result;
         }
+        async function ensureTelnyxSdk() {
+            if (window.TelnyxWebRTC) return;
+            status('Loading the secure calling service…');
+            if (!window._jaTelnyxSdkPromise) {
+                window._jaTelnyxSdkPromise = new Promise(function (resolve, reject) {
+                    const script = document.createElement('script');
+                    script.async = true;
+                    script.src = 'https://unpkg.com/@telnyx/webrtc@2.9.0/lib/bundle.js';
+                    script.onload = resolve;
+                    script.onerror = () => reject(new Error('The calling library could not load. Check your connection and try again.'));
+                    document.head.appendChild(script);
+                });
+            }
+            await window._jaTelnyxSdkPromise;
+            if (!window.TelnyxWebRTC) throw new Error('The calling library loaded without its browser API. Reload and try again.');
+        }
         function refreshHistory() {
             if (typeof window.jaRefreshCandidateCallHistory === 'function') window.jaRefreshCandidateCallHistory(root.dataset.applicationId);
         }
@@ -42,6 +58,7 @@
         }
         root._candidateCallProcess = process;
         if (!el('start')) return;
+        el('start').disabled = false;
         window.addEventListener('beforeunload', event => {
             if (busy && !allowNavigation) { event.preventDefault(); event.returnValue = ''; }
         });
@@ -128,8 +145,8 @@
             if (el('close')) el('close').disabled = true;
             try {
                 if (!window.isSecureContext || !navigator.mediaDevices || !window.MediaRecorder) throw new Error('Calling requires HTTPS and microphone/recording support.');
-                if (!window.TelnyxWebRTC) throw new Error('The calling library could not load. Reload and try again.');
                 microphone = await navigator.mediaDevices.getUserMedia({audio: true});
+                await ensureTelnyxSdk();
                 session = await post(root.dataset.start);
                 client = new window.TelnyxWebRTC.TelnyxRTC({login_token: session.token});
                 client.remoteElement = 'call-remote';

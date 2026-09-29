@@ -568,20 +568,25 @@ function jaSaveMarketingLabel(appId) {
                             }
                             if (typeof window.jaOpenCallModal === 'function') return;
                             window.jaOpenCallModal = function (applicationId) {
+                                var activeRoot = document.getElementById('candidate-calls');
+                                if (activeRoot && activeRoot.dataset.applicationId === String(applicationId)) {
+                                    if (!activeRoot._jaOriginalParent) activeRoot._jaOriginalParent = activeRoot.parentNode;
+                                    if (activeRoot.parentNode !== document.body) document.body.appendChild(activeRoot);
+                                    activeRoot.classList.remove('hidden');
+                                    activeRoot.classList.add('flex');
+                                    var startButton = activeRoot.querySelector('#call-start');
+                                    if (startButton) startButton.disabled = true;
+                                    var statusText = activeRoot.querySelector('#call-status');
+                                    if (statusText) statusText.textContent = 'Preparing call controls…';
+                                }
                                 if (!window._jaCandidateCallAssetsPromise) {
                                     window._jaCandidateCallAssetsPromise = new Promise(function (resolve, reject) {
-                                        function loadScript(src, done) {
-                                            var script = document.createElement('script');
-                                            script.src = src;
-                                            script.onload = done;
-                                            script.onerror = reject;
-                                            document.head.appendChild(script);
-                                        }
-                                        var loadClient = function () {
-                                            loadScript(@json(asset('js/candidate-calls.js')), resolve);
-                                        };
-                                        if (window.TelnyxWebRTC) loadClient();
-                                        else loadScript('https://unpkg.com/@telnyx/webrtc@2.9.0/lib/bundle.js', loadClient);
+                                        var script = document.createElement('script');
+                                        script.async = true;
+                                        script.src = @json(asset('js/candidate-calls.js'));
+                                        script.onload = resolve;
+                                        script.onerror = reject;
+                                        document.head.appendChild(script);
                                     });
                                 }
                                 window._jaCandidateCallAssetsPromise.then(function () {
@@ -591,6 +596,8 @@ function jaSaveMarketingLabel(appId) {
                                 }).catch(function () {
                                     var status = document.getElementById('call-status');
                                     if (status) status.textContent = 'The calling feature could not load. Reload the candidate profile and try again.';
+                                    var start = document.getElementById('call-start');
+                                    if (start) start.disabled = true;
                                 });
                             };
                         })();
