@@ -1,7 +1,6 @@
 <?php
 
 namespace App\Exports;
-
 use App\JobApplication;
 use App\Skill;
 use Illuminate\Support\Facades\DB;
