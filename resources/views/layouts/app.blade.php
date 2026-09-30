@@ -699,7 +699,11 @@
                 : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>';
         }
         var btn = document.getElementById('ra-collapse-btn');
-        if (btn) btn.setAttribute('aria-expanded', mini ? 'false' : 'true');
+        if (btn) {
+            btn.setAttribute('aria-expanded', mini ? 'false' : 'true');
+            btn.setAttribute('aria-label', mini ? 'Expand sidebar' : 'Collapse sidebar');
+            btn.title = mini ? 'Expand sidebar' : 'Collapse sidebar';
+        }
     };
 
     $(document).ready(function () {
@@ -711,7 +715,11 @@
                 ico.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>';
             }
             var btn = document.getElementById('ra-collapse-btn');
-            if (btn) btn.setAttribute('aria-expanded', 'false');
+            if (btn) {
+                btn.setAttribute('aria-expanded', 'false');
+                btn.setAttribute('aria-label', 'Expand sidebar');
+                btn.title = 'Expand sidebar';
+            }
         }
     });
 

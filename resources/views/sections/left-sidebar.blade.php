@@ -252,8 +252,16 @@
         @endif
     </div>
 
+    <style>
+        #ra-collapse-ico { flex: 0 0 18px; width: 18px; height: 18px; display: block; }
+        #ra-collapse-btn { color: #cbd5e1; min-height: 38px; }
+        #ra-collapse-btn:focus-visible { outline: 2px solid #93c5fd; outline-offset: 3px; }
+        .ra-app.ra-sidebar-mini .ra-collapse-row { padding-left: 10px; padding-right: 10px; }
+        .ra-app.ra-sidebar-mini #ra-collapse-btn { justify-content: center; gap: 0; padding: 8px; }
+        .ra-app.ra-sidebar-mini #ra-collapse-btn .ra-clabel { display: none; }
+    </style>
     <div class="ra-collapse-row">
-        <button type="button" class="ra-collapse-btn" id="ra-collapse-btn" onclick="window.raToggleSidebar && window.raToggleSidebar()" aria-expanded="true">
+        <button type="button" class="ra-collapse-btn" id="ra-collapse-btn" title="Collapse sidebar" aria-label="Collapse sidebar" aria-controls="ra-sidebar" onclick="window.raToggleSidebar && window.raToggleSidebar()" aria-expanded="true">
             <svg id="ra-collapse-ico" width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
             </svg>
