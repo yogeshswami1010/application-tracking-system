@@ -3,12 +3,12 @@ const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const source = fs.readFileSync('public/js/candidate-calls.js', 'utf8');
 
-async function scenario({consent = true, capped = false, uploadFailure = false, embedded = false} = {}) {
+async function scenario({consent = true, capped = false, uploadFailure = false, embedded = false, automatic = false} = {}) {
     const elements = {};
-    for (const id of ['start','mute','end','consent','consent-check','record','status','retry-upload']) {
+    for (const id of ['start','mute','end','consent','consent-check','record','status','retry-upload','duration','recording']) {
         elements['call-' + id] = {disabled:false, hidden:true, checked:consent, listeners:{}, addEventListener(name, fn) {this.listeners[name] = fn;}};
     }
-    const root = {dataset:{start:'/calls',token:'csrf',embedded:embedded?'1':undefined,applicationId:'1'}, querySelectorAll:()=>[], querySelector:selector=>elements[selector.slice(1)]};
+    const root = {dataset:{start:'/calls',token:'csrf',embedded:embedded?'1':undefined,applicationId:'1',autoRecord:automatic?'1':undefined}, querySelectorAll:()=>[], querySelector:selector=>elements[selector.slice(1)]};
     const events = {}, requests = [], timers = [];
     const documentEvents = {};
     let beforeUnload;
@@ -50,7 +50,8 @@ async function scenario({consent = true, capped = false, uploadFailure = false, 
     rtc.call.state = 'active'; events['telnyx.notification']({type:'callUpdate',call:rtc.call});
     await click('mute'); assert.equal(rtc.call.muted,true);
     elements['call-consent-check'].checked = consent;
-    await click('record');
+    if (!automatic) await click('record');
+    else { for(let i=0;i<8;i++) await Promise.resolve(); assert.equal(elements['call-recording'].hidden,false); assert.equal(elements['call-duration'].textContent,'00:00:00'); }
     if (!consent) assert.match(elements['call-status'].textContent,/agreement/);
     if (capped) timers[0]();
     await click('end');
@@ -76,6 +77,7 @@ async function scenario({consent = true, capped = false, uploadFailure = false, 
     assert.equal(stops,1);
 }
 (async()=>{
+    await scenario({automatic:true,embedded:true}); console.log('PASS: automatic recording starts on answer after pre-call consent without a record click');
     await scenario(); console.log('PASS: connected call records, uploads, summarizes and releases microphone');
     await scenario({consent:false}); console.log('PASS: no consent means no recording or AI request');
     await scenario({capped:true}); console.log('PASS: capped recording is preserved on hangup');

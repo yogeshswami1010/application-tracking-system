@@ -3,6 +3,12 @@
     function init(root) {
         if (!root || root.dataset.initialized === '1') return;
         root.dataset.initialized = '1';
+        const automatic = root.dataset.autoRecord === '1';
+        let durationTimer, recordingStarting = false;
+        function updateDuration() {
+            const seconds = Math.max(0, Math.floor((Date.now() - started) / 1000));
+            if (el('duration')) el('duration').textContent = [Math.floor(seconds / 3600), Math.floor(seconds / 60) % 60, seconds % 60].map(value => String(value).padStart(2, '0')).join(':');
+        }
         const embedded = root.dataset.embedded === '1';
         const el = id => root.querySelector('#call-' + id);
         const status = message => { if (el('status')) el('status').textContent = message; };
@@ -47,6 +53,7 @@
             el('consent-check').disabled = false;
             el('consent-check').checked = false;
             if (el('close')) el('close').disabled = false;
+            if (automatic) el('consent').hidden = false;
             refreshHistory();
         }
         async function process(url) {
@@ -64,6 +71,8 @@
         });
         function cleanup() {
             clearInterval(timer);
+            clearInterval(durationTimer);
+            if (el('recording')) el('recording').hidden = true;
             if (microphone) microphone.getTracks().forEach(track => track.stop());
             microphone = null;
             if (context) context.close().catch(() => {});
@@ -111,6 +120,7 @@
                     el('consent-check').disabled = false;
                     el('consent-check').checked = false;
                     if (el('close')) el('close').disabled = false;
+                    if (automatic) el('consent').hidden = false;
                     refreshHistory();
                     status(error.message + ' You can retry from the History tab.');
                 } else {
@@ -134,10 +144,13 @@
         if (el('retry-upload')) el('retry-upload').addEventListener('click', save);
         root._candidateCallStart = async () => {
             if (busy) return;
+            if (automatic && !el('consent-check').checked) { status('Confirm recording consent before starting the call.'); return; }
             busy = true;
+            if (el('duration')) el('duration').textContent = '00:00:00';
+            status('Preparing call…');
             started = 0; duration = 0; muted = false; call = null; session = null; recorder = null; recording = null; chunks = [];
-            el('consent-check').checked = false;
-            el('consent-check').disabled = false;
+            if (!automatic) el('consent-check').checked = false;
+            el('consent-check').disabled = automatic;
             el('record').disabled = false;
             el('consent').hidden = true;
             el('retry-upload').hidden = true;
@@ -164,8 +177,13 @@
                     if (call.state === 'active' && !started) {
                         started = Date.now();
                         el('mute').disabled = false;
-                        el('consent').hidden = false;
-                        status('Connected. Ask the candidate for recording consent before recording.');
+                        el('consent').hidden = automatic;
+                        status('Connected');
+                        updateDuration();
+                        durationTimer = setInterval(updateDuration, 1000);
+                    }
+                    if (call.state === 'active' && automatic && !recorder && !recordingStarting) {
+                        startRecording();
                     }
                     if (['hangup', 'destroy', 'purge'].includes(call.state)) finish();
                 });
@@ -179,7 +197,7 @@
                 setTimeout(() => { if (!call && !ending && busy) { status('Connection timed out.'); finish(); } }, 30000);
             } catch (error) {
                 if (session) await finish();
-                else { cleanup(); busy = false; el('start').disabled = false; if (el('close')) el('close').disabled = false; }
+                else { cleanup(); if (automatic) { el('consent').hidden = false; el('consent-check').disabled = false; } busy = false; el('start').disabled = false; if (el('close')) el('close').disabled = false; }
                 status(error.message);
             }
         };
@@ -191,9 +209,10 @@
             if (muted) call.muteAudio(); else call.unmuteAudio();
             el('mute').textContent = muted ? 'Unmute' : 'Mute';
         });
-        el('record').addEventListener('click', async () => {
+        async function startRecording() {
             if (!el('consent-check').checked) { status('Confirm the candidate’s agreement before recording.'); return; }
-            if (!call || ending || recorder) return;
+            if (!call || ending || recorder || recordingStarting) return;
+            recordingStarting = true;
             el('record').disabled = true;
             try {
                 const mimeType = ['audio/webm;codecs=opus', 'audio/mp4'].find(type => MediaRecorder.isTypeSupported(type));
@@ -201,6 +220,7 @@
                 if (!call.localStream?.getAudioTracks().length || !call.remoteStream?.getAudioTracks().length) throw new Error('Both sides must be connected before recording. Try again.');
                 context = new (window.AudioContext || window.webkitAudioContext)();
                 await context.resume();
+                if (ending || !call) return;
                 const mix = context.createMediaStreamDestination();
                 context.createMediaStreamSource(call.localStream).connect(mix);
                 context.createMediaStreamSource(call.remoteStream).connect(mix);
@@ -208,18 +228,21 @@
                 recorder.addEventListener('dataavailable', event => { if (event.data.size) chunks.push(event.data); });
                 recorder.start(1000);
                 el('consent-check').disabled = true;
-                status('Recording both sides for the summary. Recording stops after 30 minutes.');
+                if (el('recording')) el('recording').hidden = false;
+                status('Connected');
                 timer = setInterval(() => {
                     if (chunks.reduce((size, chunk) => size + chunk.size, 0) >= 23 * 1024 * 1024 || Date.now() - started >= 1800000) {
                         clearInterval(timer); recorder.stop();
+                        if (el('recording')) el('recording').hidden = true;
                         status('Recording limit reached. Summary covers the recorded portion.');
                     }
                 }, 1000);
             } catch (error) {
                 if (context) { context.close().catch(() => {}); context = null; }
-                recorder = null; el('record').disabled = false; status(error.message);
-            }
-        });
+                recorder = null; el('record').disabled = false; status('Recording unavailable: ' + error.message);
+            } finally { recordingStarting = false; }
+        }
+        el('record').addEventListener('click', startRecording);
         if (el('close')) el('close').addEventListener('click', () => {
             if (busy) { status('End the call and wait for it to save before closing.'); return; }
             window.jaCloseCallModal(root.dataset.applicationId);

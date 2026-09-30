@@ -531,28 +531,29 @@ function jaSaveMarketingLabel(appId) {
                         @if($user->cans('edit_job_applications') && $application->phone)
                         <div id="candidate-calls" style="display:none;position:fixed;inset:0;z-index:10000;align-items:center;justify-content:center;background:rgba(15,23,42,.55);padding:16px" class="fixed inset-0 z-[10000] hidden items-center justify-center bg-slate-950/55 p-4"
                              data-start="{{ route('admin.candidate-calls.start', $application->id) }}"
-                             data-token="{{ csrf_token() }}" data-embedded="1" data-application-id="{{ $application->id }}"
+                             data-token="{{ csrf_token() }}" data-auto-record="1" data-embedded="1" data-application-id="{{ $application->id }}"
                              role="dialog" aria-modal="true" aria-labelledby="call-title-{{ $application->id }}">
-                            <section class="w-full max-w-xl rounded-2xl bg-white p-5 shadow-2xl" onclick="event.stopPropagation()">
-                                <header class="mb-4 flex items-start justify-between gap-3">
-                                    <div>
-                                        <h3 id="call-title-{{ $application->id }}" class="text-lg font-bold text-[#1A1E2E]">Call {{ $application->full_name }}</h3>
-                                        <p class="mt-1 text-sm text-[#5A6478]">{{ $application->phone }}</p>
-                                    </div>
-                                    <button type="button" id="call-close" class="rounded-lg px-2 py-1 text-xl text-gray-400 hover:bg-gray-100" aria-label="Close call window">&times;</button>
-                                </header>
-                                <p class="mb-4 text-sm text-[#5A6478]">Use your microphone and headphones. Ask for consent before recording.</p>
-                                <div class="flex flex-wrap gap-2">
-                                    <button type="button" id="call-start" class="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white" @disabled(!$application->phone)>Call candidate</button>
-                                    <button type="button" id="call-mute" class="rounded-lg border px-4 py-2" disabled>Mute</button>
-                                    <button type="button" id="call-end" class="rounded-lg bg-red-600 px-4 py-2 font-semibold text-white" disabled>End call</button>
+
+                            <section style="position:relative;width:100%;max-width:390px;border-radius:28px;background:linear-gradient(155deg,#182c4d,#0c1628);color:#fff;padding:32px 24px;text-align:center;box-shadow:0 24px 80px #0006" onclick="event.stopPropagation()">
+                                <button type="button" id="call-close" style="position:absolute;right:18px;top:12px;background:none;border:0;color:#aebdd2;font-size:26px" aria-label="Close call window">&times;</button>
+                                <p style="font-size:11px;letter-spacing:2px;color:#9eb3cf;margin:0 0 24px">CANDIDATE CALL</p>
+                                <div style="display:grid;place-items:center;width:80px;height:80px;margin:0 auto 18px;border-radius:50%;background:#ffffff15;border:1px solid #ffffff20;font-size:30px"><i class="fa fa-user" aria-hidden="true"></i></div>
+                                <h3 id="call-title-{{ $application->id }}" style="color:white;font-size:22px;font-weight:600;margin:0 0 6px">{{ $application->full_name }}</h3>
+                                <p style="color:#aebdd2;margin:0">{{ $application->phone }}</p>
+                                <p id="call-status" style="min-height:24px;margin:22px 0 6px;color:#c1d4f0;font-size:14px" role="status" aria-live="polite">Ready to call</p>
+                                <div id="call-duration" style="font-size:36px;font-variant-numeric:tabular-nums;font-weight:300;letter-spacing:2px">00:00:00</div>
+                                <p id="call-recording" hidden style="color:#fca5a5;font-size:12px;margin-top:8px">● Recording call</p>
+                                <div style="display:flex;justify-content:center;gap:18px;margin:28px 0">
+                                    <button type="button" id="call-start" title="Call candidate" aria-label="Call candidate" style="width:68px;height:68px;border:0;border-radius:50%;background:#16a776;color:white;font-size:25px"><i class="fa fa-phone" aria-hidden="true"></i></button>
+                                    <button type="button" id="call-mute" style="width:68px;height:68px;border:1px solid #ffffff30;border-radius:50%;background:#ffffff12;color:white;font-size:12px" disabled>Mute</button>
+                                    <button type="button" id="call-end" title="End call" aria-label="End call" style="width:68px;height:68px;border:0;border-radius:50%;background:#e5484d;color:white;font-size:25px" disabled><i class="fa fa-phone" style="transform:rotate(135deg)" aria-hidden="true"></i></button>
                                 </div>
-                                <div id="call-consent" class="mt-4 rounded-xl bg-blue-50 p-3" hidden>
-                                    <label class="text-sm"><input type="checkbox" id="call-consent-check"> The candidate agreed to recording and AI transcription.</label>
-                                    <button type="button" id="call-record" class="ml-2 rounded-lg border bg-white px-3 py-2 text-sm">Start recording</button>
+                                <div id="call-consent" style="text-align:left;background:#ffffff0a;border-radius:12px;padding:12px;font-size:12px;color:#bfcee2">
+                                    <label><input type="checkbox" id="call-consent-check"> The candidate has agreed to call recording and AI transcription.</label>
+                                    <button type="button" id="call-record" hidden>Start recording</button>
                                 </div>
-                                <p id="call-status" class="mt-4 text-sm text-[#5A6478]" role="status" aria-live="polite">Ready to call.</p>
-                                <button type="button" id="call-retry-upload" class="mt-2 rounded-lg border px-3 py-2 text-sm" hidden>Retry saving call</button>
+                                <p style="font-size:11px;color:#92a6c2;margin:14px 0 0">Recording starts automatically when connected after consent confirmation.</p>
+                                <button type="button" id="call-retry-upload" hidden>Retry saving call</button>
                                 <audio id="call-remote" autoplay></audio>
                             </section>
                         </div>
