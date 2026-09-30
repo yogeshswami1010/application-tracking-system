@@ -4,7 +4,7 @@
         if (!root || root.dataset.initialized === '1') return;
         root.dataset.initialized = '1';
         const automatic = root.dataset.autoRecord === '1';
-        let durationTimer, recordingStarting = false;
+        let durationTimer, recordingStarting = false, settingUp = false, cancelRequested = false;
         function updateDuration() {
             const seconds = Math.max(0, Math.floor((Date.now() - started) / 1000));
             if (el('duration')) el('duration').textContent = [Math.floor(seconds / 3600), Math.floor(seconds / 60) % 60, seconds % 60].map(value => String(value).padStart(2, '0')).join(':');
@@ -77,7 +77,7 @@
             microphone = null;
             if (context) context.close().catch(() => {});
             context = null;
-            if (client) { client.disconnect(); client = null; }
+            if (client) { const closingClient = client; client = null; try { closingClient.disconnect(); } catch (_) {} }
             el('end').disabled = true;
             el('mute').disabled = true;
             el('consent').hidden = true;
@@ -129,9 +129,19 @@
                 }
             }
         }
-        async function finish() {
-            if (ending) return;
+        async function finish(localHangup = false) {
+            if (ending || !busy) return;
             ending = true;
+            el('end').disabled = true;
+            status('Ending call…');
+            clearInterval(durationTimer);
+            if (localHangup && call) {
+                try { await call.hangup(); } catch (error) {
+                    ending = false; el('end').disabled = false;
+                    status('Could not end the call: ' + error.message + '. Try again.');
+                    return;
+                }
+            }
             duration = started ? Math.min(14400, Math.round((Date.now() - started) / 1000)) : 0;
             if (recorder && recorder.state !== 'inactive') {
                 await new Promise(resolve => { recorder.addEventListener('stop', resolve, {once: true}); recorder.stop(); });
@@ -139,12 +149,15 @@
             if (recorder && chunks.length) recording = new Blob(chunks, {type: recorder.mimeType});
             chunks = [];
             cleanup();
-            await save();
+            if (session) await save();
+            else completeEmbedded('Call cancelled.');
         }
         if (el('retry-upload')) el('retry-upload').addEventListener('click', save);
         root._candidateCallStart = async () => {
             if (busy) return;
             busy = true;
+            settingUp = true; cancelRequested = false; ending = false;
+            el('end').disabled = false;
             if (el('duration')) el('duration').textContent = '00:00:00';
             status('Preparing call…');
             started = 0; duration = 0; muted = false; call = null; session = null; recorder = null; recording = null; chunks = [];
@@ -158,8 +171,11 @@
             try {
                 if (!window.isSecureContext || !navigator.mediaDevices || !window.MediaRecorder) throw new Error('Calling requires HTTPS and microphone/recording support.');
                 microphone = await navigator.mediaDevices.getUserMedia({audio: true});
+                if (cancelRequested) { await finish(); return; }
                 await ensureTelnyxSdk();
+                if (cancelRequested) { await finish(); return; }
                 session = await post(root.dataset.start);
+                if (cancelRequested) { await finish(); return; }
                 client = new window.TelnyxWebRTC.TelnyxRTC({login_token: session.token});
                 client.remoteElement = 'call-remote';
                 client.on('telnyx.ready', () => {
@@ -198,10 +214,20 @@
                 if (session) await finish();
                 else { cleanup(); if (automatic) { el('consent').hidden = false; el('consent-check').disabled = false; } busy = false; el('start').disabled = false; if (el('close')) el('close').disabled = false; }
                 status(error.message);
-            }
+            } finally { settingUp = false; }
         };
         el('start').addEventListener('click', root._candidateCallStart);
-        el('end').addEventListener('click', () => { if (call) { try { call.hangup(); } catch (_) {} } finish(); });
+        el('end').addEventListener('click', async () => {
+            if (!busy || ending) return;
+            if (settingUp) {
+                cancelRequested = true;
+                el('end').disabled = true;
+                status('Cancelling call setup…');
+                if (microphone) microphone.getTracks().forEach(track => track.stop());
+                return;
+            }
+            await finish(true);
+        });
         el('mute').addEventListener('click', () => {
             if (!call) return;
             muted = !muted;

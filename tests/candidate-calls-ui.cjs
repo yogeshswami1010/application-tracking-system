@@ -3,7 +3,7 @@ const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const source = fs.readFileSync('public/js/candidate-calls.js', 'utf8');
 
-async function scenario({consent = true, capped = false, uploadFailure = false, embedded = false, automatic = false} = {}) {
+async function scenario({consent = true, capped = false, uploadFailure = false, embedded = false, automatic = false, cancelSetup = false} = {}) {
     const elements = {};
     for (const id of ['start','mute','end','consent','consent-check','record','status','retry-upload','duration','recording']) {
         elements['call-' + id] = {disabled:false, hidden:true, checked:consent, listeners:{}, addEventListener(name, fn) {this.listeners[name] = fn;}};
@@ -13,6 +13,7 @@ async function scenario({consent = true, capped = false, uploadFailure = false, 
     const documentEvents = {};
     let beforeUnload;
     let historyRefreshes = 0;
+    let hangups = 0, hungUp = false;
     let rtc, reloads = 0, stops = 0, fail = uploadFailure;
     const stream = {getAudioTracks:()=>[{}],getTracks:()=>[{stop:()=>stops++}]};
     class Recorder {
@@ -26,8 +27,8 @@ async function scenario({consent = true, capped = false, uploadFailure = false, 
         constructor() {rtc = this;}
         on(name, fn) {events[name]=fn;}
         connect() {events['telnyx.ready']();}
-        disconnect() {}
-        newCall() {this.call={id:'test',localStream:stream,remoteStream:stream,hangup(){},muteAudio(){this.muted=true;},unmuteAudio(){this.muted=false;}}; return this.call;}
+        disconnect() {if(this.call) assert.equal(hungUp,true,'Disconnect must follow completed hang-up');}
+        newCall() {this.call={id:'test',localStream:stream,remoteStream:stream,async hangup(){hangups++; await Promise.resolve(); hungUp=true;},muteAudio(){this.muted=true;},unmuteAudio(){this.muted=false;}}; return this.call;}
     }
     const sandbox = {
         document:{getElementById:id=>id === 'candidate-calls' ? root : elements[id], addEventListener(name,fn){documentEvents[name]=fn;}},
@@ -46,7 +47,19 @@ async function scenario({consent = true, capped = false, uploadFailure = false, 
     };
     vm.runInNewContext(source, sandbox);
     const click = id => elements['call-'+id].listeners.click();
-    await click('start');
+    const starting = click('start');
+    assert.equal(elements['call-end'].disabled,false);
+    if(cancelSetup) {
+        await click('end');
+        await starting;
+        assert.equal(requests.length,0);
+        assert.equal(rtc,undefined);
+        assert.equal(stops,1);
+        assert.equal(elements['call-start'].disabled,false);
+        assert.match(elements['call-status'].textContent,/cancelled/);
+        return;
+    }
+    await starting;
     rtc.call.state = 'active'; events['telnyx.notification']({type:'callUpdate',call:rtc.call});
     await click('mute'); assert.equal(rtc.call.muted,true);
     elements['call-consent-check'].checked = consent;
@@ -55,6 +68,7 @@ async function scenario({consent = true, capped = false, uploadFailure = false, 
     if (!consent) assert.match(elements['call-status'].textContent,automatic ? /Not recording/ : /agreement/);
     if (capped) timers[0]();
     await click('end');
+    assert.equal(hangups,1);
     // End button triggers async finish through event handlers.
     for (let i=0;i<20;i++) await Promise.resolve();
     if (uploadFailure) {
@@ -77,6 +91,7 @@ async function scenario({consent = true, capped = false, uploadFailure = false, 
     assert.equal(stops,1);
 }
 (async()=>{
+    await scenario({cancelSetup:true,embedded:true}); console.log('PASS: red button cancels pending setup without dialing or requesting a call session');
     await scenario({automatic:true,embedded:true,consent:false}); console.log('PASS: green button calls without consent, without recording or AI processing');
     await scenario({automatic:true,embedded:true}); console.log('PASS: automatic recording starts on answer after pre-call consent without a record click');
     await scenario(); console.log('PASS: connected call records, uploads, summarizes and releases microphone');
