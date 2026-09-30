@@ -99,9 +99,6 @@
     @endif
 </div>
 @empty
-@if($statusHistories->isEmpty())
-<div style="text-align:center;padding:24px;color:#B0B8C4;font-size:12.5px">No history available.</div>
-@endif
 @endforelse
 
 <div class="ja-card" style="margin-bottom:10px">
