@@ -51,8 +51,8 @@ async function scenario({consent = true, capped = false, uploadFailure = false, 
     await click('mute'); assert.equal(rtc.call.muted,true);
     elements['call-consent-check'].checked = consent;
     if (!automatic) await click('record');
-    else { for(let i=0;i<8;i++) await Promise.resolve(); assert.equal(elements['call-recording'].hidden,false); assert.equal(elements['call-duration'].textContent,'00:00:00'); }
-    if (!consent) assert.match(elements['call-status'].textContent,/agreement/);
+    else if (consent) { for(let i=0;i<8;i++) await Promise.resolve(); assert.equal(elements['call-recording'].hidden,false); assert.equal(elements['call-duration'].textContent,'00:00:00'); }
+    if (!consent) assert.match(elements['call-status'].textContent,automatic ? /Not recording/ : /agreement/);
     if (capped) timers[0]();
     await click('end');
     // End button triggers async finish through event handlers.
@@ -77,6 +77,7 @@ async function scenario({consent = true, capped = false, uploadFailure = false, 
     assert.equal(stops,1);
 }
 (async()=>{
+    await scenario({automatic:true,embedded:true,consent:false}); console.log('PASS: green button calls without consent, without recording or AI processing');
     await scenario({automatic:true,embedded:true}); console.log('PASS: automatic recording starts on answer after pre-call consent without a record click');
     await scenario(); console.log('PASS: connected call records, uploads, summarizes and releases microphone');
     await scenario({consent:false}); console.log('PASS: no consent means no recording or AI request');

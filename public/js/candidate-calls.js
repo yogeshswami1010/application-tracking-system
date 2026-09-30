@@ -144,7 +144,6 @@
         if (el('retry-upload')) el('retry-upload').addEventListener('click', save);
         root._candidateCallStart = async () => {
             if (busy) return;
-            if (automatic && !el('consent-check').checked) { status('Confirm recording consent before starting the call.'); return; }
             busy = true;
             if (el('duration')) el('duration').textContent = '00:00:00';
             status('Preparing call…');
@@ -178,11 +177,11 @@
                         started = Date.now();
                         el('mute').disabled = false;
                         el('consent').hidden = automatic;
-                        status('Connected');
+                        status(automatic && !el('consent-check').checked ? 'Connected · Not recording' : 'Connected');
                         updateDuration();
                         durationTimer = setInterval(updateDuration, 1000);
                     }
-                    if (call.state === 'active' && automatic && !recorder && !recordingStarting) {
+                    if (call.state === 'active' && automatic && el('consent-check').checked && !recorder && !recordingStarting) {
                         startRecording();
                     }
                     if (['hangup', 'destroy', 'purge'].includes(call.state)) finish();
