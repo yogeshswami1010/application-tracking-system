@@ -1,27 +1,3 @@
-<div class="ja-card" style="margin-bottom:10px">
-    <div class="ja-card-title"><i class="fa fa-user-plus"></i> Candidate source & CV activity</div>
-    @if($application->origin_label || $application->job)
-        <p style="font-size:12px">
-            {{ $application->origin_label }}
-            @if($application->job)
-                @if($application->origin_label)
-                    ·
-                @endif
-                {{ $application->job->title }}
-            @endif
-        </p>
-    @endif
-    <p style="font-size:11px;color:#8892A0">Profile created {{ $application->created_at->timezone($global->timezone ?? config('app.timezone'))->format('d M Y, h:i A') }}</p>
-    @forelse($application->profileActivities as $activity)
-        <div style="padding:10px 0;border-bottom:1px solid #eee;font-size:12px">
-            <strong>{{ $activity->actor_name ?? ($application->candidate_origin === 'job_application' && $activity->action === 'created' ? 'Candidate' : 'System') }}</strong>
-            — {{ $activity->action === 'cv_parsed' ? 'parsed this CV' : 'created this candidate profile' }}
-            <div style="color:#8892A0;font-size:11px">{{ $activity->created_at->timezone($global->timezone ?? config('app.timezone'))->format('d M Y, h:i A') }}</div>
-        </div>
-    @empty
-        <p style="font-size:12px;color:#8892A0">Creator and parsing activity were not recorded for this older profile.</p>
-    @endforelse
-</div>
 @include('admin.job-applications.partials.candidate-call-history', ['candidateCalls' => $candidateCalls ?? collect()])
 @if(isset($tempStaffingHistories) && $tempStaffingHistories->isNotEmpty())
 <div class="ja-card">
@@ -127,3 +103,28 @@
 <div style="text-align:center;padding:24px;color:#B0B8C4;font-size:12.5px">No history available.</div>
 @endif
 @endforelse
+
+<div class="ja-card" style="margin-bottom:10px">
+    <div class="ja-card-title"><i class="fa fa-user-plus"></i> Candidate source & CV activity</div>
+    @if($application->origin_label || $application->job)
+        <p style="font-size:12px">
+            {{ $application->origin_label }}
+            @if($application->job)
+                @if($application->origin_label)
+                    ·
+                @endif
+                {{ $application->job->title }}
+            @endif
+        </p>
+    @endif
+    <p style="font-size:11px;color:#8892A0">Profile created {{ $application->created_at->timezone($global->timezone ?? config('app.timezone'))->format('d M Y, h:i A') }}</p>
+    @forelse($application->profileActivities as $activity)
+        <div style="padding:10px 0;border-bottom:1px solid #eee;font-size:12px">
+            <strong>{{ $activity->actor_name ?? ($application->candidate_origin === 'job_application' && $activity->action === 'created' ? 'Candidate' : 'System') }}</strong>
+            — {{ $activity->action === 'cv_parsed' ? 'parsed this CV' : 'created this candidate profile' }}
+            <div style="color:#8892A0;font-size:11px">{{ $activity->created_at->timezone($global->timezone ?? config('app.timezone'))->format('d M Y, h:i A') }}</div>
+        </div>
+    @empty
+        <p style="font-size:12px;color:#8892A0">Creator and parsing activity were not recorded for this older profile.</p>
+    @endforelse
+</div>
