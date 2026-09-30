@@ -235,12 +235,7 @@
             </a>
         @endif
 
-        @if(in_array("view_skills", $userPermissions))
-            <a href="{{ route('admin.skills.index') }}" class="ra-nav-link {{ request()->is('admin/skills*') ? 'on' : '' }}">
-                <span class="ra-ni" aria-hidden="true"><x-ra-sidebar-icon name="skills" /></span>
-                <span class="ra-nl">@lang('menu.skills')</span>
-            </a>
-        @endif
+
 
         @if(in_array("view_company", $userPermissions))
             <a href="{{ route('admin.company.index') }}" class="ra-nav-link {{ request()->is('admin/company*') ? 'on' : '' }}">
