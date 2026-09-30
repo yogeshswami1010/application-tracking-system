@@ -2,7 +2,7 @@
     <a href="{{ route('admin.dashboard') }}" class="ra-logo-wrap">
         @if(!empty($global->logo_url))
             <img src="{{ $global->logo_url }}" alt="{{ $companyName ?? 'Logo' }}" class="ra-logo-img h-6">
-            
+
         @else
             <div class="ra-logo-icon" aria-hidden="true">
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2h4.5a3.5 3.5 0 010 7H2V2z" fill="#fff"/><circle cx="10" cy="11.5" r="2" fill="#fff" opacity="0.55"/></svg>
@@ -19,7 +19,7 @@
             <span class="ra-nl">@lang('menu.dashboard')</span>
         </a>
 
-        
+
 
         @if(in_array("view_jobs", $userPermissions))
             <a href="{{ route('admin.jobs.index') }}" class="ra-nav-link {{ request()->is('admin/jobs*') ? 'on' : '' }}">
@@ -41,7 +41,7 @@
                 <span class="ra-ni" aria-hidden="true"><x-ra-sidebar-icon name="candidate-database" /></span>
                 <span class="ra-nl">@lang('menu.candidateDatabase')</span>
             </a>
-           
+
         @endif
         @if($user->cans('view_job_applications'))
             <a href="{{ route('admin.candidate-marketing.index') }}" class="ra-nav-link {{ request()->is('admin/candidate-marketing*') ? 'on' : '' }}">
@@ -49,7 +49,7 @@
                 <span class="ra-nl">Candidate Marketing</span>
             </a>
         @endif
- 
+
         @if(in_array("view_job_applications", $userPermissions))
             <a href="{{ route('admin.ai-search') }}" class="ra-nav-link {{ request()->is('admin/ai-search*') ? 'on' : '' }}">
                 <span class="ra-ni" aria-hidden="true">
@@ -62,12 +62,6 @@
         @endif
         <div class="ra-sec-title">@lang('menu.recruitment')</div>
 
-        @if(in_array("view_job_applications", $userPermissions))
-            <a href="{{ route('admin.job-onboard.index') }}" class="ra-nav-link {{ request()->is('admin/job-onboard*') ? 'on' : '' }}">
-                <span class="ra-ni" aria-hidden="true"><x-ra-sidebar-icon name="job-onboard" /></span>
-                <span class="ra-nl">@lang('menu.jobOnboard')</span>
-            </a>
-        @endif
 
         @if(in_array("view_schedule", $userPermissions))
             <a href="{{ route('admin.interview-schedule.index') }}" class="ra-nav-link {{ request()->is('admin/interview-schedule*') ? 'on' : '' }}">
@@ -112,10 +106,7 @@
         @endif
 
         @if ($user->roles->count() > 0)
-            <a href="{{ route('admin.job_alert.index') }}" class="ra-nav-link {{ request()->is('admin/job_alert*') ? 'on' : '' }}">
-                <span class="ra-ni" aria-hidden="true"><x-ra-sidebar-icon name="job-alert" /></span>
-                <span class="ra-nl">@lang('menu.jobAlert')</span>
-            </a>
+
         @endif
 
         <a href="{{ route('admin.report.index') }}" class="ra-nav-link {{ request()->is('admin/report*') ? 'on' : '' }}">
@@ -182,12 +173,7 @@
                             <span>@lang('app.language') @lang('menu.settings')</span>
                         </a>
                     </li>
-                    <li>
-                        <a href="{{ route('admin.footer-settings.index') }}" class="ra-nav-sublink {{ request()->is('admin/settings/footer-settings') ? 'on' : '' }}">
-                            <span class="ra-sublink-dot" aria-hidden="true"></span>
-                            <span>@lang('menu.footerSettings')</span>
-                        </a>
-                    </li>
+
                     <li>
                         <a href="{{ route('admin.theme-settings.index') }}" class="ra-nav-sublink {{ request()->is('admin/settings/theme-settings') ? 'on' : '' }}">
                             <span class="ra-sublink-dot" aria-hidden="true"></span>
@@ -212,24 +198,14 @@
                             <span>@lang('menu.aiSettings')</span>
                         </a>
                     </li>
-                    <li>
-                        <a href="{{ route('admin.storage-settings.index') }}" class="ra-nav-sublink {{ request()->is('admin/storage-settings*') ? 'on' : '' }}">
-                            <span class="ra-sublink-dot" aria-hidden="true"></span>
-                            <span>@lang('menu.storageSetting')</span>
-                        </a>
-                    </li>
+
                     <li>
                         <a href="{{ route('admin.security-setting.index') }}" class="ra-nav-sublink {{ request()->is('admin/settings/security-setting') ? 'on' : '' }}">
                             <span class="ra-sublink-dot" aria-hidden="true"></span>
                             <span>@lang('menu.securitySettings')</span>
                         </a>
                     </li>
-                    <li>
-                        <a href="{{ route('admin.linkedin-settings.index') }}" class="ra-nav-sublink {{ request()->is('admin/settings/linkedin-settings') ? 'on' : '' }}">
-                            <span class="ra-sublink-dot" aria-hidden="true"></span>
-                            <span>@lang('menu.linkedInSettings')</span>
-                        </a>
-                    </li>
+
                     @if($global->system_update == 1)
                         <li>
                             <a href="{{ route('admin.update-application.index') }}" class="ra-nav-sublink {{ request()->is('admin/settings/update-application') ? 'on' : '' }}">
@@ -238,18 +214,8 @@
                             </a>
                         </li>
                     @endif
-                    <li>
-                        <a href="{{ route('admin.zoom-setting.index') }}" class="ra-nav-sublink {{ request()->is('admin/settings/zoom-setting') ? 'on' : '' }}">
-                            <span class="ra-sublink-dot" aria-hidden="true"></span>
-                            <span>@lang('menu.zoomSetting')</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="https://froiden.freshdesk.com/support/solutions/" class="ra-nav-sublink" target="_blank" rel="noopener noreferrer">
-                            <span class="ra-sublink-dot" aria-hidden="true"></span>
-                            <span>@lang('menu.help')</span>
-                        </a>
-                    </li>
+
+
                 @endif
             </ul>
         </div>
@@ -261,10 +227,7 @@
                 <span class="ra-nl">Trash</span>
             </a>
         @endif
-        <a href="{{ url('/') }}" target="_blank" rel="noopener noreferrer" class="ra-nav-link">
-            <span class="ra-ni" aria-hidden="true"><x-ra-sidebar-icon name="front-website" /></span>
-            <span class="ra-nl">@lang('menu.frontWebsite')</span>
-        </a>
+
         @if(in_array("view_category", $userPermissions))
             <a href="{{ route('admin.job-categories.index') }}" class="ra-nav-link {{ request()->is('admin/job-categories*') ? 'on' : '' }}">
                 <span class="ra-ni" aria-hidden="true"><x-ra-sidebar-icon name="job-categories" /></span>
