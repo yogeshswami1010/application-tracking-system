@@ -1,11 +1,16 @@
 <div class="ja-card" style="margin-bottom:10px">
     <div class="ja-card-title"><i class="fa fa-user-plus"></i> Candidate source & CV activity</div>
-    <p style="font-size:12px">
-        {{ $application->origin_label }}
-        @if($application->job)
-            · {{ $application->job->title }}
-        @endif
-    </p>
+    @if($application->origin_label || $application->job)
+        <p style="font-size:12px">
+            {{ $application->origin_label }}
+            @if($application->job)
+                @if($application->origin_label)
+                    ·
+                @endif
+                {{ $application->job->title }}
+            @endif
+        </p>
+    @endif
     <p style="font-size:11px;color:#8892A0">Profile created {{ $application->created_at->timezone($global->timezone ?? config('app.timezone'))->format('d M Y, h:i A') }}</p>
     @forelse($application->profileActivities as $activity)
         <div style="padding:10px 0;border-bottom:1px solid #eee;font-size:12px">

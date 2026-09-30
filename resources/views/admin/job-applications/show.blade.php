@@ -175,7 +175,10 @@
                 @if($application->job)
                     {{ $application->job->title }} · Applied {{ $application->created_at->timezone($global->timezone)->format('d M Y, h:i A') }}
                 @else
-                    {{ $application->origin_label }} · Added {{ $application->created_at->timezone($global->timezone)->format('d M Y, h:i A') }}
+                    @if($application->origin_label)
+                        {{ $application->origin_label }} ·
+                    @endif
+                    Added {{ $application->created_at->timezone($global->timezone)->format('d M Y, h:i A') }}
                 @endif
                 @if($application->originUser)
                     · Added by {{ $application->originUser->name }}

@@ -41,7 +41,7 @@ class JobApplication extends Model
             'job_application' => 'Job application',
             'internal' => 'Internal · Manually added',
             'registration' => 'Consortium registration',
-            default => 'Source not recorded',
+            default => null,
         };
     }
     protected static function booted() {
