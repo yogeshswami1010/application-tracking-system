@@ -1248,9 +1248,11 @@ class AdminJobApplicationController extends AdminBaseController
                 'id', 'full_name', 'email', 'phone', 'address', 'gender', 'dob',
                 'country', 'state', 'city', 'photo', 'skills', 'skype_id',
                 'cover_letter', 'job_id', 'status_id', 'location_id',
+                'candidate_origin', 'origin_user_id',
                 'is_marketing', 'marketing_label', 'is_temp_staffing', 'temp_staffing_at', 'temp_staffing_by', 'created_at', 'updated_at',
             ])
             ->with([
+                'originUser:id,name',
                 'onboard',
                 'schedule',
                 // The CV URL accessor uses this loaded relation. Without it,
