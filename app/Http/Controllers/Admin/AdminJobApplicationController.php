@@ -3357,7 +3357,7 @@ public function aiSearchResults(Request $request)
     if (empty($terms) && empty($roles) && empty($query)) {
         return Reply::dataOnly(['results' => []]);
     }
-
+ 
 
     $applicantsQuery = \App\JobApplication::select(
             'job_applications.id',

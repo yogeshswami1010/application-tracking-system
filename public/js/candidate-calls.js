@@ -132,7 +132,7 @@
             await save();
         }
         if (el('retry-upload')) el('retry-upload').addEventListener('click', save);
-        el('start').addEventListener('click', async () => {
+        root._candidateCallStart = async () => {
             if (busy) return;
             busy = true;
             started = 0; duration = 0; muted = false; call = null; session = null; recorder = null; recording = null; chunks = [];
@@ -182,7 +182,8 @@
                 else { cleanup(); busy = false; el('start').disabled = false; if (el('close')) el('close').disabled = false; }
                 status(error.message);
             }
-        });
+        };
+        el('start').addEventListener('click', root._candidateCallStart);
         el('end').addEventListener('click', () => { if (call) { try { call.hangup(); } catch (_) {} } finish(); });
         el('mute').addEventListener('click', () => {
             if (!call) return;
@@ -227,19 +228,19 @@
 
     window.initCandidateCalls = init;
     window.jaOpenCallModal = function (applicationId) {
-        const root = document.getElementById('candidate-calls');
-        if (!root || root.dataset.applicationId !== String(applicationId)) return;
+        const root = Array.from(document.querySelectorAll('[id="candidate-calls"]')).find(node => node.dataset.applicationId === String(applicationId));
+        if (!root) return;
         init(root);
         if (!root._jaOriginalParent) root._jaOriginalParent = root.parentNode;
         if (root.parentNode !== document.body) document.body.appendChild(root);
-        root.classList.remove('hidden'); root.classList.add('flex');
+        root.classList.remove('hidden'); root.classList.add('flex'); root.style.display = 'flex';
         const start = root.querySelector('#call-start');
         if (start && !start.disabled) start.focus();
     };
     window.jaCloseCallModal = function (applicationId) {
-        const root = document.getElementById('candidate-calls');
-        if (!root || root.dataset.applicationId !== String(applicationId)) return;
-        root.classList.add('hidden'); root.classList.remove('flex');
+        const root = Array.from(document.querySelectorAll('[id="candidate-calls"]')).find(node => node.dataset.applicationId === String(applicationId));
+        if (!root) return;
+        root.classList.add('hidden'); root.classList.remove('flex'); root.style.display = 'none';
         if (root._jaOriginalParent && root.parentNode === document.body) root._jaOriginalParent.appendChild(root);
     };
     document.addEventListener('click', event => {

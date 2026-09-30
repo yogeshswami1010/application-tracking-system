@@ -560,25 +560,25 @@ function jaSaveMarketingLabel(appId) {
 
                         <script>
                         (function () {
-                            var callRoot = document.getElementById('candidate-calls');
+                            var callRoot = Array.from(document.querySelectorAll('[id="candidate-calls"]')).find(function (node) { return node.dataset.applicationId === @json((string) $application->id); });
                             if (!callRoot) return;
                             if (window.initCandidateCalls) {
                                 window.initCandidateCalls(callRoot);
                                 return;
                             }
                             window.jaOpenCallModal = function (applicationId) {
-                                var activeRoot = document.getElementById('candidate-calls');
+                                var activeRoot = Array.from(document.querySelectorAll('[id="candidate-calls"]')).find(function (node) { return node.dataset.applicationId === String(applicationId); });
                                 if (!activeRoot || activeRoot.dataset.applicationId !== String(applicationId)) return;
                                 if (!activeRoot._jaOriginalParent) activeRoot._jaOriginalParent = activeRoot.parentNode;
                                 if (activeRoot.parentNode !== document.body) document.body.appendChild(activeRoot);
                                 activeRoot.classList.remove('hidden');
-                                activeRoot.classList.add('flex');
+                                activeRoot.classList.add('flex'); activeRoot.style.display = 'flex';
                             };
                             window.jaCloseCallModal = function (applicationId) {
-                                var activeRoot = document.getElementById('candidate-calls');
+                                var activeRoot = Array.from(document.querySelectorAll('[id="candidate-calls"]')).find(function (node) { return node.dataset.applicationId === String(applicationId); });
                                 if (!activeRoot || activeRoot.dataset.applicationId !== String(applicationId)) return;
                                 activeRoot.classList.add('hidden');
-                                activeRoot.classList.remove('flex');
+                                activeRoot.classList.remove('flex'); activeRoot.style.display = 'none';
                                 if (activeRoot._jaOriginalParent && activeRoot.parentNode === document.body) {
                                     activeRoot._jaOriginalParent.appendChild(activeRoot);
                                 }
@@ -615,7 +615,8 @@ function jaSaveMarketingLabel(appId) {
                                     startButton.removeEventListener('click', loadCallControls, true);
                                     if (closeButton) closeButton.removeEventListener('click', closeBeforeInit);
                                     startButton.disabled = false;
-                                    startButton.click();
+                                    if (typeof callRoot._candidateCallStart !== 'function') throw new Error('Reload the page to update call controls.');
+                                    await callRoot._candidateCallStart();
                                 } catch (error) {
                                     window._jaCandidateCallAssetsPromise = null;
                                     startButton.disabled = false;
