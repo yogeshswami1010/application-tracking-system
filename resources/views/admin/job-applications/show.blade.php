@@ -529,7 +529,7 @@ function jaSaveMarketingLabel(appId) {
                         </div>
 
                         @if($user->cans('edit_job_applications') && $application->phone)
-                        <div id="candidate-calls" class="fixed inset-0 z-[10000] hidden items-center justify-center bg-slate-950/55 p-4"
+                        <div id="candidate-calls" style="display:none;position:fixed;inset:0;z-index:10000;align-items:center;justify-content:center;background:rgba(15,23,42,.55);padding:16px" class="fixed inset-0 z-[10000] hidden items-center justify-center bg-slate-950/55 p-4"
                              data-start="{{ route('admin.candidate-calls.start', $application->id) }}"
                              data-token="{{ csrf_token() }}" data-embedded="1" data-application-id="{{ $application->id }}"
                              role="dialog" aria-modal="true" aria-labelledby="call-title-{{ $application->id }}">
@@ -558,74 +558,6 @@ function jaSaveMarketingLabel(appId) {
                         </div>
                         @endif
 
-                        <script>
-                        (function () {
-                            var callRoot = Array.from(document.querySelectorAll('[id="candidate-calls"]')).find(function (node) { return node.dataset.applicationId === @json((string) $application->id); });
-                            if (!callRoot) return;
-                            if (window.initCandidateCalls) {
-                                window.initCandidateCalls(callRoot);
-                                return;
-                            }
-                            window.jaOpenCallModal = function (applicationId) {
-                                var activeRoot = Array.from(document.querySelectorAll('[id="candidate-calls"]')).find(function (node) { return node.dataset.applicationId === String(applicationId); });
-                                if (!activeRoot || activeRoot.dataset.applicationId !== String(applicationId)) return;
-                                if (!activeRoot._jaOriginalParent) activeRoot._jaOriginalParent = activeRoot.parentNode;
-                                if (activeRoot.parentNode !== document.body) document.body.appendChild(activeRoot);
-                                activeRoot.classList.remove('hidden');
-                                activeRoot.classList.add('flex'); activeRoot.style.display = 'flex';
-                            };
-                            window.jaCloseCallModal = function (applicationId) {
-                                var activeRoot = Array.from(document.querySelectorAll('[id="candidate-calls"]')).find(function (node) { return node.dataset.applicationId === String(applicationId); });
-                                if (!activeRoot || activeRoot.dataset.applicationId !== String(applicationId)) return;
-                                activeRoot.classList.add('hidden');
-                                activeRoot.classList.remove('flex'); activeRoot.style.display = 'none';
-                                if (activeRoot._jaOriginalParent && activeRoot.parentNode === document.body) {
-                                    activeRoot._jaOriginalParent.appendChild(activeRoot);
-                                }
-                            };
-                            var closeButton = callRoot.querySelector('#call-close');
-                            function closeBeforeInit() {
-                                if (callRoot.dataset.initialized !== '1') window.jaCloseCallModal(callRoot.dataset.applicationId);
-                            }
-                            if (closeButton) closeButton.addEventListener('click', closeBeforeInit);
-                            var startButton = callRoot.querySelector('#call-start');
-                            async function loadCallControls(event) {
-                                event.preventDefault();
-                                event.stopImmediatePropagation();
-                                startButton.disabled = true;
-                                var statusText = callRoot.querySelector('#call-status');
-                                if (statusText) statusText.textContent = 'Preparing call controls…';
-                                try {
-                                    if (!window._jaCandidateCallAssetsPromise) {
-                                        window._jaCandidateCallAssetsPromise = new Promise(function (resolve, reject) {
-                                            var script = document.createElement('script');
-                                            script.async = true;
-                                            script.src = @json(asset('js/candidate-calls.js') . '?v=' . filemtime(public_path('js/candidate-calls.js')));
-                                            script.onload = resolve;
-                                            script.onerror = function () { script.remove(); reject(new Error('Could not load call controls. Try again.')); };
-                                            document.head.appendChild(script);
-                                        });
-                                    }
-                                    await window._jaCandidateCallAssetsPromise;
-                                    if (typeof window.initCandidateCalls !== 'function') {
-                                        throw new Error('Call controls are outdated. Reload the page and try again.');
-                                    }
-                                    if (!callRoot.isConnected) return;
-                                    window.initCandidateCalls(callRoot);
-                                    startButton.removeEventListener('click', loadCallControls, true);
-                                    if (closeButton) closeButton.removeEventListener('click', closeBeforeInit);
-                                    startButton.disabled = false;
-                                    if (typeof callRoot._candidateCallStart !== 'function') throw new Error('Reload the page to update call controls.');
-                                    await callRoot._candidateCallStart();
-                                } catch (error) {
-                                    window._jaCandidateCallAssetsPromise = null;
-                                    startButton.disabled = false;
-                                    if (statusText) statusText.textContent = error.message;
-                                }
-                            }
-                            if (startButton) startButton.addEventListener('click', loadCallControls, true);
-                        })();
-                        </script>
 
                         @if($user->cans('edit_job_applications') && $application->phone)
                         <div id="ja-sms-modal-{{ $application->id }}" class="absolute inset-0 z-[300] hidden items-center justify-center bg-black/50 p-4">

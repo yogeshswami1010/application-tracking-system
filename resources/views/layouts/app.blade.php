@@ -368,6 +368,7 @@
 <script src="{{ asset('assets/node_modules_files/sweetalert/sweetalert.min.js') }}"></script>
 <script src="{{ asset('assets/node_modules_files/toast-master/js/jquery.toast.js') }}"></script>
 <script src="{{ asset('js/cbpFWTabs.js') }}"></script>
+<script defer src="{{ asset('js/candidate-calls.js') }}?v={{ filemtime(public_path('js/candidate-calls.js')) }}"></script>
 @if(file_exists(public_path('assets/plugins/icheck/icheck.min.js')))
 <script src="{{ asset('assets/plugins/icheck/icheck.min.js') }}"></script>
 @endif
