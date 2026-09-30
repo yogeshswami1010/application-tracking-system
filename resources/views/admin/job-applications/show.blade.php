@@ -172,14 +172,14 @@
         <div class="ja-header-meta">
             <h2>{{ ucwords($application->full_name) }}</h2>
             <p>
-                {{ $application->origin_label }}
                 @if($application->job)
-                    · {{ $application->job->title }}
+                    {{ $application->job->title }} · Applied {{ $application->created_at->timezone($global->timezone)->format('d M Y, h:i A') }}
+                @else
+                    {{ $application->origin_label }} · Added {{ $application->created_at->timezone($global->timezone)->format('d M Y, h:i A') }}
                 @endif
                 @if($application->originUser)
                     · Added by {{ $application->originUser->name }}
                 @endif
-                · {{ $application->created_at->timezone($global->timezone)->format('d M Y, h:i A') }}
             </p>
         </div>
 
