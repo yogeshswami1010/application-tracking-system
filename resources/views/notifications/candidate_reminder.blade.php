@@ -1,4 +1,4 @@
-<a href="javascript:;" data-link ="{{ route('admin.job-applications.index') }}" class="block px-4 py-2 text-sm hover:bg-gray-100 read-notification" data-notification-id="{{ $notification->id }}">
+<a href="javascript:;" data-link ="{{ route('admin.job-applications.table') }}" class="block px-4 py-2 text-sm hover:bg-gray-100 read-notification" data-notification-id="{{ $notification->id }}">
     <div class="flex items-center justify-between">
         <div class="flex items-center flex-1 min-w-0">
             <i class="fa fa-users mr-2"></i>

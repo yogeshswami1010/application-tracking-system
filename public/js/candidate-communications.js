@@ -13,6 +13,8 @@
     window.ccRefreshSelection = () => {
         const count = selection().length;
         el('count').textContent = count;
+        const toolbar = root.querySelector('.cc-toolbar');
+        if (toolbar) toolbar.hidden = toolbar.dataset.enabled === '0' || count === 0;
         root.querySelectorAll('[data-cc-open]').forEach(button => { button.disabled = count === 0 || count > 100; });
         document.querySelectorAll('.cc-all').forEach(box => {
             const rows = Array.from((box.closest('table') || document).querySelectorAll('.cc-select'));
