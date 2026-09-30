@@ -116,6 +116,8 @@ class AdminConsortiumRegistrationController extends AdminBaseController
         }
         if (!$profileApplication) {
             $profileApplication = new JobApplication;
+            $profileApplication->candidate_origin = 'registration';
+            $profileApplication->origin_user_id = auth()->id();
             $profileApplication->full_name = trim($registration->first_name.' '.$registration->last_name);
             $profileApplication->email = $registration->email;
             $profileApplication->phone = $registration->phone;
@@ -191,6 +193,8 @@ class AdminConsortiumRegistrationController extends AdminBaseController
         try {
             $application = DB::transaction(function () use ($registration, $job, $appliedStatus, $locationId, &$copiedResumePath) {
                 $application = new JobApplication;
+            $application->candidate_origin = 'registration';
+            $application->origin_user_id = auth()->id();
                 $application->full_name = trim($registration->first_name.' '.$registration->last_name);
                 $application->email = $registration->email;
                 $application->phone = $registration->phone;

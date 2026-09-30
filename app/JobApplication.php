@@ -33,6 +33,37 @@ class JobApplication extends Model
 
     protected $appends = ['resume_url', 'photo_url'];
 
+
+    public function originUser() { return $this->belongsTo(User::class, 'origin_user_id'); }
+    public function profileActivities() { return $this->hasMany(CandidateProfileActivity::class)->latest('id'); }
+    public function getOriginLabelAttribute() {
+        return match ($this->candidate_origin) {
+            'job_application' => 'Job application',
+            'internal' => 'Internal · Manually added',
+            'registration' => 'Consortium registration',
+            default => 'Source not recorded',
+        };
+    }
+    protected static function booted() {
+        static::created(function ($application) {
+            $application->recordProfileActivity('created');
+            if ($application->parsed_cv_data) $application->recordProfileActivity('cv_parsed');
+        });
+        static::updated(function ($application) {
+            if ($application->wasChanged('parsed_cv_data') && $application->parsed_cv_data) {
+                $application->recordProfileActivity('cv_parsed');
+            }
+        });
+    }
+    public function recordProfileActivity(string $action): void {
+        $actor = auth()->user();
+        $this->profileActivities()->create([
+            'action' => $action,
+            'user_id' => $actor?->id,
+            'actor_name' => $actor?->name,
+        ]);
+    }
+
     public function documents()
     {
         return $this->morphMany(Document::class, 'documentable');

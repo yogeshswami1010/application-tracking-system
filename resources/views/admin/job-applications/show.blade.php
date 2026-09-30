@@ -171,7 +171,7 @@
 
         <div class="ja-header-meta">
             <h2>{{ ucwords($application->full_name) }}</h2>
-            <p>{{ ucwords($application->job?->title ?? '—') }} · Applied {{ $application->created_at->timezone($global->timezone)->format('d M, Y') }}</p>
+            <p>{{ $application->origin_label }}@if($application->job) · {{ $application->job->title }}@endif@if($application->originUser) · Added by {{ $application->originUser->name }}@endif · {{ $application->created_at->timezone($global->timezone)->format('d M Y, h:i A') }}</p>
         </div>
 
         <div class="ja-header-pills">

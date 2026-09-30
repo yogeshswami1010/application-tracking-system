@@ -406,6 +406,7 @@ class FrontJobsController extends FrontBaseController
             : \App\Question::whereIn('id', array_keys($questionUploads))->get()->keyBy('id');
 
         $jobApplication           = new JobApplication();
+        $jobApplication->candidate_origin = 'job_application';
         $jobApplication->full_name = $request->full_name;
         $jobApplication->job_id   = $request->job_id;
 

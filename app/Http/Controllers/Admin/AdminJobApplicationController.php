@@ -913,6 +913,8 @@ class AdminJobApplicationController extends AdminBaseController
         }
 
         $jobApplication = new JobApplication;
+        $jobApplication->candidate_origin = 'internal';
+        $jobApplication->origin_user_id = auth()->id();
         $jobApplication->full_name = collect(explode(' ', trim($request->full_name)))
         ->map(fn($word) => ucfirst(strtolower($word)))
         ->join(' ');
@@ -1390,7 +1392,7 @@ class AdminJobApplicationController extends AdminBaseController
                 ])
                 ->latest()
                 ->get();
-            return Reply::dataOnly(['status' => 'success', 'view' => view('admin.job-applications.partials.profile-history', compact('statusHistories', 'resumeHistories', 'tempStaffingHistories', 'candidateCalls', 'canCall', 'previousApps') + ['user' => $this->user])->render()]);
+            return Reply::dataOnly(['status' => 'success', 'view' => view('admin.job-applications.partials.profile-history', compact('application', 'statusHistories', 'resumeHistories', 'tempStaffingHistories', 'candidateCalls', 'canCall', 'previousApps') + ['user' => $this->user])->render()]);
         }
         return Reply::error('Tab not found.');
     }
