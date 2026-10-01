@@ -576,7 +576,6 @@ function jaSaveMarketingLabel(appId) {
                                     <label title="Confirm candidate consent to recording and AI transcription"><input type="checkbox" id="call-consent-check" aria-label="Confirm candidate consent to recording and AI transcription"></label>
                                     <button type="button" id="call-record" hidden>Start recording</button>
                                 </div>
-                                <p class="call-extra" style="font-size:11px;color:#92a6c2;margin:14px 0 0">Press the green phone to call. Recording starts on answer only if consent is confirmed; otherwise the call is not recorded.</p>
                                 <button type="button" id="call-retry-upload" hidden>Retry saving call</button>
                                 <audio id="call-remote" autoplay></audio>
                             </section>
