@@ -45,12 +45,6 @@
                 </a>
             @endif
             @if ($canAddJobs)
-                <a href="{{ route('admin.jobs.sendEmail') }}" class="inline-flex items-center gap-1.5 rounded-lg border-[1.5px] border-[#E2DED8] bg-white px-3.5 py-2 text-[12.5px] font-semibold text-[#5A6478] transition hover:border-[#2563EB] hover:bg-[#EFF6FF] hover:text-[#2563EB]">
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                    @lang('menu.sendJobEmails')
-                </a>
-            @endif
-            @if ($canAddJobs)
                 <a href="{{ route('admin.jobs.create') }}" class="inline-flex items-center gap-2 rounded-xl bg-[#2563EB] px-5 py-2.5 text-[13px] font-semibold text-white shadow-sm transition hover:bg-[#1d4ed8]">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                     @lang('app.createNew')
