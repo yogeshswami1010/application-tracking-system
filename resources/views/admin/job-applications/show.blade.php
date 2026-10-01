@@ -573,7 +573,7 @@ function jaSaveMarketingLabel(appId) {
                                     <button type="button" id="call-end" title="End call" aria-label="End call" style="width:68px;height:68px;border:0;border-radius:50%;background:#e5484d;color:white;font-size:25px" disabled><i class="fa fa-phone" style="transform:rotate(135deg)" aria-hidden="true"></i></button>
                                 </div>
                                 <div id="call-consent" class="call-extra" style="text-align:left;background:#ffffff0a;border-radius:12px;padding:12px;font-size:12px;color:#bfcee2">
-                                    <label><input type="checkbox" id="call-consent-check"> Recording consent confirmed</label>
+                                    <label title="Confirm candidate consent to recording and AI transcription"><input type="checkbox" id="call-consent-check" aria-label="Confirm candidate consent to recording and AI transcription"></label>
                                     <button type="button" id="call-record" hidden>Start recording</button>
                                 </div>
                                 <p class="call-extra" style="font-size:11px;color:#92a6c2;margin:14px 0 0">Press the green phone to call. Recording starts on answer only if consent is confirmed; otherwise the call is not recorded.</p>
