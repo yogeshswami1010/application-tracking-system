@@ -541,30 +541,42 @@ function jaSaveMarketingLabel(appId) {
                         </div>
 
                         @if($user->cans('edit_job_applications') && $application->phone)
+                        <style>
+                            #call-panel { max-height:calc(100dvh - 32px); overflow:auto; pointer-events:auto; }
+                            #candidate-calls.call-floating { background:transparent!important; pointer-events:none; }
+                            #candidate-calls.call-minimized .call-extra { display:none!important; }
+                            #candidate-calls.call-minimized #call-panel { width:300px!important; padding:18px!important; border-radius:18px!important; }
+                            #candidate-calls.call-minimized #call-duration { font-size:24px!important; }
+                            #candidate-calls.call-minimized #call-status { margin:8px 0!important; }
+                            #candidate-calls.call-minimized .call-controls { margin:12px 0 0!important; }
+                            #candidate-calls.call-minimized .call-controls button { width:44px!important; height:44px!important; }
+                            #candidate-calls.call-minimized #call-drag-handle { margin-bottom:14px!important; }
+                        </style>
                         <div id="candidate-calls" style="display:none;position:fixed;inset:0;z-index:10000;align-items:center;justify-content:center;background:rgba(15,23,42,.55);padding:16px" class="fixed inset-0 z-[10000] hidden items-center justify-center bg-slate-950/55 p-4"
                              data-start="{{ route('admin.candidate-calls.start', $application->id) }}"
                              data-token="{{ csrf_token() }}" data-auto-record="1" data-embedded="1" data-application-id="{{ $application->id }}"
                              role="dialog" aria-modal="true" aria-labelledby="call-title-{{ $application->id }}">
 
-                            <section style="position:relative;width:100%;max-width:390px;border-radius:28px;background:linear-gradient(155deg,#182c4d,#0c1628);color:#fff;padding:32px 24px;text-align:center;box-shadow:0 24px 80px #0006" onclick="event.stopPropagation()">
+                            <section id="call-panel" style="position:relative;width:100%;max-width:390px;border-radius:28px;background:linear-gradient(155deg,#182c4d,#0c1628);color:#fff;padding:32px 24px;text-align:center;box-shadow:0 24px 80px #0006" onclick="event.stopPropagation()">
                                 <button type="button" id="call-close" style="position:absolute;right:18px;top:12px;background:none;border:0;color:#aebdd2;font-size:26px" aria-label="Close call window">&times;</button>
-                                <p style="font-size:11px;letter-spacing:2px;color:#9eb3cf;margin:0 0 24px">CANDIDATE CALL</p>
-                                <div style="display:grid;place-items:center;width:80px;height:80px;margin:0 auto 18px;border-radius:50%;background:#ffffff15;border:1px solid #ffffff20;font-size:30px"><i class="fa fa-user" aria-hidden="true"></i></div>
+                                <button type="button" id="call-minimize" style="position:absolute;right:52px;top:12px;background:none;border:0;color:#aebdd2;font-size:24px" title="Minimize call" aria-label="Minimize call" aria-expanded="true">−</button>
+                                <p id="call-drag-handle" title="Drag to move call window" style="cursor:move;touch-action:none;user-select:none;font-size:11px;letter-spacing:2px;color:#9eb3cf;margin:0 60px 24px 0;text-align:left">⠿ CANDIDATE CALL</p>
+                                <div class="call-extra" style="display:grid;place-items:center;width:80px;height:80px;margin:0 auto 18px;border-radius:50%;background:#ffffff15;border:1px solid #ffffff20;font-size:30px"><i class="fa fa-user" aria-hidden="true"></i></div>
                                 <h3 id="call-title-{{ $application->id }}" style="color:white;font-size:22px;font-weight:600;margin:0 0 6px">{{ $application->full_name }}</h3>
-                                <p style="color:#aebdd2;margin:0">{{ $application->phone }}</p>
+                                <p class="call-extra" style="color:#aebdd2;margin:0">{{ $application->phone }}</p>
                                 <p id="call-status" style="min-height:24px;margin:22px 0 6px;color:#c1d4f0;font-size:14px" role="status" aria-live="polite">Ready to call</p>
                                 <div id="call-duration" style="font-size:36px;font-variant-numeric:tabular-nums;font-weight:300;letter-spacing:2px">00:00:00</div>
                                 <p id="call-recording" hidden style="color:#fca5a5;font-size:12px;margin-top:8px">● Recording call</p>
-                                <div style="display:flex;justify-content:center;gap:18px;margin:28px 0">
+                                <div class="call-controls" style="display:flex;justify-content:center;gap:18px;margin:28px 0">
                                     <button type="button" id="call-start" title="Call candidate" aria-label="Call candidate" style="width:68px;height:68px;border:0;border-radius:50%;background:#16a776;color:white;font-size:25px"><i class="fa fa-phone" aria-hidden="true"></i></button>
                                     <button type="button" id="call-mute" style="width:68px;height:68px;border:1px solid #ffffff30;border-radius:50%;background:#ffffff12;color:white;font-size:12px" disabled>Mute</button>
                                     <button type="button" id="call-end" title="End call" aria-label="End call" style="width:68px;height:68px;border:0;border-radius:50%;background:#e5484d;color:white;font-size:25px" disabled><i class="fa fa-phone" style="transform:rotate(135deg)" aria-hidden="true"></i></button>
                                 </div>
-                                <div id="call-consent" style="text-align:left;background:#ffffff0a;border-radius:12px;padding:12px;font-size:12px;color:#bfcee2">
-                                    <label><input type="checkbox" id="call-consent-check"> The candidate has agreed to call recording and AI transcription.</label>
+                                <div id="call-consent" class="call-extra" style="text-align:left;background:#ffffff0a;border-radius:12px;padding:12px;font-size:12px;color:#bfcee2">
+                                    <label><input type="checkbox" id="call-consent-check"> Recording consent confirmed</label>
                                     <button type="button" id="call-record" hidden>Start recording</button>
                                 </div>
-                                <p style="font-size:11px;color:#92a6c2;margin:14px 0 0">Press the green phone to call. Recording starts on answer only if consent is confirmed; otherwise the call is not recorded.</p>
+                                <p class="call-extra" style="font-size:11px;color:#92a6c2;margin:14px 0 0">Press the green phone to call. Recording starts on answer only if consent is confirmed; otherwise the call is not recorded.</p>
                                 <button type="button" id="call-retry-upload" hidden>Retry saving call</button>
                                 <audio id="call-remote" autoplay></audio>
                             </section>

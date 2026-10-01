@@ -1,8 +1,62 @@
 (function () {
     'use strict';
+    function initCallWindow(root) {
+        const panel = root.querySelector('#call-panel');
+        const handle = root.querySelector('#call-drag-handle');
+        const toggle = root.querySelector('#call-minimize');
+        if (!panel || typeof panel.getBoundingClientRect !== 'function' || !handle || !toggle) return;
+        let minimized = false, drag = null;
+        function position(x, y) {
+            const box = panel.getBoundingClientRect();
+            panel.style.left = Math.max(8, Math.min(x, window.innerWidth - box.width - 8)) + 'px';
+            panel.style.top = Math.max(8, Math.min(y, window.innerHeight - box.height - 8)) + 'px';
+        }
+        function floating() {
+            root.classList.add('call-floating');
+            root.setAttribute('aria-modal', 'false');
+            panel.style.position = 'fixed';
+            panel.style.width = 'min(390px, calc(100vw - 32px))';
+            panel.style.maxWidth = 'calc(100vw - 16px)';
+        }
+        function setMinimized(value) {
+            minimized = value;
+            root.classList.toggle('call-minimized', value);
+            toggle.textContent = value ? '□' : '−';
+            toggle.title = value ? 'Restore call window' : 'Minimize call';
+            toggle.setAttribute('aria-label', toggle.title);
+            toggle.setAttribute('aria-expanded', String(!value));
+            floating();
+            const box = panel.getBoundingClientRect();
+            position(window.innerWidth - box.width - 20, window.innerHeight - box.height - 20);
+        }
+        root._restoreCallWindow = () => { if (minimized) setMinimized(false); };
+        toggle.addEventListener('click', () => setMinimized(!minimized));
+        handle.addEventListener('pointerdown', event => {
+            if (event.button !== 0 || !event.isPrimary) return;
+            const box = panel.getBoundingClientRect();
+            floating(); position(box.left, box.top);
+            drag = {id:event.pointerId, x:event.clientX - box.left, y:event.clientY - box.top};
+            handle.setPointerCapture(event.pointerId);
+            event.preventDefault();
+        });
+        handle.addEventListener('pointermove', event => {
+            if (!drag || event.pointerId !== drag.id) return;
+            position(event.clientX - drag.x, event.clientY - drag.y);
+        });
+        function release() { drag = null; }
+        handle.addEventListener('pointerup', release);
+        handle.addEventListener('pointercancel', release);
+        handle.addEventListener('lostpointercapture', release);
+        window.addEventListener('resize', () => {
+            if (!root.isConnected || panel.style.position !== 'fixed') return;
+            const box = panel.getBoundingClientRect(); position(box.left, box.top);
+        });
+    }
+
     function init(root) {
         if (!root || root.dataset.initialized === '1') return;
         root.dataset.initialized = '1';
+        initCallWindow(root);
         const automatic = root.dataset.autoRecord === '1';
         let durationTimer, recordingStarting = false, settingUp = false, cancelRequested = false;
         function updateDuration() {
@@ -282,6 +336,7 @@
         if (!root._jaOriginalParent) root._jaOriginalParent = root.parentNode;
         if (root.parentNode !== document.body) document.body.appendChild(root);
         root.classList.remove('hidden'); root.classList.add('flex'); root.style.display = 'flex';
+        if (root._restoreCallWindow) root._restoreCallWindow();
         const start = root.querySelector('#call-start');
         if (start && !start.disabled) start.focus();
     };
