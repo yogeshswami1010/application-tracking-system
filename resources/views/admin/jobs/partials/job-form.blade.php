@@ -735,9 +735,10 @@
                         </div>
                     </div>
                     <div class="hidden rounded-2xl border border-dashed border-[#E8E6E1] bg-white p-5" id="amount_field">
-                    {{-- Currency selector row --}}
-                    <div class="mb-4 form-group">
-                        <label class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">
+                    {{-- Currency and rate --}}
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 mb-4">
+                    <div class="form-group mb-0">
+                        <label for="salary_currency_id" class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">
                             currency <span class="text-red-500">*</span>
                         </label>
                         <select
@@ -761,6 +762,19 @@
                                 </option>
                             @endforeach
                         </select>
+                    </div>
+
+                    <div class="form-group pay_according mb-0 hidden" id="payaccording">
+                        <label for="pay_according" class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">@lang('modules.jobs.rate')</label>
+                        <select name="pay_according" id="pay_according" class="job-form-sel form-control w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-[13px] text-[#0F1F3D] outline-none transition-all focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10">
+                            <option value="">—</option>
+                            <option @if ($job && $job->pay_according == 'Hour') selected @endif value="Hour">@lang('modules.jobs.hour')</option>
+                            <option @if ($job && $job->pay_according == 'Day') selected @endif value="Day">@lang('modules.jobs.day')</option>
+                            <option @if ($job && $job->pay_according == 'Week') selected @endif value="Week">@lang('modules.jobs.week')</option>
+                            <option @if ($job && $job->pay_according == 'Month') selected @endif value="Month">@lang('modules.jobs.month')</option>
+                            <option @if ($job && $job->pay_according == 'Year') selected @endif value="Year">@lang('modules.jobs.year')</option>
+                        </select>
+                    </div>
                     </div>
 
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -797,17 +811,7 @@
                     </div>
                 </div>
 
-                    <div class="form-group pay_according mb-0 hidden rounded-2xl border border-dashed border-[#E8E6E1] bg-white p-5" id="payaccording">
-                        <label for="pay_according" class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">@lang('modules.jobs.rate')</label>
-                        <select name="pay_according" id="pay_according" class="job-form-sel form-control w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-[13px] text-[#0F1F3D] outline-none transition-all focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10">
-                            <option value="">—</option>
-                            <option @if ($job && $job->pay_according == 'Hour') selected @endif value="Hour">@lang('modules.jobs.hour')</option>
-                            <option @if ($job && $job->pay_according == 'Day') selected @endif value="Day">@lang('modules.jobs.day')</option>
-                            <option @if ($job && $job->pay_according == 'Week') selected @endif value="Week">@lang('modules.jobs.week')</option>
-                            <option @if ($job && $job->pay_according == 'Month') selected @endif value="Month">@lang('modules.jobs.month')</option>
-                            <option @if ($job && $job->pay_according == 'Year') selected @endif value="Year">@lang('modules.jobs.year')</option>
-                        </select>
-                    </div>
+
 
                     {{-- ── HOMEPAGE VISIBILITY ── --}}
 
