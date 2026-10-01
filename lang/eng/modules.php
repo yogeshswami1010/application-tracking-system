@@ -564,7 +564,7 @@ return [
         'deleteTitle' => 'Delete Language',
         'deleteCannotUndo' => 'This cannot be undone.',
         'deleteConfirmHtml' => 'Are you sure you want to delete <span class="font-semibold text-[#1A1E2E]">:name</span>? All related translations will be removed.',
-        'footerCredit' => '© :year Froiden Technologies Pvt Ltd',
+        'footerCredit' => '© :year Assistmyhr',
     ],
     'footerSettingsPage' => [
         'titleMain' => 'Footer',
@@ -609,7 +609,7 @@ return [
         'deleteTitle' => 'Delete Link',
         'deleteCannotUndo' => 'This action cannot be undone.',
         'deleteConfirmHtml' => 'Are you sure you want to delete the footer link <span class="font-semibold text-[#1A1E2E]">:name</span>?',
-        'footerCredit' => '© :year Froiden Technologies Pvt Ltd',
+        'footerCredit' => '© :year Assistmyhr',
         'internalPageNote' => 'Internal page',
     ],
     'jobApplicationStatus' => [
@@ -736,7 +736,7 @@ return [
         'deleteConfirmHtml' => 'Are you sure you want to delete <span class="font-semibold text-[#1A1E2E]">:name</span>? This may affect financial reports.',
         'bulkSelected' => 'selected',
         'bulkDelete' => 'Delete selected',
-        'footerCredit' => '© :year Froiden Technologies Pvt Ltd',
+        'footerCredit' => '© :year Assistmyhr',
     ],
     'jobCategoriesPage' => [
         'titleJob' => 'Job',
@@ -881,7 +881,7 @@ return [
         'deleteTitle' => 'Remove member',
         'deleteSub' => 'This will revoke their access immediately.',
         'deleteConfirmHtml' => 'Are you sure you want to remove <span class="font-semibold text-[#1A1E2E]">:name</span> from the team? They will lose all access.',
-        'footerCredit' => '© :year Froiden Technologies Pvt Ltd',
+        'footerCredit' => '© :year Assistmyhr',
         'emptyFilter' => 'No members match your search.',
         'emptyFilterHint' => 'Try a different search or adjust the role filter.',
     ],
