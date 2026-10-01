@@ -83,7 +83,7 @@
                                 </svg>
                             </div>
                             <div>
-                                <h3 class="text-[15px] font-bold text-[#0F1F3D]">Homepage Visibility</h3>
+                                <h3 class="text-[15px] font-bold text-[#0F1F3D]">Job Board Visibility</h3>
                                 <p class="mt-0.5 text-[12px] text-[#8892A0]">Control which public job boards show this job</p>
                             </div>
                         </div>
@@ -107,7 +107,7 @@
                                     </span>
                                 </div>
                                 <span class="vis-toggle-text">
-                                    Show on <strong id="vis-label-consortium">Consortium</strong> homepage
+                                    Show on <strong id="vis-label-consortium">Consortium</strong>
                                 </span>
                             </label>
 
@@ -128,7 +128,7 @@
                                     </span>
                                 </div>
                                 <span class="vis-toggle-text">
-                                    Show on <strong id="vis-label-assistmyday">AssistMyDay</strong> homepage
+                                    Show on <strong id="vis-label-assistmyday">AssistMyDay</strong>
                                 </span>
                             </label>
 
@@ -809,28 +809,6 @@
                         </select>
                     </div>
 
-                    {{-- SEO --}}
-                    <div class="overflow-hidden rounded-2xl border border-[#E8E6E1] bg-white">
-                        <div class="flex items-center gap-3 border-b border-gray-100 px-5 py-4">
-                            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50">
-                                <svg class="h-[18px] w-[18px] text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                            </div>
-                            <div>
-                                <h3 class="text-[15px] font-bold text-[#0F1F3D]">@lang('modules.jobs.metaTitle')</h3>
-                                <p class="mt-0.5 text-[12px] text-[#8892A0]">@lang('modules.jobs.metaDescription')</p>
-                            </div>
-                        </div>
-                        <div class="flex flex-col gap-4 p-5">
-                            <div class="form-group mb-0">
-                                <label for="meta-title" class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">@lang('modules.jobs.metaTitle')</label>
-                                <input type="text" id="meta-title" class="form-control w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-[13px] text-[#0F1F3D] outline-none transition-all focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10" name="meta_title" value="{{ $job ? data_get($job->meta_details, 'title', '') : '' }}">
-                            </div>
-                            <div class="form-group mb-0">
-                                <label for="meta-description" class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">@lang('modules.jobs.metaDescription')</label>
-                                <textarea id="meta-description" class="form-control min-h-[5.5rem] w-full resize-none rounded-xl border border-gray-200 px-3.5 py-2.5 text-[13px] text-[#0F1F3D] outline-none transition-all focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10" name="meta_description" rows="3">{{ $job ? data_get($job->meta_details, 'description', '') : '' }}</textarea>
-                            </div>
-                        </div>
-                    </div>
                     {{-- ── HOMEPAGE VISIBILITY ── --}}
 
 @if (count($questions) > 0)
@@ -1031,7 +1009,7 @@
 
 @endif
 
-                    <div class="overflow-hidden rounded-2xl border border-[#E8E6E1] bg-white">
+                    <div @if(!$isEdit) hidden style="display:none" @endif class="overflow-hidden rounded-2xl border border-[#E8E6E1] bg-white">
                         <div class="border-b border-gray-100 px-5 py-4">
                             <h3 class="text-[15px] font-bold text-[#0F1F3D]">@lang('app.askApplicantsFor')</h3>
                         </div>
@@ -1080,6 +1058,29 @@
                             </div>
                         </div>
                     </div> -->
+
+                    {{-- SEO --}}
+                    <div class="overflow-hidden rounded-2xl border border-[#E8E6E1] bg-white">
+                        <div class="flex items-center gap-3 border-b border-gray-100 px-5 py-4">
+                            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50">
+                                <svg class="h-[18px] w-[18px] text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="text-[15px] font-bold text-[#0F1F3D]">@lang('modules.jobs.metaTitle')</h3>
+                                <p class="mt-0.5 text-[12px] text-[#8892A0]">@lang('modules.jobs.metaDescription')</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-4 p-5">
+                            <div class="form-group mb-0">
+                                <label for="meta-title" class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">@lang('modules.jobs.metaTitle')</label>
+                                <input type="text" id="meta-title" class="form-control w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-[13px] text-[#0F1F3D] outline-none transition-all focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10" name="meta_title" value="{{ $job ? data_get($job->meta_details, 'title', '') : '' }}">
+                            </div>
+                            <div class="form-group mb-0">
+                                <label for="meta-description" class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">@lang('modules.jobs.metaDescription')</label>
+                                <textarea id="meta-description" class="form-control min-h-[5.5rem] w-full resize-none rounded-xl border border-gray-200 px-3.5 py-2.5 text-[13px] text-[#0F1F3D] outline-none transition-all focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10" name="meta_description" rows="3">{{ $job ? data_get($job->meta_details, 'description', '') : '' }}</textarea>
+                            </div>
+                        </div>
+                    </div>
 
                 </form>
             </div>
