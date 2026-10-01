@@ -735,8 +735,15 @@
                         </div>
                     </div>
                     <div class="hidden rounded-2xl border border-dashed border-[#E8E6E1] bg-white p-5" id="amount_field">
-                    {{-- Currency and rate --}}
-                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 mb-4">
+                    <style>
+                        .job-salary-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; }
+                        .job-salary-grid > div { min-width:0; }
+                        .job-salary-grid input, .job-salary-grid select { width:100%; min-width:0; }
+                        @media(max-width:1023px) { .job-salary-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+                        @media(max-width:575px) { .job-salary-grid { grid-template-columns:1fr; } }
+                    </style>
+                    {{-- Salary details --}}
+                    <div class="job-salary-grid">
                     <div class="form-group mb-0">
                         <label for="salary_currency_id" class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">
                             currency <span class="text-red-500">*</span>
@@ -775,9 +782,6 @@
                             <option @if ($job && $job->pay_according == 'Year') selected @endif value="Year">@lang('modules.jobs.year')</option>
                         </select>
                     </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div class="form-group mb-0" id="start_amt">
                             <label for="startingSalary" class="mb-1.5 block text-[11.5px] font-bold uppercase tracking-wide text-slate-500">
                                 @lang('modules.jobs.startingSalary')
