@@ -20,6 +20,11 @@
                     <section aria-label="Compose message">
                         <div id="cc-email-fields"><label for="cc-subject">Subject</label><input id="cc-subject" maxlength="191" placeholder="Enter an email subject"></div>
                         <label for="cc-message">Message</label><textarea id="cc-message" rows="10" required maxlength="10000" placeholder="Write your message to candidates…"></textarea>
+                        <div id="cc-signature" hidden style="margin-top:14px;padding:12px;border:1px solid #e2e8f0;border-radius:10px">
+                            <strong style="font-size:12px">Your email signature</strong>
+                            <p id="cc-signature-preview" style="white-space:pre-wrap;font-size:12px;margin:8px 0"></p>
+                            <a href="{{ route('admin.profile.index') }}" target="_blank" rel="noopener" style="font-size:12px;color:#2563eb">Edit in My Profile</a>
+                        </div>
                         <div class="cc-editor-hint"><i class="fa fa-info-circle" aria-hidden="true"></i> Add <code>[applicant_name]</code> to personalize your message.</div>
                     </section>
                     <aside id="cc-template-panel" aria-label="Email templates">

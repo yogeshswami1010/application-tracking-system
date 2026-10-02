@@ -48,6 +48,9 @@ class AdminProfileController extends AdminBaseController
             Files::deleteFile($user->image, 'profile');
             $user->image = Files::uploadLocalOrS3($request->image, 'profile');
         }
+        if ($request->has('email_signature')) {
+            $user->email_signature = trim((string) $request->input('email_signature')) ?: null;
+        }
         $user->save();
 
         return Reply::redirect(route('admin.profile.index'), __('menu.myProfile') . ' ' . __('messages.updatedSuccessfully'));

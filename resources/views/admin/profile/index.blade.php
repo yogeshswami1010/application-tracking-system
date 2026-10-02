@@ -161,6 +161,11 @@
                                 </div>
                             @endif
 
+                            <div class="mp-field-group form-group mb-5">
+                                <label class="mp-field-label" for="email_signature">Email signature</label>
+                                <textarea id="email_signature" name="email_signature" rows="5" maxlength="3000" class="mp-f-input" style="min-height:130px;resize:vertical" placeholder="Your name&#10;Job title | Company&#10;Phone | Website">{{ old('email_signature', $user->email_signature) }}</textarea>
+                                <p class="mt-2 text-[12px] text-[#8892A0]">Automatically added to candidate emails you send, including bulk emails. Use plain text and line breaks. Leave empty to remove your signature.</p>
+                            </div>
                             <div class="mp-field-group form-group mb-2">
                                 <span class="mp-field-label">{{ __('modules.profilePage.profilePhoto') }}</span>
                                 <label for="mp-image-input" class="mp-avatar-upload-box" id="mp-drop-zone">

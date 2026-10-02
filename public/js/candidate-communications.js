@@ -31,7 +31,12 @@
         return result;
     }
     async function loadTemplates() {
-        templates = (await request(root.dataset.templatesUrl)).templates;
+        const data = await request(root.dataset.templatesUrl);
+        templates = data.templates;
+        if (el('signature')) {
+            el('signature-preview').textContent = data.signature || 'No signature saved. Add one in My Profile.';
+            el('signature').hidden = channel !== 'email';
+        }
         // Keep earlier browser-only AI Search templates available for saving to the account.
         try {
             const legacy = JSON.parse(localStorage.getItem('ai_email_templates') || '[]');
@@ -56,6 +61,7 @@
         el('title').textContent = selectedRecipients ? (channel === 'email' ? 'Send email' : 'Send SMS') : (channel === 'email' ? 'Bulk email' : 'Bulk SMS');
         el('send').textContent = selectedRecipients ? 'Send message' : 'Send to selected candidates';
         el('email-fields').hidden = channel !== 'email';
+        if (el('signature')) el('signature').hidden = true;
         el('template-panel').hidden = channel !== 'email';
         el('subject').required = channel === 'email';
         el('message').maxLength = channel === 'sms' ? 1600 : 10000;

@@ -3231,7 +3231,7 @@ class AdminJobApplicationController extends AdminBaseController
                 );
 
                 Mail::html(
-                    '<div>'.nl2br(e($personalizedMessage)).'</div>',
+                    \App\Services\CandidateEmailBody::render($personalizedMessage, $this->user->email_signature),
                     function ($mail) use ($application, $data) {
                         $mail->to($application->email, $application->full_name)
                             ->subject($data['subject']);
