@@ -309,6 +309,10 @@ function jaSaveMarketingLabel(appId) {
                     <div class="ja-tab" data-tab="sms">
                         <i class="fa fa-comments-o" style="font-size:11px"></i> SMS Conversation
                     </div>
+                    <div class="ja-tab" data-tab="email-conversation" id="ja-email-tab-{{ $application->id }}">
+                        <i class="fa fa-envelope-o" style="font-size:11px"></i> Email Conversation
+                        <span id="ja-email-unread-{{ $application->id }}" class="ja-tab-badge" style="display:none">0</span>
+                    </div>
                     <div class="ja-tab" data-tab="history">
                         <i class="fa fa-history"></i> History
                     </div>
@@ -355,10 +359,6 @@ function jaSaveMarketingLabel(appId) {
                 </div>
                 <div class="ja-tab" data-tab="client-notes">
                     <i class="fa fa-building" style="font-size:11px"></i> Client Notes
-                </div>
-                <div class="ja-tab" data-tab="email-conversation" id="ja-email-tab-{{ $application->id }}">
-                    <i class="fa fa-envelope-o" style="font-size:11px"></i> Email Conversation
-                    <span id="ja-email-unread-{{ $application->id }}" class="ja-tab-badge" style="display:none">0</span>
                 </div>
             </div>
 
