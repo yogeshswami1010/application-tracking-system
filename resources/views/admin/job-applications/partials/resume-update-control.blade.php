@@ -39,7 +39,7 @@
                     var downloadLink = document.createElement('a');
                     downloadLink.href = response.resume_url;
                     downloadLink.setAttribute('download', '');
-                    downloadLink.className = 'ja-pdf-btn ja-pdf-btn-primary ja-current-resume-link';
+                    downloadLink.className = 'ja-pdf-btn ja-current-resume-link';
                     downloadLink.innerHTML = '<i class="fa fa-download"></i> Download';
 
                     button.parentNode.insertBefore(viewLink, button.nextSibling);

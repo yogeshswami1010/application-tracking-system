@@ -83,8 +83,8 @@
 .ja-nav-btn:hover:not(:disabled) { background:rgba(255,255,255,.18);color:#fff; }
 .ja-nav-btn:disabled { opacity:.25;cursor:not-allowed; }
 .ja-nav-counter { font-size:11px;font-weight:600;color:rgba(255,255,255,.5);min-width:36px;text-align:center;white-space:nowrap; }
-.ja-body { flex:1;display:grid;grid-template-columns:1fr 380px;overflow:hidden;min-height:0; }
-.ja-pdf-panel { display:flex;flex-direction:column;border-right:1px solid #E8E6E1;overflow:hidden;background:#525659; }
+.ja-body { flex:1;display:grid;grid-template-columns:minmax(0,1fr) 380px;overflow:hidden;min-height:0; }
+.ja-pdf-panel { display:flex;flex-direction:column;border-right:1px solid #E8E6E1;overflow:hidden;background:#525659;min-width:0; }
 .ja-pdf-toolbar { display:flex;align-items:center;justify-content:end;padding:9px 14px;background:#fff;border-bottom:1px solid #E8E6E1;flex-shrink:0; }
 .ja-pdf-toolbar-label { display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:#5A6478; }
 .ja-pdf-toolbar-actions { display:flex;align-items:center;gap:6px; }
@@ -92,6 +92,20 @@
 .ja-pdf-btn:hover { background:#F8F7F4;color:#1A1E2E; }
 .ja-pdf-btn-primary { background:#2563EB;color:#fff;border-color:transparent; }
 .ja-pdf-btn-primary:hover { background:#1d4ed8;color:#fff; }
+.ja-profile-toolbar { flex-direction:column;align-items:stretch;justify-content:flex-start;gap:10px;padding:12px 16px 0;min-width:0; }
+.ja-profile-toolbar .ja-pdf-toolbar-actions { flex-wrap:wrap;gap:8px;min-width:0; }
+.ja-profile-toolbar .ja-profile-tags { display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-width:0; }
+.ja-profile-toolbar [id^="ja-marketing-wrap-"] { flex-wrap:wrap; }
+.ja-profile-toolbar .ja-profile-doc-actions { display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-left:auto; }
+.ja-profile-toolbar .ja-pdf-btn { height:34px;padding:0 10px;gap:6px;white-space:nowrap;flex-shrink:0;line-height:1;font-size:11.5px;font-weight:600; }
+.ja-profile-toolbar .ja-pdf-btn i { font-size:12px; }
+.ja-profile-toolbar input[id^="ja-marketing-label-input-"] { height:34px; }
+.ja-profile-toolbar .ja-pdf-toolbar-tabs { width:100%;min-width:0;gap:4px;overflow-x:auto;scrollbar-width:thin;scrollbar-color:#CBD5E1 transparent; }
+.ja-profile-toolbar .ja-pdf-toolbar-tabs::-webkit-scrollbar { height:3px; }
+.ja-profile-toolbar .ja-pdf-toolbar-tabs::-webkit-scrollbar-thumb { background:#CBD5E1;border-radius:3px; }
+.ja-profile-toolbar .ja-pdf-toolbar-tabs .ja-tab { height:38px;padding:0 12px;font-size:12px;border-radius:6px 6px 0 0;color:#64748B; }
+.ja-profile-toolbar .ja-pdf-toolbar-tabs .ja-tab.active { background:#EFF6FF;color:#2563EB; }
+.ja-profile-toolbar .ja-pdf-btn:focus-visible,.ja-profile-toolbar .ja-tab:focus-visible { outline:2px solid #2563EB;outline-offset:2px; }
 .ja-pdf-no-resume { flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#aaa;text-align:center;padding:40px; }
 .ja-pdf-no-resume i { font-size:48px;opacity:.35;display:block;margin-bottom:14px; }
 .ja-pdf-no-resume p { font-size:13px;opacity:.6; }
@@ -212,15 +226,11 @@
 
         {{-- ── LEFT: PDF ── --}}
         <div class="ja-pdf-panel">
-            <div class="ja-pdf-toolbar">
+            <div class="ja-pdf-toolbar ja-profile-toolbar">
                 
 
                 <div class="ja-pdf-toolbar-actions">
-                 {{--
-    Drop this block inside the `.ja-pdf-toolbar-actions` div in show.blade.php,
-    right before the "Job Description" button (or right after it — order doesn't matter).
-    It needs $application to be in scope (it already is, on this view).
---}}
+                <div class="ja-profile-tags">
 
 @if($user->cans('edit_job_applications'))
 <div style="display:flex;align-items:center;gap:6px;" id="ja-marketing-wrap-{{ $application->id }}">
@@ -244,6 +254,19 @@
 @endif
 
 @include('admin.job-applications.partials.temp-staffing-control')
+                </div>
+                <div class="ja-profile-doc-actions">
+                    <button type="button" class="ja-pdf-btn" onclick="jaShowJobDesc()">
+                        <i class="fa fa-file-text-o"></i> Job Description
+                    </button>
+                    @include('admin.job-applications.partials.resume-update-control')
+                    @if($resumeUrl)
+                        <a href="{{ $resumeUrl }}" target="_blank" class="ja-pdf-btn ja-current-resume-link"><i class="fa fa-external-link"></i> View</a>
+                        <a href="{{ $resumeUrl }}" download class="ja-pdf-btn ja-current-resume-link"><i class="fa fa-download"></i> Download</a>
+                    @endif
+                </div>
+                </div>
+                <div class="ja-pdf-toolbar-tabs">
 
 <script>
 function jaToggleMarketing(appId) {
@@ -320,14 +343,6 @@ function jaSaveMarketingLabel(appId) {
                         <div class="ja-tab" data-tab="schedule">
                             <i class="fa fa-calendar" stylfe="font-size:11px"></i> @lang('modules.interviewSchedule.scheduleDetail')
                         </div>
-                    @endif
-                    <button type="button" class="ja-pdf-btn" onclick="jaShowJobDesc()">
-                        <i class="fa fa-file-text-o"></i> Job Description
-                    </button>
-                    @include('admin.job-applications.partials.resume-update-control')
-                    @if($resumeUrl)
-                        <a href="{{ $resumeUrl }}" target="_blank" class="ja-pdf-btn ja-current-resume-link"><i class="fa fa-external-link"></i> View</a>
-                        <a href="{{ $resumeUrl }}" download class="ja-pdf-btn ja-pdf-btn-primary ja-current-resume-link"><i class="fa fa-download"></i> Download</a>
                     @endif
                 </div>
             </div>
