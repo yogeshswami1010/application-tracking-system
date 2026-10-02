@@ -344,6 +344,7 @@ Route::middleware('auth')->group(function () {
             Route::get('job-onboard-questions/data', [AdminJobOfferQuestionController::class, 'data'])->name('job-onboard-questions.data');
             Route::resource('job-onboard-questions', AdminJobOfferQuestionController::class);
 
+            Route::post('profile/signature-image', [AdminProfileController::class, 'uploadSignatureImage'])->name('profile.signature-image');
             Route::resource('profile',              AdminProfileController::class);
             Route::resource('application-status',   AdminApplicationStatusController::class);
 

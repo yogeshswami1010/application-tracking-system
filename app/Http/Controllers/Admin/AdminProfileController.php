@@ -25,6 +25,13 @@ class AdminProfileController extends AdminBaseController
         return view('admin.profile.index', $this->data);
     }
 
+    public function uploadSignatureImage(\Illuminate\Http\Request $request)
+    {
+        $request->validate(['image' => 'required|image|mimes:jpg,jpeg,png|max:2048|dimensions:max_width=4000,max_height=4000']);
+        $name = Files::uploadLocalOrS3($request->file('image'), 'email-signatures');
+        return response()->json(['url' => asset_url_local_s3('email-signatures/'.$name)]);
+    }
+
     public function update(UpdateProfile $request)
     {
         $user = User::find($this->user->id);
