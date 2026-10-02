@@ -92,18 +92,17 @@
 .ja-pdf-btn:hover { background:#F8F7F4;color:#1A1E2E; }
 .ja-pdf-btn-primary { background:#2563EB;color:#fff;border-color:transparent; }
 .ja-pdf-btn-primary:hover { background:#1d4ed8;color:#fff; }
-.ja-profile-toolbar { flex-direction:column;align-items:stretch;justify-content:flex-start;gap:10px;padding:12px 16px 0;min-width:0; }
-.ja-profile-toolbar .ja-pdf-toolbar-actions { flex-wrap:wrap;gap:8px;min-width:0; }
-.ja-profile-toolbar .ja-profile-tags { display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-width:0; }
-.ja-profile-toolbar [id^="ja-marketing-wrap-"] { flex-wrap:wrap; }
-.ja-profile-toolbar .ja-profile-doc-actions { display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-left:auto; }
-.ja-profile-toolbar .ja-pdf-btn { height:34px;padding:0 10px;gap:6px;white-space:nowrap;flex-shrink:0;line-height:1;font-size:11.5px;font-weight:600; }
+.ja-profile-toolbar { flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:flex-start;gap:8px;padding:8px 12px;min-width:0;overflow-x:auto;scrollbar-width:thin;scrollbar-color:#CBD5E1 transparent; }
+.ja-profile-toolbar .ja-profile-tags { display:flex;align-items:center;flex-wrap:nowrap;gap:6px;flex-shrink:0; }
+.ja-profile-toolbar [id^="ja-marketing-wrap-"] { flex-wrap:nowrap;flex-shrink:0; }
+.ja-profile-toolbar .ja-profile-doc-actions { display:flex;align-items:center;flex-wrap:nowrap;gap:5px;flex-shrink:0;margin-left:auto;padding-left:8px;border-left:1px solid #E8E6E1; }
+.ja-profile-toolbar .ja-pdf-btn { height:34px;padding:0 8px;gap:5px;white-space:nowrap;flex-shrink:0;line-height:1;font-size:11.5px;font-weight:600; }
 .ja-profile-toolbar .ja-pdf-btn i { font-size:12px; }
 .ja-profile-toolbar input[id^="ja-marketing-label-input-"] { height:34px; }
-.ja-profile-toolbar .ja-pdf-toolbar-tabs { width:100%;min-width:0;gap:4px;overflow-x:auto;scrollbar-width:thin;scrollbar-color:#CBD5E1 transparent; }
-.ja-profile-toolbar .ja-pdf-toolbar-tabs::-webkit-scrollbar { height:3px; }
-.ja-profile-toolbar .ja-pdf-toolbar-tabs::-webkit-scrollbar-thumb { background:#CBD5E1;border-radius:3px; }
-.ja-profile-toolbar .ja-pdf-toolbar-tabs .ja-tab { height:38px;padding:0 12px;font-size:12px;border-radius:6px 6px 0 0;color:#64748B; }
+.ja-profile-toolbar .ja-pdf-toolbar-tabs { width:auto;gap:2px;flex-wrap:nowrap;flex-shrink:0; }
+.ja-profile-toolbar::-webkit-scrollbar { height:3px; }
+.ja-profile-toolbar::-webkit-scrollbar-thumb { background:#CBD5E1;border-radius:3px; }
+.ja-profile-toolbar .ja-pdf-toolbar-tabs .ja-tab { height:34px;padding:0 8px;font-size:11.5px;border-radius:6px 6px 0 0;color:#64748B;flex-shrink:0; }
 .ja-profile-toolbar .ja-pdf-toolbar-tabs .ja-tab.active { background:#EFF6FF;color:#2563EB; }
 .ja-profile-toolbar .ja-pdf-btn:focus-visible,.ja-profile-toolbar .ja-tab:focus-visible { outline:2px solid #2563EB;outline-offset:2px; }
 .ja-pdf-no-resume { flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#aaa;text-align:center;padding:40px; }
@@ -229,7 +228,6 @@
             <div class="ja-pdf-toolbar ja-profile-toolbar">
                 
 
-                <div class="ja-pdf-toolbar-actions">
                 <div class="ja-profile-tags">
 
 @if($user->cans('edit_job_applications'))
@@ -254,17 +252,6 @@
 @endif
 
 @include('admin.job-applications.partials.temp-staffing-control')
-                </div>
-                <div class="ja-profile-doc-actions">
-                    <button type="button" class="ja-pdf-btn" onclick="jaShowJobDesc()">
-                        <i class="fa fa-file-text-o"></i> Job Description
-                    </button>
-                    @include('admin.job-applications.partials.resume-update-control')
-                    @if($resumeUrl)
-                        <a href="{{ $resumeUrl }}" target="_blank" class="ja-pdf-btn ja-current-resume-link"><i class="fa fa-external-link"></i> View</a>
-                        <a href="{{ $resumeUrl }}" download class="ja-pdf-btn ja-current-resume-link"><i class="fa fa-download"></i> Download</a>
-                    @endif
-                </div>
                 </div>
                 <div class="ja-pdf-toolbar-tabs">
 
@@ -343,6 +330,16 @@ function jaSaveMarketingLabel(appId) {
                         <div class="ja-tab" data-tab="schedule">
                             <i class="fa fa-calendar" stylfe="font-size:11px"></i> @lang('modules.interviewSchedule.scheduleDetail')
                         </div>
+                    @endif
+                </div>
+                <div class="ja-profile-doc-actions">
+                    <button type="button" class="ja-pdf-btn" onclick="jaShowJobDesc()">
+                        <i class="fa fa-file-text-o"></i> Job Description
+                    </button>
+                    @include('admin.job-applications.partials.resume-update-control')
+                    @if($resumeUrl)
+                        <a href="{{ $resumeUrl }}" target="_blank" class="ja-pdf-btn ja-current-resume-link"><i class="fa fa-external-link"></i> View</a>
+                        <a href="{{ $resumeUrl }}" download class="ja-pdf-btn ja-current-resume-link"><i class="fa fa-download"></i> Download</a>
                     @endif
                 </div>
             </div>
