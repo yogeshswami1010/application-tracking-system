@@ -20,12 +20,15 @@ class ImportCandidateEmailReplies extends Command
         $inbox = @imap_open($mailbox, env('AI_SEARCH_MAIL_USERNAME'), env('AI_SEARCH_MAIL_PASSWORD'));
         if (!$inbox) { $this->error(imap_last_error() ?: 'Could not connect to the mailbox.'); return self::FAILURE; }
         $count = 0;
-        foreach (imap_search($inbox, 'UNSEEN') ?: [] as $number) {
+        // Scan all mail, not only UNSEEN. Replies may already have been opened
+        // in Zoho/Gmail before the scheduler checks the mailbox. Message-ID
+        // prevents an already imported message from being duplicated.
+        foreach (imap_search($inbox, 'ALL') ?: [] as $number) {
             $header = imap_headerinfo($inbox, $number);
             $from = strtolower(trim(($header->from[0]->mailbox ?? '').'@'.($header->from[0]->host ?? '')));
             $application = JobApplication::whereRaw('LOWER(email) = ?', [$from])->first();
             if (!$application) { imap_setflag_full($inbox, (string) $number, '\\Seen'); continue; }
-            $messageId = trim((string) ($header->message_id ?? '')) ?: null;
+            $messageId = trim((string) ($header->message_id ?? '')) ?: 'imap-'.$number;
             if ($messageId && CandidateEmailMessage::where('message_id', $messageId)->exists()) { imap_setflag_full($inbox, (string) $number, '\\Seen'); continue; }
             $body = imap_fetchbody($inbox, $number, '1');
             if (strtolower($header->encoding ?? '') === 'base64') $body = base64_decode($body) ?: $body;
