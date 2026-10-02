@@ -34,7 +34,11 @@
         const data = await request(root.dataset.templatesUrl);
         templates = data.templates;
         if (el('signature')) {
-            el('signature-preview').textContent = data.signature || 'No signature saved. Add one in My Profile.';
+            el('signature-preview').textContent = data.signature || (data.signature_image_url ? '' : 'No signature saved. Add one in My Profile.');
+            const signatureImage = el('signature-image');
+            signatureImage.hidden = !data.signature_image_url;
+            if (data.signature_image_url) signatureImage.src = data.signature_image_url;
+            else signatureImage.removeAttribute('src');
             el('signature').hidden = channel !== 'email';
         }
         // Keep earlier browser-only AI Search templates available for saving to the account.

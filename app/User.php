@@ -33,6 +33,11 @@ class User extends Authenticatable
         'profile_image_url', 'mobile_with_code', 'formatted_mobile'
     ];
 
+    public function getEmailSignatureImageUrlAttribute()
+    {
+        return $this->email_signature_image ? asset_url_local_s3('email-signatures/'.$this->email_signature_image) : null;
+    }
+
     public function getProfileImageUrlAttribute(){
         if(is_null($this->image)){
             return asset('avatar.png');

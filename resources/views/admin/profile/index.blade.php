@@ -164,7 +164,14 @@
                             <div class="mp-field-group form-group mb-5">
                                 <label class="mp-field-label" for="email_signature">Email signature</label>
                                 <textarea id="email_signature" name="email_signature" rows="5" maxlength="3000" class="mp-f-input" style="min-height:130px;resize:vertical" placeholder="Your name&#10;Job title | Company&#10;Phone | Website">{{ old('email_signature', $user->email_signature) }}</textarea>
-                                <p class="mt-2 text-[12px] text-[#8892A0]">Automatically added to candidate emails you send, including bulk emails. Use plain text and line breaks. Leave empty to remove your signature.</p>
+                                <p class="mt-2 text-[12px] text-[#8892A0]">Automatically added to candidate emails you send, including bulk emails. Use plain text and line breaks. You can also upload a complete designed signature below.</p>
+                                <label class="mp-field-label mt-3" for="email_signature_image">Signature image</label>
+                                <input type="file" id="email_signature_image" name="email_signature_image" accept="image/png,image/jpeg" class="mp-f-input">
+                                <input type="hidden" id="remove_email_signature_image" name="remove_email_signature_image" value="0">
+                                <p class="mt-2 text-[12px] text-[#8892A0]">Upload a PNG or JPG (up to 2 MB). Use a complete signature design or your company logo. Save your profile to apply changes.</p>
+                                <img id="signature-image-preview" @if($user->email_signature_image_url) src="{{ $user->email_signature_image_url }}" @endif alt="Signature preview" style="max-width:100%;max-height:240px;margin-top:12px;{{ $user->email_signature_image_url ? '' : 'display:none;' }}">
+                                <button type="button" id="remove-signature-image" class="mt-2" style="color:#dc2626;{{ $user->email_signature_image_url ? '' : 'display:none;' }}">Remove image</button>
+
                             </div>
                             <div class="mp-field-group form-group mb-2">
                                 <span class="mp-field-label">{{ __('modules.profilePage.profilePhoto') }}</span>
@@ -326,6 +333,30 @@
             $('#name').on('input', mpSyncSidebarName);
             $('#email').on('input', function () {
                 $('#mp-sidebar-email').text($(this).val() || @json($user->email));
+            });
+
+            let signatureObjectUrl = null;
+            $('#email_signature_image').on('change', function () {
+                const file = this.files && this.files[0];
+                if (!file) return;
+                if (!['image/png', 'image/jpeg'].includes(file.type) || file.size > 2 * 1024 * 1024) {
+                    this.value = '';
+                    alert('Choose a PNG or JPG image up to 2 MB.');
+                    return;
+                }
+                if (signatureObjectUrl) URL.revokeObjectURL(signatureObjectUrl);
+                signatureObjectUrl = URL.createObjectURL(file);
+                $('#signature-image-preview').attr('src', signatureObjectUrl).show();
+                $('#remove-signature-image').show();
+                $('#remove_email_signature_image').val('0');
+            });
+            $('#remove-signature-image').on('click', function () {
+                if (signatureObjectUrl) URL.revokeObjectURL(signatureObjectUrl);
+                signatureObjectUrl = null;
+                $('#email_signature_image').val('');
+                $('#remove_email_signature_image').val('1');
+                $('#signature-image-preview').removeAttr('src').hide();
+                $(this).hide();
             });
 
             $('#mp-image-input').on('change', function () {

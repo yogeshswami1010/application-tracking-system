@@ -51,7 +51,16 @@ class AdminProfileController extends AdminBaseController
         if ($request->has('email_signature')) {
             $user->email_signature = trim((string) $request->input('email_signature')) ?: null;
         }
+        $oldSignatureImage = $user->email_signature_image;
+        if ($request->hasFile('email_signature_image')) {
+            $user->email_signature_image = Files::uploadLocalOrS3($request->file('email_signature_image'), 'email-signatures');
+        } elseif ($request->boolean('remove_email_signature_image')) {
+            $user->email_signature_image = null;
+        }
         $user->save();
+        if ($oldSignatureImage && $oldSignatureImage !== $user->email_signature_image) {
+            Files::deleteFile($oldSignatureImage, 'email-signatures');
+        }
 
         return Reply::redirect(route('admin.profile.index'), __('menu.myProfile') . ' ' . __('messages.updatedSuccessfully'));
     }

@@ -12,3 +12,10 @@ check(substr_count($html, 'Jordan') === 1, 'Signature appended once');
 check(!str_contains(CandidateEmailBody::render('Hello', 'Casey'), 'Jordan'), 'Signatures must not leak between senders');
 check(!str_contains(CandidateEmailBody::render('Hello', null), 'border-top'), 'Removing signature removes footer');
 echo "PASS: optional signatures, line breaks, escaping, single append, and sender separation\n";
+
+$imageHtml = CandidateEmailBody::render('Hello', null, 'https://example.com/signature.png');
+check(str_contains($imageHtml, '<img src="https://example.com/signature.png"'), 'Image-only signatures supported');
+check(!str_contains(CandidateEmailBody::render('Hello', null, 'javascript:alert(1)'), '<img'), 'Reject unsafe image URLs');
+check(str_contains(CandidateEmailBody::render('Hello', 'Jordan', 'https://example.com/image.png?a=1&b=2'), '&amp;b=2'), 'Image URL attributes escaped');
+check(str_contains(CandidateEmailBody::render('Hello', 'Jordan', 'https://example.com/image.png'), 'Jordan'), 'Text and image signatures supported together');
+echo "PASS: signature images, safe URLs, attribute escaping, combined signatures\n";

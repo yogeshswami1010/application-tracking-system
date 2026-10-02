@@ -31,6 +31,8 @@ class UpdateProfile extends CoreRequest
             'image' => 'image|max:2048',
             'password' => 'nullable|min:6',
             'email_signature' => 'nullable|string|max:3000',
+            'email_signature_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048|dimensions:max_width=4000,max_height=4000',
+            'remove_email_signature_image' => 'nullable|boolean',
             'password_confirmation' => 'nullable|required_with:password|same:password',
 
         ];
