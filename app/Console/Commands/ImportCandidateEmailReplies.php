@@ -16,7 +16,7 @@ class ImportCandidateEmailReplies extends Command
             $this->error('PHP IMAP extension is not installed.');
             return self::FAILURE;
         }
-        $mailbox = sprintf('{%s:%s/imap/ssl}INBOX', env('AI_SEARCH_MAIL_IMAP_HOST', 'imap.zoho.in'), env('AI_SEARCH_MAIL_IMAP_PORT', 993));
+        $mailbox = sprintf('{%s:%s/imap/ssl}INBOX', env('AI_SEARCH_MAIL_IMAP_HOST', 'imappro.zoho.in'), env('AI_SEARCH_MAIL_IMAP_PORT', 993));
         $inbox = @imap_open($mailbox, env('AI_SEARCH_MAIL_USERNAME'), env('AI_SEARCH_MAIL_PASSWORD'));
         if (!$inbox) { $this->error(imap_last_error() ?: 'Could not connect to the mailbox.'); return self::FAILURE; }
         $count = 0;
