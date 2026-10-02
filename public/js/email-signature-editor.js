@@ -22,6 +22,30 @@
     function command(name, value) {
         restore(); doc.execCommand('styleWithCSS', false, true); doc.execCommand(name, false, value); remember(); sync();
     }
+    function insertSignatureHtml(html) {
+        restore();
+        const template = doc.createElement('template');
+        template.innerHTML = html;
+        template.content.querySelectorAll('script,iframe,object,embed,svg,math,form,meta,link,base').forEach(node => node.remove());
+        template.content.querySelectorAll('*').forEach(node => {
+            Array.from(node.attributes).forEach(attr => {
+                if (/^on/i.test(attr.name)) node.removeAttribute(attr.name);
+            });
+        });
+        const current = doc.getSelection();
+        let range = current.rangeCount ? current.getRangeAt(0) : null;
+        if (!range || !doc.body.contains(range.commonAncestorContainer)) {
+            range = doc.createRange(); range.selectNodeContents(doc.body); range.collapse(false);
+        }
+        // Native insertHTML can flatten pasted signature tables and merge paragraphs.
+        // Insert the original DOM fragment so rows, cells, and inline image sizes survive.
+        range.deleteContents();
+        const last = template.content.lastChild;
+        range.insertNode(template.content);
+        if (last) { range.setStartAfter(last); range.collapse(true); }
+        current.removeAllRanges(); current.addRange(range);
+        remember(); sync();
+    }
     async function upload(files) {
         for (const file of files) {
             if (!['image/png', 'image/jpeg'].includes(file.type) || file.size > 2097152) {
@@ -64,7 +88,7 @@
             event.preventDefault();
             if (html) {
                 // Pasted markup remains inside the script-disabled, CSP-restricted iframe.
-                command('insertHTML', html);
+                insertSignatureHtml(html);
                 status.textContent = 'Signature pasted. Check image sizes and save your profile. Images must use public web URLs; local or embedded images should be uploaded with Add images.';
             } else if (clipboard.files.length) upload(Array.from(clipboard.files));
             else command('insertText', clipboard.getData('text/plain'));

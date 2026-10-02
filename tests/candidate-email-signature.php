@@ -32,3 +32,11 @@ check(!preg_match('/script|onerror|onclick|position|url\(/i', $unsafe), 'Strip e
 check(str_contains($unsafe, 'color:red'), 'Keep safe inline styling');
 check(CandidateEmailBody::render('Hello', 'Fallback', null, '') === CandidateEmailBody::render('Hello', 'Fallback'), 'Clearing HTML restores legacy signature');
 echo "PASS: HTML layout, multiple image sizes, no duplicate footer, HTML sanitization, fallback\n";
+
+$copied = '<table><tbody><tr><td valign="top"><img src="https://example.com/logo.png" width="170"></td><td valign="top"><font face="Arial" size="3" color="#123456"><b>Yogesh Swami</b></font><div>Full Stack Developer</div><section>Office: +1 905 374 8878</section></td></tr></tbody></table>';
+$cleaned = \App\Services\EmailSignatureHtml::clean($copied);
+check(str_contains($cleaned, 'Yogesh Swami'), 'Pasted font-wrapped names must survive saving');
+check(str_contains($cleaned, 'Office: +1'), 'Unknown harmless wrappers preserve text');
+check(substr_count($cleaned, '<td') === 2 && str_contains($cleaned, 'valign="top"'), 'Preserve side-by-side cells and top alignment');
+check(\App\Services\EmailSignatureHtml::clean($cleaned) === $cleaned, 'Signature remains stable across save and send sanitization');
+echo "PASS: copied signature names, wrappers, two-column layout, repeated sanitization\n";

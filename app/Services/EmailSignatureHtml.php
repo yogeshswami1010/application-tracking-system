@@ -14,15 +14,22 @@ final class EmailSignatureHtml
             libxml_clear_errors();
             libxml_use_internal_errors($previous);
         }
-        $allowed = ['table','tbody','thead','tfoot','tr','td','th','div','span','p','br','strong','b','em','i','u','a','img','hr','ul','ol','li'];
-        $attributes = ['style','width','height','align','valign','cellpadding','cellspacing','border','colspan','rowspan','alt','title'];
-        $properties = ['color','background-color','font-family','font-size','font-weight','font-style','line-height','text-align','text-decoration','vertical-align','width','height','max-width','max-height','padding','padding-top','padding-right','padding-bottom','padding-left','margin','margin-top','margin-right','margin-bottom','margin-left','border','border-top','border-right','border-bottom','border-left','border-collapse','border-spacing','display'];
+        $allowed = ['table','tbody','thead','tfoot','tr','td','th','div','span','p','br','strong','b','em','i','u','a','img','hr','ul','ol','li','font','small','sub','sup','h1','h2','h3','h4','h5','h6'];
+        $attributes = ['style','width','height','align','valign','cellpadding','cellspacing','border','colspan','rowspan','alt','title','face','size','color'];
+        $properties = ['color','background-color','font-family','font-size','font-weight','font-style','line-height','text-align','text-decoration','vertical-align','width','height','max-width','max-height','padding','padding-top','padding-right','padding-bottom','padding-left','margin','margin-top','margin-right','margin-bottom','margin-left','border','border-top','border-right','border-bottom','border-left','border-collapse','border-spacing','display','float','clear','white-space','word-break','letter-spacing'];
         $walk = function ($parent) use (&$walk, $allowed, $attributes, $properties) {
             foreach (iterator_to_array($parent->childNodes) as $node) {
                 if ($node instanceof \DOMComment) { $parent->removeChild($node); continue; }
                 if (!($node instanceof \DOMElement)) continue;
                 $tag = strtolower($node->tagName);
-                if (!in_array($tag, $allowed, true)) { $parent->removeChild($node); continue; }
+                if (!in_array($tag, $allowed, true)) {
+                    if (!in_array($tag, ['script','style','iframe','object','embed','svg','math','form','input','button','textarea','select','link','meta','base'], true)) {
+                        $walk($node);
+                        while ($node->firstChild) $parent->insertBefore($node->firstChild, $node);
+                    }
+                    $parent->removeChild($node);
+                    continue;
+                }
                 foreach (iterator_to_array($node->attributes) as $attribute) {
                     $name = strtolower($attribute->name);
                     $value = trim($attribute->value);

@@ -288,7 +288,7 @@
 @endsection
 
 @push('footer-script')
-    <script src="{{ asset('js/email-signature-editor.js') }}?v=1"></script>
+    <script src="{{ asset('js/email-signature-editor.js') }}?v=2"></script>
     <script>
         window.mpTogglePwd = function (id, btn) {
             var inp = document.getElementById(id);
