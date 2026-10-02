@@ -121,6 +121,57 @@
     });
     document.getElementById('signature-add-image').addEventListener('click', () => document.getElementById('signature-inline-images').click());
     document.getElementById('signature-inline-images').addEventListener('change', function () { upload(Array.from(this.files)); this.value = ''; });
+    document.getElementById('signature-columns').addEventListener('click', function () {
+        const logo = selectedImage && doc.body.contains(selectedImage) ? selectedImage : doc.body.querySelector('img');
+        if (!logo) { status.textContent = 'Add your logo first, then choose Logo left / details right.'; return; }
+        if (logo.closest('table')) {
+            const table = logo.closest('table');
+            table.querySelectorAll('td,th').forEach(cell => { cell.setAttribute('valign', 'top'); cell.style.verticalAlign = 'top'; });
+            sync(); status.textContent = 'Table content aligned to the top. Save your profile to apply.'; return;
+        }
+        // Split the existing content after the logo, retaining links and inline formatting.
+        // A large later image or disclaimer text marks the full-width footer.
+        let footer = null;
+        const walker = doc.createTreeWalker(doc.body, 5);
+        let passedLogo = false, node;
+        while ((node = walker.nextNode())) {
+            if (node === logo) { passedLogo = true; continue; }
+            if (!passedLogo) continue;
+            if (node.nodeType === 1 && node.tagName === 'IMG' && (node.width >= 80 || node.naturalWidth >= 300)) { footer = node; break; }
+            if (node.nodeType === 3 && /please consider the environment|the information in this electronic communication/i.test(node.textContent)) { footer = node; break; }
+        }
+        // Include the footer's wrapper only when it contains no contact details before it.
+        if (footer) {
+            while (footer.parentNode !== doc.body && footer.parentNode.firstChild === footer) footer = footer.parentNode;
+        }
+        const detailsRange = doc.createRange();
+        detailsRange.setStartAfter(logo);
+        if (footer) detailsRange.setEndBefore(footer);
+        else detailsRange.setEnd(doc.body, doc.body.childNodes.length);
+        if (!detailsRange.toString().trim()) { status.textContent = 'Add your name and contact details after the logo first.'; return; }
+        const before = doc.body.innerHTML;
+        const width = Math.min(250, Math.max(80, logo.width || 170));
+        const details = detailsRange.extractContents();
+        const table = doc.createElement('table');
+        table.setAttribute('role', 'presentation'); table.setAttribute('cellpadding', '0'); table.setAttribute('cellspacing', '0'); table.setAttribute('border', '0');
+        table.style.cssText = 'border-collapse:collapse;font-family:Arial,sans-serif;font-size:14px;';
+        const row = table.insertRow(); const left = row.insertCell(); const right = row.insertCell();
+        left.setAttribute('valign', 'top'); right.setAttribute('valign', 'top');
+        left.style.cssText = 'vertical-align:top;padding:0 14px 0 0;width:' + width + 'px;';
+        right.style.cssText = 'vertical-align:top;padding:0;';
+        logo.replaceWith(table); left.appendChild(logo); right.appendChild(details);
+        logo.width = width; logo.style.cssText = 'display:block;width:' + width + 'px;height:auto;border:0;';
+        // Avoid placing a table inside an inline/paragraph wrapper from a pasted signature.
+        let wrapper = table.parentNode;
+        while (wrapper !== doc.body && !wrapper.textContent.trim() && wrapper.querySelectorAll('img').length === 1) {
+            const parent = wrapper.parentNode; parent.insertBefore(table, wrapper); wrapper.remove(); wrapper = parent;
+        }
+        selection = null; sync();
+        const undo = document.getElementById('signature-layout-undo');
+        undo.hidden = false;
+        undo.onclick = function () { doc.body.innerHTML = before; selectedImage = null; selection = null; sync(); undo.hidden = true; };
+        status.textContent = 'Logo and contact details now use two top-aligned columns. The disclaimer stays below. Save your profile to apply.';
+    });
     document.getElementById('signature-resize-image').addEventListener('click', function () {
         if (!selectedImage) { status.textContent = 'Click an image in the signature first.'; return; }
         const width = Number(prompt('Image width in pixels (16–1000)', selectedImage.width || 150));

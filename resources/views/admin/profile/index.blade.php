@@ -174,6 +174,8 @@
                                     <button type="button" id="signature-link">Link</button>
                                     <button type="button" id="signature-add-image">Add images</button>
                                     <button type="button" id="signature-resize-image">Image size</button>
+                                    <button type="button" id="signature-columns">Logo left / details right</button>
+                                    <button type="button" id="signature-layout-undo" hidden>Undo layout</button>
                                     <button type="button" data-command="undo" aria-label="Undo">↶</button>
                                     <button type="button" data-command="redo" aria-label="Redo">↷</button>
                                 </div>
@@ -277,7 +279,7 @@
 @endsection
 
 @push('footer-script')
-    <script src="{{ asset('js/email-signature-editor.js') }}?v=3"></script>
+    <script src="{{ asset('js/email-signature-editor.js') }}?v=4"></script>
     <script>
         window.mpTogglePwd = function (id, btn) {
             var inp = document.getElementById(id);
