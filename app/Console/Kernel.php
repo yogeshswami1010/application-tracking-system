@@ -16,6 +16,7 @@ class Kernel extends ConsoleKernel
         Commands\ExpiredJob::class,
         Commands\EndDateStatus::class,
         Commands\PurgeCandidates::class,
+        Commands\ImportCandidateEmailReplies::class,
     ];
 
     /**
@@ -26,8 +27,7 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')
-        //          ->hourly();
+        $schedule->command('candidate-emails:import-replies')->everyMinute()->withoutOverlapping();
         // Moved to routes/console.php
     }
 

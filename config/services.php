@@ -2,6 +2,10 @@
 
 return [
     'candidate_email_webhook_token' => env('CANDIDATE_EMAIL_WEBHOOK_TOKEN'),
+    'candidate_email_imap' => [
+        'host' => env('AI_SEARCH_MAIL_IMAP_HOST', 'imap.zoho.in'),
+        'port' => env('AI_SEARCH_MAIL_IMAP_PORT', 993),
+    ],
 
     'resume_conversion' => [
         'libreoffice_binary' => env('LIBREOFFICE_BINARY'),
