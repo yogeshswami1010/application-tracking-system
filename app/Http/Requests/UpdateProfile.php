@@ -30,6 +30,7 @@ class UpdateProfile extends CoreRequest
             'email' => 'required|email|regex:/(.*)\./i|unique:users,email,'.$this->route('profile'),
             'image' => 'image|max:2048',
             'password' => 'nullable|min:6',
+            'email_signature_payload' => 'sometimes|nullable|string|max:70000',
             'email_signature_html' => 'nullable|string|max:50000',
             'email_signature' => 'nullable|string|max:3000',
             'email_signature_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048|dimensions:max_width=4000,max_height=4000',

@@ -6,6 +6,17 @@
     const source = document.getElementById('email_signature_html');
     const status = document.getElementById('signature-editor-status');
     let doc, selection, selectedImage, pending = 0;
+    window.syncEmailSignature = function () {
+        if (!doc || !doc.body || pending) {
+            status.textContent = 'Please wait for the signature editor and image uploads to finish.';
+            return false;
+        }
+        sync();
+        const payload = document.getElementById('email_signature_payload');
+        payload.value = btoa(Array.from(new TextEncoder().encode(source.value), byte => String.fromCharCode(byte)).join(''));
+        payload.disabled = false;
+        return true;
+    };
     function sync() {
         source.value = doc.body.textContent.trim() || doc.body.querySelector('img') ? doc.body.innerHTML : '';
     }
@@ -117,8 +128,7 @@
             selectedImage.width = Math.round(width); selectedImage.removeAttribute('height'); selectedImage.style.width = width + 'px'; selectedImage.style.height = 'auto'; sync();
         }
     });
-    document.getElementById('signature-apply-html').addEventListener('click', function () { doc.body.innerHTML = source.value; selection = null; sync(); });
     document.getElementById('save-form').addEventListener('click', function (event) {
-        if (pending) { event.preventDefault(); event.stopImmediatePropagation(); status.textContent = 'Wait for image uploads to finish.'; }
+        if (!window.syncEmailSignature()) { event.preventDefault(); event.stopImmediatePropagation(); status.textContent = 'Wait for image uploads to finish.'; }
     }, true);
 })();

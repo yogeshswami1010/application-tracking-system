@@ -180,20 +180,9 @@
                                 <iframe id="signature-visual-editor" title="Edit email signature" sandbox="allow-same-origin" referrerpolicy="no-referrer" style="width:100%;height:340px;border:1px solid #cbd5e1;background:white"></iframe>
                                 <input type="file" id="signature-inline-images" accept="image/png,image/jpeg" multiple hidden>
                                 <p id="signature-editor-status" role="status" style="font-size:12px;color:#64748b;margin-top:8px">Paste your formatted signature directly into the editor. Add multiple images; click an image and choose Image size to resize it. Save your profile when finished.</p>
-                                <details style="margin-top:12px"><summary>HTML source (advanced)</summary>
-                                <textarea id="email_signature_html" name="email_signature_html" rows="8" maxlength="50000" class="mp-f-input" style="font-family:monospace">{{ old('email_signature_html', $user->email_signature_html) }}</textarea>
-                                <button type="button" id="signature-apply-html">Apply HTML to editor</button></details>
+                                <textarea id="email_signature_html" hidden>{{ old('email_signature_html', $user->email_signature_html) }}</textarea>
+                                <input type="hidden" id="email_signature_payload" name="email_signature_payload" disabled>
                                 <script type="application/json" id="signature-editor-config">{!! json_encode(['uploadUrl' => route('admin.profile.signature-image'), 'token' => csrf_token(), 'initialHtml' => \App\Services\EmailSignatureHtml::clean($user->email_signature_html)], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
-                                <label class="mp-field-label" for="email_signature">Email signature</label>
-                                <textarea id="email_signature" name="email_signature" rows="5" maxlength="3000" class="mp-f-input" style="min-height:130px;resize:vertical" placeholder="Your name&#10;Job title | Company&#10;Phone | Website">{{ old('email_signature', $user->email_signature) }}</textarea>
-                                <p class="mt-2 text-[12px] text-[#8892A0]">Automatically added to candidate emails you send, including bulk emails. Use plain text and line breaks. You can also upload a complete designed signature below.</p>
-                                <label class="mp-field-label mt-3" for="email_signature_image">Signature image</label>
-                                <input type="file" id="email_signature_image" name="email_signature_image" accept="image/png,image/jpeg" class="mp-f-input">
-                                <input type="hidden" id="remove_email_signature_image" name="remove_email_signature_image" value="0">
-                                <p class="mt-2 text-[12px] text-[#8892A0]">Upload a PNG or JPG (up to 2 MB). Use a complete signature design or your company logo. Save your profile to apply changes.</p>
-                                <img id="signature-image-preview" @if($user->email_signature_image_url) src="{{ $user->email_signature_image_url }}" @endif alt="Signature preview" style="max-width:100%;max-height:240px;margin-top:12px;{{ $user->email_signature_image_url ? '' : 'display:none;' }}">
-                                <button type="button" id="remove-signature-image" class="mt-2" style="color:#dc2626;{{ $user->email_signature_image_url ? '' : 'display:none;' }}">Remove image</button>
-
                             </div>
                             <div class="mp-field-group form-group mb-2">
                                 <span class="mp-field-label">{{ __('modules.profilePage.profilePhoto') }}</span>
@@ -288,7 +277,7 @@
 @endsection
 
 @push('footer-script')
-    <script src="{{ asset('js/email-signature-editor.js') }}?v=2"></script>
+    <script src="{{ asset('js/email-signature-editor.js') }}?v=3"></script>
     <script>
         window.mpTogglePwd = function (id, btn) {
             var inp = document.getElementById(id);
@@ -358,30 +347,6 @@
                 $('#mp-sidebar-email').text($(this).val() || @json($user->email));
             });
 
-            let signatureObjectUrl = null;
-            $('#email_signature_image').on('change', function () {
-                const file = this.files && this.files[0];
-                if (!file) return;
-                if (!['image/png', 'image/jpeg'].includes(file.type) || file.size > 2 * 1024 * 1024) {
-                    this.value = '';
-                    alert('Choose a PNG or JPG image up to 2 MB.');
-                    return;
-                }
-                if (signatureObjectUrl) URL.revokeObjectURL(signatureObjectUrl);
-                signatureObjectUrl = URL.createObjectURL(file);
-                $('#signature-image-preview').attr('src', signatureObjectUrl).show();
-                $('#remove-signature-image').show();
-                $('#remove_email_signature_image').val('0');
-            });
-            $('#remove-signature-image').on('click', function () {
-                if (signatureObjectUrl) URL.revokeObjectURL(signatureObjectUrl);
-                signatureObjectUrl = null;
-                $('#email_signature_image').val('');
-                $('#remove_email_signature_image').val('1');
-                $('#signature-image-preview').removeAttr('src').hide();
-                $(this).hide();
-            });
-
             $('#mp-image-input').on('change', function () {
                 var f = this.files && this.files[0];
                 if (!f) return;
@@ -425,6 +390,7 @@
             });
 
             $('#save-form').on('click', function () {
+                if (window.syncEmailSignature && !window.syncEmailSignature()) return;
                 $.easyAjax({
                     url: '{{ route('admin.profile.update', $user->id) }}',
                     container: '#editSettings',

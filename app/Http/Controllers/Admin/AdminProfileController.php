@@ -55,22 +55,21 @@ class AdminProfileController extends AdminBaseController
             Files::deleteFile($user->image, 'profile');
             $user->image = Files::uploadLocalOrS3($request->image, 'profile');
         }
-        if ($request->has('email_signature')) {
-            $user->email_signature = trim((string) $request->input('email_signature')) ?: null;
-        }
-        if ($request->has('email_signature_html')) {
-            $user->email_signature_html = \App\Services\EmailSignatureHtml::clean($request->input('email_signature_html')) ?: null;
-        }
-        $oldSignatureImage = $user->email_signature_image;
-        if ($request->hasFile('email_signature_image')) {
-            $user->email_signature_image = Files::uploadLocalOrS3($request->file('email_signature_image'), 'email-signatures');
-        } elseif ($request->boolean('remove_email_signature_image')) {
+        if ($request->exists('email_signature_payload')) {
+            $html = base64_decode((string) $request->input('email_signature_payload'), true);
+            if ($html === false || strlen($html) > 50000 || !mb_check_encoding($html, 'UTF-8')) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['email_signature_payload' => 'The signature could not be saved. Please use a signature under 50 KB.']);
+            }
+            $cleaned = \App\Services\EmailSignatureHtml::clean($html);
+            if (trim($html) !== '' && trim(strip_tags($cleaned)) === '' && !str_contains($cleaned, '<img')) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['email_signature_payload' => 'The signature contains no supported text or images. Please paste formatted text and use Add images for local images.']);
+            }
+            $user->email_signature_html = $cleaned ?: null;
+            // The single visual editor replaces legacy signature inputs, including when cleared.
+            $user->email_signature = null;
             $user->email_signature_image = null;
         }
         $user->save();
-        if ($oldSignatureImage && $oldSignatureImage !== $user->email_signature_image) {
-            Files::deleteFile($oldSignatureImage, 'email-signatures');
-        }
 
         return Reply::redirect(route('admin.profile.index'), __('menu.myProfile') . ' ' . __('messages.updatedSuccessfully'));
     }
