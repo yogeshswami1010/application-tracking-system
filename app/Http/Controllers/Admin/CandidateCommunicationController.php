@@ -48,15 +48,15 @@ class CandidateCommunicationController extends AdminBaseController
     public function emailConversation(JobApplication $application)
     {
         $this->authorizeMessaging();
-        $messages = CandidateEmailMessage::with('user')->where('job_application_id', $application->id)->oldest()->get();
-        CandidateEmailMessage::where('job_application_id', $application->id)->where('direction', 'inbound')->whereNull('read_at')->update(['read_at' => now()]);
-        return response()->json(['messages' => $messages, 'unread' => 0]);
+        $messages = CandidateEmailMessage::with('user:id,name')->where('job_application_id', $application->id)->orderBy('received_at')->orderBy('id')->get();
+        CandidateEmailMessage::whereIn('id', $messages->pluck('id'))->where('direction', 'inbound')->whereNull('read_at')->update(['read_at' => now()]);
+        return response()->json(['messages' => $messages, 'unread' => 0])->header('Cache-Control', 'no-store');
     }
 
     public function emailUnread(JobApplication $application)
     {
         $this->authorizeMessaging();
-        return response()->json(['unread' => CandidateEmailMessage::where('job_application_id', $application->id)->where('direction', 'inbound')->whereNull('read_at')->count()]);
+        return response()->json(['unread' => CandidateEmailMessage::where('job_application_id', $application->id)->where('direction', 'inbound')->whereNull('read_at')->count()])->header('Cache-Control', 'no-store');
     }
 
     public function saveTemplate(Request $request)
@@ -154,10 +154,10 @@ class CandidateCommunicationController extends AdminBaseController
                 if ($data['channel'] === 'email') {
                     $subject = $personalize($data['subject']);
                     $from = data_get(config('mail.ai_search_smtp'), 'from.address', config('mail.from.address'));
-                    $messageId = null;
-                    $this->mailer($data['source'] ?? 'candidates')->html(\App\Services\CandidateEmailBody::render($message, $this->user->email_signature, $this->user->email_signature_image_url, $this->user->email_signature_html), function ($mail) use ($address, $name, $subject, &$messageId) {
+                    $messageId = 'ats-'.Str::uuid().'@'.(explode('@', $from)[1] ?? 'localhost');
+                    $this->mailer($data['source'] ?? 'candidates')->html(\App\Services\CandidateEmailBody::render($message, $this->user->email_signature, $this->user->email_signature_image_url, $this->user->email_signature_html), function ($mail) use ($address, $name, $subject, $messageId) {
                         $mail->to($address, $name)->subject($subject);
-                        $messageId = $mail->getHeaders()->get('Message-ID')?->getId();
+                        $mail->getSymfonyMessage()->getHeaders()->addIdHeader('Message-ID', $messageId);
                     });
                     if (!$registration) CandidateEmailMessage::create(['job_application_id' => $candidate->id, 'user_id' => $this->user->id, 'direction' => 'outbound', 'from_address' => $from, 'to_address' => $address, 'subject' => $subject, 'body' => $message, 'message_id' => $messageId, 'received_at' => now()]);
                 } else {

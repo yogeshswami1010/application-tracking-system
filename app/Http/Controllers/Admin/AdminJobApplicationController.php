@@ -3231,20 +3231,20 @@ class AdminJobApplicationController extends AdminBaseController
                     $data['message']
                 );
 
-                $messageId = null;
+                $messageId = 'ats-'.\Illuminate\Support\Str::uuid().'@'.(explode('@', $aiSearchMail['from']['address'])[1] ?? 'localhost');
                 Mail::html(
                     \App\Services\CandidateEmailBody::render($personalizedMessage, $this->user->email_signature, $this->user->email_signature_image_url, $this->user->email_signature_html),
-                    function ($mail) use ($application, $data, &$messageId) {
+                    function ($mail) use ($application, $data, $messageId) {
                         $mail->to($application->email, $application->full_name)
                             ->subject($data['subject']);
-                        $messageId = $mail->getHeaders()->get('Message-ID')?->getId();
+                        $mail->getSymfonyMessage()->getHeaders()->addIdHeader('Message-ID', $messageId);
                     }
                 );
                 CandidateEmailMessage::create([
                     'job_application_id' => $application->id,
                     'user_id' => $this->user->id,
                     'direction' => 'outbound',
-                    'from_address' => data_get($originalConfig, 'from.address', config('mail.from.address')),
+                    'from_address' => $aiSearchMail['from']['address'],
                     'to_address' => $application->email,
                     'subject' => $data['subject'], 'message_id' => $messageId,
                     'body' => $personalizedMessage,

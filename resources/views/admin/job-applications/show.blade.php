@@ -1325,33 +1325,56 @@ document.querySelectorAll('.ja-tab').forEach(function(tab) {
 
 window.jaLoadCandidateEmailConversation = function (applicationId) {
     var box = document.getElementById('ja-email-conversation-' + applicationId);
-    if (!box) return;
-    $.get('{{ route('admin.candidate-communications.email', ':id') }}'.replace(':id', applicationId), function (data) {
+    if (!box || $(box).data('loading')) return;
+    $(box).data('loading', true);
+    $.ajax({url: '{{ route('admin.candidate-communications.email', ':id') }}'.replace(':id', applicationId), type: 'GET', cache: false, global: false}).done(function (data) {
+        if (!box.isConnected) return;
         var messages = data.messages || [];
+        var badge = document.getElementById('ja-email-unread-' + applicationId);
+        if (badge) badge.style.display = 'none';
+        var atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+        var previousScroll = box.scrollTop;
+        function escapeText(value) {
+            return String(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
         if (!messages.length) {
             box.innerHTML = '<div style="padding:30px 8px;text-align:center;color:#A0A8B5;font-size:12px;"><i class="fa fa-envelope-o" style="display:block;font-size:24px;margin-bottom:8px;"></i>No email messages yet.</div>';
             return;
         }
         box.innerHTML = messages.map(function (message) {
             var outbound = message.direction === 'outbound';
-            var body = String(message.body || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
-            var date = message.received_at || message.created_at || '';
-            return '<div style="display:flex;justify-content:' + (outbound ? 'flex-end' : 'flex-start') + '"><div style="max-width:92%;border-radius:12px;padding:10px 11px;' + (outbound ? 'background:#2563EB;color:#fff;border-bottom-right-radius:4px;' : 'background:#F1F3F7;color:#1A1E2E;border-bottom-left-radius:4px;') + '"><div style="font-size:11px;font-weight:700;margin-bottom:5px">' + (outbound ? 'You' : 'Candidate') + (message.subject ? ' · ' + String(message.subject).replace(/</g, '&lt;') : '') + '</div><div style="font-size:12px;line-height:1.5;white-space:normal;overflow-wrap:anywhere">' + body + '</div><div style="margin-top:5px;font-size:9.5px;opacity:.7">' + date + '</div></div></div>';
+            var body = escapeText(message.body).replace(/\n/g, '<br>');
+            var date = new Date(message.received_at || message.created_at);
+            var timestamp = isNaN(date.getTime()) ? '' : date.toLocaleString();
+            var author = outbound ? (message.user && message.user.name || 'ATS team') : 'Candidate';
+            return '<div style="display:flex;justify-content:' + (outbound ? 'flex-end' : 'flex-start') + '"><div style="max-width:92%;border-radius:12px;padding:10px 11px;' + (outbound ? 'background:#2563EB;color:#fff;border-bottom-right-radius:4px;' : 'background:#F1F3F7;color:#1A1E2E;border-bottom-left-radius:4px;') + '"><div style="font-size:11px;font-weight:700;margin-bottom:5px">' + escapeText(author) + (message.subject ? ' · ' + escapeText(message.subject) : '') + '</div><div style="font-size:12px;line-height:1.5;white-space:normal;overflow-wrap:anywhere">' + body + '</div><div style="margin-top:5px;font-size:9.5px;opacity:.7">' + escapeText(timestamp) + '</div></div></div>';
         }).join('');
-    }).fail(function () { box.innerHTML = '<div style="padding:20px;text-align:center;color:#A0A8B5;font-size:12px">Unable to load email conversation.</div>'; });
+        box.scrollTop = atBottom ? box.scrollHeight : previousScroll;
+        $(box).data('loaded', true);
+    }).fail(function () {
+        if (box.isConnected && !$(box).data('loaded')) box.innerHTML = '<div style="padding:20px;text-align:center;color:#A0A8B5;font-size:12px">Unable to load email conversation.</div>';
+    }).always(function () { $(box).data('loading', false); });
 };
 
 window.jaPollCandidateEmailUnread = function (applicationId) {
-    $.get('{{ route('admin.candidate-communications.email.unread', ':id') }}'.replace(':id', applicationId), function (data) {
+    $.ajax({url: '{{ route('admin.candidate-communications.email.unread', ':id') }}'.replace(':id', applicationId), type: 'GET', cache: false, global: false}).done(function (data) {
         var badge = document.getElementById('ja-email-unread-' + applicationId);
         if (!badge) return;
         var count = Number(data.unread || 0);
-        badge.textContent = count > 99 ? '99+' : count;
+        badge.textContent = (count > 99 ? '99+' : count) + ' new';
         badge.style.display = count ? 'inline-flex' : 'none';
     });
 };
 jaPollCandidateEmailUnread({{ $application->id }});
-window.setInterval(function () { jaPollCandidateEmailUnread({{ $application->id }}); }, 30000);
+if (window._jaEmailConversationTimer) window.clearInterval(window._jaEmailConversationTimer);
+window._jaEmailConversationTimer = window.setInterval(function () {
+    var box = document.getElementById('ja-email-conversation-{{ $application->id }}');
+    if (!box) { window.clearInterval(window._jaEmailConversationTimer); return; }
+    if (document.hidden) return;
+    var pane = document.getElementById('ja-tab-email-conversation');
+    if (pane && pane.style.display !== 'none') jaLoadCandidateEmailConversation({{ $application->id }});
+    else jaPollCandidateEmailUnread({{ $application->id }});
+}, 15000);
 
 window.jaRefreshCandidateCallHistory = function (applicationId) {
     var root = document.getElementById('candidate-calls');
