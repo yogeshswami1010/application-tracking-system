@@ -26,14 +26,18 @@ class ImportCandidateEmailReplies extends Command
         foreach (imap_search($inbox, 'ALL') ?: [] as $number) {
             $header = imap_headerinfo($inbox, $number);
             $from = strtolower(trim(($header->from[0]->mailbox ?? '').'@'.($header->from[0]->host ?? '')));
-            $application = JobApplication::whereRaw('LOWER(email) = ?', [$from])->first();
-            if (!$application) { imap_setflag_full($inbox, (string) $number, '\\Seen'); continue; }
             $messageId = trim((string) ($header->message_id ?? '')) ?: 'imap-'.$number;
+            $inReplyTo = trim((string) ($header->references ?? '')) ?: null;
+            $threadMessage = $inReplyTo ? CandidateEmailMessage::where(function ($query) use ($inReplyTo) {
+                $query->where('message_id', $inReplyTo)->orWhere('message_id', 'like', '%'.$inReplyTo.'%');
+            })->where('direction', 'outbound')->first() : null;
+            $application = $threadMessage?->application ?: JobApplication::whereRaw('LOWER(email) = ?', [$from])->first();
+            if (!$application) { imap_setflag_full($inbox, (string) $number, '\\Seen'); continue; }
             if ($messageId && CandidateEmailMessage::where('message_id', $messageId)->exists()) { imap_setflag_full($inbox, (string) $number, '\\Seen'); continue; }
             $body = imap_fetchbody($inbox, $number, '1');
             if (strtolower($header->encoding ?? '') === 'base64') $body = base64_decode($body) ?: $body;
             if (strtolower($header->encoding ?? '') === 'quoted-printable') $body = quoted_printable_decode($body);
-            CandidateEmailMessage::create(['job_application_id' => $application->id, 'direction' => 'inbound', 'from_address' => $from, 'to_address' => env('AI_SEARCH_MAIL_FROM_ADDRESS'), 'subject' => (string) ($header->subject ?? ''), 'body' => trim($body), 'message_id' => $messageId, 'in_reply_to' => trim((string) ($header->references ?? '')) ?: null, 'received_at' => now()]);
+            CandidateEmailMessage::create(['job_application_id' => $application->id, 'direction' => 'inbound', 'from_address' => $from, 'to_address' => env('AI_SEARCH_MAIL_FROM_ADDRESS'), 'subject' => (string) ($header->subject ?? ''), 'body' => trim($body), 'message_id' => $messageId, 'in_reply_to' => $inReplyTo, 'received_at' => now()]);
             imap_setflag_full($inbox, (string) $number, '\\Seen');
             $count++;
         }

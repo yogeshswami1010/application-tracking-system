@@ -3231,11 +3231,13 @@ class AdminJobApplicationController extends AdminBaseController
                     $data['message']
                 );
 
+                $messageId = null;
                 Mail::html(
                     \App\Services\CandidateEmailBody::render($personalizedMessage, $this->user->email_signature, $this->user->email_signature_image_url, $this->user->email_signature_html),
-                    function ($mail) use ($application, $data) {
+                    function ($mail) use ($application, $data, &$messageId) {
                         $mail->to($application->email, $application->full_name)
                             ->subject($data['subject']);
+                        $messageId = $mail->getHeaders()->get('Message-ID')?->getId();
                     }
                 );
                 CandidateEmailMessage::create([
@@ -3244,7 +3246,7 @@ class AdminJobApplicationController extends AdminBaseController
                     'direction' => 'outbound',
                     'from_address' => data_get($originalConfig, 'from.address', config('mail.from.address')),
                     'to_address' => $application->email,
-                    'subject' => $data['subject'],
+                    'subject' => $data['subject'], 'message_id' => $messageId,
                     'body' => $personalizedMessage,
                     'received_at' => now(),
                 ]);

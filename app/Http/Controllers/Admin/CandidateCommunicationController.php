@@ -154,10 +154,12 @@ class CandidateCommunicationController extends AdminBaseController
                 if ($data['channel'] === 'email') {
                     $subject = $personalize($data['subject']);
                     $from = data_get(config('mail.ai_search_smtp'), 'from.address', config('mail.from.address'));
-                    $this->mailer($data['source'] ?? 'candidates')->html(\App\Services\CandidateEmailBody::render($message, $this->user->email_signature, $this->user->email_signature_image_url, $this->user->email_signature_html), function ($mail) use ($address, $name, $subject) {
+                    $messageId = null;
+                    $this->mailer($data['source'] ?? 'candidates')->html(\App\Services\CandidateEmailBody::render($message, $this->user->email_signature, $this->user->email_signature_image_url, $this->user->email_signature_html), function ($mail) use ($address, $name, $subject, &$messageId) {
                         $mail->to($address, $name)->subject($subject);
+                        $messageId = $mail->getHeaders()->get('Message-ID')?->getId();
                     });
-                    if (!$registration) CandidateEmailMessage::create(['job_application_id' => $candidate->id, 'user_id' => $this->user->id, 'direction' => 'outbound', 'from_address' => $from, 'to_address' => $address, 'subject' => $subject, 'body' => $message, 'received_at' => now()]);
+                    if (!$registration) CandidateEmailMessage::create(['job_application_id' => $candidate->id, 'user_id' => $this->user->id, 'direction' => 'outbound', 'from_address' => $from, 'to_address' => $address, 'subject' => $subject, 'body' => $message, 'message_id' => $messageId, 'received_at' => now()]);
                 } else {
                     if (mb_strlen($message) > 1600) {
                         throw new \RuntimeException('Personalized SMS exceeds 1600 characters.');
