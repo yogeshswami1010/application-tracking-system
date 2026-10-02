@@ -6,6 +6,7 @@ use App\CandidateEmailTemplate;
 use App\ConsortiumRegistration;
 use App\JobApplication;
 use App\ApplicantSmsMessage;
+use App\CandidateEmailMessage;
 use App\SmsSetting;
 use App\Services\TelnyxSmsService;
 use App\Services\CandidateEmailFailure;
@@ -42,6 +43,20 @@ class CandidateCommunicationController extends AdminBaseController
             'signature_html' => \App\Services\EmailSignatureHtml::clean($this->user->email_signature_html),
             'signature_image_url' => $this->user->email_signature_image_url,
             'signature' => $this->user->email_signature ?? '']);
+    }
+
+    public function emailConversation(JobApplication $application)
+    {
+        $this->authorizeMessaging();
+        $messages = CandidateEmailMessage::with('user')->where('job_application_id', $application->id)->oldest()->get();
+        CandidateEmailMessage::where('job_application_id', $application->id)->where('direction', 'inbound')->whereNull('read_at')->update(['read_at' => now()]);
+        return response()->json(['messages' => $messages, 'unread' => 0]);
+    }
+
+    public function emailUnread(JobApplication $application)
+    {
+        $this->authorizeMessaging();
+        return response()->json(['unread' => CandidateEmailMessage::where('job_application_id', $application->id)->where('direction', 'inbound')->whereNull('read_at')->count()]);
     }
 
     public function saveTemplate(Request $request)
@@ -137,9 +152,12 @@ class CandidateCommunicationController extends AdminBaseController
                 $personalize = fn ($text) => str_ireplace(['{{applicant_name}}', '[applicant_name]', '%applicant_name%'], $name ?: 'Applicant', $text);
                 $message = $personalize($data['message']);
                 if ($data['channel'] === 'email') {
-                    $this->mailer($data['source'] ?? 'candidates')->html(\App\Services\CandidateEmailBody::render($message, $this->user->email_signature, $this->user->email_signature_image_url, $this->user->email_signature_html), function ($mail) use ($address, $name, $data, $personalize) {
-                        $mail->to($address, $name)->subject($personalize($data['subject']));
+                    $subject = $personalize($data['subject']);
+                    $from = data_get(config('mail.ai_search_smtp'), 'from.address', config('mail.from.address'));
+                    $this->mailer($data['source'] ?? 'candidates')->html(\App\Services\CandidateEmailBody::render($message, $this->user->email_signature, $this->user->email_signature_image_url, $this->user->email_signature_html), function ($mail) use ($address, $name, $subject) {
+                        $mail->to($address, $name)->subject($subject);
                     });
+                    if (!$registration) CandidateEmailMessage::create(['job_application_id' => $candidate->id, 'user_id' => $this->user->id, 'direction' => 'outbound', 'from_address' => $from, 'to_address' => $address, 'subject' => $subject, 'body' => $message, 'received_at' => now()]);
                 } else {
                     if (mb_strlen($message) > 1600) {
                         throw new \RuntimeException('Personalized SMS exceeds 1600 characters.');

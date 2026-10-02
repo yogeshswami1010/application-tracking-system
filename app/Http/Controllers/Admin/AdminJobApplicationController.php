@@ -53,6 +53,7 @@ use Yajra\DataTables\Facades\DataTables;
 use App\Models\Currency;
 use App\ApplicantNote;
 use App\ApplicantSmsMessage;
+use App\CandidateEmailMessage;
 use App\SmsSetting;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -3237,6 +3238,16 @@ class AdminJobApplicationController extends AdminBaseController
                             ->subject($data['subject']);
                     }
                 );
+                CandidateEmailMessage::create([
+                    'job_application_id' => $application->id,
+                    'user_id' => $this->user->id,
+                    'direction' => 'outbound',
+                    'from_address' => data_get($originalConfig, 'from.address', config('mail.from.address')),
+                    'to_address' => $application->email,
+                    'subject' => $data['subject'],
+                    'body' => $personalizedMessage,
+                    'received_at' => now(),
+                ]);
                 $sent++;
             } catch (\Throwable $e) {
                 $failed++;

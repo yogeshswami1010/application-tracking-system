@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'candidate_email_webhook_token' => env('CANDIDATE_EMAIL_WEBHOOK_TOKEN'),
 
     'resume_conversion' => [
         'libreoffice_binary' => env('LIBREOFFICE_BINARY'),

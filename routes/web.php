@@ -137,6 +137,8 @@ Route::middleware('auth')->group(function () {
             Route::post('candidate-communications/templates', [\App\Http\Controllers\Admin\CandidateCommunicationController::class, 'saveTemplate'])->name('candidate-communications.templates.save');
             Route::post('candidate-communications/preview', [\App\Http\Controllers\Admin\CandidateCommunicationController::class, 'preview'])->name('candidate-communications.preview');
             Route::post('candidate-communications/send', [\App\Http\Controllers\Admin\CandidateCommunicationController::class, 'send'])->middleware('throttle:120,1')->name('candidate-communications.send');
+            Route::get('candidate-communications/{application}/email', [\App\Http\Controllers\Admin\CandidateCommunicationController::class, 'emailConversation'])->name('candidate-communications.email');
+            Route::get('candidate-communications/{application}/email/unread', [\App\Http\Controllers\Admin\CandidateCommunicationController::class, 'emailUnread'])->name('candidate-communications.email.unread');
             Route::get('ats-sync-state', [AdminAtsSyncController::class, 'state'])->name('ats-sync-state');
             Route::post('ats-presence-heartbeat', [AdminAtsSyncController::class, 'heartbeat'])->name('ats-presence-heartbeat');
             Route::get('ats-overview', [AdminAtsOverviewController::class, 'index'])->name('ats-overview.index');
@@ -410,3 +412,4 @@ Route::middleware('auth')->group(function () {
     Route::post('verify-otp-phone/account', [VerifyMobileController::class, 'verifyOtpCode'])->name('verifyOtpCode.account');
     Route::get('remove-session',            [VerifyMobileController::class, 'removeSession'])->name('removeSession');
 });
+Route::post('candidate-email-webhook', [\App\Http\Controllers\CandidateEmailWebhookController::class, '__invoke'])->name('candidate-email-webhook');

@@ -356,12 +356,25 @@ function jaSaveMarketingLabel(appId) {
                 <div class="ja-tab" data-tab="client-notes">
                     <i class="fa fa-building" style="font-size:11px"></i> Client Notes
                 </div>
+                <div class="ja-tab" data-tab="email-conversation" id="ja-email-tab-{{ $application->id }}">
+                    <i class="fa fa-envelope-o" style="font-size:11px"></i> Email Conversation
+                    <span id="ja-email-unread-{{ $application->id }}" class="ja-tab-badge" style="display:none">0</span>
+                </div>
             </div>
 
             <div class="ja-right-scroll">
                 {{-- ── HISTORY TAB ── --}}
                 <div id="ja-tab-history" class="ja-tab-pane" style="display:none" data-url="{{ route('admin.job-applications.profile-tab', [$application->id, 'history']) }}">
                     <div class="ja-tab-loading">Open the History tab to load activity.</div>
+                </div>
+
+                <div id="ja-tab-email-conversation" class="ja-tab-pane" style="display:none">
+                    <div class="ja-card">
+                        <div class="ja-card-title"><i class="fa fa-envelope-o" style="font-size:11px"></i> Email Conversation</div>
+                        <div id="ja-email-conversation-{{ $application->id }}" style="display:flex;flex-direction:column;gap:9px;max-height:calc(100vh - 245px);overflow-y:auto;padding:4px 2px;">
+                            <div class="ja-tab-loading"><i class="fa fa-spinner fa-spin"></i> Loading email conversation...</div>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="ja-tab-sms" class="ja-tab-pane" style="display:none">
@@ -1291,6 +1304,9 @@ document.querySelectorAll('.ja-tab').forEach(function(tab) {
         var pane = document.getElementById('ja-tab-' + target);
         if (pane) pane.style.display = 'block';
 
+        if (target === 'email-conversation') {
+            jaLoadCandidateEmailConversation({{ $application->id }});
+        }
         if (target === 'history' || target === 'notes' || target === 'client-notes') {
             var selector = target === 'notes' ? '#applicant-notes' : (target === 'client-notes' ? '#client-notes-list' : '#ja-tab-history');
             var $tabContent = $(selector);
@@ -1306,6 +1322,36 @@ document.querySelectorAll('.ja-tab').forEach(function(tab) {
         }
     });
 });
+
+window.jaLoadCandidateEmailConversation = function (applicationId) {
+    var box = document.getElementById('ja-email-conversation-' + applicationId);
+    if (!box) return;
+    $.get('{{ route('admin.candidate-communications.email', ':id') }}'.replace(':id', applicationId), function (data) {
+        var messages = data.messages || [];
+        if (!messages.length) {
+            box.innerHTML = '<div style="padding:30px 8px;text-align:center;color:#A0A8B5;font-size:12px;"><i class="fa fa-envelope-o" style="display:block;font-size:24px;margin-bottom:8px;"></i>No email messages yet.</div>';
+            return;
+        }
+        box.innerHTML = messages.map(function (message) {
+            var outbound = message.direction === 'outbound';
+            var body = String(message.body || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+            var date = message.received_at || message.created_at || '';
+            return '<div style="display:flex;justify-content:' + (outbound ? 'flex-end' : 'flex-start') + '"><div style="max-width:92%;border-radius:12px;padding:10px 11px;' + (outbound ? 'background:#2563EB;color:#fff;border-bottom-right-radius:4px;' : 'background:#F1F3F7;color:#1A1E2E;border-bottom-left-radius:4px;') + '"><div style="font-size:11px;font-weight:700;margin-bottom:5px">' + (outbound ? 'You' : 'Candidate') + (message.subject ? ' · ' + String(message.subject).replace(/</g, '&lt;') : '') + '</div><div style="font-size:12px;line-height:1.5;white-space:normal;overflow-wrap:anywhere">' + body + '</div><div style="margin-top:5px;font-size:9.5px;opacity:.7">' + date + '</div></div></div>';
+        }).join('');
+    }).fail(function () { box.innerHTML = '<div style="padding:20px;text-align:center;color:#A0A8B5;font-size:12px">Unable to load email conversation.</div>'; });
+};
+
+window.jaPollCandidateEmailUnread = function (applicationId) {
+    $.get('{{ route('admin.candidate-communications.email.unread', ':id') }}'.replace(':id', applicationId), function (data) {
+        var badge = document.getElementById('ja-email-unread-' + applicationId);
+        if (!badge) return;
+        var count = Number(data.unread || 0);
+        badge.textContent = count > 99 ? '99+' : count;
+        badge.style.display = count ? 'inline-flex' : 'none';
+    });
+};
+jaPollCandidateEmailUnread({{ $application->id }});
+window.setInterval(function () { jaPollCandidateEmailUnread({{ $application->id }}); }, 30000);
 
 window.jaRefreshCandidateCallHistory = function (applicationId) {
     var root = document.getElementById('candidate-calls');
