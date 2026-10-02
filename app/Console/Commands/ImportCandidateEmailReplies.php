@@ -7,7 +7,7 @@ use Illuminate\Console\Command;
 
 class ImportCandidateEmailReplies extends Command
 {
-    protected $signature = 'candidate-emails:import-replies';
+    protected $signature = 'candidate-emails:import-replies {--debug : Show messages that cannot be matched}';
     protected $description = 'Import candidate replies from the configured IMAP mailbox';
 
     public function handle(): int
@@ -32,8 +32,14 @@ class ImportCandidateEmailReplies extends Command
                 $query->where('message_id', $inReplyTo)->orWhere('message_id', 'like', '%'.$inReplyTo.'%');
             })->where('direction', 'outbound')->first() : null;
             $application = $threadMessage?->application ?: JobApplication::whereRaw('LOWER(email) = ?', [$from])->first();
-            if (!$application) { imap_setflag_full($inbox, (string) $number, '\\Seen'); continue; }
-            if ($messageId && CandidateEmailMessage::where('message_id', $messageId)->exists()) { imap_setflag_full($inbox, (string) $number, '\\Seen'); continue; }
+            if (!$application) {
+                if ($this->option('debug')) $this->warn('Skipped sender: '.$from.' | subject: '.(string) ($header->subject ?? ''));
+                imap_setflag_full($inbox, (string) $number, '\\Seen'); continue;
+            }
+            if ($messageId && CandidateEmailMessage::where('message_id', $messageId)->exists()) {
+                if ($this->option('debug')) $this->line('Already imported: '.$from.' | subject: '.(string) ($header->subject ?? ''));
+                imap_setflag_full($inbox, (string) $number, '\\Seen'); continue;
+            }
             $body = imap_fetchbody($inbox, $number, '1');
             if (strtolower($header->encoding ?? '') === 'base64') $body = base64_decode($body) ?: $body;
             if (strtolower($header->encoding ?? '') === 'quoted-printable') $body = quoted_printable_decode($body);
