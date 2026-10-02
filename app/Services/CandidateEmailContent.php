@@ -3,6 +3,49 @@ namespace App\Services;
 
 final class CandidateEmailContent
 {
+    public static function presentation(string $body, bool $splitQuotes = true): array
+    {
+        $body = str_replace(["\r\n", "\r", "\u{2028}", "\u{2029}"], "\n", $body);
+        $lines = explode("\n", $body);
+        $boundary = null;
+        if ($splitQuotes) {
+            foreach ($lines as $index => $line) {
+                // Gmail's attribution can wrap across several lines before wrote:.
+                if (preg_match('/^\h*On\h+/i', $line)) {
+                    $header = '';
+                    for ($end = $index; $end < min(count($lines), $index + 10); $end++) {
+                        $header .= ' '.trim($lines[$end]);
+                        if (preg_match('/\bwrote:\h*$/i', $header)) { $boundary = $index; break 2; }
+                    }
+                }
+                if (preg_match('/^\h*-{2,}\h*(?:Original Message|Forwarded message)\h*-{2,}\h*$/i', $line)) {
+                    $boundary = $index; break;
+                }
+                if (preg_match('/^\h*From:\h*.+/i', $line)) {
+                    $header = implode("\n", array_slice($lines, $index, 10));
+                    if (preg_match('/^\h*(?:Sent|Date):/im', $header) && preg_match('/^\h*Subject:/im', $header)) {
+                        $boundary = $index; break;
+                    }
+                }
+                if (preg_match('/^\h*>/', $line)) { $boundary = $index; break; }
+            }
+        }
+        $compact = static function (string $text): string {
+            $text = preg_replace('/\h+$/m', '', $text);
+            return trim(preg_replace('/\n{3,}/', "\n\n", $text));
+        };
+        if ($boundary !== null) {
+            $reply = $compact(implode("\n", array_slice($lines, 0, $boundary)));
+            if ($reply !== '') {
+                $quoted = implode("\n", array_slice($lines, $boundary));
+                $quoted = preg_replace('/^\h*(?:>\h*)+/m', '', $quoted);
+                return ['reply' => $reply, 'quoted' => $compact($quoted)];
+            }
+        }
+        // A message made entirely of quoted text may itself be the reply.
+        return ['reply' => $compact($body), 'quoted' => ''];
+    }
+
     public static function decode(string $text, int $encoding = 0, string $charset = 'UTF-8'): string
     {
         if ($encoding === 3) $text = base64_decode($text, true) ?: '';

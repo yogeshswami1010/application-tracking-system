@@ -32,3 +32,16 @@ checkReply($requested === ['1.1','1.2'], 'Skip attachments and fetch exact MIME 
 $htmlOnly = json_decode('{"type":0,"subtype":"HTML","encoding":0}');
 checkReply(Content::body($htmlOnly, fn () => '<p>Reply &amp; details</p><script>bad()</script>') === 'Reply & details', 'HTML-only replies become readable, safe text');
 echo "PASS: exact threads, legacy subjects, duplicate profiles, nested Gmail MIME, transfer encodings, charsets, and HTML-only replies\n";
+
+$gmailReply = "just for test\r\n\r\n\r\nOn Fri, Oct 2, 2026 at 11:25 PM Consortium Staffing Solution <\r\nhr@consortiumstaffing.ca> wrote:\r\n\r\n> test\r\n> test\r\n>\r\n>\r\n>\r\n> [image: 1.png]Yogesh Swami Full Stack Developer";
+$view = Content::presentation($gmailReply);
+checkReply($view['reply'] === 'just for test', 'Show only new candidate text above the fold');
+checkReply(str_contains($view['quoted'], 'Yogesh Swami') && str_contains($view['quoted'], 'wrote:'), 'Keep quoted history and signature accessible');
+checkReply(!str_contains($view['quoted'], "\n\n\n"), 'Collapse repeated blank quote lines');
+checkReply(Content::presentation("First paragraph\n\n\n\nSecond paragraph")['reply'] === "First paragraph\n\nSecond paragraph", 'Preserve paragraph spacing without long blank gaps');
+$outlook = Content::presentation("Thank you\n\nFrom: HR <hr@example.com>\nSent: Friday\nTo: Candidate\nSubject: Interview\nOriginal email");
+checkReply($outlook['reply'] === 'Thank you' && str_contains($outlook['quoted'], 'Original email'), 'Collapse Outlook quoted headers');
+checkReply(Content::presentation('> This is the entire message')['reply'] === '> This is the entire message', 'Never hide a reply made entirely of quoted text');
+checkReply(Content::presentation("New reply\n\n> Original message")['reply'] === 'New reply', 'Handle unlabelled quoted text');
+checkReply(Content::presentation("Instructions\n> Example", false)['reply'] === "Instructions\n> Example", 'Do not split outbound email content');
+echo "PASS: compact Gmail and Outlook replies, retained quotes, paragraph spacing, and outbound preservation\n";

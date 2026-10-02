@@ -1332,6 +1332,10 @@ window.jaLoadCandidateEmailConversation = function (applicationId) {
         var messages = data.messages || [];
         var badge = document.getElementById('ja-email-unread-' + applicationId);
         if (badge) badge.style.display = 'none';
+        var fingerprint = JSON.stringify(messages.map(function (message) {
+            return [message.id, message.direction, message.subject, message.display_body || message.body, message.quoted_body, message.received_at, message.created_at, message.user && message.user.name];
+        }));
+        if ($(box).data('fingerprint') === fingerprint) return;
         var atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
         var previousScroll = box.scrollTop;
         function escapeText(value) {
@@ -1343,7 +1347,10 @@ window.jaLoadCandidateEmailConversation = function (applicationId) {
         }
         box.innerHTML = messages.map(function (message) {
             var outbound = message.direction === 'outbound';
-            var body = escapeText(message.body).replace(/\n/g, '<br>');
+            var body = escapeText(message.display_body === undefined ? message.body : message.display_body).replace(/\n/g, '<br>');
+            if (message.quoted_body) {
+                body += '<details style="margin-top:8px;font-size:11px;opacity:.85"><summary style="cursor:pointer;font-weight:600">Show quoted email</summary><div style="margin-top:6px;max-height:220px;overflow:auto;line-height:1.45">' + escapeText(message.quoted_body).replace(/\n/g, '<br>') + '</div></details>';
+            }
             var date = new Date(message.received_at || message.created_at);
             var timestamp = isNaN(date.getTime()) ? '' : date.toLocaleString();
             var author = outbound ? (message.user && message.user.name || 'ATS team') : 'Candidate';
@@ -1351,6 +1358,7 @@ window.jaLoadCandidateEmailConversation = function (applicationId) {
         }).join('');
         box.scrollTop = atBottom ? box.scrollHeight : previousScroll;
         $(box).data('loaded', true);
+        $(box).data('fingerprint', fingerprint);
     }).fail(function () {
         if (box.isConnected && !$(box).data('loaded')) box.innerHTML = '<div style="padding:20px;text-align:center;color:#A0A8B5;font-size:12px">Unable to load email conversation.</div>';
     }).always(function () { $(box).data('loading', false); });

@@ -50,7 +50,14 @@ class CandidateCommunicationController extends AdminBaseController
         $this->authorizeMessaging();
         $messages = CandidateEmailMessage::with('user:id,name')->where('job_application_id', $application->id)->orderBy('received_at')->orderBy('id')->get();
         CandidateEmailMessage::whereIn('id', $messages->pluck('id'))->where('direction', 'inbound')->whereNull('read_at')->update(['read_at' => now()]);
-        return response()->json(['messages' => $messages, 'unread' => 0])->header('Cache-Control', 'no-store');
+        $displayMessages = $messages->map(function ($message) {
+            $data = $message->toArray();
+            $content = \App\Services\CandidateEmailContent::presentation((string) $message->body, $message->direction === 'inbound');
+            $data['display_body'] = $content['reply'];
+            $data['quoted_body'] = $content['quoted'];
+            return $data;
+        });
+        return response()->json(['messages' => $displayMessages, 'unread' => 0])->header('Cache-Control', 'no-store');
     }
 
     public function emailUnread(JobApplication $application)
