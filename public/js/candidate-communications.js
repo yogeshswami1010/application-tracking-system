@@ -39,6 +39,11 @@
             signatureImage.hidden = !data.signature_image_url;
             if (data.signature_image_url) signatureImage.src = data.signature_image_url;
             else signatureImage.removeAttribute('src');
+            const htmlPreview = el('signature-html');
+            htmlPreview.hidden = !data.signature_html;
+            htmlPreview.srcdoc = '<meta http-equiv="Content-Security-Policy" content="default-src &apos;none&apos;; img-src https: http:; style-src &apos;unsafe-inline&apos;">' + (data.signature_html || '');
+            el('signature-preview').hidden = !!data.signature_html;
+            if (data.signature_html) signatureImage.hidden = true;
             el('signature').hidden = channel !== 'email';
         }
         // Keep earlier browser-only AI Search templates available for saving to the account.

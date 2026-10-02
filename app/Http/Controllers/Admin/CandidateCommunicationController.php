@@ -39,6 +39,7 @@ class CandidateCommunicationController extends AdminBaseController
         $this->authorizeMessaging();
         return response()->json(['templates' => CandidateEmailTemplate::where('user_id', $this->user->id)
             ->orderBy('name')->get(['id', 'name', 'subject', 'message']),
+            'signature_html' => \App\Services\EmailSignatureHtml::clean($this->user->email_signature_html),
             'signature_image_url' => $this->user->email_signature_image_url,
             'signature' => $this->user->email_signature ?? '']);
     }
@@ -136,7 +137,7 @@ class CandidateCommunicationController extends AdminBaseController
                 $personalize = fn ($text) => str_ireplace(['{{applicant_name}}', '[applicant_name]', '%applicant_name%'], $name ?: 'Applicant', $text);
                 $message = $personalize($data['message']);
                 if ($data['channel'] === 'email') {
-                    $this->mailer($data['source'] ?? 'candidates')->html(\App\Services\CandidateEmailBody::render($message, $this->user->email_signature, $this->user->email_signature_image_url), function ($mail) use ($address, $name, $data, $personalize) {
+                    $this->mailer($data['source'] ?? 'candidates')->html(\App\Services\CandidateEmailBody::render($message, $this->user->email_signature, $this->user->email_signature_image_url, $this->user->email_signature_html), function ($mail) use ($address, $name, $data, $personalize) {
                         $mail->to($address, $name)->subject($personalize($data['subject']));
                     });
                 } else {

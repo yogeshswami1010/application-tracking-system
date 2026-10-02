@@ -22,6 +22,7 @@
                         <label for="cc-message">Message</label><textarea id="cc-message" rows="10" required maxlength="10000" placeholder="Write your message to candidates…"></textarea>
                         <div id="cc-signature" hidden style="margin-top:14px;padding:12px;border:1px solid #e2e8f0;border-radius:10px">
                             <strong style="font-size:12px">Your email signature</strong>
+                            <iframe id="cc-signature-html" hidden title="Signature preview" sandbox="" referrerpolicy="no-referrer" style="width:100%;height:250px;background:white;border:0"></iframe>
                             <img id="cc-signature-image" hidden alt="Email signature" style="max-width:100%;max-height:200px;margin-top:10px">
                             <p id="cc-signature-preview" style="white-space:pre-wrap;font-size:12px;margin:8px 0"></p>
                             <a href="{{ route('admin.profile.index') }}" target="_blank" rel="noopener" style="font-size:12px;color:#2563eb">Edit in My Profile</a>

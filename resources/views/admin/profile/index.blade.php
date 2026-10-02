@@ -162,6 +162,11 @@
                             @endif
 
                             <div class="mp-field-group form-group mb-5">
+                                <label class="mp-field-label" for="email_signature_html">HTML email signature</label>
+                                <textarea id="email_signature_html" name="email_signature_html" rows="10" maxlength="50000" class="mp-f-input" style="min-height:200px;font-family:monospace;resize:vertical" placeholder="Paste your signature HTML here">{{ old('email_signature_html', $user->email_signature_html) }}</textarea>
+                                <p class="mt-2 text-[12px] text-[#8892A0]">Paste HTML source from your signature designer. Tables, links, inline formatting, and multiple images are supported. Use public HTTPS image URLs and set each image width and height (for example, logo width 150 and social icons width 22). When filled, this replaces the plain-text signature and separate image below.</p>
+                                <button type="button" id="preview-signature-html" class="mt-2" style="color:#2563eb">Preview HTML signature</button>
+                                <iframe id="signature-html-preview" title="HTML signature preview" sandbox="" referrerpolicy="no-referrer" style="display:none;width:100%;height:300px;background:white;border:1px solid #e2e8f0;margin-top:12px"></iframe>
                                 <label class="mp-field-label" for="email_signature">Email signature</label>
                                 <textarea id="email_signature" name="email_signature" rows="5" maxlength="3000" class="mp-f-input" style="min-height:130px;resize:vertical" placeholder="Your name&#10;Job title | Company&#10;Phone | Website">{{ old('email_signature', $user->email_signature) }}</textarea>
                                 <p class="mt-2 text-[12px] text-[#8892A0]">Automatically added to candidate emails you send, including bulk emails. Use plain text and line breaks. You can also upload a complete designed signature below.</p>
@@ -335,6 +340,11 @@
                 $('#mp-sidebar-email').text($(this).val() || @json($user->email));
             });
 
+            $('#preview-signature-html').on('click', function () {
+                const frame = document.getElementById('signature-html-preview');
+                frame.srcdoc = '<meta http-equiv="Content-Security-Policy" content="default-src &apos;none&apos;; img-src https: http:; style-src &apos;unsafe-inline&apos;"><body>' + document.getElementById('email_signature_html').value;
+                frame.style.display = 'block';
+            });
             let signatureObjectUrl = null;
             $('#email_signature_image').on('change', function () {
                 const file = this.files && this.files[0];
