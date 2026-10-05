@@ -113,6 +113,12 @@ Route::name('jobs.')
     });
 
 // ── Auth ───────────────────────────────────────────────────────────────────
+Route::middleware(['signed', 'throttle:60,1'])->prefix('candidate-review')->name('client-reviews.')->group(function () {
+    Route::get('{review:public_id}', [\App\Http\Controllers\ClientCandidateReviewController::class, 'show'])->name('show');
+    Route::get('{review:public_id}/cv', [\App\Http\Controllers\ClientCandidateReviewController::class, 'resume'])->name('resume');
+    Route::post('{review:public_id}/reply', [\App\Http\Controllers\ClientCandidateReviewController::class, 'reply'])->middleware('throttle:10,1')->name('reply');
+});
+
 Auth::routes();
 
 // ── Authenticated routes ───────────────────────────────────────────────────
@@ -139,6 +145,12 @@ Route::middleware('auth')->group(function () {
             Route::post('candidate-communications/send', [\App\Http\Controllers\Admin\CandidateCommunicationController::class, 'send'])->middleware('throttle:120,1')->name('candidate-communications.send');
             Route::get('candidate-communications/{application}/email', [\App\Http\Controllers\Admin\CandidateCommunicationController::class, 'emailConversation'])->name('candidate-communications.email');
             Route::get('candidate-communications/{application}/email/unread', [\App\Http\Controllers\Admin\CandidateCommunicationController::class, 'emailUnread'])->name('candidate-communications.email.unread');
+            Route::get('job-applications/{application}/client-reviews', [\App\Http\Controllers\Admin\CandidateClientReviewController::class, 'index'])->name('client-reviews.index');
+            Route::get('job-applications/{application}/client-reviews/unread', [\App\Http\Controllers\Admin\CandidateClientReviewController::class, 'unread'])->name('client-reviews.unread');
+            Route::post('job-applications/{application}/client-reviews', [\App\Http\Controllers\Admin\CandidateClientReviewController::class, 'send'])->middleware('throttle:20,1')->name('client-reviews.send');
+            Route::post('job-applications/{application}/client-reviews/{review}/reply', [\App\Http\Controllers\Admin\CandidateClientReviewController::class, 'reply'])->middleware('throttle:20,1')->name('client-reviews.reply');
+            Route::post('job-applications/{application}/client-reviews/{review}/messages/{message}/retry', [\App\Http\Controllers\Admin\CandidateClientReviewController::class, 'retry'])->middleware('throttle:20,1')->name('client-reviews.retry');
+            Route::post('job-applications/{application}/client-reviews/{review}/revoke', [\App\Http\Controllers\Admin\CandidateClientReviewController::class, 'revoke'])->name('client-reviews.revoke');
             Route::get('ats-sync-state', [AdminAtsSyncController::class, 'state'])->name('ats-sync-state');
             Route::post('ats-presence-heartbeat', [AdminAtsSyncController::class, 'heartbeat'])->name('ats-presence-heartbeat');
             Route::get('ats-overview', [AdminAtsOverviewController::class, 'index'])->name('ats-overview.index');

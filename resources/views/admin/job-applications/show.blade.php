@@ -326,6 +326,10 @@ function jaSaveMarketingLabel(appId) {
                     <div class="ja-tab" data-tab="history">
                         <i class="fa fa-history"></i> History
                     </div>
+                    <div class="ja-tab" data-tab="client-reviews">
+                        <i class="fa fa-user-o"></i> Client Reviews
+                        <span id="ja-client-review-unread" class="ja-tab-badge" style="display:none">0</span>
+                    </div>
                       @if(!is_null($application->schedule))
                         <div class="ja-tab" data-tab="schedule">
                             <i class="fa fa-calendar" stylfe="font-size:11px"></i> @lang('modules.interviewSchedule.scheduleDetail')
@@ -375,6 +379,9 @@ function jaSaveMarketingLabel(appId) {
             </div>
 
             <div class="ja-right-scroll">
+                <div id="ja-tab-client-reviews" class="ja-tab-pane" style="display:none">
+                    @include('admin.job-applications.partials.client-review-panel')
+                </div>
                 {{-- ── HISTORY TAB ── --}}
                 <div id="ja-tab-history" class="ja-tab-pane" style="display:none" data-url="{{ route('admin.job-applications.profile-tab', [$application->id, 'history']) }}">
                     <div class="ja-tab-loading">Open the History tab to load activity.</div>
@@ -624,6 +631,12 @@ function jaSaveMarketingLabel(appId) {
                                 </div>
                             </div>
                         </div>
+                        @endif
+
+                        @if($user->cans('edit_job_applications'))
+                        <button type="button" class="ja-btn ja-btn-blue" style="width:100%;margin:0 0 14px" onclick="document.querySelector('.ja-profile-toolbar [data-tab=&quot;client-reviews&quot;]').click()">
+                            <i class="fa fa-share-square-o"></i> Send profile to client
+                        </button>
                         @endif
 
                         {{-- Stage mover --}}
@@ -2052,3 +2065,4 @@ function jaSaveJobEdit(appId) {
 </div>
 @endif
 @include('admin.job-applications.partials.profile-live-sync')
+@include('admin.job-applications.partials.client-review-scripts')

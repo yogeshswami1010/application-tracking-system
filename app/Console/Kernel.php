@@ -17,6 +17,7 @@ class Kernel extends ConsoleKernel
         Commands\EndDateStatus::class,
         Commands\PurgeCandidates::class,
         Commands\ImportCandidateEmailReplies::class,
+        Commands\NotifyCandidateClientReviews::class,
     ];
 
     /**
@@ -28,6 +29,7 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         $schedule->command('candidate-emails:import-replies')->everyMinute()->withoutOverlapping();
+        $schedule->command('client-reviews:notify')->everyMinute()->withoutOverlapping();
         // Moved to routes/console.php
     }
 

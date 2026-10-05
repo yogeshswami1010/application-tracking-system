@@ -993,6 +993,10 @@
     // jaRebuildIds() is called here too so the counter is correct
     // even if somehow drawCallback hasn't fired yet.
     $('#myTable').off('click.jaProfile', '.show-detail').on('click.jaProfile', '.show-detail', function() {
+        jaOpenCandidateProfile($(this).data('row-id'));
+    });
+
+    function jaOpenCandidateProfile(id, initialTab) {
         var $sidebar  = $('#right-sidebar');
         var $backdrop = $('#right-sidebar-backdrop');
         $sidebar.removeClass('translate-x-full').addClass('translate-x-0');
@@ -1001,7 +1005,6 @@
         // Ensure ID list is fresh before opening the panel
         jaRebuildIds();
 
-        var id  = $(this).data('row-id');
         if (typeof window.jaDisposeApplicantProfile === 'function') window.jaDisposeApplicantProfile();
         var url = "{{ route('admin.job-applications.show',':id') }}".replace(':id', id);
         var requestId = (window._jaDirectProfileRequestId || 0) + 1;
@@ -1017,10 +1020,22 @@
                     $('#right-sidebar-backdrop').removeClass('hidden').css('display', 'block');
                     $('#right-sidebar-content').html(response.view);
                     if (window.initCandidateCalls) window.initCandidateCalls(document.getElementById('candidate-calls'));
+                    if (initialTab) {
+                        $(function () {
+                            if (requestId !== window._jaDirectProfileRequestId) return;
+                            var targetTab = document.querySelector('#right-sidebar-content .ja-tab[data-tab="' + initialTab + '"]');
+                            if (targetTab) targetTab.click();
+                        });
+                    }
                 }
             }
         });
-    });
+    }
+
+    var requestedReviewCandidate = new URLSearchParams(window.location.search).get('review_candidate');
+    if (requestedReviewCandidate && /^[1-9]\d*$/.test(requestedReviewCandidate)) {
+        jaOpenCandidateProfile(Number(requestedReviewCandidate), 'client-reviews');
+    }
 
     // ── Delete / archive ─────────────────────────────────────────
     $('body').on('click', '.sa-params,.delete-document', function() {
