@@ -13,9 +13,9 @@ class NotifyCandidateClientReviews extends Command
     {
         $sent = 0;
         $messages = CandidateClientReviewMessage::with('review.user')->where('direction', 'inbound')
-            ->whereNull('notification_sent_at')->orderBy('id')->limit(100)->get();
+            ->whereNull('notification_sent_at')->whereNull('notification_skipped_at')->orderBy('id')->limit(100)->get();
         foreach ($messages as $message) {
-            try { $service->notify($message->review, $message); $sent++; }
+            try { $service->notify($message->review, $message); if ($message->fresh()->notification_sent_at) $sent++; }
             catch (\Throwable $error) { report($error); }
         }
         $this->info('Sent '.$sent.' client review notifications.');

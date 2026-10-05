@@ -30,6 +30,9 @@ class CandidateClientReviewService
     {
         DB::transaction(function () use ($review, $message, $sender) {
             $locked = CandidateClientReviewMessage::lockForUpdate()->findOrFail($message->id);
+            if ($locked->direction !== 'outbound' || (int) $locked->candidate_client_review_id !== (int) $review->id) {
+                throw new \LogicException('Only staff messages from this review can be emailed to the client.');
+            }
             if ($locked->mail_status === 'sent') return;
             abort_if($review->revoked_at || !$review->expires_at->isFuture(), 410, 'This review link is no longer active.');
             $signature = CandidateEmailBody::render('', $sender->email_signature, $sender->email_signature_image_url, $sender->email_signature_html);
@@ -50,10 +53,25 @@ class CandidateClientReviewService
     {
         DB::transaction(function () use ($review, $message) {
             $locked = CandidateClientReviewMessage::lockForUpdate()->findOrFail($message->id);
-            if ($locked->notification_sent_at) return;
-            $recipient = $review->user?->email;
-            if (!filter_var($recipient, FILTER_VALIDATE_EMAIL)) $recipient = data_get(config('mail.ai_search_smtp'), 'from.address');
-            if (!filter_var($recipient, FILTER_VALIDATE_EMAIL)) throw new \RuntimeException('AI Search SMTP is not configured.');
+            if ($locked->direction !== 'inbound' || (int) $locked->candidate_client_review_id !== (int) $review->id) {
+                throw new \LogicException('Only client feedback from this review can notify the ATS team.');
+            }
+            if ($locked->notification_sent_at || $locked->notification_skipped_at) return;
+            $clientAddress = strtolower(trim($review->client_email));
+            $recipient = null;
+            foreach ([$review->user?->email, data_get(config('mail.ai_search_smtp'), 'from.address')] as $address) {
+                $address = trim((string) $address);
+                if (filter_var($address, FILTER_VALIDATE_EMAIL) && strtolower($address) !== $clientAddress) {
+                    $recipient = $address;
+                    break;
+                }
+            }
+            if ($recipient === null) {
+                // Feedback remains in ATS. Never send it back to the submitting client
+                // or repeatedly retry a notification with no distinct staff recipient.
+                $locked->update(['notification_skipped_at' => now()]);
+                return;
+            }
             $html = view('email.client-review-reply', [
                 'review' => $review, 'message' => $locked,
                 'atsUrl' => route('admin.job-applications.table', ['review_candidate' => $review->job_application_id]),

@@ -16,7 +16,7 @@
         @else<div style="font-size:12px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere">{{ $item->body_text }}</div>@endif
         <div class="ja-review-meta">{{ $item->created_at->timezone(config('app.timezone'))->format('d M Y, h:i A') }}
             @if($item->direction === 'outbound') · {{ $item->mail_status === 'sent' ? 'Email sent' : ($item->mail_status === 'failed' ? 'Email failed' : 'Pending') }}
-            @elseif(!$item->notification_sent_at) · Saved in ATS; email notification pending
+            @elseif(!$item->notification_sent_at && !$item->notification_skipped_at) · Saved in ATS; email notification pending
             @endif
         </div>
         @if($canEdit && $item->direction === 'outbound' && $item->mail_status !== 'sent' && !$review->revoked_at && $review->expires_at->isFuture())

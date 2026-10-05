@@ -75,6 +75,8 @@ Schema::create('documents', function (Blueprint $table) {
 });
 $migration = require $root.'/database/migrations/2026_10_05_000001_create_candidate_client_reviews.php';
 $migration->up();
+$skipMigration = require $root.'/database/migrations/2026_10_05_000002_add_notification_skip_to_client_reviews.php';
+$skipMigration->up();
 DB::table('users')->insert(['id' => 1, 'name' => 'Team Member', 'email' => 'team@example.test', 'email_signature_html' => '<strong>Team signature</strong>']);
 DB::table('jobs')->insert(['id' => 1, 'title' => 'Developer']);
 DB::table('job_applications')->insert(['id' => 42, 'full_name' => 'Sample Candidate', 'job_id' => 1]);
@@ -209,6 +211,35 @@ $review->update(['expires_at' => now()->addDay()]);
 DB::table('job_applications')->where('id', 42)->update(['moved_to_trash_at' => now()]);
 check(!$review->fresh()->isAvailable(), 'Trashing the candidate removes external access');
 
+// A client may use the same email as the inviting team member during testing.
+// Their portal feedback must never be delivered back to the client address.
+$selfReview = invitation(43, 'TEAM@EXAMPLE.TEST');
+$selfReview->update(['sent_at' => now()]);
+$beforeSelfReply = count($transport->sent);
+$selfRequest = Request::create($service->url($selfReview, 'reply'), 'POST', [
+    'message' => 'My feedback should go to ATS only.', 'submission_id' => (string) Str::uuid(),
+]);
+$controller->reply($selfRequest, $selfReview, $service);
+check(count($transport->sent) === $beforeSelfReply + 1 && end($transport->sent)['to'] === 'hr@example.test', 'Matching client and team emails must route the notification to the ATS mailbox');
+check(strtolower(end($transport->sent)['to']) !== strtolower($selfReview->client_email), 'Client must not receive their own submitted review');
+$selfMessage = $selfReview->messages()->where('direction', 'inbound')->firstOrFail();
+rejected(fn () => $service->send($selfReview, $selfMessage, $sender), LogicException::class);
+check(count($transport->sent) === $beforeSelfReply + 1, 'Incoming feedback must never enter the outbound client email flow');
+
+$app['config']->set('mail.ai_search_smtp.from.address', 'team@example.test');
+$beforeSkipped = count($transport->sent);
+$skipRequest = Request::create($service->url($selfReview, 'reply'), 'POST', [
+    'message' => 'Save this in ATS without emailing me.', 'submission_id' => (string) Str::uuid(),
+]);
+$controller->reply($skipRequest, $selfReview, $service);
+$skipped = $selfReview->messages()->where('submission_id', $skipRequest->input('submission_id'))->firstOrFail();
+check(count($transport->sent) === $beforeSkipped, 'No email is sent when both possible staff addresses match the client');
+check($skipped->notification_sent_at === null && $skipped->notification_skipped_at !== null && $skipped->body_text === 'Save this in ATS without emailing me.', 'Record an honest skip while preserving the feedback');
+$service->notify($selfReview, $skipped);
+check(count($transport->sent) === $beforeSkipped, 'Notification retries cannot send the client a copy');
+check(!CandidateClientReviewMessage::whereKey($skipped->id)->whereNull('notification_sent_at')->whereNull('notification_skipped_at')->exists(), 'Scheduled notification retries exclude skipped messages');
+$app['config']->set('mail.ai_search_smtp.from.address', 'hr@example.test');
+
 // Compile every new Blade template with the installed framework, then lint PHP output.
 foreach (array_merge(glob($root.'/resources/views/client-reviews/*.blade.php'), glob($root.'/resources/views/email/client-review*.blade.php'), glob($root.'/resources/views/admin/job-applications/partials/client-review*.blade.php'), [$root.'/resources/views/admin/job-applications/show.blade.php', $root.'/resources/views/admin/job-applications/index.blade.php']) as $path) {
     $app['blade.compiler']->compile($path);
@@ -216,6 +247,7 @@ foreach (array_merge(glob($root.'/resources/views/client-reviews/*.blade.php'), 
     exec(escapeshellarg(PHP_BINARY).' -l '.escapeshellarg($compiled), $output, $status);
     check($status === 0, 'Blade must compile: '.$path);
 }
+$skipMigration->down();
 $migration->down();
 check(!Schema::hasTable('candidate_client_reviews'), 'Migration rollback handles the foreign-key order');
 echo "PASS: migration, rich text, signed access, CV page, conversation scoping, email delivery, notification retry, revocation, and expiry\n";
