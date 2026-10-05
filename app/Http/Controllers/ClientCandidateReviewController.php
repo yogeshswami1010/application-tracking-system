@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\CandidateClientReview;
+use App\CompanySetting;
 use App\Services\CandidateClientReviewService;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller as BaseController;
@@ -19,6 +20,7 @@ class ClientCandidateReviewController extends BaseController
     public function show(CandidateClientReview $review, CandidateClientReviewService $service)
     {
         $this->available($review);
+        $company = CompanySetting::first(['company_name', 'logo']);
         $messages = $review->messages()->with('user:id,name')
             ->where('submission_id', '!=', $review->public_id)
             ->where(fn ($query) => $query->where('direction', 'inbound')->orWhere('mail_status', 'sent'))
@@ -26,6 +28,8 @@ class ClientCandidateReviewController extends BaseController
         return response()->view('client-reviews.show', [
             'review' => $review, 'messages' => $messages, 'resumeUrl' => $service->url($review, 'resume'),
             'replyUrl' => $service->url($review, 'reply'),
+            'companyLogoUrl' => $company?->logo_url ?? asset('app-logo.png'),
+            'companyName' => $company?->company_name ?: 'Company',
         ])->withHeaders([
             'Cache-Control' => 'private, no-store', 'Referrer-Policy' => 'no-referrer',
             'X-Robots-Tag' => 'noindex, nofollow, noarchive', 'X-Content-Type-Options' => 'nosniff',

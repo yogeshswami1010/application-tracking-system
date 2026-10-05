@@ -11,6 +11,7 @@ require_once $root.'/app/CandidateClientReview.php';
 require_once $root.'/app/CandidateClientReviewMessage.php';
 require_once $root.'/app/Exceptions/Handler.php';
 require_once $root.'/app/Http/Controllers/Admin/CandidateClientReviewController.php';
+require_once $root.'/app/Http/Controllers/ClientCandidateReviewController.php';
 
 use Illuminate\Foundation\Application;
 use Illuminate\Config\Repository;
@@ -70,6 +71,10 @@ Schema::create('users', function (Blueprint $table) {
     $table->increments('id'); $table->string('name'); $table->string('email');
     $table->text('email_signature')->nullable(); $table->text('email_signature_html')->nullable(); $table->string('email_signature_image')->nullable(); $table->timestamps();
 });
+Schema::create('company_settings', function (Blueprint $table) {
+    $table->increments('id'); $table->string('company_name'); $table->string('logo')->nullable();
+});
+DB::table('company_settings')->insert(['company_name' => 'Sample Recruitment', 'logo' => 'company-logo.png']);
 Schema::create('job_applications', function (Blueprint $table) {
     $table->increments('id'); $table->string('full_name'); $table->unsignedInteger('job_id')->nullable(); $table->timestamp('deleted_at')->nullable(); $table->timestamp('moved_to_trash_at')->nullable(); $table->timestamps();
 });
@@ -146,6 +151,7 @@ check(URL::hasValidSignature(Request::create($service->url($review, 'resume'))),
 $controller = new App\Http\Controllers\ClientCandidateReviewController();
 $page = $controller->show($review, $service)->getContent();
 check(str_contains($page, 'Candidate CV') && str_contains($page, 'Send review'), 'Existing links still show the CV and feedback form');
+check(str_contains($page, '/user-uploads/app-logo/company-logo.png') && str_contains($page, 'alt="Sample Recruitment logo"'), 'The header displays the configured company logo and accessible company name');
 check(!str_contains($page, 'Our introduction') && !str_contains($page, 'Message from the recruitment team') && !str_contains($page, '<h2>Client message</h2>'), 'Remove the recruitment introduction and hide blank client-message cards');
 check(!str_contains($page, 'other@example.test') && !str_contains($page, 'Applicant Notes'), 'Do not expose other clients or internal profile tabs');
 

@@ -6,7 +6,7 @@
     <title>{{ $review->candidate_name }} · Candidate review</title>
     <style>
         *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#F3F5F9;color:#17253E;font-size:15px;line-height:1.6}
-        header{background:#0F1F3D;color:#fff;padding:26px max(24px,calc((100vw - 1320px)/2))}h1{font-size:26px;margin:4px 0}header p{margin:0;color:#B7C4DA}.eyebrow{font-size:11px;letter-spacing:2px}
+        header{background:#0F1F3D;color:#fff;padding:26px max(24px,calc((100vw - 1320px)/2));display:flex;align-items:center;flex-wrap:wrap;gap:24px}.review-brand{display:flex;align-items:center;justify-content:center;background:#fff;border-radius:12px;padding:10px 14px;flex-shrink:0;max-width:100%}.review-logo{display:block;max-width:180px;max-height:56px;width:auto;height:auto;object-fit:contain}.review-heading{min-width:0;flex:1 1 240px}h1{font-size:26px;margin:4px 0;overflow-wrap:anywhere}header p{margin:0;color:#B7C4DA}.eyebrow{font-size:11px;letter-spacing:2px}
         main{max-width:1368px;margin:24px auto;padding:0 24px;display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:24px;align-items:start}
         .card{background:#fff;border:1px solid #E2E8F0;border-radius:14px;padding:22px;margin-bottom:20px;overflow-wrap:anywhere}h2{font-size:18px;margin:0 0 14px}.cv-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px}.cv-head h2{margin:0}
         iframe{width:100%;height:76vh;min-height:480px;border:1px solid #E2E8F0;border-radius:8px;background:#F8FAFC}.button{display:inline-block;border:0;border-radius:8px;background:#2563EB;color:#fff;padding:11px 16px;text-decoration:none;font:600 14px Arial,sans-serif;cursor:pointer}.secondary{background:#EFF6FF;color:#2563EB}
@@ -15,7 +15,10 @@
     </style>
 </head>
 <body>
-<header><div class="eyebrow">CANDIDATE REVIEW</div><h1>{{ $review->candidate_name }}</h1>@if($review->job_title)<p>{{ $review->job_title }}</p>@endif</header>
+<header>
+    <div class="review-brand"><img class="review-logo" src="{{ $companyLogoUrl }}" alt="{{ $companyName }} logo"></div>
+    <div class="review-heading"><div class="eyebrow">CANDIDATE REVIEW</div><h1>{{ $review->candidate_name }}</h1>@if($review->job_title)<p>{{ $review->job_title }}</p>@endif</div>
+</header>
 <main>
     <section>
         <div class="card"><div class="cv-head"><h2>Candidate CV</h2><a class="button secondary" href="{{ $resumeUrl }}" target="_blank" rel="noreferrer">Open CV</a></div><iframe src="{{ $resumeUrl }}" title="CV for {{ $review->candidate_name }}"></iframe><p class="muted">If the CV does not display, use Open CV to view or download it.</p></div>
