@@ -9,6 +9,8 @@
     var config = JSON.parse(configNode.textContent);
     var list = document.getElementById('ja-client-review-conversations');
     var badge = document.getElementById('ja-client-review-unread');
+    var modal = document.getElementById('ja-client-review-modal');
+    var opener = null;
     var pending = false;
     var savedRanges = {};
 
@@ -29,6 +31,24 @@
         var data = xhr.responseJSON || {};
         var first = data.errors && Object.values(data.errors)[0];
         return first ? (Array.isArray(first) ? first[0] : first) : (data.message || 'The request failed. Please try again.');
+    }
+    function closeModal(force) {
+        if (!modal || !modal.open) return;
+        var form = modal.querySelector('[data-client-review-send]');
+        if (!force && form && form.dataset.busy === '1') return;
+        modal.close();
+        if (opener && opener.isConnected) opener.focus();
+    }
+    $(document).on('click.jaClientReviews', '[data-client-review-open]', function () {
+        if (!modal || modal.open || !panel.isConnected) return;
+        opener = this;
+        modal.showModal();
+        modal.querySelector('[name="client_email"]').focus();
+    });
+    $(document).on('click.jaClientReviews', '[data-client-review-close]', function () { closeModal(false); });
+    if (modal) {
+        modal.addEventListener('cancel', function (event) { event.preventDefault(); closeModal(false); });
+        modal.addEventListener('click', function (event) { if (event.target === modal) closeModal(false); });
     }
     function active() {
         var pane = document.getElementById('ja-tab-client-reviews');
@@ -72,7 +92,7 @@
         var node = selection.anchorNode;
         var element = node && (node.nodeType === 1 ? node : node.parentElement);
         var editor = element && element.closest('.ja-review-editor');
-        if (editor && panel.contains(editor)) savedRanges[editor.id] = selection.getRangeAt(0).cloneRange();
+        if (editor && (panel.contains(editor) || (modal && modal.contains(editor)))) savedRanges[editor.id] = selection.getRangeAt(0).cloneRange();
     };
     document.addEventListener('selectionchange', window._jaClientReviewSelectionHandler);
     $(document).on('mousedown.jaClientReviews', 'button[data-review-command]', function (event) { event.preventDefault(); });
@@ -94,7 +114,7 @@
         var clipboard = event.originalEvent.clipboardData;
         if (clipboard) document.execCommand('insertText', false, clipboard.getData('text/plain'));
     });
-    $(document).on('input.jaClientReviews', '#ja-client-reviews-panel input, .ja-review-editor', function () {
+    $(document).on('input.jaClientReviews', '#ja-client-reviews-panel input, #ja-client-review-modal input, .ja-review-editor', function () {
         var form = this.closest('form');
         if (form && form.dataset.busy !== '1') delete form.dataset.submissionId;
         if (this.classList.contains('ja-review-editor')) this.dataset.reviewDirty = '1';
@@ -125,6 +145,12 @@
             delete form.dataset.submissionId;
             if (window._jaProfileCache) window._jaProfileCache.clear();
             feedback(output, response.message || 'Email sent.', false);
+            if (!replyId) {
+                closeModal(true);
+                var tab = document.querySelector('.ja-profile-toolbar [data-tab="client-reviews"]');
+                if (tab) tab.click();
+                feedback(document.getElementById('ja-client-review-send-feedback'), response.message || 'Email sent.', false);
+            }
             load();
         }).fail(function (xhr) {
             if (!panel.isConnected) return;

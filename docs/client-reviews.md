@@ -1,6 +1,6 @@
 # Candidate client reviews
 
-Open a candidate profile and choose **Send profile to client** or **Client Reviews**. Team members with View Job Applications and Edit Job Applications permission can enter a client email, subject, and formatted message. The editor supports bold, italic, underline, bullet and numbered lists, fonts, and font sizes.
+Open a candidate profile and choose **Send profile to client** to open the compose popup. Team members with View Job Applications and Edit Job Applications permission can enter a client email, subject, and formatted message. The editor supports bold, italic, underline, bullet and numbered lists, fonts, and font sizes. Cancel, the close button, or Escape closes the popup and preserves the draft. After a successful send it closes and opens **Client Reviews**, which contains conversations only.
 
 The email uses the existing AI Search SMTP account and the sending team member's email signature. Its button opens a private candidate-review page with the shared CV, the introduction, and a feedback form. Links expire after 30 days and can be revoked from the ATS conversation. Updating a candidate's CV later does not change the CV version already shared.
 

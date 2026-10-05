@@ -5,7 +5,7 @@ const source = fs.readFileSync('resources/views/admin/job-applications/partials/
 const config = {token:'csrf-test', indexUrl:'/reviews', unreadUrl:'/unread', sendUrl:'/send', replyUrl:'/reviews/__REVIEW__/reply', revokeUrl:'/reviews/__REVIEW__/revoke', retryUrl:'/reviews/__REVIEW__/messages/__MESSAGE__/retry'};
 const requests = [], events = {}, cleared = [];
 const list = {dataset:{}, innerHTML:'', querySelector:()=>null};
-const panel = {isConnected:true, contains:()=>true};
+const panel = {isConnected:true, contains:()=>false};
 const badge = {style:{}, textContent:''};
 const pane = {style:{display:'none'}};
 const editor = {id:'compose', innerHTML:'<p><b>Hello</b> José</p><ul><li>Experience</li></ul>', textContent:'Hello José Experience', dataset:{}, contentEditable:'true'};
@@ -15,7 +15,15 @@ const form = {dataset:{}, elements:{client_email:{value:'client@example.test'}, 
     reportValidity:()=>true, getAttribute:()=>null,
     querySelector: selector=>selector==='.ja-review-editor'?editor:output,
     querySelectorAll:()=>[control], reset(){this.resetCalled=true;}};
-const nodes = {'ja-client-reviews-panel':panel, 'ja-client-review-config':{textContent:JSON.stringify(config)}, 'ja-client-review-conversations':list, 'ja-client-review-unread':badge, 'ja-tab-client-reviews':pane};
+const modalEvents = {};
+const emailInput = {focus(){this.focused=true;}};
+const modal = {open:false, contains:node=>node===editor, addEventListener(type, fn){modalEvents[type]=fn;},
+    querySelector:selector=>selector==='[data-client-review-send]'?form:emailInput,
+    showModal(){this.open=true;this.openCount=(this.openCount||0)+1;},close(){this.open=false;}};
+const opener = {isConnected:true,focus(){this.focused=true;}};
+const sendFeedback = {style:{},textContent:''};
+const reviewTab = {click(){pane.style.display='block';events['click.jaClientReviews .ja-tab[data-tab="client-reviews"]']();}};
+const nodes = {'ja-client-reviews-panel':panel, 'ja-client-review-config':{textContent:JSON.stringify(config)}, 'ja-client-review-conversations':list, 'ja-client-review-unread':badge, 'ja-tab-client-reviews':pane, 'ja-client-review-modal':modal, 'ja-client-review-send-feedback':sendFeedback};
 let tick;
 function $() { return {off:()=>({}), on(event, selector, fn){ events[event+' '+selector]=fn; return this; }}; }
 // .off() is called independently; .on() calls return a chain only for consistency.
@@ -25,7 +33,7 @@ $.ajax = options => {
     requests.push(request); return request;
 };
 const context = {$, TextEncoder, btoa:s=>Buffer.from(s,'binary').toString('base64'), Math,
-    document:{hidden:false, getElementById:id=>nodes[id], addEventListener(){}, removeEventListener(){}},
+    document:{hidden:false, getElementById:id=>nodes[id], querySelector:()=>reviewTab, addEventListener(){}, removeEventListener(){}},
     crypto:{randomUUID:()=> '00000000-0000-4000-8000-000000000001'},
     setInterval(fn){tick=fn;return 19;},clearInterval:id=>cleared.push(id), _jaClientReviewTimer:18,
     _jaProfileCache:{clear(){this.cleared=true;}}};
@@ -36,6 +44,27 @@ assert(cleared.includes(18),'Clear old profile polling');
 requests[0].resolve({unread:1});
 assert.equal(badge.textContent,'1 new');
 assert.equal(badge.style.display,'inline-flex');
+const open = events['click.jaClientReviews [data-client-review-open]'];
+const close = events['click.jaClientReviews [data-client-review-close]'];
+open.call(opener);open.call(opener);
+assert(modal.open && emailInput.focused,'The button opens the popup and focuses client email');
+assert.equal(modal.openCount,1,'Opening twice must not call showModal twice');
+assert.equal(pane.style.display,'none','Opening compose does not open Client Reviews');
+assert.equal(requests.length,1,'Opening compose does not load the conversation or send email');
+const draft = editor.innerHTML;
+close();
+assert(!modal.open && opener.focused,'Cancel closes the popup and restores focus');
+assert.equal(editor.innerHTML,draft,'Closing preserves the message draft');
+open.call(opener);
+modalEvents.click({target:emailInput});
+assert(modal.open,'Clicking inside the form does not dismiss it');
+modalEvents.click({target:modal});
+assert(!modal.open,'Clicking the backdrop closes the popup');
+open.call(opener);
+let cancelPrevented = false;
+modalEvents.cancel({preventDefault(){cancelPrevented=true;}});
+assert(cancelPrevented && !modal.open,'Escape closes through the same draft-preserving handler');
+open.call(opener);
 pane.style.display='block';tick();
 assert.equal(requests[1].options.url,'/reviews');
 requests[1].resolve({view:'Client reply conversation'});
@@ -49,7 +78,12 @@ assert.equal(requests.length,3,'Only one send request while pending');
 assert.equal(requests[2].options.data.client_email,'client@example.test');
 assert.equal(requests[2].options.data._token,'csrf-test');
 assert.equal(Buffer.from(requests[2].options.data.message_payload,'base64').toString('utf8'),editor.innerHTML,'Encode Unicode rich text intact');
+close();modalEvents.cancel({preventDefault(){}});modalEvents.click({target:modal});
+assert(modal.open,'Do not dismiss the popup while its email request is pending');
+pane.style.display='none';
 requests[2].resolve({message:'Profile email sent'});
+assert(!modal.open && pane.style.display==='block','A successful send closes compose and opens conversations');
+assert.equal(sendFeedback.textContent,'Profile email sent');
 assert(form.resetCalled && !control.disabled && editor.contentEditable==='true');
 assert.equal(editor.innerHTML,'');
 assert(context._jaProfileCache.cleared);
@@ -84,6 +118,20 @@ assert.equal(requests[8].options.url,'/reviews/15/messages/77/retry');
 requests[8].resolve({message:'Email sent'});
 requests[9].resolve({view:'Email sent'});
 assert(!retryButton.disabled);
+form.getAttribute=()=>null;
+open.call(opener);
+editor.innerHTML='<p>New introduction</p>';editor.textContent='New introduction';
+submit.call(form,event);
+requests[10].reject({responseJSON:{message:'SMTP unavailable',saved:true}});
+assert(modal.open && !control.disabled,'Keep the popup open and editable on a failed send');
+assert.equal(editor.innerHTML,'<p>New introduction</p>','Keep the compose draft on failure');
+assert(output.textContent.includes('SMTP unavailable'));
+requests[11].resolve({view:'Failed invitation'});
+const changedInput = {closest:()=>form,classList:{contains:()=>false}};
+events['input.jaClientReviews #ja-client-reviews-panel input, #ja-client-review-modal input, .ja-review-editor'].call(changedInput);
+assert(!form.dataset.submissionId,'Editing popup inputs resets the submission id for the changed draft');
+close();open.call(opener);
+assert.equal(editor.innerHTML,'<p>New introduction</p>','Reopening retains an unsent draft');
 panel.isConnected=false;tick();
 assert(cleared.includes(19),'Closing the profile stops polling');
-console.log('PASS: client-review rich text, email submission, validation feedback, draft preservation, live replies, unread badge, and timer cleanup');
+console.log('PASS: compose popup open/close/Escape/backdrop, pending-send guard, success navigation, rich text, validation, draft preservation, live replies, unread badge, and timer cleanup');

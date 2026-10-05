@@ -634,7 +634,7 @@ function jaSaveMarketingLabel(appId) {
                         @endif
 
                         @if($user->cans('edit_job_applications'))
-                        <button type="button" class="ja-btn ja-btn-blue" style="width:100%;margin:0 0 14px" onclick="document.querySelector('.ja-profile-toolbar [data-tab=&quot;client-reviews&quot;]').click()">
+                        <button type="button" class="ja-btn ja-btn-blue" style="width:100%;margin:0 0 14px" data-client-review-open aria-haspopup="dialog" aria-controls="ja-client-review-modal">
                             <i class="fa fa-share-square-o"></i> Send profile to client
                         </button>
                         @endif
@@ -1115,6 +1115,8 @@ function jaSaveMarketingLabel(appId) {
             </div>{{-- /right-scroll --}}
         </div>{{-- /right-panel --}}
     </div>{{-- /body --}}
+
+    @include('admin.job-applications.partials.client-review-modal')
 
     {{-- ── JOB DESCRIPTION MODAL ── --}}
     <div id="ja-jobdesc-overlay" onclick="if(event.target===this)jaHideJobDesc()"

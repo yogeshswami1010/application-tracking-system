@@ -4,22 +4,7 @@
     .ja-review-editor ul,.ja-review-html ul{list-style-type:disc}.ja-review-editor ol,.ja-review-html ol{list-style-type:decimal}
 </style>
 <div id="ja-client-reviews-panel" data-application-id="{{ $application->id }}">
-    @if($user->cans('edit_job_applications'))
-    <div class="ja-card">
-        <div class="ja-card-title"><i class="fa fa-paper-plane-o"></i> Send profile to client</div>
-        <form data-client-review-send>
-            <label class="ja-review-label" for="ja-review-email">Client email</label>
-            <input id="ja-review-email" class="ja-review-field" name="client_email" type="email" maxlength="255" required placeholder="client@company.com">
-            <label class="ja-review-label" for="ja-review-subject">Subject</label>
-            <input id="ja-review-subject" class="ja-review-field" name="subject" type="text" maxlength="191" required value="Candidate for review: {{ mb_substr($application->full_name, 0, 160) }}">
-            <label class="ja-review-label" style="margin-bottom:7px" for="ja-review-compose">Message</label>
-            @include('admin.job-applications.partials.client-review-editor', ['editorId' => 'ja-review-compose'])
-            <div class="ja-review-actions"><button type="submit" class="ja-pdf-btn ja-pdf-btn-primary"><i class="fa fa-paper-plane-o"></i> Send to client</button></div>
-            <p style="font-size:11px;color:#64748B;margin:10px 0 0">The email includes your message and a private CV review button. The link expires in 30 days.</p>
-            <div class="ja-review-feedback" role="status" aria-live="polite"></div>
-        </form>
-    </div>
-    @endif
+    <div id="ja-client-review-send-feedback" class="ja-review-feedback" role="status" aria-live="polite" style="margin:0 0 12px"></div>
     <div id="ja-client-review-conversations"><div class="ja-tab-loading">Open Client Reviews to load conversations.</div></div>
 </div>
 <script type="application/json" id="ja-client-review-config">{!! json_encode([
