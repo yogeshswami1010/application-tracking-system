@@ -646,8 +646,25 @@ function jaSaveMarketingLabel(appId) {
                                         <option value="{{ $stageOption->id }}" data-color="{{ $stageOption->color ?? '#6B7280' }}">{{ ucwords(str_replace('_', ' ', $stageOption->status)) }}</option>
                                         @endif
                                     @endforeach
+                                    @if($application->job_id && $user->cans('edit_jobs'))
+                                        <option value="__add_stage__">+ Add new stage…</option>
+                                    @endif
                                 </select>
                             </div>
+                            @if($application->job_id && $user->cans('edit_jobs'))
+                            <form id="ja-stage-form-{{ $application->id }}" style="display:none;margin-top:12px;padding:12px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px" onsubmit="event.preventDefault();jaSaveProfileStage({{ $application->id }});">
+                                <label for="ja-stage-name-{{ $application->id }}" style="display:block;font-size:12px;font-weight:600;margin-bottom:6px">Stage name</label>
+                                <input id="ja-stage-name-{{ $application->id }}" name="status_name" type="text" maxlength="255" required class="ja-stage-select" placeholder="e.g. Reference check">
+                                <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
+                                    <label for="ja-stage-color-{{ $application->id }}" style="font-size:12px">Colour</label>
+                                    <input id="ja-stage-color-{{ $application->id }}" name="status_color" type="color" value="#2563EB" style="width:32px;height:28px;padding:2px;border:1px solid #E2E8F0;border-radius:5px;background:#fff">
+                                    <button type="button" class="ja-pdf-btn" style="margin-left:auto" onclick="jaToggleProfileStage({{ $application->id }}, false)">Cancel</button>
+                                    <button id="ja-stage-save-{{ $application->id }}" type="submit" class="ja-pdf-btn ja-pdf-btn-primary">Save stage</button>
+                                </div>
+                                <p style="font-size:11px;color:#64748B;margin:8px 0 0">Added to this job's pipeline for all its candidates.</p>
+                            </form>
+                            <div id="ja-stage-message-{{ $application->id }}" role="status" aria-live="polite" style="display:none;margin-top:8px;font-size:12px"></div>
+                            @endif
                         </div>
                         @endif
                     </div>
@@ -1409,7 +1426,77 @@ window.jaRefreshCandidateCallHistory = function (applicationId) {
 };
 
 /* ── Stage mover ── */
+function jaToggleProfileStage(appId, show) {
+    var form = document.getElementById('ja-stage-form-' + appId);
+    var message = document.getElementById('ja-stage-message-' + appId);
+    if (!form) return;
+    form.style.display = show ? 'block' : 'none';
+    if (message) { message.style.display = 'none'; message.textContent = ''; }
+    if (show) document.getElementById('ja-stage-name-' + appId).focus();
+}
+
+function jaSaveProfileStage(appId) {
+    var form = document.getElementById('ja-stage-form-' + appId);
+    var button = document.getElementById('ja-stage-save-' + appId);
+    var name = document.getElementById('ja-stage-name-' + appId);
+    var color = document.getElementById('ja-stage-color-' + appId);
+    var message = document.getElementById('ja-stage-message-' + appId);
+    if (!form || !button || button.disabled || !form.reportValidity()) return;
+    button.disabled = true;
+    button.textContent = 'Saving…';
+    message.style.display = 'none';
+    function showMessage(text, failed) {
+        message.textContent = text;
+        message.style.color = failed ? '#DC2626' : '#059669';
+        message.style.display = 'block';
+    }
+    $.ajax({
+        type: 'POST',
+        url: "{{ route('admin.job-applications.stages.store', ':id') }}".replace(':id', appId),
+        data: { _token: '{{ csrf_token() }}', status_name: name.value.trim(), status_color: color.value },
+        success: function(response) {
+            if (!form.isConnected) return;
+            if (response.status !== 'success' || !response.stage) {
+                showMessage(response.message || 'Could not add the stage. Please try again.', true);
+                return;
+            }
+            var select = document.getElementById('stage-mover-select-' + appId);
+            if (!select) return;
+            var stage = response.stage;
+            var option = Array.prototype.find.call(select.options, function(item) { return item.value === String(stage.id); });
+            if (!option) {
+                option = document.createElement('option');
+                option.value = String(stage.id);
+                select.insertBefore(option, select.querySelector('option[value="__add_stage__"]'));
+            }
+            option.textContent = stage.label;
+            option.setAttribute('data-color', stage.color);
+            select.value = '';
+            form.reset();
+            form.style.display = 'none';
+            showMessage('Stage added. Select it above to move this candidate.', false);
+        },
+        error: function(xhr) {
+            if (!form.isConnected) return;
+            var response = xhr.responseJSON || {};
+            var errors = response.errors || {};
+            var first = errors.status_name || errors.status_color;
+            showMessage(first ? first[0] : (response.message || 'Could not add the stage. Please try again.'), true);
+        },
+        complete: function() {
+            button.disabled = false;
+            button.textContent = 'Save stage';
+        }
+    });
+}
+
 function jaMoveFromDetail(appId, toStatusId, toStatusLabel, currentStatusId) {
+    if (toStatusId === '__add_stage__') {
+        var select = document.getElementById('stage-mover-select-' + appId);
+        if (select) select.value = '';
+        jaToggleProfileStage(appId, true);
+        return;
+    }
     if (!toStatusId) return;
     $.easyAjax({
         type: 'POST', url: '{{ route("admin.job-applications.bulk-status-update") }}',
@@ -1428,7 +1515,8 @@ function jaMoveFromDetail(appId, toStatusId, toStatusLabel, currentStatusId) {
                 });
                 document.querySelectorAll('.ja-current-badge').forEach(function (badge) {
                     badge.style.background = color;
-                    badge.innerHTML = '<i class="fa fa-check" style="font-size:9px"></i> ' + toStatusLabel;
+                    badge.innerHTML = '<i class="fa fa-check" style="font-size:9px"></i> ';
+                    badge.appendChild(document.createTextNode(toStatusLabel));
                 });
                 var scheduleAction = document.getElementById('schedule-interview-action-' + appId);
                 if (scheduleAction) {

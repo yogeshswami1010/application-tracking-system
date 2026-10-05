@@ -606,6 +606,52 @@ class AdminJobApplicationController extends AdminBaseController
         ]);
     }
 
+    public function storeProfileStage(Request $request, int $application)
+    {
+        abort_if(!$this->user->cans('edit_job_applications') || !$this->user->cans('edit_jobs'), 403);
+
+        if (is_string($request->input('status_name'))) {
+            $request->merge(['status_name' => trim(preg_replace('/\s+/u', ' ', $request->input('status_name')))]);
+        }
+        $data = $request->validate([
+            'status_name' => ['required', 'string', 'max:255', 'not_regex:/[<>]/'],
+            'status_color' => ['required', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+        ]);
+
+        $stage = DB::transaction(function () use ($application, $data) {
+            $candidate = JobApplication::withTrashed()->lockForUpdate()->findOrFail($application);
+            if (!$candidate->job_id) {
+                throw ValidationException::withMessages(['status_name' => 'Assign this candidate to a job before adding a stage.']);
+            }
+
+            // Use the candidate's current job, never a job ID supplied by the browser.
+            // Lock its pipeline owner so simultaneous profile requests cannot add duplicates.
+            Job::whereKey($candidate->job_id)->lockForUpdate()->firstOrFail();
+            $statuses = ApplicationStatus::where('job_id', $candidate->job_id)->get();
+            $normalName = mb_strtolower($data['status_name']);
+            if ($statuses->contains(fn ($status) => mb_strtolower(trim(preg_replace('/\s+/u', ' ', $status->status))) === $normalName)) {
+                throw ValidationException::withMessages(['status_name' => 'This stage already exists for this job.']);
+            }
+
+            return ApplicationStatus::create([
+                'job_id' => $candidate->job_id,
+                'status' => $data['status_name'],
+                'color' => $data['status_color'],
+                'position' => ((int) $statuses->max('position')) + 1,
+            ]);
+        });
+
+        return Reply::successWithData('Stage added to this job.', [
+            'stage' => [
+                'id' => $stage->id,
+                'job_id' => $stage->job_id,
+                'label' => ucwords(str_replace('_', ' ', $stage->status)),
+                'color' => $stage->color,
+                'position' => $stage->position,
+            ],
+        ]);
+    }
+
     public function stageCounts(Request $request)
     {
         $company        = $request->input('company', 'all');
