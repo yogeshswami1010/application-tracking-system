@@ -9,6 +9,7 @@ require_once $root.'/app/Services/ClientReviewContent.php';
 require_once $root.'/app/Services/CandidateClientReviewService.php';
 require_once $root.'/app/CandidateClientReview.php';
 require_once $root.'/app/CandidateClientReviewMessage.php';
+require_once $root.'/app/Exceptions/Handler.php';
 
 use Illuminate\Foundation\Application;
 use Illuminate\Config\Repository;
@@ -53,7 +54,10 @@ $app->register(Illuminate\Session\SessionServiceProvider::class);
 $app->boot();
 $app->instance('request', Request::create('https://ats.example.test'));
 $app['view']->share('errors', new Illuminate\Support\ViewErrorBag());
-$app['router']->middleware('signed')->prefix('candidate-review')->name('client-reviews.')->group(function ($router) {
+(new Illuminate\Foundation\Providers\FoundationServiceProvider($app))->registerRequestSignatureValidation();
+$app['router']->aliasMiddleware('signed', Illuminate\Routing\Middleware\ValidateSignature::class);
+$app['router']->aliasMiddleware('bindings', Illuminate\Routing\Middleware\SubstituteBindings::class);
+$app['router']->middleware(['signed', 'bindings'])->prefix('candidate-review')->name('client-reviews.')->group(function ($router) {
     $router->get('{review:public_id}', [App\Http\Controllers\ClientCandidateReviewController::class, 'show'])->name('show');
     $router->get('{review:public_id}/cv', [App\Http\Controllers\ClientCandidateReviewController::class, 'resume'])->name('resume');
     $router->post('{review:public_id}/reply', [App\Http\Controllers\ClientCandidateReviewController::class, 'reply'])->name('reply');
@@ -256,6 +260,49 @@ foreach ([null, 'not-an-email'] as $mailbox) {
 }
 $app['config']->set('mail.ai_search_smtp.from.address', 'hr@example.test');
 
+// Exercise the real routes and exception renderer, including signature middleware.
+// The unavailable page must replace debug output without bypassing access checks.
+$app->instance(CandidateClientReviewService::class, $service);
+$app['config']->set('app.debug', true);
+$handler = new App\Exceptions\Handler($app);
+$clientResponse = function (string $url, string $method = 'GET', array $data = []) use ($app, $handler) {
+    $request = Request::create($url, $method, $data);
+    $app->instance('request', $request);
+    try { return $app['router']->dispatch($request); }
+    catch (Throwable $exception) { return $handler->render($request, $exception); }
+};
+$friendly = function ($response, int $status) {
+    check($response->getStatusCode() === $status, 'Keep the unavailable link HTTP status');
+    $body = $response->getContent();
+    check(str_contains($body, 'This review link is no longer available') && str_contains($body, 'contact the recruitment team for a new link'), 'Render the friendly unavailable page');
+    check(!str_contains($body, 'Sample Candidate') && !str_contains($body, 'Please arrange an interview.') && !str_contains($body, 'HttpException') && !str_contains($body, 'Stack trace'), 'Do not leak candidate details or debug output');
+    check(str_contains($response->headers->get('Cache-Control'), 'no-store') && $response->headers->get('X-Robots-Tag') === 'noindex, nofollow, noarchive', 'Unavailable links stay private and uncached');
+};
+$blockedReview = invitation(43, 'review-client@example.test');
+$blockedReview->update(['sent_at' => now()]);
+$blockedUrl = $service->url($blockedReview);
+$blockedCvUrl = $service->url($blockedReview, 'resume');
+$blockedReplyUrl = $service->url($blockedReview, 'reply');
+$activeResponse = $clientResponse($blockedUrl);
+check($activeResponse->getStatusCode() === 200, 'Valid review links still show the candidate: '.$activeResponse->getStatusCode());
+$blockedReview->update(['revoked_at' => now()]);
+$friendly($clientResponse($blockedUrl), 410);
+$friendly($clientResponse($blockedCvUrl), 410);
+$beforeBlocked = $blockedReview->messages()->count();
+$friendly($clientResponse($blockedReplyUrl, 'POST', ['message' => 'Too late', 'submission_id' => (string) Str::uuid()]), 410);
+check($blockedReview->messages()->count() === $beforeBlocked, 'Revoked links cannot submit feedback');
+$blockedReview->update(['revoked_at' => null, 'expires_at' => now()->subMinute()]);
+$friendly($clientResponse($blockedUrl), 410); // An originally valid signature, now expired in the database.
+$friendly($clientResponse($service->url($blockedReview->fresh())), 403); // Expired signed URL.
+$friendly($clientResponse(str_replace('signature=', 'signature=invalid', $blockedUrl)), 403);
+$missingUrl = URL::temporarySignedRoute('client-reviews.show', now()->addDay(), ['review' => (string) Str::uuid()]);
+$friendly($clientResponse($missingUrl), 404);
+$adminRequest = Request::create('https://ats.example.test/admin/job-applications/table-view', 'GET', [], [], [], ['HTTP_ACCEPT' => 'application/json']);
+$adminRequest->setRouteResolver(fn () => $app['router']->getRoutes()->match($adminRequest));
+$unrelated = $handler->render($adminRequest, new Symfony\Component\HttpKernel\Exception\HttpException(410, 'Unrelated admin error'));
+check($unrelated->getStatusCode() === 410 && str_contains($unrelated->getContent(), 'Unrelated admin error') && !str_contains($unrelated->getContent(), 'contact the recruitment team'), 'Do not replace unrelated ATS errors with the review page');
+$app['config']->set('app.debug', false);
+
 // Compile every new Blade template with the installed framework, then lint PHP output.
 foreach (array_merge(glob($root.'/resources/views/client-reviews/*.blade.php'), glob($root.'/resources/views/email/client-review*.blade.php'), glob($root.'/resources/views/admin/job-applications/partials/client-review*.blade.php'), [$root.'/resources/views/admin/job-applications/show.blade.php', $root.'/resources/views/admin/job-applications/index.blade.php']) as $path) {
     $app['blade.compiler']->compile($path);
@@ -266,4 +313,4 @@ foreach (array_merge(glob($root.'/resources/views/client-reviews/*.blade.php'), 
 $skipMigration->down();
 $migration->down();
 check(!Schema::hasTable('candidate_client_reviews'), 'Migration rollback handles the foreign-key order');
-echo "PASS: migration, rich text, signed access, CV page, conversation scoping, email delivery, notification retry, revocation, and expiry\n";
+echo "PASS: migration, rich text, signed access, CV page, conversation scoping, email delivery, notification retry, friendly revoked/expired/invalid links, and debug-mode privacy\n";
