@@ -58,17 +58,10 @@ class CandidateClientReviewService
             }
             if ($locked->notification_sent_at || $locked->notification_skipped_at) return;
             $clientAddress = strtolower(trim($review->client_email));
-            $recipient = null;
-            foreach ([$review->user?->email, data_get(config('mail.ai_search_smtp'), 'from.address')] as $address) {
-                $address = trim((string) $address);
-                if (filter_var($address, FILTER_VALIDATE_EMAIL) && strtolower($address) !== $clientAddress) {
-                    $recipient = $address;
-                    break;
-                }
-            }
-            if ($recipient === null) {
+            $recipient = trim((string) data_get(config('mail.ai_search_smtp'), 'from.address'));
+            if (!filter_var($recipient, FILTER_VALIDATE_EMAIL) || strtolower($recipient) === $clientAddress) {
                 // Feedback remains in ATS. Never send it back to the submitting client
-                // or repeatedly retry a notification with no distinct staff recipient.
+                // or fall back to a team member's personal mailbox.
                 $locked->update(['notification_skipped_at' => now()]);
                 return;
             }

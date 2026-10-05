@@ -151,7 +151,8 @@ $transport->fail = false;
 $service->notify($review, $incoming);
 $service->notify($review, $incoming);
 check(count($transport->sent) === 2 && $incoming->fresh()->notification_sent_at !== null, 'Retry notification once without duplicate mail');
-check($transport->sent[1]['to'] === 'team@example.test' && str_contains($transport->sent[1]['html'], 'Please arrange an interview.'), 'Notify the inviting team member');
+check($transport->sent[1]['to'] === 'hr@example.test' && str_contains($transport->sent[1]['html'], 'Please arrange an interview.'), 'Notify only the ATS SMTP mailbox, including notification retries');
+check($transport->sent[1]['reply'] === 'client@example.test', 'The ATS mailbox can reply directly to the client');
 $conversation = view('admin.job-applications.partials.client-review-conversation', ['reviews' => collect([$review->load('messages.user')]), 'canEdit' => true, 'applicationId' => 42])->render();
 check(str_contains($conversation, 'Please arrange an interview.') && str_contains($conversation, 'Team Member') && str_contains($conversation, 'Reply to client'), 'Render both sides of the conversation in ATS');
 $reply = $review->messages()->create(['submission_id' => (string) Str::uuid(), 'user_id' => 1, 'direction' => 'outbound', 'body_html' => '<p>Interview scheduled</p>', 'body_text' => 'Interview scheduled']);
@@ -183,6 +184,7 @@ $clientRequest = Request::create($service->url($sentReview, 'reply'), 'POST', $c
 $controller->reply($clientRequest, $sentReview, $service);
 $controller->reply($clientRequest, $sentReview, $service);
 check($sentReview->messages()->where('direction', 'inbound')->count() === 1 && count($transport->sent) === 5, 'Submitting feedback twice stores and emails it once');
+check(end($transport->sent)['to'] === 'hr@example.test', 'Send review emails only the ATS mailbox rather than the inviting member or client');
 $loaded = $admin->index(43)->getData(true);
 check(str_contains($loaded['view'], 'Client approved this candidate.'), 'Submitted feedback appears in the actual ATS conversation endpoint');
 check($admin->unread(43)->getData(true)['unread'] === 0, 'Reading the conversation clears its unread badge');
@@ -233,11 +235,25 @@ $skipRequest = Request::create($service->url($selfReview, 'reply'), 'POST', [
 ]);
 $controller->reply($skipRequest, $selfReview, $service);
 $skipped = $selfReview->messages()->where('submission_id', $skipRequest->input('submission_id'))->firstOrFail();
-check(count($transport->sent) === $beforeSkipped, 'No email is sent when both possible staff addresses match the client');
+check(count($transport->sent) === $beforeSkipped, 'No email is sent when the ATS mailbox matches the client');
 check($skipped->notification_sent_at === null && $skipped->notification_skipped_at !== null && $skipped->body_text === 'Save this in ATS without emailing me.', 'Record an honest skip while preserving the feedback');
 $service->notify($selfReview, $skipped);
 check(count($transport->sent) === $beforeSkipped, 'Notification retries cannot send the client a copy');
 check(!CandidateClientReviewMessage::whereKey($skipped->id)->whereNull('notification_sent_at')->whereNull('notification_skipped_at')->exists(), 'Scheduled notification retries exclude skipped messages');
+$app['config']->set('mail.ai_search_smtp.from.address', 'hr@example.test');
+
+// A missing or invalid ATS mailbox must not route feedback to another address.
+foreach ([null, 'not-an-email'] as $mailbox) {
+    $app['config']->set('mail.ai_search_smtp.from.address', $mailbox);
+    $beforeMissing = count($transport->sent);
+    $missingRequest = Request::create($service->url($failedReview, 'reply'), 'POST', [
+        'message' => 'Preserve feedback when the ATS mailbox is unavailable.', 'submission_id' => (string) Str::uuid(),
+    ]);
+    $controller->reply($missingRequest, $failedReview, $service);
+    $missingMessage = $failedReview->messages()->where('submission_id', $missingRequest->input('submission_id'))->firstOrFail();
+    check(count($transport->sent) === $beforeMissing && $missingMessage->notification_skipped_at !== null, 'Do not fall back to the valid team member email when the ATS mailbox is unavailable');
+    check(str_contains($admin->index(43)->getData(true)['view'], $missingMessage->body_text), 'Feedback still appears in the ATS conversation without an email recipient');
+}
 $app['config']->set('mail.ai_search_smtp.from.address', 'hr@example.test');
 
 // Compile every new Blade template with the installed framework, then lint PHP output.

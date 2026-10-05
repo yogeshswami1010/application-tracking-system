@@ -33,7 +33,7 @@
                 @error('message')<p class="error">{{ $message }}</p>@enderror
                 <button class="button" type="submit" style="margin-top:12px">Send review</button>
             </form>
-            <p class="muted">Your reply is added to the candidate's ATS conversation and emailed to the recruitment team.</p>
+            <p class="muted">Your reply is added to the candidate's ATS conversation and emailed to the recruitment mailbox.</p>
         </div>
         @if($messages->isNotEmpty())
         <div class="card"><h2>Conversation</h2>
