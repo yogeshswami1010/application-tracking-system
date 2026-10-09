@@ -34,6 +34,13 @@ class JobApplication extends Model
 
     protected $appends = ['resume_url', 'photo_url'];
 
+    public function scopeForJobLocation(Builder $query, $locationId): Builder
+    {
+        return $query->whereHas('job', function ($job) use ($locationId) {
+            $job->atLocation($locationId);
+        });
+    }
+
     public function scopeVisibleApplicants(Builder $query): Builder
     {
         // Merge ordinary profiles by their newest live application. A newer

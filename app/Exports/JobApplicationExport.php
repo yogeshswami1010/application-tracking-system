@@ -46,7 +46,7 @@ class JobApplicationExport implements FromCollection, WithHeadings, WithEvents, 
 
         // Filter  By Location
         if ($this->filters['location'] != 'all' && $this->filters['location'] != '') {
-            $jobApplications = $jobApplications->where('jobs.location_id', $this->filters['location']);
+            $jobApplications = $jobApplications->forJobLocation($this->filters['location']);
         }
 
         // Filter  By Job

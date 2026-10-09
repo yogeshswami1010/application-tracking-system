@@ -34,6 +34,7 @@ Facade::setFacadeApplication($app);
 foreach ([Illuminate\Events\EventServiceProvider::class, Illuminate\Database\DatabaseServiceProvider::class,
     Illuminate\Filesystem\FilesystemServiceProvider::class,
     Illuminate\Routing\RoutingServiceProvider::class, Illuminate\View\ViewServiceProvider::class,
+    Illuminate\Translation\TranslationServiceProvider::class,
     Yajra\DataTables\DataTablesServiceProvider::class] as $provider) {
     $app->register($provider);
 }
@@ -41,7 +42,8 @@ $app->boot();
 
 Schema::create('job_applications', function (Blueprint $t) {
     $t->increments('id'); $t->unsignedInteger('job_id'); $t->unsignedInteger('status_id');
-    $t->string('full_name'); $t->string('email')->nullable(); $t->boolean('is_candidate')->default(false);
+    $t->string('full_name'); $t->string('email')->nullable(); $t->string('phone')->nullable(); $t->text('cover_letter')->nullable();
+    $t->boolean('is_candidate')->default(false);
     $t->unsignedInteger('location_id')->nullable(); $t->text('skills')->nullable(); $t->softDeletes(); $t->timestamps();
 });
 Schema::create('consortium_registration_job_moves', function (Blueprint $t) {
@@ -68,17 +70,19 @@ Schema::create('documents', function (Blueprint $t) {
     $t->increments('id'); $t->unsignedInteger('documentable_id'); $t->string('documentable_type'); $t->string('name');
 });
 DB::table('companies')->insert(['id' => 1, 'company_name' => 'Graybar Canada']);
-DB::table('job_locations')->insert(['id' => 1, 'location' => 'Oshawa']);
+DB::table('job_locations')->insert([
+    ['id' => 1, 'location' => 'Oshawa'], ['id' => 2, 'location' => 'Toronto'],
+]);
 foreach ([1, 2] as $job) {
     DB::table('jobs')->insert(['id' => $job, 'title' => 'Job '.$job, 'company_id' => 1, 'location_id' => 1,
         'start_date' => '2000-01-01', 'end_date' => '2099-01-01', 'status' => 'active']);
-    foreach ([1 => 'Applied', 2 => 'Rejected'] as $position => $status) {
-        DB::table('application_status')->insert(['id' => ($job - 1) * 2 + $position, 'job_id' => $job,
+    foreach ([1 => 'Applied', 2 => 'Rejected', 3 => 'Interview'] as $position => $status) {
+        DB::table('application_status')->insert(['id' => ($job - 1) * 3 + $position, 'job_id' => $job,
             'status' => $status, 'position' => $position, 'color' => '#2563EB']);
     }
 }
 function candidate(int $id, string|null $email, int $job = 1, bool $deleted = false, bool $internal = false): void {
-    DB::table('job_applications')->insert(['id' => $id, 'job_id' => $job, 'status_id' => $job === 1 ? 1 : 3,
+    DB::table('job_applications')->insert(['id' => $id, 'job_id' => $job, 'status_id' => $job === 1 ? 1 : 4,
         'full_name' => 'Candidate '.$id, 'email' => $email, 'is_candidate' => $internal,
         'location_id' => 1, 'deleted_at' => $deleted ? '2026-10-01 00:00:00' : null,
         'created_at' => '2026-09-01 00:00:00']);
@@ -136,4 +140,60 @@ DB::table('consortium_registration_job_moves')->insert(['job_application_id' => 
 verify(6, 'Explicit Consortium assignments remain visible on both pages');
 candidate(12, null);
 verify(7, 'Missing email uses the same visibility rule on both pages');
+DB::table('job_applications')->where('id', 12)->delete();
+
+// Reproduce the screenshot: the job is in Oshawa, but the Interview applicant
+// has a different stored location and another applicant has no location.
+DB::table('job_applications')->where('id', 4)->update([
+    'full_name' => 'Ramanpreet Kaur', 'status_id' => 3, 'location_id' => 2,
+]);
+DB::table('job_applications')->where('id', 5)->update(['location_id' => null]);
+DB::table('job_job_locations')->insert(['job_id' => 1, 'location_id' => 1]);
+// Mapped posting locations take precedence over the legacy jobs.location_id.
+DB::table('jobs')->where('id', 1)->update(['location_id' => 2]);
+
+function locationRequest(array $filters): Request {
+    global $app;
+    $request = Request::create('https://ats.example.test/admin/job-applications/data', 'GET', array_merge([
+        'jobs' => '1', 'company' => '1', 'location' => '1', 'status' => 'all', 'questions' => 'all',
+        'draw' => 1, 'start' => 0, 'length' => 100,
+    ], $filters));
+    $app->instance('request', $request);
+    return $request;
+}
+$applications = controller(AdminJobApplicationController::class);
+$request = locationRequest([]);
+$overview = controller(AdminAtsOverviewController::class)->index()->getData()['jobs']->firstWhere('id', 1);
+$table = $applications->data($request)->getData(true);
+$counts = $applications->stageCounts($request);
+check($table['recordsFiltered'] === $overview->applicant_count, 'Job location filter hides applicants with different or missing saved locations');
+check((int) $counts['counts']->sum() === $overview->applicant_count, 'Job location All Applicants badge differs from overview');
+check((int) $counts['counts'][3] === 1 && (int) $counts['ko_count'] === 1, 'Job location filter hides Interview/knockout applicants');
+$request = locationRequest(['status' => '3']);
+$table = $applications->data($request)->getData(true);
+check($table['recordsFiltered'] === 1 && array_column($table['data'], 'id') === [4], 'Ramanpreet must appear under Interview when Oshawa is selected');
+$request = locationRequest(['location' => '2']);
+check($applications->data($request)->getData(true)['recordsFiltered'] === 0, 'An applicant location must not match a different job posting location');
+check((int) $applications->stageCounts($request)['counts']->sum() === 0, 'Non-matching posting location must have zero stage counts');
+$request = locationRequest(['jobs' => '2']);
+check($applications->data($request)->getData(true)['recordsFiltered'] === 1, 'Jobs without mapped locations must use the legacy posting location');
+echo "PASS: Interview applicant and stage counts use mapped and legacy job posting locations\n";
+
+$jobOptions = $applications->getJobs(Request::create('/', 'GET', ['companyId' => '1', 'locationId' => '1']))['jobs'];
+check(str_contains($jobOptions, 'value="1"') && str_contains($jobOptions, 'value="2"'), 'Jobs dropdown must include mapped and legacy posting locations');
+$jobOptions = $applications->getJobs(Request::create('/', 'GET', ['companyId' => '1', 'locationId' => '2']))['jobs'];
+check(!str_contains($jobOptions, 'value="1"') && !str_contains($jobOptions, 'value="2"'), 'Jobs dropdown must not include jobs based on applicant locations');
+$locations = $applications->getLocations(Request::create('/', 'GET', ['companyId' => '1']))->getData(true)['locations'];
+check(str_contains($locations, 'value="1"') && !str_contains($locations, 'value="2"'), 'Company location options must match posting locations, not applicant locations');
+
+// Both locations of a multi-location posting must work without duplicating rows.
+DB::table('job_job_locations')->insert(['job_id' => 1, 'location_id' => 2]);
+$request = locationRequest(['location' => '2']);
+check($applications->data($request)->getData(true)['recordsFiltered'] === 6, 'Second mapped location must show all six applicants once');
+check((int) $applications->stageCounts($request)['counts']->sum() === 6, 'Multi-location stage counts must not duplicate applicants');
+$export = new App\Exports\JobApplicationExport([
+    'status' => '3', 'location' => '2', 'jobs' => '1', 'startDate' => null, 'endDate' => null,
+], []);
+check($export->collection()->pluck('id')->all() === [4], 'Export must include the same Interview applicant at the mapped job location');
+echo "PASS: Job/location dropdowns, multi-location counts and export use posting locations\n";
 echo "Applicant count integration checks passed.\n";

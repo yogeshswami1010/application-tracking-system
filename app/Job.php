@@ -5,6 +5,7 @@ namespace App;
 use Carbon\Carbon;
 use Cviebrock\EloquentSluggable\Sluggable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 
 class Job extends Model
 {
@@ -23,6 +24,20 @@ class Job extends Model
     protected $appends = [
         'active',
     ];
+
+    public function scopeAtLocation(Builder $query, $locationId): Builder
+    {
+        // ATS Overview displays mapped posting locations, falling back to the
+        // legacy location only when the job has no mapped locations.
+        return $query->where(function ($locations) use ($locationId) {
+            $locations->whereHas('jobLocation', function ($mapped) use ($locationId) {
+                $mapped->where('job_locations.id', $locationId);
+            })->orWhere(function ($legacy) use ($locationId) {
+                $legacy->whereDoesntHave('jobLocation')
+                    ->where('jobs.location_id', $locationId);
+            });
+        });
+    }
 
     public function applications()
     {

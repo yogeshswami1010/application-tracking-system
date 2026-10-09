@@ -113,7 +113,7 @@ class AdminJobApplicationController extends AdminBaseController
 
             // Filter  by Location
             if ($request->location != 'all' && $request->location != '') {
-                $q->where('job_applications.location_id', '=', $request->location);
+                $q->forJobLocation($request->location);
             }
 
             // Filter  by question
@@ -179,7 +179,7 @@ class AdminJobApplicationController extends AdminBaseController
 
                 // Filter  by Location
                 if ($request->location != 'all' && $request->location != '') {
-                    $r->where('job_applications.location_id', '=', $request->location);
+                    $r->forJobLocation($request->location);
                 }
 
                 if ($request->questions != 'all' && $request->questions != '') {
@@ -426,7 +426,7 @@ class AdminJobApplicationController extends AdminBaseController
         // Filter by location
        
         if ($request->location != 'all' && $request->location != '') {
-            $jobApplications = $jobApplications->where('job_applications.location_id', $request->location);
+            $jobApplications = $jobApplications->forJobLocation($request->location);
         }
 
         if ($request->questions != 'all' && $request->questions != '' && ($request->question_value == '' || is_null($request->question_value))) {
@@ -659,7 +659,7 @@ class AdminJobApplicationController extends AdminBaseController
             $countQuery->where('job_applications.job_id', $jobs);
         }
         if ($location !== 'all' && $location !== '') {
-            $countQuery->where('job_applications.location_id', $location);
+            $countQuery->forJobLocation($location);
         }
         if ($questions !== 'all' && $questions !== '') {
             $countQuery->whereHas('job.questions', function ($q) use ($questions) {
@@ -698,7 +698,7 @@ class AdminJobApplicationController extends AdminBaseController
             $koQuery->where('job_applications.job_id', $jobs);
         }
         if ($location !== 'all' && $location !== '') {
-            $koQuery->where('job_applications.location_id', $location);
+            $koQuery->forJobLocation($location);
         }
 
         $koCount = $koQuery->count('job_applications.id');
@@ -2506,8 +2506,7 @@ class AdminJobApplicationController extends AdminBaseController
 
         // Filter  by Location
         if ($request->location != 'all' && $request->location != '') {
-            $applications->leftJoin('jobs', 'jobs.id', 'job_applications.job_id')
-                ->where('jobs.location_id', '=', $request->location);
+            $applications->forJobLocation($request->location);
         }
 
         if ($request->questions != 'all' && $request->questions != '') {
@@ -2562,18 +2561,7 @@ class AdminJobApplicationController extends AdminBaseController
         }
 
         if ($locationId && $locationId != 'all' && $locationId != '') {
-            $query->where(function ($locationQuery) use ($locationId) {
-                $locationQuery->whereIn('id', function ($sub) use ($locationId) {
-                    $sub->select('job_id')
-                        ->from('job_job_locations')
-                        ->where('location_id', $locationId);
-                })->orWhereIn('id', function ($sub) use ($locationId) {
-                    $sub->select('job_id')
-                        ->from('job_applications')
-                        ->where('is_candidate', 0)
-                        ->where('location_id', $locationId);
-                });
-            });
+            $query->atLocation($locationId);
         }
 
         $jobs = $query->get();
@@ -2598,16 +2586,14 @@ class AdminJobApplicationController extends AdminBaseController
                 ->distinct()
                 ->pluck('job_job_locations.location_id');
 
-            $applicationLocationIds = DB::table('job_applications')
-                ->join('jobs', 'jobs.id', '=', 'job_applications.job_id')
-                ->where('jobs.company_id', $companyId)
-                ->where('job_applications.is_candidate', 0)
-                ->whereNotNull('job_applications.location_id')
+            $legacyLocationIds = Job::where('company_id', $companyId)
+                ->whereDoesntHave('jobLocation')
+                ->whereNotNull('jobs.location_id')
                 ->distinct()
-                ->pluck('job_applications.location_id');
+                ->pluck('jobs.location_id');
 
             $locationIds = $mappedLocationIds
-                ->merge($applicationLocationIds)
+                ->merge($legacyLocationIds)
                 ->filter()
                 ->unique()
                 ->values();
