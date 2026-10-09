@@ -46,34 +46,19 @@ class AdminAtsOverviewController extends AdminBaseController
         $applicantsByStatus = collect();
 
         if ($jobIds->isNotEmpty()) {
-            // Match the table view's merged-profile rule: only the newest
-            // application for each email is shown and counted.
+            // Use the same visible applicants as the table and its stage counts.
             $counts = JobApplication::query()
                 ->selectRaw('job_id, status_id, COUNT(*) as applicant_count')
-                ->where('is_candidate', 0)
+                ->visibleApplicants()
                 ->whereIn('job_id', $jobIds)
-                ->whereIn('id', function ($query) {
-                    $query->selectRaw('MAX(ja2.id)')
-                        ->from('job_applications as ja2')
-                        ->where('ja2.is_candidate', 0)
-                        ->whereNull('ja2.deleted_at')
-                        ->groupBy('ja2.email');
-                })
                 ->groupBy('job_id', 'status_id')
                 ->get()
                 ->groupBy('job_id');
 
             $applicantsByStatus = JobApplication::query()
                 ->select('id', 'job_id', 'status_id', 'full_name')
-                ->where('is_candidate', 0)
+                ->visibleApplicants()
                 ->whereIn('job_id', $jobIds)
-                ->whereIn('id', function ($query) {
-                    $query->selectRaw('MAX(ja2.id)')
-                        ->from('job_applications as ja2')
-                        ->where('ja2.is_candidate', 0)
-                        ->whereNull('ja2.deleted_at')
-                        ->groupBy('ja2.email');
-                })
                 ->orderBy('full_name')
                 ->get()
                 ->groupBy(['job_id', 'status_id']);

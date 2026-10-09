@@ -377,23 +377,7 @@ class AdminJobApplicationController extends AdminBaseController
                 'status:id,status,color',
             ]);
 
-        $jobApplications = $jobApplications->where('job_applications.is_candidate', 0);
-
-        // Keep normal duplicate-email applications merged, but always show
-        // applications explicitly created by a Consortium job assignment.
-        $jobApplications = $jobApplications->where(function ($visible) {
-            $visible->whereIn('job_applications.id', function ($sub) {
-                $sub->selectRaw('MAX(ja2.id)')
-                    ->from('job_applications as ja2')
-                    ->where('ja2.is_candidate', 0)
-                    ->whereColumn('ja2.email', 'job_applications.email')
-                    ->groupBy('ja2.email');
-            })->orWhereExists(function ($moves) {
-                $moves->selectRaw('1')
-                    ->from('consortium_registration_job_moves as crjm')
-                    ->whereColumn('crjm.job_application_id', 'job_applications.id');
-            });
-        });
+        $jobApplications = $jobApplications->visibleApplicants();
 
         // Knockout filter
         // Knockout filter — show applicants who answered a knockout question with knockout answer
@@ -665,20 +649,7 @@ class AdminJobApplicationController extends AdminBaseController
                 'job_applications.status_id',
                 DB::raw('COUNT(*) as cnt')
             )
-            ->where('job_applications.is_candidate', 0);
-
-        $countQuery->where(function ($visible) {
-            $visible->whereIn('job_applications.id', function ($sub) {
-                $sub->selectRaw('MAX(ja2.id)')->from('job_applications as ja2')
-                    ->where('ja2.is_candidate', 0)
-                    ->whereColumn('ja2.email', 'job_applications.email')
-                    ->groupBy('ja2.email');
-            })->orWhereExists(function ($moves) {
-                $moves->selectRaw('1')
-                    ->from('consortium_registration_job_moves as crjm')
-                    ->whereColumn('crjm.job_application_id', 'job_applications.id');
-            });
-        });
+            ->visibleApplicants();
 
         if ($company !== 'all' && $company !== '') {
             $countQuery->join('jobs as j_co', 'j_co.id', '=', 'job_applications.job_id')
@@ -707,19 +678,7 @@ class AdminJobApplicationController extends AdminBaseController
             ->pluck('cnt', 'job_applications.status_id');
 
         // ── KO count ──────────────────────────────────────────────────
-        $koQuery = JobApplication::where('job_applications.is_candidate', 0)
-            ->where(function ($visible) {
-                $visible->whereIn('job_applications.id', function ($sub) {
-                    $sub->selectRaw('MAX(ja2.id)')->from('job_applications as ja2')
-                        ->where('ja2.is_candidate', 0)
-                        ->whereColumn('ja2.email', 'job_applications.email')
-                        ->groupBy('ja2.email');
-                })->orWhereExists(function ($moves) {
-                    $moves->selectRaw('1')
-                        ->from('consortium_registration_job_moves as crjm')
-                        ->whereColumn('crjm.job_application_id', 'job_applications.id');
-                });
-            })
+        $koQuery = JobApplication::visibleApplicants()
             ->whereHas('answers', function ($q) {
                 $q->whereHas('question', function ($qq) {
                     $qq->where('type', 'radio')

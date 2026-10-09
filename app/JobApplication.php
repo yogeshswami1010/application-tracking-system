@@ -4,6 +4,7 @@ namespace App;
 
 use App\JobLocation;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -32,6 +33,27 @@ class JobApplication extends Model
     ];
 
     protected $appends = ['resume_url', 'photo_url'];
+
+    public function scopeVisibleApplicants(Builder $query): Builder
+    {
+        // Merge ordinary profiles by their newest live application. A newer
+        // deleted row must never suppress an older application that is active.
+        // Explicit Consortium job assignments remain visible in each job.
+        return $query->where('job_applications.is_candidate', 0)
+            ->where(function ($visible) {
+                $visible->whereIn('job_applications.id', function ($latest) {
+                    $latest->selectRaw('MAX(ja2.id)')
+                        ->from('job_applications as ja2')
+                        ->where('ja2.is_candidate', 0)
+                        ->whereNull('ja2.deleted_at')
+                        ->groupBy('ja2.email');
+                })->orWhereExists(function ($moves) {
+                    $moves->selectRaw('1')
+                        ->from('consortium_registration_job_moves as crjm')
+                        ->whereColumn('crjm.job_application_id', 'job_applications.id');
+                });
+            });
+    }
 
 
     public function originUser() { return $this->belongsTo(User::class, 'origin_user_id'); }
