@@ -4,9 +4,9 @@
             <span class="text-[11px] font-bold uppercase tracking-[0.06em] text-[#7D8796]">Applicant Status</span>
             <span class="text-[11px] text-[#A0A8B5]">{{ $statuses->count() }} stages</span>
         </div>
-        <div class="max-h-[260px] space-y-1 overflow-y-auto">
+        <div class="max-h-[260px] space-y-1 overflow-y-auto" data-ats-stage-order-job="{{ $jobId }}">
             @forelse($statuses as $status)
-                <div class="ats-status-stage rounded-lg px-2 py-1.5 hover:bg-[#F7F9FC]">
+                <div class="ats-status-stage rounded-lg px-2 py-1.5 hover:bg-[#F7F9FC]" data-stage-id="{{ $status->id }}">
                     <div class="flex items-center justify-between gap-3">
                         <span class="flex min-w-0 items-center gap-2">
                             <span class="h-2 w-2 shrink-0 rounded-full" style="background-color: {{ $status->color ?: '#6B7280' }}"></span>

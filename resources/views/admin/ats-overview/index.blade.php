@@ -113,7 +113,7 @@
                                     <a href="{{ $applicationUrl }}" class="inline-flex min-w-[54px] items-center justify-center rounded-xl bg-[#EEF4FF] px-4 py-2 text-[18px] font-bold text-[#2563EB] hover:bg-[#E2ECFF]">
                                         {{ number_format($job->applicant_count) }}
                                     </a>
-                                    @include('admin.ats-overview.status-tooltip', ['statuses' => $job->statuses])
+                                    @include('admin.ats-overview.status-tooltip', ['statuses' => $job->statuses, 'jobId' => $job->id])
                                 </div>
                             </td>
                             <td class="px-5 py-4 text-center">
@@ -122,7 +122,7 @@
                                         View Status
                                         <span class="text-[#9AA4B2]">&#9662;</span>
                                     </button>
-                                    @include('admin.ats-overview.status-tooltip', ['statuses' => $job->statuses])
+                                    @include('admin.ats-overview.status-tooltip', ['statuses' => $job->statuses, 'jobId' => $job->id])
                                 </div>
                             </td>
                         </tr>
@@ -186,6 +186,7 @@
 @endpush
 
 @push('footer-script')
+    @include('admin.ats-overview.status-order-script')
     <script>
         (function () {
             function positionAtsStatusTooltip(wrapper) {
@@ -213,6 +214,7 @@
 
                 function openTooltip() {
                     window.clearTimeout(closeTimer);
+                    window.atsApplyStoredStageOrders(wrapper);
                     wrapper.classList.add('is-status-open');
                     positionAtsStatusTooltip(wrapper);
                 }
