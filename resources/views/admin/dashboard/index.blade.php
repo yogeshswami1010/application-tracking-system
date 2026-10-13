@@ -144,6 +144,17 @@
                     </div>
                 @endif
 
+                <a href="{{ route('admin.consortium-registrations.index') }}" class="rd-sc rd-c-white rd-c-violet rd-a rd-a6">
+                    <div class="flex items-center justify-between">
+                        <div class="rd-sico">
+                            <svg class="h-[18px] w-[18px]" fill="none" stroke="#7C3AED" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2m20 0v-2a4 4 0 00-3-3.87M15 3.13a4 4 0 010 7.75M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                        </div>
+                        <span class="rd-stag bg-violet-50 text-violet-600">@lang('modules.dashboard.tagTotal')</span>
+                    </div>
+                    <div class="rd-snum rd-cnt" data-v="{{ (int) $totalConsortiumRegistrations }}">{{ number_format($totalConsortiumRegistrations) }}</div>
+                    <div class="rd-slbl">Total Consortium Registrations</div>
+                </a>
+
                 @if($user->cans('view_job_applications'))
                      <a href="{{ route('admin.job-applications.table', ['status_name' => 'hired']) }}" class="rd-sc rd-c-emerald rd-a rd-a6">
                 @else

@@ -9,6 +9,7 @@ use App\JobApplication;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use App\Company;
+use App\ConsortiumRegistration;
 use App\SmsSetting;
 use App\User;
 
@@ -37,6 +38,7 @@ class AdminDashboardController extends AdminBaseController
         $this->totalAtsJobs = Job::where('status', 'ats')->count();
         
         $this->totalCompanies = Company::count();
+        $this->totalConsortiumRegistrations = ConsortiumRegistration::count();
         $this->totalApplications = JobApplication::withTrashed()
             ->whereNull('moved_to_trash_at')
             ->count();
