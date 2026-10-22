@@ -11,7 +11,7 @@ const color = {value: '#7C3AED'};
 const button = {disabled: false, textContent: 'Save stage'};
 const message = {style: {}, textContent: ''};
 const add = {value: '__add_stage__'};
-const select = {value: '__add_stage__', options: [{value: ''}, {value: '8'}, add],
+const select = {value: '__add_stage__', options: [{value: ''}, {value: '8', textContent: 'Applied', 'data-color': '#2563EB', disabled: true}, {value: '11', textContent: 'Interview', 'data-color': '#D97706'}, add],
     querySelector: () => add,
     insertBefore(option, target) { this.options.splice(this.options.indexOf(target), 0, option); }};
 const nodes = {
@@ -20,8 +20,15 @@ const nodes = {
 };
 const requests = [];
 const moves = [];
+const pill = {style: {}};
+const badge = {style: {}, appendChild(node) { this.label = node.textContent; }};
+const scheduleAction = {style: {display: 'none'}};
+nodes['schedule-interview-action-3280'] = scheduleAction;
 const context = {$: {ajax: request => requests.push(request), easyAjax: request => moves.push(request)},
-    document: {getElementById: id => nodes[id], createElement: () => ({setAttribute(key, value) { this[key] = value; }})}};
+    document: {getElementById: id => nodes[id],
+        querySelectorAll: selector => selector === '.ja-pill-stage' ? [pill] : [badge],
+        createTextNode: textContent => ({textContent}),
+        createElement: () => ({setAttribute(key, value) { this[key] = value; }})}};
 vm.createContext(context);
 vm.runInContext(code, context);
 context.jaMoveFromDetail(3280, '__add_stage__', 'Add new stage', 8);
@@ -63,4 +70,36 @@ form.isConnected = true;
 context.jaMoveFromDetail(3280, '20', 'Reference Check', 8);
 assert.equal(moves.length, 1, 'The saved stage must work with the existing stage mover');
 assert.equal(moves[0].data.status_id, '20');
+const stageIds = select.options.map(option => option.value);
+let draws = 0;
+let counts = 0;
+context.table = {draw(reset) { assert.equal(reset, false); draws++; }};
+context.jaLoadTabCounts = () => counts++;
+function finishMove(id, label, request) {
+    select.value = id;
+    select.selectedIndex = select.options.findIndex(option => option.value === id);
+    select.options.forEach(option => {
+        option.getAttribute = key => option[key];
+        option.remove = () => select.options.splice(select.options.indexOf(option), 1);
+    });
+    request.success({status: 'success'});
+    assert.deepEqual(select.options.map(option => option.value), stageIds, 'Moving must retain every pipeline stage in its original order');
+    assert.equal(select.value, '', 'Reset the mover to its placeholder');
+    assert.equal(pill.textContent, label);
+    assert.equal(badge.label, label);
+    assert.equal(select.options.find(option => option.value === id).disabled, true, 'Only the current stage is unavailable as a destination');
+    select.options.filter(option => option.value && option.value !== id && option.value !== '__add_stage__')
+        .forEach(option => assert(!option.disabled, 'Previous stages must become available again'));
+}
+finishMove('20', 'Reference Check', moves[0]);
+context.jaMoveFromDetail(3280, '11', 'Interview', 8);
+finishMove('11', 'Interview', moves[1]);
+assert.equal(scheduleAction.style.display, '');
+context.jaMoveFromDetail(3280, '8', 'Applied', 8);
+finishMove('8', 'Applied', moves[2]);
+assert.equal(scheduleAction.style.display, 'none');
+assert.equal(draws, 3);
+assert.equal(counts, 3);
+assert.equal(select.options[select.options.length - 1], add, 'Adding stages must remain available after repeated moves');
 console.log('PASS: profile stage form, duplicate submission guard, validation feedback, cancellation, and stage selection');
+console.log('PASS: repeated stage moves and moving back preserve all options and update badges without a refresh');

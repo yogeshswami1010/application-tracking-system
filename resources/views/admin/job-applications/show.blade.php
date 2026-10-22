@@ -655,9 +655,7 @@ function jaSaveMarketingLabel(appId) {
                                     onchange="jaMoveFromDetail({{ $application->id }}, this.value, this.options[this.selectedIndex].text, {{ $currentStatusId }})">
                                     <option value="">Select stage…</option>
                                     @foreach($allStatuses as $stageOption)
-                                        @if($stageOption->id !== $currentStatusId)
-                                        <option value="{{ $stageOption->id }}" data-color="{{ $stageOption->color ?? '#6B7280' }}">{{ ucwords(str_replace('_', ' ', $stageOption->status)) }}</option>
-                                        @endif
+                                        <option value="{{ $stageOption->id }}" data-color="{{ $stageOption->color ?? '#6B7280' }}" @disabled($stageOption->id == $currentStatusId)>{{ ucwords(str_replace('_', ' ', $stageOption->status)) }}</option>
                                     @endforeach
                                     @if($application->job_id && $user->cans('edit_jobs'))
                                         <option value="__add_stage__">+ Add new stage…</option>
@@ -1539,8 +1537,12 @@ function jaMoveFromDetail(appId, toStatusId, toStatusLabel, currentStatusId) {
                 }
                 if (select) {
                     select.value = '';
-                    Array.prototype.slice.call(select.options).forEach(function (stage) {
-                        if (stage.value === String(toStatusId)) stage.remove();
+                    // Retain the complete pipeline so moving back never
+                    // requires reloading the profile. Only disable its current stage.
+                    Array.prototype.forEach.call(select.options, function (stage) {
+                        if (stage.value && stage.value !== '__add_stage__') {
+                            stage.disabled = stage.value === String(toStatusId);
+                        }
                     });
                 }
                 if (typeof table !== 'undefined') table.draw(false);
