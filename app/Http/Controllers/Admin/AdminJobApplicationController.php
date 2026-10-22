@@ -463,17 +463,8 @@ class AdminJobApplicationController extends AdminBaseController
                 // Each row may belong to a different job. Never use the global
                 // tab pipeline or another row's status IDs for move actions.
                 $actionStatuses = $row->job?->statuses ?? collect();
-                $currentIndex = $actionStatuses->search(fn ($stage) => (int) $stage->id === (int) $row->status_id);
-                $nextStatus = $currentIndex === false ? null : $actionStatuses->get($currentIndex + 1);
                 $rejectedStatus = $actionStatuses->first(fn ($stage) => strcasecmp($stage->status, 'rejected') === 0);
                 $appliedStatus = $actionStatuses->first();
-
-                // "Next stage" quick button — derived from the job's pipeline order
-                if ($nextStatus && $statusSlug !== 'rejected') {
-                    $nextLabel = e(ucwords(str_replace('_', ' ', $nextStatus->status)));
-                    $nextId    = $nextStatus->id;
-                    $parts[] = '<button type="button" onclick="jaMoveOne(' . $row->id . ',' . $nextId . ')" class="ja-act-btn move" title="Move to ' . $nextLabel . '">' . $nextLabel . ' <i class="fa fa-arrow-right" style="font-size:10px;margin-left:2px;"></i></button>';
-                }
 
                 // Serialize this job's destinations with the row so menus also
                 // work when the page displays applicants from multiple jobs.
