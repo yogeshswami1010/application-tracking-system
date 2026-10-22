@@ -374,6 +374,7 @@ class AdminJobApplicationController extends AdminBaseController
             ->with([
                 'location',
                 'job.skills',
+                'job.statuses' => fn ($query) => $query->orderBy('position')->orderBy('id'),
                 'status:id,status,color',
             ]);
 
@@ -451,59 +452,43 @@ class AdminJobApplicationController extends AdminBaseController
             $jobApplications = $jobApplications->whereDate('job_applications.created_at', '<=', $request->endDate);
         }
 
-        // Load statuses for the action column: global defaults always first,
-        // then any job-specific custom statuses appended after.
-        $jobFilterId    = (int) $request->input('jobs', 0);
-        $actionStatuses = collect();
-        if ($jobFilterId > 0) {
-            $actionStatuses = ApplicationStatus::where('job_id', $jobFilterId)->orderBy('position')->get();
-        }
-
-        // Build next-stage map from action statuses
-        $nextMap = [];
-        foreach ($actionStatuses as $i => $s) {
-            $nextStatus = $actionStatuses->get($i + 1);
-            if ($nextStatus) {
-                $nextMap[$s->status] = [
-                    'label' => ucwords(str_replace('_', ' ', $nextStatus->status)),
-                    'id'    => $nextStatus->id,
-                    'slug'  => $nextStatus->status,
-                ];
-            }
-        }
-
-        // Find rejected & applied — check action statuses first, then fall back to global
-        $rejectedStatus = $actionStatuses->first(fn ($status) => strcasecmp($status->status, 'rejected') === 0);
-        $appliedStatus  = $actionStatuses->first();
-
         $canEdit   = $this->user->cans('edit_job_applications');
-        $canView   = $this->user->cans('view_job_applications');
-        $canDelete = $this->user->role_id === 1; // admin only
 
         return DataTables::of($jobApplications)
-                ->addColumn('action', function ($row) use ($nextMap, $rejectedStatus, $appliedStatus, $canEdit, $canView, $canDelete) {
+                ->addColumn('action', function ($row) use ($canEdit) {
                 $parts = [];
                 $statusSlug = strtolower($row->status?->status ?? '');
 
                 if ($canEdit) {
+                // Each row may belong to a different job. Never use the global
+                // tab pipeline or another row's status IDs for move actions.
+                $actionStatuses = $row->job?->statuses ?? collect();
+                $currentIndex = $actionStatuses->search(fn ($stage) => (int) $stage->id === (int) $row->status_id);
+                $nextStatus = $currentIndex === false ? null : $actionStatuses->get($currentIndex + 1);
+                $rejectedStatus = $actionStatuses->first(fn ($stage) => strcasecmp($stage->status, 'rejected') === 0);
+                $appliedStatus = $actionStatuses->first();
 
                 // "Next stage" quick button — derived from the job's pipeline order
-                if (isset($nextMap[$statusSlug]) && $statusSlug !== 'rejected') {
-                    $nextLabel = $nextMap[$statusSlug]['label'];
-                    $nextId    = $nextMap[$statusSlug]['id'];
+                if ($nextStatus && $statusSlug !== 'rejected') {
+                    $nextLabel = e(ucwords(str_replace('_', ' ', $nextStatus->status)));
+                    $nextId    = $nextStatus->id;
                     $parts[] = '<button type="button" onclick="jaMoveOne(' . $row->id . ',' . $nextId . ')" class="ja-act-btn move" title="Move to ' . $nextLabel . '">' . $nextLabel . ' <i class="fa fa-arrow-right" style="font-size:10px;margin-left:2px;"></i></button>';
                 }
 
-                // "Move to any stage" dropdown — content is populated client-side
-                // from jaStages so it always reflects the currently-selected job's pipeline.
+                // Serialize this job's destinations with the row so menus also
+                // work when the page displays applicants from multiple jobs.
                 if (!in_array($statusSlug, ['rejected', 'hired'])) {
                     $dropdownId   = 'ja-move-drop-' . $row->id;
                     $dropdownHtml = '<div class="ja-move-wrap" style="position:relative;display:inline-flex;">';
                     $dropdownHtml .= '<button type="button" class="ja-act-btn" onclick="jaToggleDrop(\'' . $dropdownId . '\', this)" title="Move to stage" style="padding:5px 8px;border-radius:8px;"><i class="fa fa-chevron-down" style="font-size:10px;"></i></button>';
-                    // Empty container — jaToggleDrop fills it from jaStages on open
                     $dropdownHtml .= '<div id="' . $dropdownId . '" class="ja-move-drop"'
                         . ' data-app-id="' . $row->id . '"'
-                        . ' data-current-status="' . e($statusSlug) . '"'
+                        . ' data-current-status-id="' . (int) $row->status_id . '"'
+                        . ' data-stages="' . e($actionStatuses->map(fn ($stage) => [
+                            'id' => (int) $stage->id,
+                            'label' => ucwords(str_replace('_', ' ', $stage->status)),
+                            'color' => $stage->color ?? '#6B7280',
+                        ])->values()->toJson()) . '"'
                         . ' style="display:none;position:fixed;background:#fff;border:1.5px solid #E2DED8;border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.13);z-index:99999;min-width:160px;max-height:220px;overflow-y:auto;">'
                         . '</div></div>';
                     $parts[] = $dropdownHtml;

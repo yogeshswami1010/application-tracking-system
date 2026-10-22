@@ -724,14 +724,19 @@
         var isHidden = el.style.display === 'none';
 
         if (isHidden) {
-            // Populate dropdown from jaStages (reflects the current job's pipeline)
+            // Row actions must use the candidate's job, even in the all-jobs view.
             var appId         = el.getAttribute('data-app-id');
-            var currentStatus = el.getAttribute('data-current-status') || '';
+            var currentStatus = el.getAttribute('data-current-status-id') || '';
+            var stages = [];
+            try { stages = JSON.parse(el.getAttribute('data-stages') || '[]'); }
+            catch (error) { stages = []; }
             var html = '';
-            jaStages.forEach(function(s) {
-                if (s.slug === currentStatus) return;
-                var dot   = s.color || '#6B7280';
-                var label = s.label || s.slug;
+            stages.forEach(function(s) {
+                if (String(s.id) === currentStatus) return;
+                var dot = /^#[0-9a-f]{3,8}$/i.test(s.color || '') ? s.color : '#6B7280';
+                var label = String(s.label || '').replace(/[&<>"']/g, function(character) {
+                    return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[character];
+                });
                 html += '<button type="button"'
                     + ' onclick="jaMoveOne(' + appId + ',' + s.id + ');jaCloseDrop(\'' + id + '\')"'
                     + ' style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 14px;border:none;background:none;font-size:13px;font-weight:500;color:#1A1E2E;cursor:pointer;font-family:inherit;text-align:left;"'

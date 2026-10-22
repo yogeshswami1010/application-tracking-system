@@ -57,7 +57,7 @@ Schema::create('companies', function (Blueprint $t) { $t->increments('id'); $t->
 Schema::create('job_locations', function (Blueprint $t) { $t->increments('id'); $t->string('location'); });
 Schema::create('job_job_locations', function (Blueprint $t) { $t->increments('id'); $t->unsignedInteger('job_id'); $t->unsignedInteger('location_id'); });
 Schema::create('application_status', function (Blueprint $t) {
-    $t->increments('id'); $t->unsignedInteger('job_id'); $t->string('status'); $t->string('color'); $t->integer('position');
+    $t->increments('id'); $t->unsignedInteger('job_id')->nullable(); $t->string('status'); $t->string('color'); $t->integer('position');
 });
 Schema::create('job_skills', function (Blueprint $t) { $t->increments('id'); $t->unsignedInteger('job_id'); });
 Schema::create('questions', function (Blueprint $t) {
@@ -97,9 +97,14 @@ DB::table('questions')->insert(['id' => 1, 'type' => 'radio', 'is_knockout' => t
 DB::table('job_application_answers')->insert(['job_application_id' => 5, 'question_id' => 1, 'answer' => 'No']);
 
 function check(bool $ok, string $message): void { if (!$ok) throw new RuntimeException($message); }
-function controller(string $class): object {
+function controller(string $class, bool $canEdit = false): object {
     $controller = (new ReflectionClass($class))->newInstanceWithoutConstructor();
-    $actor = new class { public $role_id = 2; public function cans($permission) { return $permission === 'view_job_applications'; } };
+    $actor = new class($canEdit) {
+        public $role_id = 2;
+        public $id = 99;
+        public function __construct(private bool $canEdit) {}
+        public function cans($permission) { return $permission === 'view_job_applications' || ($this->canEdit && $permission === 'edit_job_applications'); }
+    };
     (new ReflectionProperty(AdminBaseController::class, 'user'))->setValue($controller, $actor);
     return $controller;
 }
@@ -196,4 +201,39 @@ $export = new App\Exports\JobApplicationExport([
 ], []);
 check($export->collection()->pluck('id')->all() === [4], 'Export must include the same Interview applicant at the mapped job location');
 echo "PASS: Job/location dropdowns, multi-location counts and export use posting locations\n";
+
+// With all jobs visible, each row must carry the destinations from its own job.
+DB::table('application_status')->insert([
+    ['id' => 100, 'job_id' => 2, 'status' => 'Client & Technical Review', 'color' => '#7C3AED', 'position' => 4],
+    ['id' => 200, 'job_id' => null, 'status' => 'Legacy global stage', 'color' => '#000000', 'position' => 1],
+]);
+$applications = controller(AdminJobApplicationController::class, true);
+$request = locationRequest(['jobs' => 'all', 'location' => 'all']);
+$rows = collect($applications->data($request)->getData(true)['data'])->keyBy('id');
+function menuStages(string $action): array {
+    preg_match('/data-stages="([^"]*)"/', $action, $match);
+    check(isset($match[1]), 'Row action must provide its own job pipeline, not use global tab stages');
+    return json_decode(html_entity_decode($match[1], ENT_QUOTES, 'UTF-8'), true, flags: JSON_THROW_ON_ERROR);
+}
+check(array_column(menuStages($rows[1]['action']), 'id') === [1, 2, 3], 'Job 1 row must use only job 1 stages in pipeline order');
+check(array_column(menuStages($rows[11]['action']), 'id') === [4, 5, 6, 100], 'Job 2 row must include its custom stage and exclude global/job 1 stages');
+check(str_contains($rows[11]['action'], 'jaMoveOne(11,5)'), 'Quick move/reject must use this row job status ID');
+check(str_contains($rows[6]['action'], 'jaMoveOne(6,1)'), 'Restore must use this row job initial stage');
+$filtered = $applications->data(locationRequest(['jobs' => '2', 'location' => 'all']))->getData(true);
+check(array_column(menuStages($filtered['data'][0]['action']), 'id') === [4, 5, 6, 100], 'Job-filtered and all-jobs views must use identical destinations');
+
+Schema::create('job_application_status_histories', function (Blueprint $t) {
+    $t->increments('id'); $t->unsignedInteger('job_application_id'); $t->unsignedInteger('from_status_id')->nullable();
+    $t->unsignedInteger('to_status_id'); $t->unsignedInteger('user_id')->nullable(); $t->timestamps();
+});
+$move = $applications->bulkStatusUpdate(Request::create('/', 'POST', ['ids' => [1], 'status_id' => 3]));
+check($move['status'] === 'success' && DB::table('job_applications')->where('id', 1)->value('status_id') === 3, 'A destination from the row menu must persist successfully');
+check(DB::table('job_application_status_histories')->where('job_application_id', 1)->where('to_status_id', 3)->count() === 1, 'Successful moves must retain stage history');
+$move = $applications->bulkStatusUpdate(Request::create('/', 'POST', ['ids' => [1], 'status_id' => 6]));
+check($move['status'] === 'fail' && DB::table('job_applications')->where('id', 1)->value('status_id') === 3, 'Another job stage must remain rejected');
+try {
+    $applications->bulkStatusUpdate(Request::create('/', 'POST', ['ids' => [1], 'status_id' => 200]));
+    throw new RuntimeException('Global stage must not be assigned to a job applicant');
+} catch (Illuminate\Database\Eloquent\ModelNotFoundException $expected) {}
+echo "PASS: row-specific job stages, custom stages, quick actions, persisted moves and cross-job protection\n";
 echo "Applicant count integration checks passed.\n";
