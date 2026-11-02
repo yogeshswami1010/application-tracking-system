@@ -20,7 +20,7 @@ class ImportCandidateEmailReplies extends Command
         }
         $settings = config('services.candidate_email_imap');
         $smtp = config('mail.ai_search_smtp');
-        $host = $settings['host'] ?? 'imappro.zoho.in';
+        $host = $settings['host'] ?? 'imap.zohocloud.ca';
         $mailbox = sprintf('{%s:%s/imap/ssl}INBOX', $host, $settings['port'] ?? 993);
         imap_timeout(IMAP_OPENTIMEOUT, 15);
         imap_timeout(IMAP_READTIMEOUT, 15);
